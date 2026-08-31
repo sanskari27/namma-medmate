@@ -80,6 +80,8 @@ jobs:
       shardTotal: '1'
 
   visual:
+    permissions:
+      contents: write
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:
       project: auth-ui
