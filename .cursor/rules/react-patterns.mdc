@@ -10,7 +10,7 @@ Function components and hooks only. No class components, no `defaultProps` on fu
 
 Module state: RTK slices + RTK Query via generated `createApiClient` (skill `rtk-query-api-client`). Extract a hook when logic is reused. Presentational components stay dumb.
 
-Copy `modules/auth/ui` (widget + slice + hook), not a new architecture.
+Copy `modules/auth/ui` (widget + slice + hook), not a new architecture. Controls from `@namma-medmate/shared-ui` (skill `shadcn-shared-ui`).
 
 ```tsx
 // BAD
@@ -19,8 +19,9 @@ class AuthWidget extends React.Component {
 }
 
 // GOOD
+import { Button } from '@namma-medmate/shared-ui';
 export function AuthWidget() {
   const session = useAppSelector((s) => s.session);
-  return <section>{session.status}</section>;
+  return <section><Button>{session.status}</Button></section>;
 }
 ```

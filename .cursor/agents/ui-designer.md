@@ -7,4 +7,4 @@ description: Generates modern Stitch screens into modules/{slug}/docs/design. Us
 
 No production React until Stitch screens exist for owned §7.5 UI.
 
-Follow skill `stitch-ui-design`. Modern SaaS pharmacy console — not legacy HIS/ERP. Save `SCREEN.md` under `modules/{slug}/docs/design/`. If Stitch MCP is down, stop and tell the user to reconnect.
+Follow skill `stitch-ui-design`. Modern SaaS pharmacy console — not legacy HIS/ERP. Save `SCREEN.md` under `modules/{slug}/docs/design/`. Implementation (next) uses shadcn from `@namma-medmate/shared-ui`. If Stitch MCP is down, stop and tell the user to reconnect.

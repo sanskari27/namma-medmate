@@ -1,22 +1,23 @@
 @import url('https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&family=Noto+Sans:wght@400;500;700&display=swap');
 
 @theme {
-  --color-primary: #15803d;
-  --color-primary-foreground: #ffffff;
-  --color-secondary: #22c55e;
-  --color-cta: #0369a1;
+  --color-primary: var(--primary, #15803d);
+  --color-primary-foreground: var(--primary-foreground, #ffffff);
+  --color-secondary: var(--secondary, #22c55e);
+  --color-secondary-foreground: var(--secondary-foreground, #14532d);
+  --color-cta: var(--ring, #0369a1);
   --color-cta-foreground: #ffffff;
-  --color-surface: #f0fdf4;
-  --color-surface-raised: #ffffff;
-  --color-ink: #14532d;
-  --color-ink-muted: #166534;
-  --color-danger: #b91c1c;
+  --color-surface: var(--background, #f0fdf4);
+  --color-surface-raised: var(--card, #ffffff);
+  --color-ink: var(--foreground, #14532d);
+  --color-ink-muted: var(--muted-foreground, #166534);
+  --color-danger: var(--destructive, #b91c1c);
   --color-danger-foreground: #ffffff;
   --color-warning: #b45309;
-  --color-border: #bbf7d0;
-  --color-focus: #0369a1;
+  --color-border: var(--border, #bbf7d0);
+  --color-focus: var(--ring, #0369a1);
   --font-sans: 'Figtree', 'Noto Sans', ui-sans-serif, system-ui, sans-serif;
-  --radius-md: 0.5rem;
+  --radius-md: var(--radius, 0.5rem);
   --shadow-card: 0 1px 2px rgb(20 83 45 / 0.08), 0 8px 24px rgb(20 83 45 / 0.06);
 }
 

@@ -26,8 +26,9 @@ const log = (m: string) => console.log(m);
 // GOOD — existing libs
 import { createApiClient } from '@namma-medmate/api-client';
 import { logger } from '@namma-medmate/logger';
+import { Button } from '@namma-medmate/shared-ui';
 ```
 
-Rules: no abstractions that were not requested; no new dependency if avoidable; deletion over addition; fewest files possible. Mark deliberate ceilings with a `ponytail:` comment.
+Rules: no abstractions that were not requested; no new dependency if avoidable; deletion over addition; fewest files possible. Mark deliberate ceilings with a `ponytail:` comment. UI primitives: skill `shadcn-shared-ui` — never copy Button/Input into a module.
 
 Not lazy about: understanding the problem, tests (`tdd-enforcer`), input validation at trust boundaries, security, a11y, tenant isolation, or requirement ACs.

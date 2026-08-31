@@ -9,6 +9,7 @@ Compose `@namma-medmate/{slug}-ui` into `apps/dispensary-app-web` (providers, ro
 
 - Import public exports from `modules/{slug}/ui/src/index.ts`.
 - Register RTK store/API like auth (`createAuthStore` / providers).
+- App CSS already imports `@namma-medmate/shared-ui/globals.css`. Do not add a second theme or a local `components/ui`.
 - Do **not** create a second product app for Platform Admin HQ unless the user or requirement explicitly starts HQ.
 - Cross-module journeys: app e2e imports `@namma-medmate/{slug}-ui/e2e`.
 

@@ -20,9 +20,9 @@ Any new or materially changed screen in the requirement’s §7.5.
    - **Vibe:** modern 2026 SaaS — whitespace, hierarchy, accessible contrast, POS tap targets. **Not** legacy hospital HIS, grey ERP, skeuomorphic clip-art, or spreadsheet-as-page.
    - **Content:** real entities and English copy from the spec (i18n keys, error strings, personas).
 4. `get_screen` (HTML/screenshot if exposed) → `modules/{slug}/docs/design/` (`SCREEN.md` with project/screen ids + prompt + screenshot path).
-5. Implement in React + Tailwind using `@namma-medmate/shared-ui`. Translate Stitch HTML; do not paste a parallel CSS universe.
+5. Implement in React + Tailwind using **shadcn primitives from `@namma-medmate/shared-ui`** (skill `shadcn-shared-ui`). Translate Stitch HTML; do not paste a parallel CSS universe or a second Button/Input.
 6. If Stitch is disconnected (`needsAuth` / missing namespace): **stop the UI step**. Tell the user to reconnect Stitch. Do not guess a legacy layout.
 
 ## Modern bar
 
-Pharmacy Partner Console + Platform Admin HQ. Contemporary SaaS density (task-focused, not 2010 portal). One token system via `shared-ui` + Tailwind. Optional supplement: personal `ui-ux-pro-max`; Stitch remains the screen source of truth.
+Pharmacy Partner Console + Platform Admin HQ. Contemporary SaaS density (task-focused, not 2010 portal). One token system: shadcn in `shared-ui` + Tailwind. Optional supplement: personal `ui-ux-pro-max`; Stitch remains the screen source of truth.

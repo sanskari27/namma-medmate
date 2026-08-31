@@ -2,7 +2,7 @@
 
 Usage: `/design-screens 01-tenancy`
 
-Generate or update Stitch screens for a module’s §7.5 UI. No production React in this command.
+Generate or update Stitch screens for a module’s §7.5 UI. No production React in this command — implementation uses shadcn via `/implement-module` and skill `shadcn-shared-ui`.
 
 ## Steps
 

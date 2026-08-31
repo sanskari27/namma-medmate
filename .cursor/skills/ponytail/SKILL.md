@@ -18,7 +18,7 @@ Lazy senior: efficient, not careless. Climb this ladder after you understand the
 
 - Never add `axios`, `lodash`, `moment`, or a per-module HTTP/db wrapper.
 - Never add `modules/*/api/db`.
-- Never duplicate logger, envelope, pagination, or env loading.
+- Never duplicate logger, envelope, pagination, env loading, or UI primitives (skill `shadcn-shared-ui`).
 - Bug fix = shared function once, not one patch per caller.
 
 `ponytail:` comments only for deliberate ceilings (name the ceiling and upgrade path).

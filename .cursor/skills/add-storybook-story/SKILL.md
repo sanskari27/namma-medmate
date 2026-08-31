@@ -12,3 +12,5 @@ Follow `modules/auth/ui`:
 - `.storybook/main.ts` + `preview.tsx` copied from auth-ui
 
 Visual e2e hits Storybook (`nx visual {slug}-ui`). Keep stories aligned with e2e `data/stories.ts`.
+
+Preview must import `@namma-medmate/shared-ui/globals.css` so shadcn tokens apply. Compose controls from `@namma-medmate/shared-ui`; do not snapshot a hand-rolled primitive.

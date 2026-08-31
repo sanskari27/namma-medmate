@@ -11,4 +11,5 @@ alwaysApply: true
 - Reference implementations: `modules/auth/ui` and `modules/auth/api`. Copy those, not README-only `modules/_template`.
 - Next module: `01-tenancy`. Current auth is OIDC scaffold; chemist login is `06-auth.md`.
 - Do not invent a new top-level app (HQ) unless the requirement or user asks. Compose pharmacy UI into `apps/dispensary-app-web`.
+- UI controls: shadcn in `libs/shared-ui` (`@namma-medmate/shared-ui`). Skill `shadcn-shared-ui`.
 - Agent/skill/command index: `AGENTS.md`.

@@ -11,4 +11,6 @@ For each acceptance criterion:
 2. Implement the minimum to pass.
 3. Refactor under Ponytail. Keep 100% coverage.
 
+New shadcn primitives: tests in `libs/shared-ui/tests/unit/` before relying on them in a screen (skill `shadcn-shared-ui`).
+
 Do not change runtime files with no matching failing test. Complements `tests-required.mdc`.

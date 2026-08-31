@@ -11,7 +11,7 @@ Delegate in order:
 2. Agent `boundary-guardian`
 3. Agent `security-reviewer` + `owasp-security` / `auth-patterns` / `security-review-medmate`
 4. Agent `test-engineer` (TDD, e2e-kit, 100% coverage, `verify-gates`)
-5. Skills `clean-code` + `code-reviewer`
+5. Skills `clean-code` + `code-reviewer` (BLOCK a shadcn copy in a module/app)
 
 ```
 ## Module review: NN-slug

@@ -20,4 +20,4 @@ Look: contemporary SaaS (clear hierarchy, generous whitespace, accessible contra
 </header>
 ```
 
-Do not invent a second design system. Use `shared-ui` + Tailwind. If Stitch is disconnected, stop the UI step — do not guess a legacy layout.
+Do not invent a second design system. Use shadcn primitives from `@namma-medmate/shared-ui` + Tailwind (skill `shadcn-shared-ui`). If Stitch is disconnected, stop the UI step — do not guess a legacy layout.
