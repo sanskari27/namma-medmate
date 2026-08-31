@@ -45,10 +45,11 @@ export function createRouteAttacher(app: Express) {
           const parsed = await parser(req);
           const validated = await validator(parsed);
           const output = await controller(validated, req);
+          res.status(endpoint.successStatus ?? 200);
           if (responseMetadataCustomization) {
             responseMetadataCustomization(res, output);
           }
-          res.status(endpoint.successStatus ?? 200).json(output);
+          res.json(output);
         } catch (error) {
           next(error);
         }

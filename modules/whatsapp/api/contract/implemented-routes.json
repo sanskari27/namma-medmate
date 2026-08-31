@@ -1,0 +1,25 @@
+[
+  { "method": "post", "path": "/whatsapp/messages", "operationId": "sendWhatsAppMessage" },
+  { "method": "get", "path": "/whatsapp/messages", "operationId": "listWhatsAppMessages" },
+  {
+    "method": "get",
+    "path": "/whatsapp/mandatory-failures",
+    "operationId": "listWhatsAppMandatoryFailures"
+  },
+  {
+    "method": "post",
+    "path": "/whatsapp/messages/{message_id}/acknowledge",
+    "operationId": "acknowledgeWhatsAppMessage"
+  },
+  {
+    "method": "post",
+    "path": "/whatsapp/share-deeplink",
+    "operationId": "createWhatsAppShareDeeplink"
+  },
+  { "method": "get", "path": "/whatsapp/templates", "operationId": "listWhatsAppTemplates" },
+  {
+    "method": "post",
+    "path": "/whatsapp/webhooks/meta",
+    "operationId": "receiveWhatsAppMetaWebhook"
+  }
+]

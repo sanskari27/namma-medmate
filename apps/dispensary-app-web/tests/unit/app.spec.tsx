@@ -56,4 +56,13 @@ describe('dispensary app', () => {
     );
     expect(screen.getByRole('heading', { name: 'Session' })).toBeInTheDocument();
   });
+
+  it('renders the WhatsApp inbox on /whatsapp', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/whatsapp" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
+  });
 });

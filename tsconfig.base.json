@@ -27,6 +27,7 @@
       "@namma-medmate/api-client": ["libs/api-client/src/index.ts"],
       "@namma-medmate/auth-ui/e2e": ["modules/auth/ui/tests/e2e/index.ts"],
       "@namma-medmate/tenancy-ui/e2e": ["modules/tenancy/ui/tests/e2e/index.ts"],
+      "@namma-medmate/whatsapp-ui/e2e": ["modules/whatsapp/ui/tests/e2e/index.ts"],
       "@namma-medmate/cache": ["libs/cache/src/index.ts"],
       "@namma-medmate/constants": ["libs/constants/src/index.ts"],
       "@namma-medmate/context-propagation": ["libs/context-propagation/src/index.ts"],
