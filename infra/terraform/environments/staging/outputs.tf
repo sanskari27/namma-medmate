@@ -6,6 +6,14 @@ output "api_endpoint" {
   value = module.api.api_endpoint
 }
 
+output "api_fqdn" {
+  value = local.api_fqdn
+}
+
+output "api_base_url" {
+  value = "https://${local.api_fqdn}/auth-api"
+}
+
 output "web_bucket" {
   value = module.web.bucket_name
 }

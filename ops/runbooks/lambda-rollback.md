@@ -9,6 +9,8 @@ Escalation: engineering lead
 4. Verify:
    ```sh
    aws lambda get-function --function-name namma-medmate-<env>-auth-api --region ap-south-1
-   curl --fail "$API_BASE_URL/health"
+   # staging: https://api.staging.nammamedmate.com/auth-api
+   # prod:    https://api.nammamedmate.com/auth-api
+   curl --fail "$API_HOST/auth-api/health"
    ```
 5. Rollback is successful when `/health` returns `{ "status": "ok" }` and error rate returns to SLO.

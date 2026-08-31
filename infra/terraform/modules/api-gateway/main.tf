@@ -2,6 +2,8 @@ variable "environment" { type = string }
 variable "api_name" { type = string }
 variable "lambda_invoke_arn" { type = string }
 variable "lambda_function_name" { type = string }
+variable "custom_domain_name" { type = string }
+variable "base_path" { type = string }
 
 resource "aws_apigatewayv2_api" "this" {
   name          = var.api_name
@@ -35,5 +37,13 @@ resource "aws_lambda_permission" "apigw" {
   source_arn    = "${aws_apigatewayv2_api.this.execution_arn}/*/*"
 }
 
+resource "aws_apigatewayv2_api_mapping" "this" {
+  api_id          = aws_apigatewayv2_api.this.id
+  domain_name     = var.custom_domain_name
+  stage           = aws_apigatewayv2_stage.default.id
+  api_mapping_key = var.base_path
+}
+
 output "api_endpoint" { value = aws_apigatewayv2_api.this.api_endpoint }
 output "api_id" { value = aws_apigatewayv2_api.this.id }
+output "stage_id" { value = aws_apigatewayv2_stage.default.id }

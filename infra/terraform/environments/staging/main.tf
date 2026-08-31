@@ -9,7 +9,8 @@ terraform {
 }
 
 locals {
-  fqdn = var.environment == "prod" ? "${var.app_slug}.${var.base_domain}" : "${var.app_slug}.${var.environment}.${var.base_domain}"
+  fqdn     = var.environment == "prod" ? "${var.app_slug}.${var.base_domain}" : "${var.app_slug}.${var.environment}.${var.base_domain}"
+  api_fqdn = var.environment == "prod" ? "api.${var.base_domain}" : "api.${var.environment}.${var.base_domain}"
 }
 
 provider "aws" {
@@ -76,12 +77,20 @@ module "auth_lambda" {
   }
 }
 
+module "api_domain" {
+  source  = "../../modules/api-gateway-domain"
+  fqdn    = local.api_fqdn
+  zone_id = var.hosted_zone_id
+}
+
 module "api" {
   source               = "../../modules/api-gateway"
   environment          = var.environment
   api_name             = "namma-medmate-${var.environment}-http"
   lambda_invoke_arn    = module.auth_lambda.invoke_arn
   lambda_function_name = module.auth_lambda.function_name
+  custom_domain_name   = module.api_domain.domain_name
+  base_path            = "auth-api"
 }
 
 module "cert" {
