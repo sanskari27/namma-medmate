@@ -20,6 +20,7 @@
     "react-redux": "^9.2.0"
   },
   "devDependencies": {
+    "@namma-medmate/e2e-kit": "workspace:*",
     "@tailwindcss/vite": "^4.1.11",
     "tailwindcss": "^4.1.11"
   }

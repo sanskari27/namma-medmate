@@ -8,7 +8,9 @@
     "src/**/*.tsx",
     "tests/unit/**/*.ts",
     "tests/unit/**/*.tsx",
+    "tests/e2e/**/*.ts",
     "tests/setup.ts",
-    "vite.config.ts"
+    "vite.config.ts",
+    "playwright.config.ts"
   ]
 }

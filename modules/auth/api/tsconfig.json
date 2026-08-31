@@ -4,5 +4,11 @@
     "outDir": "dist",
     "types": ["node"]
   },
-  "include": ["src/**/*.ts", "tests/unit/**/*.ts", "esbuild.config.mjs"]
+  "include": [
+    "src/**/*.ts",
+    "tests/unit/**/*.ts",
+    "tests/e2e/**/*.ts",
+    "esbuild.config.mjs",
+    "playwright.config.ts"
+  ]
 }
