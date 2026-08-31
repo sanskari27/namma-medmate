@@ -1,0 +1,4 @@
+@import '@namma-medmate/shared-ui/globals.css';
+@import 'tailwindcss';
+@source '../src/**/*.{ts,tsx}';
+@source '../../../../libs/shared-ui/src/**/*.{ts,tsx}';

@@ -1,6 +1,21 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Badge, Button, Input, Label, StatusBanner, cn } from '../../src/index.ts';
+import {
+  Badge,
+  Button,
+  Input,
+  Label,
+  StatusBanner,
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+  cn,
+} from '../../src/index.ts';
 
 const VARIANTS = ['default', 'outline', 'secondary', 'ghost', 'destructive', 'link'] as const;
 const SIZES = ['default', 'xs', 'sm', 'lg', 'icon', 'icon-xs', 'icon-sm', 'icon-lg'] as const;
@@ -58,5 +73,32 @@ describe('shared-ui', () => {
       </div>,
     );
     expect(screen.getByLabelText('Shop name')).toHaveClass('min-h-11');
+  });
+
+  it('renders a table with caption and footer', () => {
+    render(
+      <Table>
+        <TableCaption>Inbox</TableCaption>
+        <TableHeader>
+          <TableRow>
+            <TableHead>To</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          <TableRow>
+            <TableCell>+919876543210</TableCell>
+          </TableRow>
+        </TableBody>
+        <TableFooter>
+          <TableRow>
+            <TableCell>1 row</TableCell>
+          </TableRow>
+        </TableFooter>
+      </Table>,
+    );
+    expect(screen.getByText('Inbox')).toBeInTheDocument();
+    expect(screen.getByText('To')).toBeInTheDocument();
+    expect(screen.getByText('+919876543210')).toBeInTheDocument();
+    expect(screen.getByText('1 row')).toBeInTheDocument();
   });
 });

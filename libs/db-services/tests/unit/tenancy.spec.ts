@@ -38,6 +38,27 @@ describe('memory tenancy repository', () => {
     await expect(getLocationForTenant(repo, crypto.randomUUID())).resolves.toBeUndefined();
   });
 
+  it('accepts a seeded pharmacy record', async () => {
+    const tenantId = crypto.randomUUID();
+    const locationId = crypto.randomUUID();
+    const now = new Date();
+    const repo = createMemoryTenancyRepository({
+      tenantId,
+      gstDealerType: GST_DEALER_TYPE_REGULAR,
+      businessType: BUSINESS_TYPE_RETAIL,
+      createdAt: now,
+      updatedAt: now,
+      location: {
+        locationId,
+        tenantId,
+        displayName: DISPLAY,
+        createdAt: now,
+        updatedAt: now,
+      },
+    });
+    await expect(repo.getPharmacyByTenantId(tenantId)).resolves.toMatchObject({ tenantId });
+  });
+
   it('pages pharmacies and ignores a tampered cursor', async () => {
     const repo = createMemoryTenancyRepository();
     for (const name of ['A', 'B', 'C']) {

@@ -12,17 +12,17 @@ Exceptions (from `README.md`): implement `29-books-gst` period-lock + `postJourn
 
 | Status      | Count |
 | ----------- | ----: |
-| pending     |    40 |
+| pending     |    38 |
 | in_progress |     1 |
 | blocked     |     0 |
-| done        |     1 |
+| done        |     2 |
 
 ## Modules
 
 | #   | Slug                      | Spec                                                             | Depends on                                                                                                                                               | Status      | Completed  | Notes                                                                                   |
 | --- | ------------------------- | ---------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------- | ---------- | --------------------------------------------------------------------------------------- |
 | 01  | `tenancy`                 | [01-tenancy.md](./01-tenancy.md)                                 | —                                                                                                                                                        | done        | 2026-09-01 | Pharmacy + one Location; HQ REST + console shell badge. Chemist login still `06`.       |
-| 02  | `whatsapp`                | [02-whatsapp.md](./02-whatsapp.md)                               | `tenancy`                                                                                                                                                | pending     |            |                                                                                         |
+| 02  | `whatsapp`                | [02-whatsapp.md](./02-whatsapp.md)                               | `tenancy`                                                                                                                                                | done        | 2026-09-01 | Inbox, mandatory banner, share deeplink, Meta send/webhook. No chemist WABA or SMS.     |
 | 03  | `audit`                   | [03-audit.md](./03-audit.md)                                     | `tenancy`                                                                                                                                                | pending     |            |                                                                                         |
 | 04  | `master-catalogue`        | [04-master-catalogue.md](./04-master-catalogue.md)               | —                                                                                                                                                        | pending     |            | Platform-scoped                                                                         |
 | 05  | `plan-gating`             | [05-plan-gating.md](./05-plan-gating.md)                         | `tenancy`                                                                                                                                                | pending     |            |                                                                                         |

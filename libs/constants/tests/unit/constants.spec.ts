@@ -14,6 +14,8 @@ describe('ErrorCode', () => {
     expect(ErrorCode.VALIDATION_FAILED).toBe('VALIDATION_FAILED');
     expect(ErrorCode.LOCATION_LIMIT_V1).toBe('LOCATION_LIMIT_V1');
     expect(ErrorCode.PHARMACY_SESSION_REQUIRED).toBe('PHARMACY_SESSION_REQUIRED');
+    expect(ErrorCode.INVALID_WHATSAPP_TO).toBe('INVALID_WHATSAPP_TO');
+    expect(ErrorCode.WHATSAPP_OTP_UNDELIVERABLE).toBe('WHATSAPP_OTP_UNDELIVERABLE');
   });
 });
 

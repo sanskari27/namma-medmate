@@ -11,6 +11,7 @@
   "dependencies": {
     "@namma-medmate/auth-ui": "workspace:*",
     "@namma-medmate/tenancy-ui": "workspace:*",
+    "@namma-medmate/whatsapp-ui": "workspace:*",
     "@namma-medmate/api-client": "workspace:*",
     "@namma-medmate/error-handling": "workspace:*",
     "@namma-medmate/event-bus": "workspace:*",

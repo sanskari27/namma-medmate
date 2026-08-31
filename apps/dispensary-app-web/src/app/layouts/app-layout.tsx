@@ -1,7 +1,9 @@
 import type { ReactNode } from 'react';
 import { Provider } from 'react-redux';
 import { TenantShell } from '@namma-medmate/tenancy-ui';
+import { MandatoryWhatsAppBanner } from '@namma-medmate/whatsapp-ui';
 import { tenancyStore } from '../../store/tenancy.ts';
+import { whatsappStore } from '../../store/whatsapp.ts';
 import { getLocationId } from '../../services/api/token.ts';
 
 export function AppLayout({ children }: { children: ReactNode }) {
@@ -19,7 +21,10 @@ export function AppLayout({ children }: { children: ReactNode }) {
           <TenantShell skipQuery={skipTenancyQuery} />
         </Provider>
       </header>
-      <main id="main-content" className="mx-auto max-w-3xl px-6 py-10">
+      <Provider store={whatsappStore}>
+        <MandatoryWhatsAppBanner skipQuery={skipTenancyQuery} locationId={getLocationId()} />
+      </Provider>
+      <main id="main-content" className="mx-auto max-w-5xl px-6 py-10">
         {children}
       </main>
     </div>

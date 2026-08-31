@@ -54,6 +54,43 @@ describe('lambda-bootstrap', () => {
     expect(getAttachedRoutes()).toHaveLength(1);
   });
 
+  it('stores the raw JSON body for webhook signature checks', async () => {
+    const boot = createExpressApp({
+      serviceName: 'whatsapp-api',
+      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() },
+    });
+    boot.attachRoute(
+      { method: 'post', path: '/hook', operationId: 'hook' },
+      (req) => ({ raw: (req as typeof req & { rawBody?: string }).rawBody }),
+      (input) => input,
+      (input) => input,
+    );
+    const response = await request(boot.complete()).post('/hook').send({ id: 'wamid.1' });
+    expect(response.status).toBe(200);
+    expect(response.body.raw).toContain('wamid.1');
+  });
+
+  it('lets response customization override the default success status', async () => {
+    const boot = createExpressApp({
+      serviceName: 'whatsapp-api',
+      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() },
+    });
+    boot.attachRoute(
+      { method: 'post', path: '/send', operationId: 'send', successStatus: 202 },
+      () => ({ deduped: true }),
+      (input) => input,
+      (input) => input,
+      (res, output) => {
+        if (output.deduped) {
+          res.status(200);
+        }
+      },
+    );
+    const response = await request(boot.complete()).post('/send');
+    expect(response.status).toBe(200);
+    expect(response.body).toEqual({ deduped: true });
+  });
+
   it('honors EndpointDefinition successStatus for creates', async () => {
     const boot = createExpressApp({
       serviceName: 'tenancy-api',

@@ -239,6 +239,196 @@ paths:
           $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
+  /whatsapp/messages:
+    post:
+      operationId: sendWhatsAppMessage
+      summary: Queue a transactional or campaign WhatsApp send
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/SendMessageRequest'
+      responses:
+        '200':
+          description: Deduped existing message
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageSuccess'
+        '202':
+          description: Accepted for delivery
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SendMessageSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: listWhatsAppMessages
+      summary: List inbox rows for a pharmacy location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: status
+          in: query
+          schema:
+            $ref: '#/components/schemas/MessageStatus'
+        - name: template_key
+          in: query
+          schema:
+            $ref: '#/components/schemas/TemplateKey'
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+      responses:
+        '200':
+          description: Inbox page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InboxSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /whatsapp/mandatory-failures:
+    get:
+      operationId: listWhatsAppMandatoryFailures
+      summary: Unacknowledged mandatory failed sends for the banner
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Mandatory failures
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MandatoryFailuresSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /whatsapp/messages/{message_id}/acknowledge:
+    post:
+      operationId: acknowledgeWhatsAppMessage
+      summary: Owner acknowledges a mandatory failure
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: message_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AcknowledgeRequest'
+      responses:
+        '200':
+          description: Acknowledged
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AcknowledgeSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /whatsapp/share-deeplink:
+    post:
+      operationId: createWhatsAppShareDeeplink
+      summary: Build a wa.me URL without sending
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ShareDeeplinkRequest'
+      responses:
+        '200':
+          description: Deeplink
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ShareDeeplinkSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /whatsapp/templates:
+    get:
+      operationId: listWhatsAppTemplates
+      summary: Read-only template catalogue
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Catalogue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TemplatesSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /whatsapp/webhooks/meta:
+    post:
+      operationId: receiveWhatsAppMetaWebhook
+      summary: Meta Cloud API status callback
+      responses:
+        '200':
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WebhookAckSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
 components:
   schemas:
     SessionSuccess:
@@ -476,6 +666,356 @@ components:
             - true
         data:
           $ref: '#/components/schemas/LocationIdentity'
+    TemplateKey:
+      type: string
+      enum:
+        - login_otp
+        - khata_remind
+        - refill
+        - low_stock
+        - licence_expiry
+        - irn_fail
+        - gstn_fail
+        - subscription_dunning
+        - rx_pending
+        - kiosk_token
+        - bill_share
+    MessageStatus:
+      type: string
+      enum:
+        - queued
+        - sent
+        - delivered
+        - read
+        - failed
+    MessagePurpose:
+      type: string
+      enum:
+        - otp
+        - khata_remind
+        - refill
+        - low_stock
+        - licence
+        - irn_fail
+        - gstn_fail
+        - dunning
+        - rx_pending
+        - kiosk_token
+        - bill_share
+        - campaign
+        - other
+    SendMessageRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - location_id
+        - to
+        - template_key
+      properties:
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        to:
+          type: string
+        template_key:
+          type: string
+        purpose:
+          type: string
+        params:
+          type: object
+          additionalProperties: true
+        bill_id:
+          type: string
+          nullable: true
+        campaign_id:
+          type: string
+          nullable: true
+        idempotency_key:
+          type: string
+        mandatory:
+          type: boolean
+    SendMessage:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - tenant_id
+        - location_id
+        - status
+        - deduped
+      properties:
+        message_id:
+          type: string
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        deduped:
+          type: boolean
+    InboxItem:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - template_key
+        - to
+        - purpose
+        - status
+        - mandatory
+        - retry_count
+        - created_at
+        - preview
+      properties:
+        message_id:
+          type: string
+        template_key:
+          $ref: '#/components/schemas/TemplateKey'
+        to:
+          type: string
+        purpose:
+          $ref: '#/components/schemas/MessagePurpose'
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        bill_id:
+          type: string
+          nullable: true
+        mandatory:
+          type: boolean
+        retry_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        preview:
+          type: string
+    InboxPage:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/InboxItem'
+        next_cursor:
+          type: string
+          nullable: true
+    MandatoryFailure:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - template_key
+        - status
+        - created_at
+      properties:
+        message_id:
+          type: string
+        template_key:
+          $ref: '#/components/schemas/TemplateKey'
+        bill_id:
+          type: string
+          nullable: true
+        status:
+          $ref: '#/components/schemas/MessageStatus'
+        last_error_code:
+          type: string
+          nullable: true
+        created_at:
+          type: string
+          format: date-time
+    MandatoryFailures:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MandatoryFailure'
+    AcknowledgeRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - location_id
+      properties:
+        location_id:
+          type: string
+    AcknowledgeResult:
+      type: object
+      additionalProperties: false
+      required:
+        - message_id
+        - acknowledged_at
+      properties:
+        message_id:
+          type: string
+        acknowledged_at:
+          type: string
+          format: date-time
+    ShareDeeplinkRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - location_id
+        - text
+      properties:
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        to:
+          type: string
+        text:
+          type: string
+    ShareDeeplink:
+      type: object
+      additionalProperties: false
+      required:
+        - url
+      properties:
+        url:
+          type: string
+    TemplateItem:
+      type: object
+      additionalProperties: false
+      required:
+        - template_key
+        - meta_template_name
+        - language
+        - i18n_key
+        - transactional
+        - body_preview_en
+      properties:
+        template_key:
+          $ref: '#/components/schemas/TemplateKey'
+        meta_template_name:
+          type: string
+        language:
+          type: string
+        i18n_key:
+          type: string
+        transactional:
+          type: boolean
+        body_preview_en:
+          type: string
+    TemplateList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/TemplateItem'
+    WebhookAck:
+      type: object
+      additionalProperties: false
+      required:
+        - received
+      properties:
+        received:
+          type: boolean
+    SendMessageSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/SendMessage'
+    InboxSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/InboxPage'
+    MandatoryFailuresSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/MandatoryFailures'
+    AcknowledgeSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/AcknowledgeResult'
+    ShareDeeplinkSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/ShareDeeplink'
+    TemplatesSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/TemplateList'
+    WebhookAckSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/WebhookAck'
   parameters:
     AuthorizationHeader:
       name: authorization

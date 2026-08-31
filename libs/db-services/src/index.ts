@@ -6,6 +6,9 @@ export { createMemoryTenancyRepository } from './tenancy/memory-repository.ts';
 export { createSqlTenancyRepository } from './tenancy/sql-repository.ts';
 export { getLocationForTenant } from './tenancy/get-location-for-tenant.ts';
 export { mapTenancyPersistenceError, isUniqueViolation } from './tenancy/errors.ts';
+export { createMemoryWhatsAppRepository } from './whatsapp/memory-repository.ts';
+export { createSqlWhatsAppRepository } from './whatsapp/sql-repository.ts';
+export { WHATSAPP_PURPOSES, WHATSAPP_STATUSES, WHATSAPP_TEMPLATE_KEYS } from './whatsapp/types.ts';
 export { BUSINESS_TYPE_RETAIL, GST_DEALER_TYPE_REGULAR } from './tenancy/types.ts';
 export type {
   BusinessType,
@@ -20,3 +23,13 @@ export type {
   TenancyRepository,
   UpdateDisplayNameInput,
 } from './tenancy/types.ts';
+export type {
+  InsertWhatsAppMessageInput,
+  ListWhatsAppMessagesInput,
+  ListWhatsAppMessagesResult,
+  WhatsAppMessageRecord,
+  WhatsAppPurpose,
+  WhatsAppRepository,
+  WhatsAppStatus,
+  WhatsAppTemplateKey,
+} from './whatsapp/types.ts';

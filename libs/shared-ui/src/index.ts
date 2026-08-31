@@ -8,4 +8,14 @@ export { Label } from './components/label.tsx';
 export type { LabelProps } from './components/label.tsx';
 export { StatusBanner } from './status-banner.tsx';
 export type { StatusBannerProps } from './status-banner.tsx';
+export {
+  Table,
+  TableBody,
+  TableCaption,
+  TableCell,
+  TableFooter,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from './components/table.tsx';
 export { cn } from './lib/utils.ts';

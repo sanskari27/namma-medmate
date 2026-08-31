@@ -71,7 +71,16 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [dispensary-app-web, auth-ui, auth-api, tenancy-ui, tenancy-api]
+        project:
+          [
+            dispensary-app-web,
+            auth-ui,
+            auth-api,
+            tenancy-ui,
+            tenancy-api,
+            whatsapp-ui,
+            whatsapp-api,
+          ]
         shard: [1]
     uses: ./.github/workflows/_reusable-playwright.yml
     with:
@@ -85,7 +94,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [auth-ui, tenancy-ui]
+        project: [auth-ui, tenancy-ui, whatsapp-ui]
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:
       project: ${{ matrix.project }}

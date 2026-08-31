@@ -109,6 +109,109 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/whatsapp/messages": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List inbox rows for a pharmacy location */
+        get: operations["listWhatsAppMessages"];
+        put?: never;
+        /** Queue a transactional or campaign WhatsApp send */
+        post: operations["sendWhatsAppMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/whatsapp/mandatory-failures": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Unacknowledged mandatory failed sends for the banner */
+        get: operations["listWhatsAppMandatoryFailures"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/whatsapp/messages/{message_id}/acknowledge": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Owner acknowledges a mandatory failure */
+        post: operations["acknowledgeWhatsAppMessage"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/whatsapp/share-deeplink": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build a wa.me URL without sending */
+        post: operations["createWhatsAppShareDeeplink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/whatsapp/templates": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Read-only template catalogue */
+        get: operations["listWhatsAppTemplates"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/whatsapp/webhooks/meta": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Meta Cloud API status callback */
+        post: operations["receiveWhatsAppMetaWebhook"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -204,6 +307,128 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             data: components["schemas"]["LocationIdentity"];
+        };
+        /** @enum {string} */
+        TemplateKey: "login_otp" | "khata_remind" | "refill" | "low_stock" | "licence_expiry" | "irn_fail" | "gstn_fail" | "subscription_dunning" | "rx_pending" | "kiosk_token" | "bill_share";
+        /** @enum {string} */
+        MessageStatus: "queued" | "sent" | "delivered" | "read" | "failed";
+        /** @enum {string} */
+        MessagePurpose: "otp" | "khata_remind" | "refill" | "low_stock" | "licence" | "irn_fail" | "gstn_fail" | "dunning" | "rx_pending" | "kiosk_token" | "bill_share" | "campaign" | "other";
+        SendMessageRequest: {
+            tenant_id: string;
+            location_id: string;
+            to: string;
+            template_key: string;
+            purpose?: string;
+            params?: {
+                [key: string]: unknown;
+            };
+            bill_id?: string | null;
+            campaign_id?: string | null;
+            idempotency_key?: string;
+            mandatory?: boolean;
+        };
+        SendMessage: {
+            message_id: string;
+            tenant_id: string;
+            location_id: string;
+            status: components["schemas"]["MessageStatus"];
+            deduped: boolean;
+        };
+        InboxItem: {
+            message_id: string;
+            template_key: components["schemas"]["TemplateKey"];
+            to: string;
+            purpose: components["schemas"]["MessagePurpose"];
+            status: components["schemas"]["MessageStatus"];
+            bill_id?: string | null;
+            mandatory: boolean;
+            retry_count: number;
+            /** Format: date-time */
+            created_at: string;
+            preview: string;
+        };
+        InboxPage: {
+            items: components["schemas"]["InboxItem"][];
+            next_cursor: string | null;
+        };
+        MandatoryFailure: {
+            message_id: string;
+            template_key: components["schemas"]["TemplateKey"];
+            bill_id?: string | null;
+            status: components["schemas"]["MessageStatus"];
+            last_error_code?: string | null;
+            /** Format: date-time */
+            created_at: string;
+        };
+        MandatoryFailures: {
+            items: components["schemas"]["MandatoryFailure"][];
+        };
+        AcknowledgeRequest: {
+            location_id: string;
+        };
+        AcknowledgeResult: {
+            message_id: string;
+            /** Format: date-time */
+            acknowledged_at: string;
+        };
+        ShareDeeplinkRequest: {
+            tenant_id: string;
+            location_id: string;
+            to?: string;
+            text: string;
+        };
+        ShareDeeplink: {
+            url: string;
+        };
+        TemplateItem: {
+            template_key: components["schemas"]["TemplateKey"];
+            meta_template_name: string;
+            language: string;
+            i18n_key: string;
+            transactional: boolean;
+            body_preview_en: string;
+        };
+        TemplateList: {
+            items: components["schemas"]["TemplateItem"][];
+        };
+        WebhookAck: {
+            received: boolean;
+        };
+        SendMessageSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["SendMessage"];
+        };
+        InboxSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["InboxPage"];
+        };
+        MandatoryFailuresSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["MandatoryFailures"];
+        };
+        AcknowledgeSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AcknowledgeResult"];
+        };
+        ShareDeeplinkSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["ShareDeeplink"];
+        };
+        TemplatesSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["TemplateList"];
+        };
+        WebhookAckSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["WebhookAck"];
         };
     };
     responses: {
@@ -461,6 +686,209 @@ export interface operations {
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    listWhatsAppMessages: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                status?: components["schemas"]["MessageStatus"];
+                template_key?: components["schemas"]["TemplateKey"];
+                cursor?: string;
+                limit?: number;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Inbox page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["InboxSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    sendWhatsAppMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["SendMessageRequest"];
+            };
+        };
+        responses: {
+            /** @description Deduped existing message */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendMessageSuccess"];
+                };
+            };
+            /** @description Accepted for delivery */
+            202: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SendMessageSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listWhatsAppMandatoryFailures: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Mandatory failures */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MandatoryFailuresSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    acknowledgeWhatsAppMessage: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                message_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AcknowledgeRequest"];
+            };
+        };
+        responses: {
+            /** @description Acknowledged */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AcknowledgeSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    createWhatsAppShareDeeplink: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ShareDeeplinkRequest"];
+            };
+        };
+        responses: {
+            /** @description Deeplink */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ShareDeeplinkSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listWhatsAppTemplates: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Catalogue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["TemplatesSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    receiveWhatsAppMetaWebhook: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Accepted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WebhookAckSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
         };
     };
 }

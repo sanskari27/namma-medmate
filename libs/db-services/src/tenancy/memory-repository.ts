@@ -25,8 +25,11 @@ function clonePharmacy(pharmacy: PharmacyWithLocation): PharmacyWithLocation {
   };
 }
 
-export function createMemoryTenancyRepository(): TenancyRepository {
+export function createMemoryTenancyRepository(seed?: PharmacyWithLocation): TenancyRepository {
   const pharmacies = new Map<string, PharmacyWithLocation>();
+  if (seed) {
+    pharmacies.set(seed.tenantId, seed);
+  }
 
   return {
     async createPharmacyWithLocation(input: CreatePharmacyInput): Promise<PharmacyWithLocation> {
