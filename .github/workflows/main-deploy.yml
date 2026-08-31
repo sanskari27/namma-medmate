@@ -3,6 +3,10 @@ on:
   push:
     branches: [main]
 
+permissions:
+  contents: read
+  id-token: write
+
 jobs:
   detect:
     uses: ./.github/workflows/_reusable-detect-changes.yml
