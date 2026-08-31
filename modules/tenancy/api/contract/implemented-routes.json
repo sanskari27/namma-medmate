@@ -1,0 +1,13 @@
+[
+  { "method": "post", "path": "/tenancy/pharmacies", "operationId": "createPharmacy" },
+  { "method": "get", "path": "/tenancy/pharmacies", "operationId": "listPharmacies" },
+  { "method": "get", "path": "/tenancy/pharmacies/{tenant_id}", "operationId": "getPharmacy" },
+  {
+    "method": "post",
+    "path": "/tenancy/pharmacies/{tenant_id}/locations",
+    "operationId": "createLocation"
+  },
+  { "method": "get", "path": "/tenancy/current", "operationId": "getCurrentPharmacy" },
+  { "method": "patch", "path": "/tenancy/current", "operationId": "patchCurrentPharmacy" },
+  { "method": "get", "path": "/tenancy/locations/{location_id}", "operationId": "getLocation" }
+]

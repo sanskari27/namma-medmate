@@ -8,3 +8,12 @@ export function getAccessToken(storage?: Pick<Storage, 'getItem'> | null): strin
 export function setAccessToken(token: string): void {
   window.sessionStorage.setItem(appConfig.tokenStorageKey, token);
 }
+
+export function getLocationId(storage?: Pick<Storage, 'getItem'> | null): string | undefined {
+  const resolved = storage === undefined ? globalThis.window?.sessionStorage : storage;
+  return resolved?.getItem(appConfig.locationStorageKey) ?? undefined;
+}
+
+export function setLocationId(locationId: string): void {
+  window.sessionStorage.setItem(appConfig.locationStorageKey, locationId);
+}

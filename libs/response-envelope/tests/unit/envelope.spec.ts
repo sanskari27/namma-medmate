@@ -21,9 +21,25 @@ describe('response envelope', () => {
     });
   });
 
-  it('builds error with details', () => {
+  it('builds error with details and i18n_key', () => {
     expect(buildError('VALIDATION_ERROR', 'bad', { field: 'id' }).error.details).toEqual({
       field: 'id',
+    });
+    expect(
+      buildError(
+        'LOCATION_LIMIT_V1',
+        'one location',
+        { retry: false },
+        'tenancy.errors.locationLimitV1',
+      ),
+    ).toEqual({
+      success: false,
+      error: {
+        code: 'LOCATION_LIMIT_V1',
+        message: 'one location',
+        i18n_key: 'tenancy.errors.locationLimitV1',
+        details: { retry: false },
+      },
     });
   });
 

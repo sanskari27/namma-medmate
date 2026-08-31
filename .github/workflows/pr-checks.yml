@@ -71,7 +71,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [dispensary-app-web, auth-ui, auth-api]
+        project: [dispensary-app-web, auth-ui, auth-api, tenancy-ui, tenancy-api]
         shard: [1]
     uses: ./.github/workflows/_reusable-playwright.yml
     with:
@@ -82,9 +82,13 @@ jobs:
   visual:
     permissions:
       contents: write
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [auth-ui, tenancy-ui]
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:
-      project: auth-ui
+      project: ${{ matrix.project }}
 
   terraform-validate:
     runs-on: ubuntu-latest

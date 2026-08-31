@@ -71,6 +71,44 @@ describe('verifyAccessToken', () => {
     });
     expect(first.sub).toBe('user-1');
     expect(second.sub).toBe('user-1');
+    expect(first.principalType).toBeUndefined();
+  });
+
+  it('surfaces pharmacy and HQ principal claims when present', async () => {
+    const pharmacy = await new SignJWT({
+      principal_type: 'pharmacy',
+      tenant_id: '8f1c0a7e-2b3d-4e5f-8a90-123456789abc',
+      location_id: '1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809',
+      role: 'owner',
+    })
+      .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+      .setIssuedAt()
+      .setIssuer(issuer)
+      .setAudience('namma-medmate-dispensary')
+      .setSubject('chemist-1')
+      .setExpirationTime('5m')
+      .sign(keys.current.privateKey);
+    const session = await verifyAccessToken(pharmacy, {
+      issuer,
+      audience: 'namma-medmate-dispensary',
+      jwksUri,
+    });
+    expect(session).toMatchObject({
+      sub: 'chemist-1',
+      principalType: 'pharmacy',
+      role: 'owner',
+    });
+    const hq = await new SignJWT({ principal_type: 'hq' })
+      .setProtectedHeader({ alg: 'RS256', kid: 'test-key' })
+      .setIssuedAt()
+      .setIssuer(issuer)
+      .setAudience('namma-medmate-dispensary')
+      .setSubject('ops-1')
+      .setExpirationTime('5m')
+      .sign(keys.current.privateKey);
+    expect(
+      await verifyAccessToken(hq, { issuer, audience: 'namma-medmate-dispensary', jwksUri }),
+    ).toMatchObject({ sub: 'ops-1', principalType: 'hq' });
   });
 
   it('rejects tokens with the wrong audience or missing sub', async () => {

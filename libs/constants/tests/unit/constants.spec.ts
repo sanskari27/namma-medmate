@@ -10,9 +10,10 @@ describe('HttpStatus', () => {
 });
 
 describe('ErrorCode', () => {
-  it('uses stable string identifiers', () => {
-    expect(ErrorCode.UNAUTHORIZED).toBe('UNAUTHORIZED');
-    expect(ErrorCode.VALIDATION_ERROR).toBe('VALIDATION_ERROR');
+  it('exposes tenancy error codes', () => {
+    expect(ErrorCode.VALIDATION_FAILED).toBe('VALIDATION_FAILED');
+    expect(ErrorCode.LOCATION_LIMIT_V1).toBe('LOCATION_LIMIT_V1');
+    expect(ErrorCode.PHARMACY_SESSION_REQUIRED).toBe('PHARMACY_SESSION_REQUIRED');
   });
 });
 

@@ -1,6 +1,6 @@
 import { render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
-import { Button, StatusBanner, cn } from '../../src/index.ts';
+import { Badge, Button, Input, Label, StatusBanner, cn } from '../../src/index.ts';
 
 const VARIANTS = ['default', 'outline', 'secondary', 'ghost', 'destructive', 'link'] as const;
 const SIZES = ['default', 'xs', 'sm', 'lg', 'icon', 'icon-xs', 'icon-sm', 'icon-lg'] as const;
@@ -41,5 +41,22 @@ describe('shared-ui', () => {
 
   it('merges tailwind classes with cn', () => {
     expect(cn('px-2', false && 'hidden', 'px-4')).toBe('px-4');
+  });
+
+  it('renders badge variants, labelled inputs, and a 44px field', () => {
+    const { rerender, unmount } = render(<Badge>Shop</Badge>);
+    expect(screen.getByText('Shop')).toBeInTheDocument();
+    rerender(<Badge variant="secondary">Plan</Badge>);
+    expect(screen.getByText('Plan')).toBeInTheDocument();
+    rerender(<Badge variant="outline">One shop</Badge>);
+    expect(screen.getByText('One shop')).toBeInTheDocument();
+    unmount();
+    render(
+      <div>
+        <Label htmlFor="shop-name">Shop name</Label>
+        <Input id="shop-name" defaultValue="Sri Krishna Medicals" />
+      </div>,
+    );
+    expect(screen.getByLabelText('Shop name')).toHaveClass('min-h-11');
   });
 });

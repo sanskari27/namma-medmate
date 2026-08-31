@@ -6,6 +6,7 @@ export interface ErrorBody {
   error: {
     code: string;
     message: string;
+    i18n_key?: string;
     details?: Record<string, unknown>;
   };
 }
@@ -31,7 +32,8 @@ export function toErrorBody(error: unknown): ErrorBody {
       error: {
         code: error.code,
         message: error.message,
-        details: error.details,
+        ...(error.i18nKey ? { i18n_key: error.i18nKey } : {}),
+        ...(error.details ? { details: error.details } : {}),
       },
     };
   }

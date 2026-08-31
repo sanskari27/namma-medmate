@@ -6,6 +6,7 @@ export interface EndpointDefinition {
   method: HttpMethod;
   path: string;
   operationId: string;
+  successStatus?: number;
 }
 
 export type Parser<TInput> = (req: Request) => TInput | Promise<TInput>;
@@ -47,7 +48,7 @@ export function createRouteAttacher(app: Express) {
           if (responseMetadataCustomization) {
             responseMetadataCustomization(res, output);
           }
-          res.status(200).json(output);
+          res.status(endpoint.successStatus ?? 200).json(output);
         } catch (error) {
           next(error);
         }

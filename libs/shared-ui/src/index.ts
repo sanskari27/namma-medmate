@@ -1,5 +1,11 @@
 export { Button, buttonVariants } from './components/button.tsx';
 export type { ButtonProps } from './components/button.tsx';
+export { Badge, badgeVariants } from './components/badge.tsx';
+export type { BadgeProps } from './components/badge.tsx';
+export { Input } from './components/input.tsx';
+export type { InputProps } from './components/input.tsx';
+export { Label } from './components/label.tsx';
+export type { LabelProps } from './components/label.tsx';
 export { StatusBanner } from './status-banner.tsx';
 export type { StatusBannerProps } from './status-banner.tsx';
 export { cn } from './lib/utils.ts';

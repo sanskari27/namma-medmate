@@ -57,6 +57,188 @@ paths:
                     error:
                       code: UNAUTHORIZED
                       message: Invalid access token
+  /tenancy/pharmacies:
+    post:
+      operationId: createPharmacy
+      summary: Create a Pharmacy and its single Location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreatePharmacyRequest'
+      responses:
+        '201':
+          description: Pharmacy created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CreatedPharmacySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: listPharmacies
+      summary: List pharmacies for HQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 100
+            default: 50
+        - name: cursor
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page of pharmacies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PharmacyListSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /tenancy/pharmacies/{tenant_id}:
+    get:
+      operationId: getPharmacy
+      summary: Get a Pharmacy and its Location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '200':
+          description: Pharmacy with location
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PharmacySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /tenancy/pharmacies/{tenant_id}/locations:
+    post:
+      operationId: createLocation
+      summary: Reject a second Location in v1
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TenantId'
+      responses:
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /tenancy/current:
+    get:
+      operationId: getCurrentPharmacy
+      summary: Load the session Pharmacy and Location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Current pharmacy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PharmacySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patchCurrentPharmacy
+      summary: Owner updates Location display_name
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchCurrentRequest'
+      responses:
+        '200':
+          description: Updated pharmacy
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PharmacySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /tenancy/locations/{location_id}:
+    get:
+      operationId: getLocation
+      summary: Resolve shop name and tenant pairing
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdPath'
+        - name: tenant_id
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Location identity
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LocationSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
 components:
   schemas:
     SessionSuccess:
@@ -108,9 +290,192 @@ components:
               type: string
             message:
               type: string
+            i18n_key:
+              type: string
             details:
               type: object
               additionalProperties: true
+    CreatePharmacyRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        display_name:
+          type: string
+        gst_dealer_type:
+          type: string
+        business_type:
+          type: string
+    PatchCurrentRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        location_id:
+          type: string
+        display_name:
+          type: string
+    CreatedPharmacy:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - location_id
+        - display_name
+        - gst_dealer_type
+        - business_type
+        - created_at
+      properties:
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        display_name:
+          type: string
+        gst_dealer_type:
+          type: string
+          enum:
+            - regular
+        business_type:
+          type: string
+          enum:
+            - retail
+        created_at:
+          type: string
+          format: date-time
+    LocationNested:
+      type: object
+      additionalProperties: false
+      required:
+        - location_id
+        - tenant_id
+        - display_name
+      properties:
+        location_id:
+          type: string
+        tenant_id:
+          type: string
+        display_name:
+          type: string
+    Pharmacy:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - gst_dealer_type
+        - business_type
+        - location
+        - created_at
+        - updated_at
+      properties:
+        tenant_id:
+          type: string
+        gst_dealer_type:
+          type: string
+          enum:
+            - regular
+        business_type:
+          type: string
+          enum:
+            - retail
+        location:
+          $ref: '#/components/schemas/LocationNested'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    LocationIdentity:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - location_id
+        - display_name
+      properties:
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        display_name:
+          type: string
+    PharmacyList:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+        - next_cursor
+      properties:
+        items:
+          type: array
+          items:
+            type: object
+            additionalProperties: false
+            required:
+              - tenant_id
+              - location_id
+              - display_name
+            properties:
+              tenant_id:
+                type: string
+              location_id:
+                type: string
+              display_name:
+                type: string
+        next_cursor:
+          type: string
+          nullable: true
+    CreatedPharmacySuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/CreatedPharmacy'
+    PharmacySuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Pharmacy'
+    PharmacyListSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/PharmacyList'
+    LocationSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/LocationIdentity'
   parameters:
     AuthorizationHeader:
       name: authorization
@@ -119,6 +484,31 @@ components:
       schema:
         type: string
         pattern: ^Bearer\s+\S+$
+    TenantId:
+      name: tenant_id
+      in: path
+      required: true
+      schema:
+        type: string
+    LocationIdPath:
+      name: location_id
+      in: path
+      required: true
+      schema:
+        type: string
+    LocationIdQuery:
+      name: location_id
+      in: query
+      required: false
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
   securitySchemes:
     bearerAuth:
       type: http

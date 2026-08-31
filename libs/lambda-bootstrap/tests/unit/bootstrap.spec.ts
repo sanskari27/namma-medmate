@@ -54,6 +54,22 @@ describe('lambda-bootstrap', () => {
     expect(getAttachedRoutes()).toHaveLength(1);
   });
 
+  it('honors EndpointDefinition successStatus for creates', async () => {
+    const boot = createExpressApp({
+      serviceName: 'tenancy-api',
+      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() },
+    });
+    boot.attachRoute(
+      { method: 'post', path: '/items', operationId: 'createItem', successStatus: 201 },
+      () => ({ id: '1' }),
+      (input) => input,
+      (input) => input,
+    );
+    const response = await request(boot.complete()).post('/items');
+    expect(response.status).toBe(201);
+    expect(response.body).toEqual({ id: '1' });
+  });
+
   it('forwards handler errors to the error mapper', async () => {
     const boot = createExpressApp({
       serviceName: 'auth-api',
