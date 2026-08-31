@@ -9,6 +9,10 @@
     ".": "./src/index.ts"
   },
   "dependencies": {
+    "@namma-medmate/constants": "workspace:*",
+    "@namma-medmate/error-handling": "workspace:*",
+    "@namma-medmate/id-generator": "workspace:*",
+    "@namma-medmate/pagination-utils": "workspace:*",
     "drizzle-orm": "^0.44.4",
     "pg": "^8.16.3"
   },

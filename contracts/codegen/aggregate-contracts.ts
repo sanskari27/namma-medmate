@@ -45,6 +45,7 @@ export function mergeContracts(contracts: DiscoveredContract[]): Record<string, 
   const paths: Record<string, unknown> = {};
   const schemas: Record<string, unknown> = {};
   const parameters: Record<string, unknown> = {};
+  const responses: Record<string, unknown> = {};
   const securitySchemes: Record<string, unknown> = {};
   const operationIds = new Set<string>();
   const pathMethods = new Set<string>();
@@ -73,10 +74,12 @@ export function mergeContracts(contracts: DiscoveredContract[]): Record<string, 
     const components = (contract.document.components ?? {}) as {
       schemas?: Record<string, unknown>;
       parameters?: Record<string, unknown>;
+      responses?: Record<string, unknown>;
       securitySchemes?: Record<string, unknown>;
     };
     Object.assign(schemas, components.schemas ?? {});
     Object.assign(parameters, components.parameters ?? {});
+    Object.assign(responses, components.responses ?? {});
     Object.assign(securitySchemes, components.securitySchemes ?? {});
   }
 
@@ -90,6 +93,7 @@ export function mergeContracts(contracts: DiscoveredContract[]): Record<string, 
     components: {
       schemas,
       ...(Object.keys(parameters).length > 0 ? { parameters } : {}),
+      ...(Object.keys(responses).length > 0 ? { responses } : {}),
       ...(Object.keys(securitySchemes).length > 0 ? { securitySchemes } : {}),
     },
   };

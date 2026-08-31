@@ -8,6 +8,8 @@ export default {
         'dispensary',
         'auth-ui',
         'auth-api',
+        'tenancy-ui',
+        'tenancy-api',
         'libs',
         'contracts',
         'infra',

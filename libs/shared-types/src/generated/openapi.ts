@@ -22,6 +22,93 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/tenancy/pharmacies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List pharmacies for HQ */
+        get: operations["listPharmacies"];
+        put?: never;
+        /** Create a Pharmacy and its single Location */
+        post: operations["createPharmacy"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenancy/pharmacies/{tenant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a Pharmacy and its Location */
+        get: operations["getPharmacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenancy/pharmacies/{tenant_id}/locations": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Reject a second Location in v1 */
+        post: operations["createLocation"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tenancy/current": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Load the session Pharmacy and Location */
+        get: operations["getCurrentPharmacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Owner updates Location display_name */
+        patch: operations["patchCurrentPharmacy"];
+        trace?: never;
+    };
+    "/tenancy/locations/{location_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Resolve shop name and tenant pairing */
+        get: operations["getLocation"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
 }
 export type webhooks = Record<string, never>;
 export interface components {
@@ -42,15 +129,99 @@ export interface components {
             error: {
                 code: string;
                 message: string;
+                i18n_key?: string;
                 details?: {
                     [key: string]: unknown;
                 };
             };
         };
+        CreatePharmacyRequest: {
+            display_name?: string;
+            gst_dealer_type?: string;
+            business_type?: string;
+        };
+        PatchCurrentRequest: {
+            location_id?: string;
+            display_name?: string;
+        };
+        CreatedPharmacy: {
+            tenant_id: string;
+            location_id: string;
+            display_name: string;
+            /** @enum {string} */
+            gst_dealer_type: "regular";
+            /** @enum {string} */
+            business_type: "retail";
+            /** Format: date-time */
+            created_at: string;
+        };
+        LocationNested: {
+            location_id: string;
+            tenant_id: string;
+            display_name: string;
+        };
+        Pharmacy: {
+            tenant_id: string;
+            /** @enum {string} */
+            gst_dealer_type: "regular";
+            /** @enum {string} */
+            business_type: "retail";
+            location: components["schemas"]["LocationNested"];
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+        };
+        LocationIdentity: {
+            tenant_id: string;
+            location_id: string;
+            display_name: string;
+        };
+        PharmacyList: {
+            items: {
+                tenant_id: string;
+                location_id: string;
+                display_name: string;
+            }[];
+            next_cursor: string | null;
+        };
+        CreatedPharmacySuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["CreatedPharmacy"];
+        };
+        PharmacySuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Pharmacy"];
+        };
+        PharmacyListSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["PharmacyList"];
+        };
+        LocationSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["LocationIdentity"];
+        };
     };
-    responses: never;
+    responses: {
+        /** @description Error envelope */
+        Error: {
+            headers: {
+                [name: string]: unknown;
+            };
+            content: {
+                "application/json": components["schemas"]["ErrorEnvelope"];
+            };
+        };
+    };
     parameters: {
         AuthorizationHeader: string;
+        TenantId: string;
+        LocationIdPath: string;
+        LocationIdQuery: string;
     };
     requestBodies: never;
     headers: never;
@@ -96,6 +267,200 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+        };
+    };
+    listPharmacies: {
+        parameters: {
+            query?: {
+                limit?: number;
+                cursor?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page of pharmacies */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacyListSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createPharmacy: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreatePharmacyRequest"];
+            };
+        };
+        responses: {
+            /** @description Pharmacy created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["CreatedPharmacySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getPharmacy: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Pharmacy with location */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createLocation: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    getCurrentPharmacy: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Current pharmacy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    patchCurrentPharmacy: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchCurrentRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated pharmacy */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getLocation: {
+        parameters: {
+            query: {
+                tenant_id: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                location_id: components["parameters"]["LocationIdPath"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Location identity */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LocationSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
 }

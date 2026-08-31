@@ -18,7 +18,12 @@ async function collectProjectJson(dir: string): Promise<string[]> {
   const entries = await readdir(dir, { withFileTypes: true });
   const files: string[] = [];
   for (const entry of entries) {
-    if (entry.name === 'node_modules' || entry.name === 'dist' || entry.name === '.git') {
+    if (
+      entry.name === 'node_modules' ||
+      entry.name === 'dist' ||
+      entry.name === '.git' ||
+      entry.name === 'storybook-static'
+    ) {
       continue;
     }
     const full = join(dir, entry.name);

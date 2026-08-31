@@ -9,18 +9,21 @@ export class AppError extends Error {
   readonly code: ErrorCodeValue;
   readonly statusCode: HttpStatusCode;
   readonly details?: Record<string, unknown>;
+  readonly i18nKey?: string;
 
   constructor(
     message: string,
     code: ErrorCodeValue,
     statusCode: HttpStatusCode,
     details?: Record<string, unknown>,
+    i18nKey?: string,
   ) {
     super(message);
     this.name = new.target.name;
     this.code = code;
     this.statusCode = statusCode;
     this.details = details;
+    this.i18nKey = i18nKey;
   }
 }
 

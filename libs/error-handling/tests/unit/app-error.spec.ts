@@ -1,3 +1,4 @@
+import { ErrorCode } from '@namma-medmate/constants';
 import { describe, expect, it } from 'vitest';
 import {
   AppError,
@@ -33,7 +34,31 @@ describe('toErrorBody', () => {
   it('serializes AppError instances', () => {
     expect(toErrorBody(new NotFoundError('missing'))).toEqual({
       success: false,
-      error: { code: 'NOT_FOUND', message: 'missing', details: undefined },
+      error: { code: 'NOT_FOUND', message: 'missing' },
+    });
+  });
+
+  it('includes i18n_key when AppError provides one', () => {
+    const error = new AppError(
+      'Pairing invalid',
+      ErrorCode.LOCATION_TENANT_MISMATCH,
+      403,
+      undefined,
+      'tenancy.errors.locationTenantMismatch',
+    );
+    expect(toErrorBody(error)).toEqual({
+      success: false,
+      error: {
+        code: 'LOCATION_TENANT_MISMATCH',
+        message: 'Pairing invalid',
+        i18n_key: 'tenancy.errors.locationTenantMismatch',
+      },
+    });
+  });
+
+  it('includes details on validation errors', () => {
+    expect(toErrorBody(new ValidationError('bad', { field: 'email' })).error.details).toEqual({
+      field: 'email',
     });
   });
 

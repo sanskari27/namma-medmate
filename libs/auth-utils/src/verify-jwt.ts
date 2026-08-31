@@ -8,11 +8,21 @@ export interface JwtVerificationConfig {
   clockToleranceSeconds?: number;
 }
 
+export type PrincipalType = 'hq' | 'pharmacy';
+export type PharmacyRole = 'owner' | 'manager' | 'pharmacist' | 'cashier';
+
 export interface VerifiedSession {
   sub: string;
   issuer: string;
   audience: string | string[];
+  principalType?: PrincipalType;
+  tenantId?: string;
+  locationId?: string;
+  role?: PharmacyRole;
 }
+
+const PRINCIPAL_TYPES = new Set<PrincipalType>(['hq', 'pharmacy']);
+const PHARMACY_ROLES = new Set<PharmacyRole>(['owner', 'manager', 'pharmacist', 'cashier']);
 
 const jwksCache = new Map<string, ReturnType<typeof jose.createRemoteJWKSet>>();
 
@@ -28,6 +38,22 @@ export function getRemoteJwks(jwksUri: string): ReturnType<typeof jose.createRem
 
 export function resetJwksCache(): void {
   jwksCache.clear();
+}
+
+function optionalString(value: unknown): string | undefined {
+  return typeof value === 'string' && value.length > 0 ? value : undefined;
+}
+
+function optionalPrincipalType(value: unknown): PrincipalType | undefined {
+  return typeof value === 'string' && PRINCIPAL_TYPES.has(value as PrincipalType)
+    ? (value as PrincipalType)
+    : undefined;
+}
+
+function optionalRole(value: unknown): PharmacyRole | undefined {
+  return typeof value === 'string' && PHARMACY_ROLES.has(value as PharmacyRole)
+    ? (value as PharmacyRole)
+    : undefined;
 }
 
 export async function verifyAccessToken(
@@ -48,6 +74,10 @@ export async function verifyAccessToken(
       sub: payload.sub,
       issuer: config.issuer,
       audience: config.audience,
+      principalType: optionalPrincipalType(payload.principal_type),
+      tenantId: optionalString(payload.tenant_id),
+      locationId: optionalString(payload.location_id),
+      role: optionalRole(payload.role),
     };
   } catch (error) {
     if (error instanceof UnauthorizedError) {
