@@ -24,6 +24,9 @@ jobs:
   terraform:
     needs: detect
     if: ${{ needs.detect.outputs.infra == 'true' }}
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/_reusable-terraform.yml
     with:
       environment: staging
@@ -31,6 +34,9 @@ jobs:
 
   deploy-staging-web:
     needs: [detect, build]
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/_reusable-deploy-web.yml
     with:
       project: dispensary-app-web
@@ -38,6 +44,9 @@ jobs:
 
   deploy-staging-lambda:
     needs: [detect, build]
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       max-parallel: 2
@@ -60,6 +69,9 @@ jobs:
   deploy-prod-web:
     needs: staging-pdt
     if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    permissions:
+      contents: read
+      id-token: write
     uses: ./.github/workflows/_reusable-deploy-web.yml
     with:
       project: dispensary-app-web
@@ -68,6 +80,9 @@ jobs:
   deploy-prod-lambda:
     needs: staging-pdt
     if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    permissions:
+      contents: read
+      id-token: write
     strategy:
       fail-fast: false
       max-parallel: 2

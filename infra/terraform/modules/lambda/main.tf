@@ -41,6 +41,38 @@ resource "aws_iam_role_policy" "ssm" {
   })
 }
 
+resource "aws_iam_role_policy" "runtime" {
+  name = "runtime-read"
+  role = aws_iam_role.lambda.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "secretsmanager:GetSecretValue",
+          "secretsmanager:DescribeSecret"
+        ]
+        Resource = "*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["kms:Decrypt", "kms:DescribeKey"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "appconfig:StartConfigurationSession",
+          "appconfig:GetLatestConfiguration",
+          "appconfig:GetConfiguration"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_role_policy_attachment" "basic" {
   role       = aws_iam_role.lambda.name
   policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"

@@ -1,9 +1,28 @@
 variable "environment" { type = string }
 variable "github_org" { type = string }
 variable "github_repo" { type = string }
+variable "github_org_id" { type = string }
+variable "github_repo_id" { type = string }
 
 data "aws_iam_openid_connect_provider" "github" {
   url = "https://token.actions.githubusercontent.com"
+}
+
+locals {
+  # Repos created after 2026-07-15 emit immutable OIDC subjects
+  # (repo:org@orgId/repo@repoId:...). Keep the legacy name-only prefix too.
+  subject_prefixes = [
+    "repo:${var.github_org}/${var.github_repo}",
+    "repo:${var.github_org}@${var.github_org_id}/${var.github_repo}@${var.github_repo_id}",
+  ]
+  # Reusable workflows may mint either environment or calling-ref subjects.
+  allowed_subs = flatten([
+    for prefix in local.subject_prefixes : [
+      "${prefix}:environment:${var.environment}",
+      "${prefix}:ref:refs/heads/main",
+      "${prefix}:ref:refs/tags/*",
+    ]
+  ])
 }
 
 resource "aws_iam_role" "gha" {
@@ -19,7 +38,7 @@ resource "aws_iam_role" "gha" {
           "token.actions.githubusercontent.com:aud" = "sts.amazonaws.com"
         }
         StringLike = {
-          "token.actions.githubusercontent.com:sub" = "repo:${var.github_org}/${var.github_repo}:environment:${var.environment}"
+          "token.actions.githubusercontent.com:sub" = local.allowed_subs
         }
       }
     }]
@@ -33,6 +52,7 @@ resource "aws_iam_role_policy" "gha_deploy" {
     Version = "2012-10-17"
     Statement = [
       {
+        Sid    = "DeployAndManageStack"
         Effect = "Allow"
         Action = [
           "lambda:*",
@@ -58,7 +78,12 @@ resource "aws_iam_role_policy" "gha_deploy" {
           "kms:*",
           "events:*",
           "application-autoscaling:*",
-          "states:*"
+          "states:*",
+          "tag:*",
+          "sts:GetCallerIdentity",
+          "iam:PassRole",
+          "iam:GetRole",
+          "iam:CreateServiceLinkedRole"
         ]
         Resource = "*"
       }
