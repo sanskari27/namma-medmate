@@ -8,4 +8,4 @@ Create `modules/{slug}/{ui,api,docs}` from the auth Nx tree.
 
 1. Follow skill `scaffold-module`.
 2. Register `workspace-map.json`, `tsconfig.base.json` e2e path, Playwright matrix in `pr-checks.yml`.
-3. Stop. Implementation is `/implement-module`.
+3. Stop. Implementation is `/implement-module`. Do not add a per-module shadcn/ui folder.

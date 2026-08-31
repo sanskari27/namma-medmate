@@ -11,6 +11,7 @@ alwaysApply: false
 - Cross-module UI: `src/events/events.contract.ts` + `@namma-medmate/event-bus`.
 - Storybook + `src/scenarios/` like auth-ui. Export `./e2e` when apps must traverse this module.
 - Stitch screens before new UI (skill `stitch-ui-design`).
+- Controls from `@namma-medmate/shared-ui` (skill `shadcn-shared-ui`). Never add `components/ui` under a module.
 
 ```ts
 // BAD

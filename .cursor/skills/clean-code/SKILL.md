@@ -11,6 +11,7 @@ With Ponytail, flag:
 - Unbounded loops on the request path
 - Missing `await`
 - Copy-paste modules instead of a lib
+- shadcn / Button / Input / Dialog copied into a module or app instead of `@namma-medmate/shared-ui`
 - Files over ~200 lines that should split by role (controller vs mapper vs validator)
 
 Do not add enterprise factories to “look clean”.

@@ -14,6 +14,7 @@ TDD (`tdd-enforcer`): write failing specs **before** runtime code. `passWithNoTe
 | UI screen | e2e-kit four files + smoke, happy-path, failure-cases, a11y, visual |
 | `db-services` query | Unit test in that lib |
 | Lib runtime | `libs/{name}/tests/unit/` |
+| shadcn primitive in `shared-ui` | `libs/shared-ui/tests/unit/` covering public variants |
 
 ```ts
 // BAD — only health e2e after adding POST /tenancy/pharmacies

@@ -1,14 +1,14 @@
 ---
-description: Tailwind utilities and shared-ui tokens — no bulky per-component CSS
+description: Tailwind utilities and shadcn shared-ui tokens — no bulky per-component CSS
 globs: "**/*.{tsx,css}"
 alwaysApply: false
 ---
 
 # Tailwind utility
 
-Style with Tailwind utilities, `tools/tailwind-config/theme.css`, and `@namma-medmate/shared-ui`.
+Style with Tailwind utilities, `libs/shared-ui/src/styles/globals.css`, and shadcn primitives from `@namma-medmate/shared-ui`.
 
-No new component `.css` files, CSS modules, or styled-components. Translate Stitch HTML into Tailwind classes — do not paste a second stylesheet.
+No new component `.css` files, CSS modules, or styled-components. Translate Stitch HTML into Tailwind classes — do not paste a second stylesheet. Do not hand-roll Button/Input/Dialog.
 
 ```tsx
 // BAD
@@ -16,7 +16,8 @@ import './auth-widget.css';
 export function AuthWidget() { return <div className="widget" />; }
 
 // GOOD
+import { Button } from '@namma-medmate/shared-ui';
 export function AuthWidget() {
-  return <section className="flex flex-col gap-4 rounded-lg p-6">{/* ... */}</section>;
+  return <section className="flex flex-col gap-4 rounded-lg p-6"><Button>Save</Button></section>;
 }
 ```

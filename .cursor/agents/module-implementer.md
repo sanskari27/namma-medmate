@@ -16,7 +16,7 @@ Implement **one** requirement end-to-end. Prefer skill `implement-module` for th
 ## Do
 
 - API: swagger → codegen → lambda-bootstrap controllers → drizzle in `db-services` only.
-- UI: Stitch first (`stitch-ui-design`), then React/Tailwind/`shared-ui`, wire into `dispensary-app-web`.
+- UI: Stitch first (`stitch-ui-design`), then shadcn primitives from `@namma-medmate/shared-ui` (`shadcn-shared-ui`), React/Tailwind, wire into `dispensary-app-web`.
 - `verify-gates` until green.
 
 ## Do not

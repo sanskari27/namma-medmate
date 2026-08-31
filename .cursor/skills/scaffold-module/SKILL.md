@@ -18,4 +18,4 @@ Copy **`modules/auth/{ui,api}`** (working Nx/Vitest/Playwright/Storybook), not R
 7. Add Playwright projects to `.github/workflows/pr-checks.yml` when e2e exists.
 8. Routes `/<slug>/...`. No `api/db/`.
 
-Then follow skill `implement-module` (TDD, swagger, Stitch).
+Then follow skill `implement-module` (TDD, swagger, Stitch, shadcn via `shared-ui`). Do not add a per-module shadcn tree.
