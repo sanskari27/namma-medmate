@@ -8,8 +8,13 @@ on:
 jobs:
   visual:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.head_ref }}
+          fetch-depth: 1
       - uses: pnpm/action-setup@v4
       - uses: actions/setup-node@v4
         with:
@@ -17,4 +22,39 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec playwright install --with-deps chromium
-      - run: pnpm exec nx run ${{ inputs.project }}:visual
+      - id: visual
+        run: |
+          set +e
+          pnpm exec nx run ${{ inputs.project }}:visual -- --update-snapshots=missing
+          echo "exit_code=$?" >> "$GITHUB_OUTPUT"
+      - name: Commit missing visual snapshots
+        id: commit
+        if: github.event.pull_request.head.repo.full_name == github.repository
+        run: |
+          SNAPSHOTS=$(git ls-files --others --modified --exclude-standard | grep -E -- '-snapshots/' || true)
+          if [ -z "$SNAPSHOTS" ]; then
+            echo "committed=false" >> "$GITHUB_OUTPUT"
+            echo "No missing visual snapshots to commit"
+            exit 0
+          fi
+          printf '%s\n' "$SNAPSHOTS" | xargs -r git add --
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          HUSKY=0 git commit -m "test(ci): add missing visual snapshots"
+          HUSKY=0 git push
+          echo "committed=true" >> "$GITHUB_OUTPUT"
+      - name: Missing snapshots on fork PRs
+        if: github.event.pull_request.head.repo.full_name != github.repository
+        run: |
+          SNAPSHOTS=$(git ls-files --others --modified --exclude-standard | grep -E -- '-snapshots/' || true)
+          if [ -z "$SNAPSHOTS" ]; then
+            exit 0
+          fi
+          echo "Missing visual snapshots cannot be pushed from a fork PR. Run: pnpm exec nx visual -- --update-snapshots=missing"
+          exit 1
+      - name: Re-run visual after creating snapshots
+        if: success() && steps.commit.outputs.committed == 'true'
+        run: pnpm exec nx run ${{ inputs.project }}:visual
+      - name: Fail on visual regression
+        if: success() && steps.commit.outputs.committed != 'true'
+        run: exit ${{ steps.visual.outputs.exit_code }}
