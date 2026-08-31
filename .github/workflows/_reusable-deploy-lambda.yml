@@ -29,5 +29,11 @@ jobs:
       - run: pnpm install --frozen-lockfile
       - run: pnpm exec nx run ${{ inputs.project }}:build
       - run: |
-          FUNCTION="namma-medmate-${{ inputs.environment }}-${{ inputs.project }}"
-          aws lambda update-function-code --function-name "$FUNCTION" --zip-file "fileb://modules/auth/api/dist/handler.zip"
+          set -euo pipefail
+          PROJECT="${{ inputs.project }}"
+          ROOT="$(pnpm exec nx show project "$PROJECT" --json | node -e 'let s="";process.stdin.on("data",d=>s+=d);process.stdin.on("end",()=>process.stdout.write(JSON.parse(s).root))')"
+          ZIP="${ROOT}/dist/handler.zip"
+          test -f "$ZIP"
+          FUNCTION="namma-medmate-${{ inputs.environment }}-${PROJECT}"
+          aws lambda update-function-code --function-name "$FUNCTION" --zip-file "fileb://${ZIP}"
+          aws lambda wait function-updated --function-name "$FUNCTION"

@@ -33,7 +33,8 @@ jobs:
       apply: true
 
   deploy-staging-web:
-    needs: [detect, build]
+    needs: [detect, build, terraform]
+    if: ${{ always() && needs.detect.result == 'success' && needs.build.result != 'failure' && (needs.terraform.result == 'success' || needs.terraform.result == 'skipped') }}
     permissions:
       contents: read
       id-token: write
@@ -43,7 +44,8 @@ jobs:
       environment: staging
 
   deploy-staging-lambda:
-    needs: [detect, build]
+    needs: [detect, build, terraform]
+    if: ${{ always() && needs.detect.result == 'success' && needs.build.result != 'failure' && (needs.terraform.result == 'success' || needs.terraform.result == 'skipped') }}
     permissions:
       contents: read
       id-token: write

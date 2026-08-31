@@ -22,6 +22,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: hashicorp/setup-terraform@v3
+      - name: Check formatting
+        working-directory: infra/terraform
+        run: terraform fmt -check -recursive
       - uses: aws-actions/configure-aws-credentials@v4
         with:
           role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
@@ -31,7 +34,6 @@ jobs:
           BUCKET=$(awk -F '"' '/^bucket/{print $2; exit}' backend.hcl)
           aws s3 cp "s3://${BUCKET}/namma-medmate/terraform/locks/${{ inputs.environment }}/.terraform.lock.hcl" .terraform.lock.hcl || true
       - run: terraform init -backend-config=backend.hcl
-      - run: terraform fmt -check -recursive
       - run: terraform validate
       - run: terraform plan -out=tfplan
       - if: ${{ inputs.apply }}
