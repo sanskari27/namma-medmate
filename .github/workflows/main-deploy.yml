@@ -61,6 +61,7 @@ jobs:
 
   staging-pdt:
     needs: [deploy-staging-web, deploy-staging-lambda]
+    if: ${{ always() && needs.deploy-staging-web.result == 'success' && needs.deploy-staging-lambda.result == 'success' }}
     runs-on: ubuntu-latest
     environment: staging
     steps:
@@ -70,7 +71,7 @@ jobs:
 
   deploy-prod-web:
     needs: staging-pdt
-    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' && needs.staging-pdt.result == 'success' }}
     permissions:
       contents: read
       id-token: write
@@ -81,7 +82,7 @@ jobs:
 
   deploy-prod-lambda:
     needs: staging-pdt
-    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' && needs.staging-pdt.result == 'success' }}
     permissions:
       contents: read
       id-token: write
