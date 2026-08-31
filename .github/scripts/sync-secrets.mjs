@@ -22,11 +22,6 @@ for (const parameter of config.parameters) {
       Value: value,
       Type: 'SecureString',
       Overwrite: true,
-      Tags: [
-        { Key: 'app', Value: 'namma-medmate' },
-        { Key: 'environment', Value: environment },
-        { Key: 'service', Value: parameter.service },
-      ],
     }),
   );
   process.stdout.write(`updated ${name}\n`);

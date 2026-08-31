@@ -133,7 +133,7 @@ module "github_oidc" {
 module "appconfig" {
   source           = "../../modules/appconfig"
   environment      = var.environment
-  application_name = "namma-medmate"
+  application_name = "namma-medmate-prod"
 }
 
 module "monitoring" {
