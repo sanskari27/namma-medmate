@@ -28,7 +28,18 @@
     },
     "e2e": {
       "executor": "nx:run-commands",
-      "options": { "command": "playwright test", "cwd": "{projectRoot}" }
+      "options": {
+        "command": "playwright test --project=smoke --project=happy-path --project=failure-cases --project=a11y",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "e2e-smoke": {
+      "executor": "nx:run-commands",
+      "options": { "command": "playwright test --project=smoke", "cwd": "{projectRoot}" }
+    },
+    "visual": {
+      "executor": "nx:run-commands",
+      "options": { "command": "playwright test --project=visual", "cwd": "{projectRoot}" }
     },
     "bundle-size": {
       "executor": "nx:run-commands",

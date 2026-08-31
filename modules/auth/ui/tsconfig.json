@@ -8,8 +8,11 @@
     "src/**/*.tsx",
     "tests/unit/**/*.ts",
     "tests/unit/**/*.tsx",
+    "tests/e2e/**/*.ts",
     "tests/setup.ts",
     ".storybook/**/*.ts",
-    ".storybook/**/*.tsx"
+    ".storybook/**/*.tsx",
+    "playwright.config.ts",
+    "playwright.visual.config.ts"
   ]
 }
