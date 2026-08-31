@@ -1,0 +1,52 @@
+{
+  "name": "audit-ui",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "modules/audit/ui/src",
+  "projectType": "library",
+  "tags": ["type:module-ui", "domain:audit"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint .", "cwd": "{projectRoot}" }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc --noEmit -p tsconfig.json", "cwd": "{projectRoot}" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vitest run --coverage", "cwd": "{projectRoot}" }
+    },
+    "generate-stories": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsx .storybook/story-generator.ts", "cwd": "{projectRoot}" }
+    },
+    "storybook": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["generate-stories"],
+      "options": { "command": "storybook dev -p 6009", "cwd": "{projectRoot}" }
+    },
+    "build-storybook": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["generate-stories"],
+      "outputs": ["{projectRoot}/storybook-static"],
+      "options": { "command": "storybook build", "cwd": "{projectRoot}" }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": { "command": "playwright test", "cwd": "{projectRoot}" }
+    },
+    "e2e-smoke": {
+      "executor": "nx:run-commands",
+      "options": { "command": "playwright test --project=smoke", "cwd": "{projectRoot}" }
+    },
+    "visual": {
+      "executor": "nx:run-commands",
+      "dependsOn": ["build-storybook"],
+      "options": {
+        "command": "playwright test -c playwright.visual.config.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

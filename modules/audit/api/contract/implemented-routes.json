@@ -1,0 +1,9 @@
+[
+  { "method": "post", "path": "/audit/events", "operationId": "ingestAuditEvent" },
+  { "method": "get", "path": "/audit/events", "operationId": "listAuditEvents" },
+  {
+    "method": "get",
+    "path": "/audit/events/{audit_event_id}",
+    "operationId": "getAuditEvent"
+  }
+]

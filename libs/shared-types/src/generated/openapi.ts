@@ -5,6 +5,41 @@
  */
 
 export interface paths {
+    "/audit/events": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Query audit events newest first */
+        get: operations["listAuditEvents"];
+        put?: never;
+        /** Ingest an append-only audit event (service token) */
+        post: operations["ingestAuditEvent"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/audit/events/{audit_event_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get one audit event */
+        get: operations["getAuditEvent"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -216,15 +251,79 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
     schemas: {
-        SessionSuccess: {
+        /** @enum {string} */
+        ActorSurface: "pharmacy" | "hq" | "kiosk" | "system";
+        IngestAuditEventRequest: {
+            idempotency_key?: string;
+            /** Format: uuid */
+            tenant_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
+            actor_user_id: string;
+            actor_role: string;
+            actor_surface: components["schemas"]["ActorSurface"];
+            action: string;
+            target_type: string;
+            target_id: string;
+            money_or_stock: boolean;
+            before?: {
+                [key: string]: unknown;
+            } | null;
+            after?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            client_occurred_at?: string;
+            request_id?: string;
+        };
+        IngestAuditEvent: {
+            /** Format: uuid */
+            audit_event_id: string;
+            /** Format: date-time */
+            occurred_at: string;
+            deduped: boolean;
+        };
+        AuditEvent: {
+            /** Format: uuid */
+            audit_event_id: string;
+            /** Format: uuid */
+            tenant_id?: string | null;
+            /** Format: uuid */
+            location_id?: string | null;
+            actor_user_id: string;
+            actor_role: string;
+            actor_surface: components["schemas"]["ActorSurface"];
+            action: string;
+            target_type: string;
+            target_id: string;
+            money_or_stock: boolean;
+            before?: {
+                [key: string]: unknown;
+            } | null;
+            after?: {
+                [key: string]: unknown;
+            } | null;
+            /** Format: date-time */
+            occurred_at: string;
+        };
+        AuditEventPage: {
+            items: components["schemas"]["AuditEvent"][];
+            next_cursor: string | null;
+        };
+        IngestAuditEventSuccess: {
             /** @enum {boolean} */
             success: true;
-            data: components["schemas"]["SessionIdentity"];
+            data: components["schemas"]["IngestAuditEvent"];
         };
-        SessionIdentity: {
+        ListAuditEventsSuccess: {
             /** @enum {boolean} */
-            authenticated: true;
-            sub: string;
+            success: true;
+            data: components["schemas"]["AuditEventPage"];
+        };
+        GetAuditEventSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AuditEvent"];
         };
         ErrorEnvelope: {
             /** @enum {boolean} */
@@ -237,6 +336,16 @@ export interface components {
                     [key: string]: unknown;
                 };
             };
+        };
+        SessionSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["SessionIdentity"];
+        };
+        SessionIdentity: {
+            /** @enum {boolean} */
+            authenticated: true;
+            sub: string;
         };
         CreatePharmacyRequest: {
             display_name?: string;
@@ -454,6 +563,113 @@ export interface components {
 }
 export type $defs = Record<string, never>;
 export interface operations {
+    listAuditEvents: {
+        parameters: {
+            query?: {
+                tenant_id?: string;
+                location_id?: string;
+                from?: string;
+                to?: string;
+                actor_user_id?: string;
+                action?: string;
+                target_type?: string;
+                target_id?: string;
+                cursor?: string;
+                /** @description Page size. Values above 200 are capped to 200. */
+                limit?: number;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Newest-first page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListAuditEventsSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    ingestAuditEvent: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["IngestAuditEventRequest"];
+            };
+        };
+        responses: {
+            /** @description Deduped existing event */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestAuditEventSuccess"];
+                };
+            };
+            /** @description Event inserted */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["IngestAuditEventSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getAuditEvent: {
+        parameters: {
+            query?: {
+                location_id?: string;
+                tenant_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                audit_event_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Event */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GetAuditEventSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
     getAuthSession: {
         parameters: {
             query?: never;

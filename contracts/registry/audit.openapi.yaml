@@ -1,0 +1,365 @@
+openapi: 3.0.3
+info:
+  title: Namma MedMate Audit API
+  version: 0.1.0
+  description: Append-only AuditEvent ingest and query. No update or delete.
+servers:
+  - url: /
+paths:
+  /audit/events:
+    post:
+      operationId: ingestAuditEvent
+      summary: Ingest an append-only audit event (service token)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/IngestAuditEventRequest'
+      responses:
+        '201':
+          description: Event inserted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestAuditEventSuccess'
+        '200':
+          description: Deduped existing event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/IngestAuditEventSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: listAuditEvents
+      summary: Query audit events newest first
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: tenant_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: location_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: from
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: to
+          in: query
+          schema:
+            type: string
+            format: date-time
+        - name: actor_user_id
+          in: query
+          schema:
+            type: string
+        - name: action
+          in: query
+          schema:
+            type: string
+        - name: target_type
+          in: query
+          schema:
+            type: string
+        - name: target_id
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          description: Page size. Values above 200 are capped to 200.
+          schema:
+            type: integer
+            minimum: 1
+            default: 50
+      responses:
+        '200':
+          description: Newest-first page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListAuditEventsSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /audit/events/{audit_event_id}:
+    get:
+      operationId: getAuditEvent
+      summary: Get one audit event
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: audit_event_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+        - name: location_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+        - name: tenant_id
+          in: query
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Event
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetAuditEventSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    AuthorizationHeader:
+      name: authorization
+      in: header
+      required: true
+      schema:
+        type: string
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ActorSurface:
+      type: string
+      enum: [pharmacy, hq, kiosk, system]
+    IngestAuditEventRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - actor_user_id
+        - actor_role
+        - actor_surface
+        - action
+        - target_type
+        - target_id
+        - money_or_stock
+      properties:
+        idempotency_key:
+          type: string
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        actor_user_id:
+          type: string
+        actor_role:
+          type: string
+        actor_surface:
+          $ref: '#/components/schemas/ActorSurface'
+        action:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        money_or_stock:
+          type: boolean
+        before:
+          type: object
+          additionalProperties: true
+          nullable: true
+        after:
+          type: object
+          additionalProperties: true
+          nullable: true
+        client_occurred_at:
+          type: string
+          format: date-time
+        request_id:
+          type: string
+    IngestAuditEvent:
+      type: object
+      additionalProperties: false
+      required: [audit_event_id, occurred_at, deduped]
+      properties:
+        audit_event_id:
+          type: string
+          format: uuid
+        occurred_at:
+          type: string
+          format: date-time
+        deduped:
+          type: boolean
+    AuditEvent:
+      type: object
+      additionalProperties: false
+      required:
+        - audit_event_id
+        - actor_user_id
+        - actor_role
+        - actor_surface
+        - action
+        - target_type
+        - target_id
+        - money_or_stock
+        - occurred_at
+      properties:
+        audit_event_id:
+          type: string
+          format: uuid
+        tenant_id:
+          type: string
+          format: uuid
+          nullable: true
+        location_id:
+          type: string
+          format: uuid
+          nullable: true
+        actor_user_id:
+          type: string
+        actor_role:
+          type: string
+        actor_surface:
+          $ref: '#/components/schemas/ActorSurface'
+        action:
+          type: string
+        target_type:
+          type: string
+        target_id:
+          type: string
+        money_or_stock:
+          type: boolean
+        before:
+          type: object
+          additionalProperties: true
+          nullable: true
+        after:
+          type: object
+          additionalProperties: true
+          nullable: true
+        occurred_at:
+          type: string
+          format: date-time
+    AuditEventPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AuditEvent'
+        next_cursor:
+          type: string
+          nullable: true
+    IngestAuditEventSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/IngestAuditEvent'
+    ListAuditEventsSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/AuditEventPage'
+    GetAuditEventSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/AuditEvent'
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              description: Requirement §9 and authz codes returned by this API.
+              enum:
+                - LOCATION_ID_REQUIRED
+                - LOCATION_TENANT_MISMATCH
+                - BEFORE_AFTER_REQUIRED
+                - SECRET_KEY_FORBIDDEN
+                - ACTOR_REQUIRED
+                - PAYLOAD_TOO_LARGE
+                - INVALID_RANGE
+                - MONEY_OR_STOCK_REQUIRED
+                - NOT_FOUND
+                - LOCATION_NOT_FOUND
+                - VALIDATION_FAILED
+                - UNAUTHORIZED
+                - FORBIDDEN
+                - PHARMACY_SESSION_REQUIRED
+              example: LOCATION_ID_REQUIRED
+            message:
+              type: string
+            i18n_key:
+              type: string
+            details:
+              type: object
+              additionalProperties: true

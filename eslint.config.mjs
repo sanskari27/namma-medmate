@@ -11,6 +11,7 @@ export default tseslint.config(
       '**/node_modules/**',
       '**/.nx/**',
       '**/stories/.generated/**',
+      '**/storybook-static/**',
       '**/playwright-report/**',
       '**/test-results/**',
       '**/.terraform/**',

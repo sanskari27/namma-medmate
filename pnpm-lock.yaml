@@ -432,6 +432,113 @@ importers:
         specifier: workspace:*
         version: link:../libs/db-services
 
+  modules/audit/api:
+    dependencies:
+      '@namma-medmate/auth-utils':
+        specifier: workspace:*
+        version: link:../../../libs/auth-utils
+      '@namma-medmate/constants':
+        specifier: workspace:*
+        version: link:../../../libs/constants
+      '@namma-medmate/db-services':
+        specifier: workspace:*
+        version: link:../../../libs/db-services
+      '@namma-medmate/env-config':
+        specifier: workspace:*
+        version: link:../../../libs/env-config
+      '@namma-medmate/error-handling':
+        specifier: workspace:*
+        version: link:../../../libs/error-handling
+      '@namma-medmate/id-generator':
+        specifier: workspace:*
+        version: link:../../../libs/id-generator
+      '@namma-medmate/lambda-bootstrap':
+        specifier: workspace:*
+        version: link:../../../libs/lambda-bootstrap
+      '@namma-medmate/logger':
+        specifier: workspace:*
+        version: link:../../../libs/logger
+      '@namma-medmate/pagination-utils':
+        specifier: workspace:*
+        version: link:../../../libs/pagination-utils
+      '@namma-medmate/response-envelope':
+        specifier: workspace:*
+        version: link:../../../libs/response-envelope
+      '@namma-medmate/validation-schemas':
+        specifier: workspace:*
+        version: link:../../../libs/validation-schemas
+      express:
+        specifier: ^4.21.2
+        version: 4.22.2
+      zod:
+        specifier: ^3.25.76
+        version: 3.25.76
+    devDependencies:
+      '@namma-medmate/e2e-kit':
+        specifier: workspace:*
+        version: link:../../../libs/e2e-kit
+      '@types/aws-lambda':
+        specifier: ^8.10.152
+        version: 8.10.162
+      '@types/express':
+        specifier: ^4.17.23
+        version: 4.17.25
+      '@types/supertest':
+        specifier: ^6.0.3
+        version: 6.0.3
+      jose:
+        specifier: ^6.0.12
+        version: 6.2.10
+      supertest:
+        specifier: ^7.1.4
+        version: 7.2.2
+
+  modules/audit/ui:
+    dependencies:
+      '@namma-medmate/api-client':
+        specifier: workspace:*
+        version: link:../../../libs/api-client
+      '@namma-medmate/event-bus':
+        specifier: workspace:*
+        version: link:../../../libs/event-bus
+      '@namma-medmate/i18n':
+        specifier: workspace:*
+        version: link:../../../libs/i18n
+      '@namma-medmate/shared-ui':
+        specifier: workspace:*
+        version: link:../../../libs/shared-ui
+      '@reduxjs/toolkit':
+        specifier: ^2.8.2
+        version: 2.12.0(react-redux@9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1))(react@19.2.8)
+      react:
+        specifier: ^19.1.1
+        version: 19.2.8
+      react-dom:
+        specifier: ^19.1.1
+        version: 19.2.8(react@19.2.8)
+      react-redux:
+        specifier: ^9.2.0
+        version: 9.3.0(@types/react@19.2.18)(react@19.2.8)(redux@5.0.1)
+    devDependencies:
+      '@namma-medmate/e2e-kit':
+        specifier: workspace:*
+        version: link:../../../libs/e2e-kit
+      '@storybook/react':
+        specifier: ^9.1.1
+        version: 9.1.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(storybook@9.1.20(@testing-library/dom@10.4.1)(prettier@3.9.6)(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0)))(typescript@5.9.3)
+      '@storybook/react-vite':
+        specifier: ^9.1.1
+        version: 9.1.20(react-dom@19.2.8(react@19.2.8))(react@19.2.8)(rollup@4.63.1)(storybook@9.1.20(@testing-library/dom@10.4.1)(prettier@3.9.6)(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0)))(typescript@5.9.3)(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      '@tailwindcss/vite':
+        specifier: ^4.1.11
+        version: 4.3.3(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      storybook:
+        specifier: ^9.1.1
+        version: 9.1.20(@testing-library/dom@10.4.1)(prettier@3.9.6)(vite@7.3.6(@types/node@24.13.3)(jiti@2.7.0)(lightningcss@1.32.0)(terser@5.51.2)(tsx@4.23.13)(yaml@2.9.0))
+      tailwindcss:
+        specifier: ^4.1.11
+        version: 4.3.3
+
   modules/auth/api:
     dependencies:
       '@namma-medmate/auth-utils':
