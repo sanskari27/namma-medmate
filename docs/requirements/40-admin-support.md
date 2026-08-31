@@ -41,16 +41,16 @@ HQ **Support** is Namma’s chemist-support desk: **Overview**, **Tickets**, **A
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `admin-tenants` | Tenant identity for ticket `tenantId`. |
+| Module                    | Need                                                                            |
+| ------------------------- | ------------------------------------------------------------------------------- |
+| `admin-tenants`           | Tenant identity for ticket `tenantId`.                                          |
 | `account-settings` (Help) | Raise-ticket form calls **this** create API with pharmacy Owner JWT + tenantId. |
-| `admin-saas-crm` | Displays open ticket counts; CSM assign is separate. |
-| `admin-automation` | Seed rule “Escalate SLA-breached tickets to L2” calls Escalate API. |
-| `admin-platform-settings` | HQ users, roles, L1 vs L2 (Support default L1; Super admin L2). |
-| `whatsapp` | Optional Owner notify on ticket received/resolved (`support_ticket_update`). |
-| `audit` | Critical ticket actions. |
-| `auth` | Pharmacy JWT for create-from-console; HQ JWT for desk. |
+| `admin-saas-crm`          | Displays open ticket counts; CSM assign is separate.                            |
+| `admin-automation`        | Seed rule “Escalate SLA-breached tickets to L2” calls Escalate API.             |
+| `admin-platform-settings` | HQ users, roles, L1 vs L2 (Support default L1; Super admin L2).                 |
+| `whatsapp`                | Optional Owner notify on ticket received/resolved (`support_ticket_update`).    |
+| `audit`                   | Critical ticket actions.                                                        |
+| `auth`                    | Pharmacy JWT for create-from-console; HQ JWT for desk.                          |
 
 ---
 
@@ -84,12 +84,12 @@ HQ **Support** is Namma’s chemist-support desk: **Overview**, **Tickets**, **A
 
 - FR-16: The system shall use these SLA targets (IST business hours 09:00–18:00 Mon–Sat unless Super admin edits — v1 constants, see §10):
 
-| Priority | First response | Resolve |
-|---|---|---|
-| urgent | 1 hour | 4 hours |
-| high | 4 hours | 24 hours |
-| normal | 8 hours | 48 hours |
-| low | 24 hours | 5 days |
+| Priority | First response | Resolve  |
+| -------- | -------------- | -------- |
+| urgent   | 1 hour         | 4 hours  |
+| high     | 4 hours        | 24 hours |
+| normal   | 8 hours        | 48 hours |
+| low      | 24 hours       | 5 days   |
 
 - FR-17: The system shall show SLA & escalations tab: policy table (read-only in v1 except Super admin constants), list of auto-escalations today, L1 vs L2 definition (L1 = Support; L2 = Super admin or Support flagged `isL2`).
 - FR-18: The system shall compute `firstResponseDueAt` and `resolveDueAt` at create/priority-change and persist them.
@@ -123,58 +123,58 @@ HQ **Support** is Namma’s chemist-support desk: **Overview**, **Tickets**, **A
 
 ### `Ticket` (owned — glossary)
 
-| Field | Type | Notes |
-|---|---|---|
-| `ticketId` | UUID | |
-| `tenantId` | UUID | |
-| `subject` | text | |
-| `status` | enum | `open` `pending` `resolved` `escalated` |
-| `priority` | enum | `low` `normal` `high` `urgent` |
-| `assigneeHqUserId` | UUID nullable | |
-| `level` | enum | `L1` `L2` |
-| `createdBy` | enum | `pharmacy` `hq` |
-| `createdByUserId` | UUID | pharmacy user or HQ user |
-| `firstResponseDueAt` `resolveDueAt` | timestamptz | |
-| `firstHqRepliedAt` | timestamptz nullable | |
-| `slaBreach` | bool | |
-| `escalatedAt` `escalatedBy` | nullable | `hq:{id}` or `automation` |
-| `resolvedAt` | nullable | |
-| `nps` | int nullable | 0–10 optional on resolve |
+| Field                               | Type                 | Notes                                   |
+| ----------------------------------- | -------------------- | --------------------------------------- |
+| `ticketId`                          | UUID                 |                                         |
+| `tenantId`                          | UUID                 |                                         |
+| `subject`                           | text                 |                                         |
+| `status`                            | enum                 | `open` `pending` `resolved` `escalated` |
+| `priority`                          | enum                 | `low` `normal` `high` `urgent`          |
+| `assigneeHqUserId`                  | UUID nullable        |                                         |
+| `level`                             | enum                 | `L1` `L2`                               |
+| `createdBy`                         | enum                 | `pharmacy` `hq`                         |
+| `createdByUserId`                   | UUID                 | pharmacy user or HQ user                |
+| `firstResponseDueAt` `resolveDueAt` | timestamptz          |                                         |
+| `firstHqRepliedAt`                  | timestamptz nullable |                                         |
+| `slaBreach`                         | bool                 |                                         |
+| `escalatedAt` `escalatedBy`         | nullable             | `hq:{id}` or `automation`               |
+| `resolvedAt`                        | nullable             |                                         |
+| `nps`                               | int nullable         | 0–10 optional on resolve                |
 
 ### `TicketMessage` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `messageId` | UUID | |
-| `ticketId` | UUID | |
-| `authorType` | enum | `pharmacy` `hq` |
-| `authorUserId` | UUID | |
-| `body` | text | |
-| `createdAt` | timestamptz | |
+| Field          | Type        | Notes           |
+| -------------- | ----------- | --------------- |
+| `messageId`    | UUID        |                 |
+| `ticketId`     | UUID        |                 |
+| `authorType`   | enum        | `pharmacy` `hq` |
+| `authorUserId` | UUID        |                 |
+| `body`         | text        |                 |
+| `createdAt`    | timestamptz |                 |
 
 ### `SupportMacro` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `macroId` | UUID | |
-| `title` | text | |
-| `body` | text | |
+| Field     | Type | Notes |
+| --------- | ---- | ----- |
+| `macroId` | UUID |       |
+| `title`   | text |       |
+| `body`    | text |       |
 
 ### `KbArticle` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `articleId` | UUID | |
-| `title` `body` `tags` | | |
-| `updatedAt` | timestamptz | |
+| Field                 | Type        | Notes |
+| --------------------- | ----------- | ----- |
+| `articleId`           | UUID        |       |
+| `title` `body` `tags` |             |       |
+| `updatedAt`           | timestamptz |       |
 
 ### `HqAgentPresence` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `hqUserId` | UUID PK | |
-| `presence` | enum | `online` `offline` |
-| `updatedAt` | timestamptz | |
+| Field       | Type        | Notes              |
+| ----------- | ----------- | ------------------ |
+| `hqUserId`  | UUID PK     |                    |
+| `presence`  | enum        | `online` `offline` |
+| `updatedAt` | timestamptz |                    |
 
 ---
 
@@ -242,12 +242,12 @@ or batch `POST /admin/support/internal/run-sla` — escalates all due. Same as h
 
 ### 7.4 Events
 
-| Event | Payload |
-|---|---|
-| `support.ticket.created` | `{ ticketId, tenantId, createdBy }` |
-| `support.ticket.escalated` | `{ ticketId, actor }` |
-| `support.ticket.resolved` | `{ ticketId }` |
-| `support.ticket.reopened` | `{ ticketId }` |
+| Event                      | Payload                             |
+| -------------------------- | ----------------------------------- |
+| `support.ticket.created`   | `{ ticketId, tenantId, createdBy }` |
+| `support.ticket.escalated` | `{ ticketId, actor }`               |
+| `support.ticket.resolved`  | `{ ticketId }`                      |
+| `support.ticket.reopened`  | `{ ticketId }`                      |
 
 `admin-saas-crm` listens for counts. `admin-automation` listens for SLA or polls.
 
@@ -295,16 +295,16 @@ As Support, I want online/offline, so that Overview shows coverage.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Empty ticket list | Empty state. |
-| Assign to Finance user | `400 NOT_AGENT` unless Super admin. |
-| Escalate resolved ticket | `409`. |
-| Pharmacy JWT on `/admin/support` | `403`. |
-| HQ JWT on `/help/tickets` create for another tenant | Impossible — tenant from token. |
-| Concurrent resolve + message | Resolve wins or message reopens — last write: if message after resolve, reopen (transaction: compare `resolvedAt`). |
-| Macro empty body | `400`. |
-| SLA constants | Not editable in v1 except Super admin PATCH if implemented; default FR-16. |
+| Case                                                | Behaviour                                                                                                           |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| Empty ticket list                                   | Empty state.                                                                                                        |
+| Assign to Finance user                              | `400 NOT_AGENT` unless Super admin.                                                                                 |
+| Escalate resolved ticket                            | `409`.                                                                                                              |
+| Pharmacy JWT on `/admin/support`                    | `403`.                                                                                                              |
+| HQ JWT on `/help/tickets` create for another tenant | Impossible — tenant from token.                                                                                     |
+| Concurrent resolve + message                        | Resolve wins or message reopens — last write: if message after resolve, reopen (transaction: compare `resolvedAt`). |
+| Macro empty body                                    | `400`.                                                                                                              |
+| SLA constants                                       | Not editable in v1 except Super admin PATCH if implemented; default FR-16.                                          |
 
 ---
 

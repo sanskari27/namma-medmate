@@ -29,19 +29,19 @@ Go-Live KYC owns **KYC status on Pharmacy** and the Owner **go-live wizard** in 
 
 ## 3. Dependencies (modules + external)
 
-| Dependency | Why |
-|---|---|
-| `tenancy` | **Pharmacy** / **Location** identity; profile fields written through tenancy persistence. |
-| `plan-gating` | Wizard and KYC are always reachable (not a paid module). Gate is legal / ops, not a plan lock. |
-| `audit` | KYC and wizard completion **AuditEvent**. |
-| `manage-users` | Step 5: create first non-Owner **User** + PIN. |
-| `auth` | Step 5: PIN hash for that User and for Owner if PIN set here. |
-| `inventory` (later) | Step 2: opening stock CSV ingest. Wizard invokes; does not parse stock itself. |
-| `books-gst` (later) | Step 3: opening cash / optional khata / AP journals. Wizard collects; books posts. |
-| `account-settings` (later) | Step 4: invoice prefix + thermal print sample. Wizard collects / confirms; Invoice Settings is SoR. |
-| `pos-billing` (later consumer) | Must call the gate before posting a **Bill**. |
-| `admin-tenants` (later UI) | Renders HQ queue using this module’s admin APIs. |
-| `@namma-medmate/api-client` | Console + HQ clients. |
+| Dependency                     | Why                                                                                                 |
+| ------------------------------ | --------------------------------------------------------------------------------------------------- |
+| `tenancy`                      | **Pharmacy** / **Location** identity; profile fields written through tenancy persistence.           |
+| `plan-gating`                  | Wizard and KYC are always reachable (not a paid module). Gate is legal / ops, not a plan lock.      |
+| `audit`                        | KYC and wizard completion **AuditEvent**.                                                           |
+| `manage-users`                 | Step 5: create first non-Owner **User** + PIN.                                                      |
+| `auth`                         | Step 5: PIN hash for that User and for Owner if PIN set here.                                       |
+| `inventory` (later)            | Step 2: opening stock CSV ingest. Wizard invokes; does not parse stock itself.                      |
+| `books-gst` (later)            | Step 3: opening cash / optional khata / AP journals. Wizard collects; books posts.                  |
+| `account-settings` (later)     | Step 4: invoice prefix + thermal print sample. Wizard collects / confirms; Invoice Settings is SoR. |
+| `pos-billing` (later consumer) | Must call the gate before posting a **Bill**.                                                       |
+| `admin-tenants` (later UI)     | Renders HQ queue using this module’s admin APIs.                                                    |
+| `@namma-medmate/api-client`    | Console + HQ clients.                                                                               |
 
 External: none for KYC decision (human HQ). No Cashfree in this module.
 
@@ -122,27 +122,27 @@ KYC and wizard columns live on **Pharmacy** / **Location** (tenancy row) plus a 
 
 ### Pharmacy fields (this module writes via tenancy)
 
-| Field | Type | Notes |
-|---|---|---|
-| `kyc_status` | enum | `not_submitted` \| `pending` \| `approved` \| `rejected` |
-| `kyc_submitted_at` | timestamptz null | |
-| `kyc_decided_at` | timestamptz null | |
-| `kyc_reject_reason` | string null | HQ |
-| `kyc_gstin` | string | |
-| `kyc_pan` | string | |
-| `kyc_drug_licence_no` | string | |
-| `kyc_drug_licence_expiry` | date | |
-| `kyc_fssai_no` | string null | |
-| `kyc_fssai_expiry` | date null | |
-| `kyc_pharmacist_name` | string | |
-| `kyc_pharmacist_registration_no` | string | |
-| `kyc_pharmacist_registration_expiry` | date | |
-| `kyc_e_invoicing_enabled` | boolean | |
-| `kyc_bank_account_holder` | string | |
-| `kyc_bank_account_number` | encrypted | |
-| `kyc_bank_ifsc` | string | |
-| `wizard_status` | enum | `not_started` \| `in_progress` \| `completed` |
-| `wizard_completed_at` | timestamptz null | |
+| Field                                | Type             | Notes                                                    |
+| ------------------------------------ | ---------------- | -------------------------------------------------------- |
+| `kyc_status`                         | enum             | `not_submitted` \| `pending` \| `approved` \| `rejected` |
+| `kyc_submitted_at`                   | timestamptz null |                                                          |
+| `kyc_decided_at`                     | timestamptz null |                                                          |
+| `kyc_reject_reason`                  | string null      | HQ                                                       |
+| `kyc_gstin`                          | string           |                                                          |
+| `kyc_pan`                            | string           |                                                          |
+| `kyc_drug_licence_no`                | string           |                                                          |
+| `kyc_drug_licence_expiry`            | date             |                                                          |
+| `kyc_fssai_no`                       | string null      |                                                          |
+| `kyc_fssai_expiry`                   | date null        |                                                          |
+| `kyc_pharmacist_name`                | string           |                                                          |
+| `kyc_pharmacist_registration_no`     | string           |                                                          |
+| `kyc_pharmacist_registration_expiry` | date             |                                                          |
+| `kyc_e_invoicing_enabled`            | boolean          |                                                          |
+| `kyc_bank_account_holder`            | string           |                                                          |
+| `kyc_bank_account_number`            | encrypted        |                                                          |
+| `kyc_bank_ifsc`                      | string           |                                                          |
+| `wizard_status`                      | enum             | `not_started` \| `in_progress` \| `completed`            |
+| `wizard_completed_at`                | timestamptz null |                                                          |
 
 ### WizardProgress (jsonb)
 
@@ -153,7 +153,12 @@ KYC and wizard columns live on **Pharmacy** / **Location** (tenancy row) plus a 
     "2_opening_stock": { "status": "completed", "zero_stock": true, "ingest_id": null },
     "3_opening_books": { "status": "skipped", "start_at_zero": true, "journal_ids": [] },
     "4_invoice": { "status": "completed", "invoice_prefix": "INV", "print_sample_confirmed": true },
-    "5_first_user": { "status": "skipped", "owner_only": true, "created_user_id": null, "owner_pin_set": true }
+    "5_first_user": {
+      "status": "skipped",
+      "owner_only": true,
+      "created_user_id": null,
+      "owner_pin_set": true
+    }
   }
 }
 ```
@@ -320,14 +325,14 @@ Full KYC fields with bank account masked except last 4. Used by HQ drawer and by
 
 ### 7.4 Events
 
-| Event | Payload |
-|---|---|
-| `go-live-kyc.kyc.submitted` | `{ tenant_id, location_id }` |
-| `go-live-kyc.kyc.approved` | `{ tenant_id, location_id, actor_admin_id }` |
-| `go-live-kyc.kyc.rejected` | `{ tenant_id, location_id, reason }` |
-| `go-live-kyc.wizard.step.completed` | `{ tenant_id, location_id, step }` |
-| `go-live-kyc.wizard.completed` | `{ tenant_id, location_id }` |
-| `go-live-kyc.gate.changed` | `{ tenant_id, location_id, allowed }` |
+| Event                               | Payload                                      |
+| ----------------------------------- | -------------------------------------------- |
+| `go-live-kyc.kyc.submitted`         | `{ tenant_id, location_id }`                 |
+| `go-live-kyc.kyc.approved`          | `{ tenant_id, location_id, actor_admin_id }` |
+| `go-live-kyc.kyc.rejected`          | `{ tenant_id, location_id, reason }`         |
+| `go-live-kyc.wizard.step.completed` | `{ tenant_id, location_id, step }`           |
+| `go-live-kyc.wizard.completed`      | `{ tenant_id, location_id }`                 |
+| `go-live-kyc.gate.changed`          | `{ tenant_id, location_id, allowed }`        |
 
 UI: `'go-live-kyc.wizard.updated': { location_id: string }`.
 
@@ -383,24 +388,24 @@ UI: `'go-live-kyc.wizard.updated': { location_id: string }`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Charge before gate | `pos-billing` must not post **Bill**; this module returns `allowed: false` |
-| KYC rejected after wizard complete | Gate false; `GO_LIVE_KYC_REJECTED` |
-| HQ approve while not pending | 409 `KYC_NOT_PENDING` |
-| Reject without reason | 400 `VALIDATION_ERROR` |
-| Invalid GSTIN / PAN | 400 `VALIDATION_ERROR` |
-| Print sample not confirmed | 422 `PRINT_SAMPLE_REQUIRED` |
-| Step 5 add user at seat cap | 409 `SEAT_CAP_REACHED`; step not completed |
-| `inventory` ingest fail | Step 2 stays `in_progress`; error `OPENING_STOCK_FAILED`; no silent complete |
-| `books-gst` fail | Step 3 stays `in_progress`; `OPENING_BOOKS_FAILED` |
-| Second opening books on re-run | 409 `OPENING_BOOKS_ALREADY_POSTED`; Owner skips |
-| Non-Owner completes wizard | 403 `OWNER_ONLY` |
-| GSTIN change after approve | `kyc_status=pending`; gate false until re-approve |
-| FSSAI omitted | Allowed; HQ may still reject |
-| Expired drug licence at submit | Accepted; HQ may reject |
-| Duplicate webhook N/A | This module has no Cashfree |
-| Missing `location_id` | 400 `LOCATION_REQUIRED` |
+| Case                               | Behaviour                                                                    |
+| ---------------------------------- | ---------------------------------------------------------------------------- |
+| Charge before gate                 | `pos-billing` must not post **Bill**; this module returns `allowed: false`   |
+| KYC rejected after wizard complete | Gate false; `GO_LIVE_KYC_REJECTED`                                           |
+| HQ approve while not pending       | 409 `KYC_NOT_PENDING`                                                        |
+| Reject without reason              | 400 `VALIDATION_ERROR`                                                       |
+| Invalid GSTIN / PAN                | 400 `VALIDATION_ERROR`                                                       |
+| Print sample not confirmed         | 422 `PRINT_SAMPLE_REQUIRED`                                                  |
+| Step 5 add user at seat cap        | 409 `SEAT_CAP_REACHED`; step not completed                                   |
+| `inventory` ingest fail            | Step 2 stays `in_progress`; error `OPENING_STOCK_FAILED`; no silent complete |
+| `books-gst` fail                   | Step 3 stays `in_progress`; `OPENING_BOOKS_FAILED`                           |
+| Second opening books on re-run     | 409 `OPENING_BOOKS_ALREADY_POSTED`; Owner skips                              |
+| Non-Owner completes wizard         | 403 `OWNER_ONLY`                                                             |
+| GSTIN change after approve         | `kyc_status=pending`; gate false until re-approve                            |
+| FSSAI omitted                      | Allowed; HQ may still reject                                                 |
+| Expired drug licence at submit     | Accepted; HQ may reject                                                      |
+| Duplicate webhook N/A              | This module has no Cashfree                                                  |
+| Missing `location_id`              | 400 `LOCATION_REQUIRED`                                                      |
 
 ## 10. Open Questions / Assumptions
 

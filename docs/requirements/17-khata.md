@@ -12,7 +12,7 @@
 
 ## 1. Summary
 
-Khata is the pharmacy’s **only receivables ledger** (digital *udhaar*). POS **Record on credit** and any credit sale started from this screen write the **same** ledger. Walk-in cannot take credit. A named Customer with phone is required.
+Khata is the pharmacy’s **only receivables ledger** (digital _udhaar_). POS **Record on credit** and any credit sale started from this screen write the **same** ledger. Walk-in cannot take credit. A named Customer with phone is required.
 
 The Owner may set an optional credit limit on the Customer (`customers` owns the field). At charge, POS calls `checkCreditLimit`; this module returns `allowed` or `over_limit`. Over-limit charge needs Owner/Manager PIN (POS collects PIN; this module does not hash PINs). The override is logged.
 
@@ -54,17 +54,17 @@ Staff collect cash repayments here (quick chips ₹500 / ₹1000 / ₹2000 / Hal
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. |
-| `plan-gating` | Starter. |
-| `customers` | Named Customer + phone required; `credit_limit` read; 360 embed. |
-| `whatsapp` | Only send path. Template `khata_remind`. Shop name in body. |
-| `pos-billing` | Posted khata Bills; New credit sale; PIN override at charge. |
-| `books-gst` | Listens `khata.repayment.posted` (Dr Cash; Cr Khata) and khata sale from bill journal. Period lock. |
+| Module                  | Why                                                                                                       |
+| ----------------------- | --------------------------------------------------------------------------------------------------------- |
+| `tenancy`               | Tenant + `location_id`.                                                                                   |
+| `plan-gating`           | Starter.                                                                                                  |
+| `customers`             | Named Customer + phone required; `credit_limit` read; 360 embed.                                          |
+| `whatsapp`              | Only send path. Template `khata_remind`. Shop name in body.                                               |
+| `pos-billing`           | Posted khata Bills; New credit sale; PIN override at charge.                                              |
+| `books-gst`             | Listens `khata.repayment.posted` (Dr Cash; Cr Khata) and khata sale from bill journal. Period lock.       |
 | `auth` / `manage-users` | Cashier default includes khata collect; Owner/Manager PIN is verified by POS/`auth` before override post. |
-| `audit` | Repayment, remind requested, over-limit override flag stored from POS. |
-| `crm` | May post referral ₹100 as a ledger credit via published API (not SaaS credit). |
+| `audit`                 | Repayment, remind requested, over-limit override flag stored from POS.                                    |
+| `crm`                   | May post referral ₹100 as a ledger credit via published API (not SaaS credit).                            |
 
 ---
 
@@ -135,30 +135,30 @@ Staff collect cash repayments here (quick chips ₹500 / ₹1000 / ₹2000 / Hal
 
 ### KhataLedger (header per customer)
 
-| Field | Type | Notes |
-|---|---|---|
-| `ledger_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `customer_id` | UUID | unique per location; named only |
-| `outstanding` | decimal(14,2) | ≥ 0 unless promotional credit balance (see §10) |
-| `updated_at` | timestamptz | |
+| Field                       | Type          | Notes                                           |
+| --------------------------- | ------------- | ----------------------------------------------- |
+| `ledger_id`                 | UUID          | PK                                              |
+| `tenant_id` / `location_id` | UUID          |                                                 |
+| `customer_id`               | UUID          | unique per location; named only                 |
+| `outstanding`               | decimal(14,2) | ≥ 0 unless promotional credit balance (see §10) |
+| `updated_at`                | timestamptz   |                                                 |
 
 ### KhataEntry (lines)
 
-| Field | Type | Notes |
-|---|---|---|
-| `entry_id` | UUID | PK |
-| `ledger_id` | UUID | |
-| `entry_type` | enum `sale\|repayment\|referral_credit\|cn_reversal` | |
-| `amount` | decimal(14,2) | sale increases outstanding; repayment/credit decreases |
-| `bill_id` | UUID | nullable; required for `sale` |
-| `credit_note_id` | UUID | nullable; refund-to-khata / reverse sale |
-| `client_repayment_id` | string | unique per tenant when type=repayment |
-| `credit_limit_override` | boolean | sale lines only |
-| `override_by_user_id` | UUID | nullable |
-| `actor_user_id` | UUID | |
-| `posted_at` | timestamptz | |
-| `allocation` | JSON | repayment → `{ bill_id, amount }[]` oldest-first |
+| Field                   | Type                                                 | Notes                                                  |
+| ----------------------- | ---------------------------------------------------- | ------------------------------------------------------ |
+| `entry_id`              | UUID                                                 | PK                                                     |
+| `ledger_id`             | UUID                                                 |                                                        |
+| `entry_type`            | enum `sale\|repayment\|referral_credit\|cn_reversal` |                                                        |
+| `amount`                | decimal(14,2)                                        | sale increases outstanding; repayment/credit decreases |
+| `bill_id`               | UUID                                                 | nullable; required for `sale`                          |
+| `credit_note_id`        | UUID                                                 | nullable; refund-to-khata / reverse sale               |
+| `client_repayment_id`   | string                                               | unique per tenant when type=repayment                  |
+| `credit_limit_override` | boolean                                              | sale lines only                                        |
+| `override_by_user_id`   | UUID                                                 | nullable                                               |
+| `actor_user_id`         | UUID                                                 |                                                        |
+| `posted_at`             | timestamptz                                          |                                                        |
+| `allocation`            | JSON                                                 | repayment → `{ bill_id, amount }[]` oldest-first       |
 
 ### CreditLimitCheck (not stored; computed)
 
@@ -179,11 +179,11 @@ Auth: session Bearer. Tenant from session.
 
 ```json
 {
-  "total_outstanding": 125000.00,
-  "overdue_30d_plus": 42000.00,
-  "collected_this_month": 18000.00,
+  "total_outstanding": 125000.0,
+  "overdue_30d_plus": 42000.0,
+  "collected_this_month": 18000.0,
   "collection_rate": 0.36,
-  "all_time_credit_given": 410000.00
+  "all_time_credit_given": 410000.0
 }
 ```
 
@@ -191,9 +191,9 @@ Auth: session Bearer. Tenant from session.
 
 ```json
 {
-  "current": { "amount": 80000.00, "count": 40 },
-  "days_30_60": { "amount": 25000.00, "count": 12 },
-  "days_60_plus": { "amount": 20000.00, "count": 8 }
+  "current": { "amount": 80000.0, "count": 40 },
+  "days_30_60": { "amount": 25000.0, "count": 12 },
+  "days_60_plus": { "amount": 20000.0, "count": 8 }
 }
 ```
 
@@ -208,11 +208,11 @@ Query: `bucket=current|days_30_60|days_60_plus`, `overdue_only=true|false`, `sor
       "customer_id": "c_01",
       "name": "Anita Sharma",
       "phone": "9876543210",
-      "outstanding": 2400.00,
+      "outstanding": 2400.0,
       "oldest_unpaid_at": "2026-07-01T11:00:00+05:30",
       "overdue_30d": true,
       "ageing_bucket": "days_60_plus",
-      "credit_limit": 5000.00
+      "credit_limit": 5000.0
     }
   ],
   "page": 1,
@@ -231,7 +231,7 @@ Payment history (repayments). Query: `from`, `to`, `page`.
       "repayment_id": "r_01",
       "customer_id": "c_01",
       "name": "Anita Sharma",
-      "amount": 1000.00,
+      "amount": 1000.0,
       "tender": "cash",
       "posted_at": "2026-08-15T18:00:00+05:30",
       "actor_user_id": "u_09"
@@ -247,25 +247,25 @@ Modal + 360 embed:
 ```json
 {
   "customer_id": "c_01",
-  "outstanding": 2400.00,
-  "credit_limit": 5000.00,
+  "outstanding": 2400.0,
+  "credit_limit": 5000.0,
   "unpaid_bills": [
     {
       "bill_id": "b_88",
       "invoice_no": "INV-2026-0201",
       "posted_at": "2026-07-01T11:00:00+05:30",
-      "original_total": 1800.00,
-      "open_amount": 1800.00
+      "original_total": 1800.0,
+      "open_amount": 1800.0
     }
   ],
   "ledger": [
     {
       "entry_id": "e_1",
       "entry_type": "sale",
-      "amount": 1800.00,
+      "amount": 1800.0,
       "bill_id": "b_88",
       "posted_at": "2026-07-01T11:00:00+05:30",
-      "running_balance": 1800.00
+      "running_balance": 1800.0
     }
   ]
 }
@@ -277,16 +277,16 @@ Unpaid bills **oldest-first**. Ledger chronological with running balance.
 `checkCreditLimit`
 
 ```json
-{ "customer_id": "c_01", "additional_amount": 3000.00 }
+{ "customer_id": "c_01", "additional_amount": 3000.0 }
 ```
 
 ```json
 {
   "result": "over_limit",
-  "outstanding": 2400.00,
-  "credit_limit": 5000.00,
-  "additional_amount": 3000.00,
-  "overflow": 400.00
+  "outstanding": 2400.0,
+  "credit_limit": 5000.0,
+  "additional_amount": 3000.0,
+  "overflow": 400.0
 }
 ```
 
@@ -301,7 +301,7 @@ Called by `pos-billing` after a posted khata bill (or in the same transaction vi
 {
   "bill_id": "b_99",
   "customer_id": "c_01",
-  "amount": 430.00,
+  "amount": 430.0,
   "posted_at": "2026-08-31T10:00:00+05:30",
   "credit_limit_override": false,
   "override_by_user_id": null,
@@ -317,7 +317,7 @@ If over limit and override false: `403 CREDIT_OVER_LIMIT`.
 ```json
 {
   "customer_id": "c_01",
-  "amount": 1000.00,
+  "amount": 1000.0,
   "tender": "cash",
   "client_repayment_id": "rep_pos_20260831_abc",
   "actor_user_id": "u_09"
@@ -331,8 +331,8 @@ Chips are UI-only; they post the numeric `amount`.
 ```json
 {
   "repayment_id": "r_01",
-  "outstanding": 1400.00,
-  "allocated": [{ "bill_id": "b_88", "amount": 1000.00 }]
+  "outstanding": 1400.0,
+  "allocated": [{ "bill_id": "b_88", "amount": 1000.0 }]
 }
 ```
 
@@ -360,7 +360,7 @@ This module calls `whatsapp` send; it does not contact Meta. If phone missing: `
 ```json
 {
   "customer_id": "c_01",
-  "amount": 100.00,
+  "amount": 100.0,
   "crm_referral_id": "ref_77",
   "reason": "patient_referral"
 }
@@ -370,23 +370,23 @@ Idempotent on `crm_referral_id`.
 
 ### 7.2 Events emitted
 
-| Event | Body (min) | Listeners |
-|---|---|---|
-| `khata.sale.posted` | `bill_id`, `customer_id`, `amount` | `books-gst` (Dr Khata; with bill income — POS may emit the full bill journal instead; this event is the receivable confirmation). Prefer single bill journal from POS; this event updates CRM due-tag projections. |
-| `khata.repayment.posted` | `repayment_id`, `customer_id`, `amount`, `client_repayment_id` | `books-gst` **Dr Cash; Cr Khata**; `audit`; `customers` due tag |
-| `khata.balance_changed` | `customer_id`, `outstanding` | `customers`, `crm`, `dashboard` |
-| `khata.remind.requested` | `customer_id`, `dedupe_key` | `whatsapp` (if not inline), `audit` |
+| Event                    | Body (min)                                                     | Listeners                                                                                                                                                                                                          |
+| ------------------------ | -------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `khata.sale.posted`      | `bill_id`, `customer_id`, `amount`                             | `books-gst` (Dr Khata; with bill income — POS may emit the full bill journal instead; this event is the receivable confirmation). Prefer single bill journal from POS; this event updates CRM due-tag projections. |
+| `khata.repayment.posted` | `repayment_id`, `customer_id`, `amount`, `client_repayment_id` | `books-gst` **Dr Cash; Cr Khata**; `audit`; `customers` due tag                                                                                                                                                    |
+| `khata.balance_changed`  | `customer_id`, `outstanding`                                   | `customers`, `crm`, `dashboard`                                                                                                                                                                                    |
+| `khata.remind.requested` | `customer_id`, `dedupe_key`                                    | `whatsapp` (if not inline), `audit`                                                                                                                                                                                |
 
 POS posted bill with tender khata is the source document; `books-gst` posts Dr Khata / Cr Sales / GST from the **bill** event. This module must not double-post income.
 
 ### 7.3 Events consumed
 
-| Event | From | Effect |
-|---|---|---|
-| `bill.posted` tender=khata | `pos-billing` | FR-5 |
-| `credit_note.posted` refund=khata | `returns` | increase outstanding |
-| `period.lock` | `books-gst` | block backdated posts |
-| `customer.credit_limit_changed` | `customers` | next checkCreditLimit |
+| Event                             | From          | Effect                |
+| --------------------------------- | ------------- | --------------------- |
+| `bill.posted` tender=khata        | `pos-billing` | FR-5                  |
+| `credit_note.posted` refund=khata | `returns`     | increase outstanding  |
+| `period.lock`                     | `books-gst`   | block backdated posts |
+| `customer.credit_limit_changed`   | `customers`   | next checkCreditLimit |
 
 ### 7.4 UI
 
@@ -432,21 +432,21 @@ POS posted bill with tender khata is the source document; `books-gst` posts Dr K
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Walk-in + khata | Blocked |
-| No phone on named customer | Should not exist (`customers` requires phone); if inconsistent, block credit |
-| Limit null | `allowed` |
-| Limit 0 | any positive additional amount is `over_limit` |
-| Amount > outstanding repayment | `400 AMOUNT_EXCEEDS_OUTSTANDING` |
-| Duplicate `client_repayment_id` | Replay original |
-| Duplicate `bill_id` sale | Replay original |
-| WhatsApp fail | Retry via `whatsapp`; Failed in inbox; no SMS; UI toast |
-| Locked period | `423 PERIOD_LOCKED`; date repayment today |
-| Concurrent last rupee collect | one succeeds; other `400 AMOUNT_EXCEEDS_OUTSTANDING` |
-| Half chip on odd outstanding | round to 2 dp; never exceed outstanding |
-| Plan expired | module locked; POS khata tender locked with Starter paywall; data retained |
-| Referral credit + cash collect | outstanding can be 0; cash collect capped at max(outstanding, 0) |
+| Case                            | Behaviour                                                                    |
+| ------------------------------- | ---------------------------------------------------------------------------- |
+| Walk-in + khata                 | Blocked                                                                      |
+| No phone on named customer      | Should not exist (`customers` requires phone); if inconsistent, block credit |
+| Limit null                      | `allowed`                                                                    |
+| Limit 0                         | any positive additional amount is `over_limit`                               |
+| Amount > outstanding repayment  | `400 AMOUNT_EXCEEDS_OUTSTANDING`                                             |
+| Duplicate `client_repayment_id` | Replay original                                                              |
+| Duplicate `bill_id` sale        | Replay original                                                              |
+| WhatsApp fail                   | Retry via `whatsapp`; Failed in inbox; no SMS; UI toast                      |
+| Locked period                   | `423 PERIOD_LOCKED`; date repayment today                                    |
+| Concurrent last rupee collect   | one succeeds; other `400 AMOUNT_EXCEEDS_OUTSTANDING`                         |
+| Half chip on odd outstanding    | round to 2 dp; never exceed outstanding                                      |
+| Plan expired                    | module locked; POS khata tender locked with Starter paywall; data retained   |
+| Referral credit + cash collect  | outstanding can be 0; cash collect capped at max(outstanding, 0)             |
 
 ---
 

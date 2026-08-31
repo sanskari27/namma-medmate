@@ -54,18 +54,18 @@ Dashboard/shell live badge **pending Prescriptions** reads this module’s count
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. |
-| `plan-gating` | Starter. |
-| `customers` | Named patient; Rx tag; allergies stored there — POS checks at billing. |
-| `inventory` | SKU stock, price, schedule, OOS. |
+| Module                | Why                                                                                  |
+| --------------------- | ------------------------------------------------------------------------------------ |
+| `tenancy`             | Tenant + `location_id`.                                                              |
+| `plan-gating`         | Starter.                                                                             |
+| `customers`           | Named patient; Rx tag; allergies stored there — POS checks at billing.               |
+| `inventory`           | SKU stock, price, schedule, OOS.                                                     |
 | `statutory-registers` | Doctor list + inline; `appendRegisterEntry` for H1/X; duty is POS concern at charge. |
-| `pos-billing` | Dispense → billing seeds the cart; bill post marks Dispensed; allergy/substitute. |
-| `whatsapp` | Overdue ping chemist; reject “please re-send” to patient phone. |
-| `dashboard` / shell | Pending count badge. |
-| `audit` | Upload, approve, reject, dispense. |
-| `returns` | Not owned here; CN may not reopen a rejected Rx. |
+| `pos-billing`         | Dispense → billing seeds the cart; bill post marks Dispensed; allergy/substitute.    |
+| `whatsapp`            | Overdue ping chemist; reject “please re-send” to patient phone.                      |
+| `dashboard` / shell   | Pending count badge.                                                                 |
+| `audit`               | Upload, approve, reject, dispense.                                                   |
+| `returns`             | Not owned here; CN may not reopen a rejected Rx.                                     |
 
 ---
 
@@ -132,42 +132,42 @@ Dashboard/shell live badge **pending Prescriptions** reads this module’s count
 
 ### Prescription
 
-| Field | Type | Notes |
-|---|---|---|
-| `prescription_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `source` | enum `uploaded_at_counter` | v1 only |
-| `status` | enum `pending\|approved\|dispensed\|rejected` | |
-| `customer_id` | UUID | nullable if name-only |
-| `patient_name` | string | snapshot |
-| `patient_phone` | string | nullable |
-| `doctor_name` | string | |
-| `doctor_registration_number` | string | required before approve |
-| `doctor_id` | UUID | shop Doctor if picked |
-| `uploaded_at` | timestamptz | SLA start |
-| `sla_due_at` | timestamptz | uploaded_at + 2h |
-| `overdue_notified_at` | timestamptz | nullable |
-| `approved_at` / `dispensed_at` / `rejected_at` | timestamptz | |
-| `reject_reason_code` | enum | nullable |
-| `reject_reason_custom` | string | nullable |
-| `bill_id` | UUID | nullable |
-| `dispensed_value` | decimal | nullable |
-| `estimated_bill` | decimal | from lines |
-| `actor_upload_user_id` | UUID | |
-| `media_key` | string | private object |
+| Field                                          | Type                                          | Notes                   |
+| ---------------------------------------------- | --------------------------------------------- | ----------------------- |
+| `prescription_id`                              | UUID                                          | PK                      |
+| `tenant_id` / `location_id`                    | UUID                                          |                         |
+| `source`                                       | enum `uploaded_at_counter`                    | v1 only                 |
+| `status`                                       | enum `pending\|approved\|dispensed\|rejected` |                         |
+| `customer_id`                                  | UUID                                          | nullable if name-only   |
+| `patient_name`                                 | string                                        | snapshot                |
+| `patient_phone`                                | string                                        | nullable                |
+| `doctor_name`                                  | string                                        |                         |
+| `doctor_registration_number`                   | string                                        | required before approve |
+| `doctor_id`                                    | UUID                                          | shop Doctor if picked   |
+| `uploaded_at`                                  | timestamptz                                   | SLA start               |
+| `sla_due_at`                                   | timestamptz                                   | uploaded_at + 2h        |
+| `overdue_notified_at`                          | timestamptz                                   | nullable                |
+| `approved_at` / `dispensed_at` / `rejected_at` | timestamptz                                   |                         |
+| `reject_reason_code`                           | enum                                          | nullable                |
+| `reject_reason_custom`                         | string                                        | nullable                |
+| `bill_id`                                      | UUID                                          | nullable                |
+| `dispensed_value`                              | decimal                                       | nullable                |
+| `estimated_bill`                               | decimal                                       | from lines              |
+| `actor_upload_user_id`                         | UUID                                          |                         |
+| `media_key`                                    | string                                        | private object          |
 
 ### PrescriptionLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | UUID | |
-| `prescription_id` | UUID | |
-| `sku_id` | UUID | nullable until verified |
-| `qty` | decimal | |
-| `verified` | boolean | |
-| `in_stock` | boolean | snapshot at last refresh |
-| `unit_sp` | decimal | GST-inclusive |
-| `oos_warning` | boolean | |
+| Field             | Type    | Notes                    |
+| ----------------- | ------- | ------------------------ |
+| `line_id`         | UUID    |                          |
+| `prescription_id` | UUID    |                          |
+| `sku_id`          | UUID    | nullable until verified  |
+| `qty`             | decimal |                          |
+| `verified`        | boolean |                          |
+| `in_stock`        | boolean | snapshot at last refresh |
+| `unit_sp`         | decimal | GST-inclusive            |
+| `oos_warning`     | boolean |                          |
 
 ---
 
@@ -186,7 +186,7 @@ Auth: session Bearer. Multipart for upload.
   "pending_over_sla": 2,
   "awaiting_dispense": 3,
   "dispensed_today_count": 8,
-  "dispensed_today_value": 12450.00,
+  "dispensed_today_value": 12450.0,
   "avg_turnaround_minutes": 47,
   "sla_on_time_pct": 0.86
 }
@@ -218,14 +218,14 @@ Sort: urgent first (overdue, then `uploaded_at` asc).
       "uploaded_at": "2026-08-31T18:00:00+05:30",
       "sla_due_at": "2026-08-31T20:00:00+05:30",
       "overdue": true,
-      "estimated_bill": 430.00,
+      "estimated_bill": 430.0,
       "lines": [
         {
           "line_id": "ln_1",
           "sku_id": "sku_h1",
           "name": "Drug A",
           "qty": 10,
-          "unit_sp": 43.00,
+          "unit_sp": 43.0,
           "in_stock": true,
           "oos_warning": false,
           "verified": true
@@ -250,9 +250,7 @@ Includes media URL (short-lived signed GET).
 
 ```json
 {
-  "lines": [
-    { "sku_id": "sku_h1", "qty": 10, "verified": true }
-  ]
+  "lines": [{ "sku_id": "sku_h1", "qty": 10, "verified": true }]
 }
 ```
 
@@ -283,9 +281,7 @@ Refreshes stock/price/OOS/estimated bill.
     "customer_id": "c_01",
     "doctor_name": "Dr. Mehta",
     "doctor_registration_number": "KMC-7788",
-    "lines": [
-      { "sku_id": "sku_h1", "qty": 10 }
-    ]
+    "lines": [{ "sku_id": "sku_h1", "qty": 10 }]
   }
 }
 ```
@@ -304,22 +300,22 @@ OTC-only lines may complete without bill. Any H1/X line requires `bill_id` of a 
 POS internal:
 
 ```json
-{ "bill_id": "b_99", "invoice_no": "INV-2026-0412", "value": 430.00 }
+{ "bill_id": "b_99", "invoice_no": "INV-2026-0412", "value": 430.0 }
 ```
 
 Idempotent on `bill_id`.
 
 ### 7.2 Events
 
-| Event | Direction |
-|---|---|
-| `prescription.uploaded` | out — audit, dashboard |
-| `prescription.overdue` | out — this module → `whatsapp` chemist |
-| `prescription.rejected` | out — optional patient WhatsApp |
-| `prescription.approved` | out — `customers` Rx tag |
-| `prescription.dispensed` | out — KPIs, customers |
-| `bill.posted` with `prescription_id` | in — FR-16 |
-| `duty` / register | POS + `statutory-registers`; not SLA |
+| Event                                | Direction                              |
+| ------------------------------------ | -------------------------------------- |
+| `prescription.uploaded`              | out — audit, dashboard                 |
+| `prescription.overdue`               | out — this module → `whatsapp` chemist |
+| `prescription.rejected`              | out — optional patient WhatsApp        |
+| `prescription.approved`              | out — `customers` Rx tag               |
+| `prescription.dispensed`             | out — KPIs, customers                  |
+| `bill.posted` with `prescription_id` | in — FR-16                             |
+| `duty` / register                    | POS + `statutory-registers`; not SLA   |
 
 ### 7.3 UI
 
@@ -369,21 +365,21 @@ Idempotent on `bill_id`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| File too large / not image or PDF | `400 MEDIA_INVALID` |
-| Approve with zero verified lines | `400 NO_VERIFIED_LINES` |
-| Approve without doctor reg | `400 DOCTOR_REG_REQUIRED` |
-| Rejected then dispense | `409 RX_REJECTED` |
-| OOS line | `409 LINE_OUT_OF_STOCK` |
-| Double mark-dispensed from bill | idempotent |
-| No patient phone on reject notify | reject succeeds; WhatsApp skipped |
-| WhatsApp overdue fail | retry via `whatsapp`; badge still overdue; no SMS |
-| Walk-in name-only Rx | allowed; POS allergy skip; khata still blocked if they bill credit |
-| Plan Free | paywall; badge hidden or locked |
-| Concurrent last-pack stock | POS charge is source of stock truth; seed may fail OOS at charge |
-| CA share | no Rx images |
-| Kiosk | no upload entry point |
+| Case                              | Behaviour                                                          |
+| --------------------------------- | ------------------------------------------------------------------ |
+| File too large / not image or PDF | `400 MEDIA_INVALID`                                                |
+| Approve with zero verified lines  | `400 NO_VERIFIED_LINES`                                            |
+| Approve without doctor reg        | `400 DOCTOR_REG_REQUIRED`                                          |
+| Rejected then dispense            | `409 RX_REJECTED`                                                  |
+| OOS line                          | `409 LINE_OUT_OF_STOCK`                                            |
+| Double mark-dispensed from bill   | idempotent                                                         |
+| No patient phone on reject notify | reject succeeds; WhatsApp skipped                                  |
+| WhatsApp overdue fail             | retry via `whatsapp`; badge still overdue; no SMS                  |
+| Walk-in name-only Rx              | allowed; POS allergy skip; khata still blocked if they bill credit |
+| Plan Free                         | paywall; badge hidden or locked                                    |
+| Concurrent last-pack stock        | POS charge is source of stock truth; seed may fail OOS at charge   |
+| CA share                          | no Rx images                                                       |
+| Kiosk                             | no upload entry point                                              |
 
 ---
 

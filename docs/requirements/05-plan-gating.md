@@ -93,38 +93,38 @@ The `plan-gating` module is the read-only gate for the Pharmacy Partner Console.
 
 ### Module keys (packaging table — must match)
 
-| moduleKey | Plan gate (effective) | Notes |
-|---|---|---|
-| `dashboard` | always | Always reachable |
-| `pos-billing` | Free | Core billing cash\|khata, hold, thermal/scanner consumers |
-| `orders` | always | 7-day on Free; older bills link to `sales-ledger` |
-| `inventory` | Free | Opening stock CSV included |
-| `purchases` | Free | GRN |
-| `returns` | Free | Customer CreditNote |
-| `purchase-returns` | Free | Tied to purchases |
-| `invoice-settings` | Free | Part of Account settings |
-| `manage-users` | always | Seat-capped |
-| `account` | always | |
-| `subscription` | always | |
-| `settings` | always | Pharmacy profile |
-| `help-support` | always | |
-| `refer-earn` | always | SaaS credit, not shop khata |
-| `prescriptions` | Starter | |
-| `customers` | Starter | |
-| `khata` | Starter | |
-| `statutory-registers` | Starter | H1/X legal register, duty, licence alerts |
-| `employees` | Starter | HR, not payroll |
-| `sales-ledger` | Growth | |
-| `reports` | Growth | Includes Audit Trail chrome |
-| `crm` | Growth | Campaigns; transactional WhatsApp is not this key |
-| `ca-sharing` | Growth | |
-| `books-gst` | Growth | Books, GSTN prepare, IRN, period/FY lock |
-| `stock-take` | Growth | |
-| `distributors-reorder` | Growth | Reorder + distributors |
-| `offers` | Growth | |
-| `expenses` | Growth | |
-| `racks` | Growth | |
-| `kiosk` | Pro | Locked self-order; unlimited seats are plan seatsLimit null |
+| moduleKey              | Plan gate (effective) | Notes                                                       |
+| ---------------------- | --------------------- | ----------------------------------------------------------- |
+| `dashboard`            | always                | Always reachable                                            |
+| `pos-billing`          | Free                  | Core billing cash\|khata, hold, thermal/scanner consumers   |
+| `orders`               | always                | 7-day on Free; older bills link to `sales-ledger`           |
+| `inventory`            | Free                  | Opening stock CSV included                                  |
+| `purchases`            | Free                  | GRN                                                         |
+| `returns`              | Free                  | Customer CreditNote                                         |
+| `purchase-returns`     | Free                  | Tied to purchases                                           |
+| `invoice-settings`     | Free                  | Part of Account settings                                    |
+| `manage-users`         | always                | Seat-capped                                                 |
+| `account`              | always                |                                                             |
+| `subscription`         | always                |                                                             |
+| `settings`             | always                | Pharmacy profile                                            |
+| `help-support`         | always                |                                                             |
+| `refer-earn`           | always                | SaaS credit, not shop khata                                 |
+| `prescriptions`        | Starter               |                                                             |
+| `customers`            | Starter               |                                                             |
+| `khata`                | Starter               |                                                             |
+| `statutory-registers`  | Starter               | H1/X legal register, duty, licence alerts                   |
+| `employees`            | Starter               | HR, not payroll                                             |
+| `sales-ledger`         | Growth                |                                                             |
+| `reports`              | Growth                | Includes Audit Trail chrome                                 |
+| `crm`                  | Growth                | Campaigns; transactional WhatsApp is not this key           |
+| `ca-sharing`           | Growth                |                                                             |
+| `books-gst`            | Growth                | Books, GSTN prepare, IRN, period/FY lock                    |
+| `stock-take`           | Growth                |                                                             |
+| `distributors-reorder` | Growth                | Reorder + distributors                                      |
+| `offers`               | Growth                |                                                             |
+| `expenses`             | Growth                |                                                             |
+| `racks`                | Growth                |                                                             |
+| `kiosk`                | Pro                   | Locked self-order; unlimited seats are plan seatsLimit null |
 
 Transactional WhatsApp is not a module key (available on every plan via `whatsapp`).
 
@@ -274,7 +274,13 @@ Response `200`:
 ```json
 {
   "data": {
-    "Owner": { "dashboard": true, "pos-billing": true, "manage-users": true, "settings": true, "kiosk": true },
+    "Owner": {
+      "dashboard": true,
+      "pos-billing": true,
+      "manage-users": true,
+      "settings": true,
+      "kiosk": true
+    },
     "Manager": {
       "dashboard": true,
       "pos-billing": true,
@@ -413,12 +419,12 @@ As Owner I keep every unlocked module.
 - Annual vs monthly: this module does not change module maps by interval.
 - Kiosk shopper: not a User; kiosk UI still checks `modules.kiosk` for the Pharmacy.
 
-| Code | HTTP | When |
-|---|---|---|
-| `LOCATION_ID_REQUIRED` | 400 | Missing location |
-| `LOCATION_TENANT_MISMATCH` | 403 | Pairing |
-| `UNKNOWN_MODULE` | 400 | Bad module_key |
-| `PHARMACY_SESSION_REQUIRED` | 403 | HQ hitting pharmacy entitlements without tenant context |
+| Code                        | HTTP | When                                                    |
+| --------------------------- | ---- | ------------------------------------------------------- |
+| `LOCATION_ID_REQUIRED`      | 400  | Missing location                                        |
+| `LOCATION_TENANT_MISMATCH`  | 403  | Pairing                                                 |
+| `UNKNOWN_MODULE`            | 400  | Bad module_key                                          |
+| `PHARMACY_SESSION_REQUIRED` | 403  | HQ hitting pharmacy entitlements without tenant context |
 
 ## 10. Open Questions / Assumptions
 
@@ -430,4 +436,5 @@ As Owner I keep every unlocked module.
 - Assumption: override storage is a row written by `admin-saas-crm`; this module only reads.
 - Vague: sidebar grouping Main / Catalogue / Business / Account is owned by the console shell; this module only supplies lock/paywall.
 - Out of v1: attachable add-ons, extra branches, extra-seat SKU, shop UPI.
+
 ---

@@ -33,15 +33,15 @@ Module layout: `modules/stock-take/{ui,api,docs}`. UI talks to API only via `@na
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `inventory` | Snapshot system qty per Batch; `stock-adjust` to set counted qty; rack codes for “by rack” sheets. |
-| `books-gst` | Period/FY lock; journal “Stock take variance: Inventory vs COGS/write-off”. |
-| `plan-gating` | Growth. |
-| `tenancy` | Tenant + `location_id`. |
-| `auth` / `manage-users` | Owner / Manager default; Pharmacist may be granted; Cashier default no. |
-| `audit` | **AuditEvent** on post (before/after qty). |
-| `racks` | Optional rack list for “by rack” filter (codes also on SKU if Free-assigned). |
+| Module                  | Why                                                                                                |
+| ----------------------- | -------------------------------------------------------------------------------------------------- |
+| `inventory`             | Snapshot system qty per Batch; `stock-adjust` to set counted qty; rack codes for “by rack” sheets. |
+| `books-gst`             | Period/FY lock; journal “Stock take variance: Inventory vs COGS/write-off”.                        |
+| `plan-gating`           | Growth.                                                                                            |
+| `tenancy`               | Tenant + `location_id`.                                                                            |
+| `auth` / `manage-users` | Owner / Manager default; Pharmacist may be granted; Cashier default no.                            |
+| `audit`                 | **AuditEvent** on post (before/after qty).                                                         |
+| `racks`                 | Optional rack list for “by rack” filter (codes also on SKU if Free-assigned).                      |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -111,32 +111,32 @@ Module layout: `modules/stock-take/{ui,api,docs}`. UI talks to API only via `@na
 
 ### StockTake (`stock-take` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `take_id` | string | PK |
-| `client_take_id` | string | Idempotent post; unique per tenant when posted |
-| `document_date` | date | Lock-checked at post |
-| `scope` | enum | `by_sku` \| `by_rack` |
-| `rack_code` | string, null | When by_rack |
-| `status` | enum | `draft` \| `posted` |
-| `posted_at` | datetime, null | |
-| `actor_user_id` | string | |
-| `journal_ids` | string[], null | Filled when books confirms; optional |
+| Field            | Type           | Notes                                          |
+| ---------------- | -------------- | ---------------------------------------------- |
+| `take_id`        | string         | PK                                             |
+| `client_take_id` | string         | Idempotent post; unique per tenant when posted |
+| `document_date`  | date           | Lock-checked at post                           |
+| `scope`          | enum           | `by_sku` \| `by_rack`                          |
+| `rack_code`      | string, null   | When by_rack                                   |
+| `status`         | enum           | `draft` \| `posted`                            |
+| `posted_at`      | datetime, null |                                                |
+| `actor_user_id`  | string         |                                                |
+| `journal_ids`    | string[], null | Filled when books confirms; optional           |
 
 ### StockTakeLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | string | |
-| `take_id` | string | |
-| `sku_id` | string | |
-| `batch_id` | string | |
-| `batch_no` | string | Snapshot |
-| `expiry_date` | date | Snapshot |
-| `system_qty` | number | Snapshot at create |
-| `counted_qty` | number, null | Null = skipped |
-| `variance` | number, null | counted − system when counted set |
-| `qty_after` | number, null | Set on post |
+| Field         | Type         | Notes                             |
+| ------------- | ------------ | --------------------------------- |
+| `line_id`     | string       |                                   |
+| `take_id`     | string       |                                   |
+| `sku_id`      | string       |                                   |
+| `batch_id`    | string       |                                   |
+| `batch_no`    | string       | Snapshot                          |
+| `expiry_date` | date         | Snapshot                          |
+| `system_qty`  | number       | Snapshot at create                |
+| `counted_qty` | number, null | Null = skipped                    |
+| `variance`    | number, null | counted − system when counted set |
+| `qty_after`   | number, null | Set on post                       |
 
 ## 7. API / Interface Contracts (REST JSON, events, UI)
 
@@ -182,8 +182,8 @@ Posted or draft computed variances for the confirm step.
 
 ### Events published
 
-| Event | Payload |
-|---|---|
+| Event               | Payload                                                                                                                           |
+| ------------------- | --------------------------------------------------------------------------------------------------------------------------------- |
 | `stock-take.posted` | `{ tenant_id, location_id, take_id, document_date, lines: [{ sku_id, batch_id, system_qty, counted_qty, variance, qty_after }] }` |
 
 Books posts Inventory vs COGS/write-off from variance (positive variance Dr Inventory Cr COGS/opening-style; negative Cr Inventory Dr COGS/write-off — **books-gst** specifies the exact accounts; this module only emits qty deltas).
@@ -259,21 +259,21 @@ Then qty is 6 (positive variance).
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Locked period post | `FORBIDDEN`; failure catalogue “Stock take vs locked month” |
-| Lock service down | `DEPENDENCY_FAILURE` |
-| counted < 0 | `VALIDATION_ERROR` |
-| No counted lines | `VALIDATION_ERROR` |
-| Import extra SKU not on sheet | `VALIDATION_ERROR` |
-| Import missing take_id column | `VALIDATION_ERROR` |
-| Growth expired mid-draft | Post `FORBIDDEN`; data retained |
+| Case                                   | Behaviour                                                                                                                                    |
+| -------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| Locked period post                     | `FORBIDDEN`; failure catalogue “Stock take vs locked month”                                                                                  |
+| Lock service down                      | `DEPENDENCY_FAILURE`                                                                                                                         |
+| counted < 0                            | `VALIDATION_ERROR`                                                                                                                           |
+| No counted lines                       | `VALIDATION_ERROR`                                                                                                                           |
+| Import extra SKU not on sheet          | `VALIDATION_ERROR`                                                                                                                           |
+| Import missing take_id column          | `VALIDATION_ERROR`                                                                                                                           |
+| Growth expired mid-draft               | Post `FORBIDDEN`; data retained                                                                                                              |
 | Concurrent last-unit sale during draft | Snapshot may differ from live; post **sets** to counted (counted is physical truth). Live sales between snapshot and post can disagree — §10 |
-| Two cashiers posting different takes | Serialized Batch updates; both can succeed sequentially |
-| Empty rack scope | Zero lines; post blocked |
-| Printer N/A | Export file instead |
-| `location_id` missing | `VALIDATION_ERROR` |
-| Hold | Not used |
+| Two cashiers posting different takes   | Serialized Batch updates; both can succeed sequentially                                                                                      |
+| Empty rack scope                       | Zero lines; post blocked                                                                                                                     |
+| Printer N/A                            | Export file instead                                                                                                                          |
+| `location_id` missing                  | `VALIDATION_ERROR`                                                                                                                           |
+| Hold                                   | Not used                                                                                                                                     |
 
 ## 10. Open Questions / Assumptions
 

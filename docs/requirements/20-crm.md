@@ -53,19 +53,19 @@ WhatsApp only through `whatsapp`.
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. |
-| `plan-gating` | Growth. |
-| `customers` | Named customer, phone, LTV, orders, last visit, allergies, conditions, consents. |
-| `khata` | On-credit segment; referral ₹100 credit; outstanding. |
-| `offers` | Optional campaign offer code; attribution by code on bills. |
-| `whatsapp` | All CRM sends (campaign, refill, win-back, feedback request). |
-| `pos-billing` | `applyEarnBurn` on post; redeem on payable; visit count; medicines bought. |
-| `returns` | `reverseForCreditNote`. |
-| `books-gst` | Loyalty earn Cr loyalty payable; redeem Dr loyalty payable (from bill journal using this module’s point rupees). |
-| `audit` | Redeem, campaign launch, referral, consent-honouring sends. |
-| `kiosk` | Must **not** call redeem. |
+| Module        | Why                                                                                                              |
+| ------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `tenancy`     | Tenant + `location_id`.                                                                                          |
+| `plan-gating` | Growth.                                                                                                          |
+| `customers`   | Named customer, phone, LTV, orders, last visit, allergies, conditions, consents.                                 |
+| `khata`       | On-credit segment; referral ₹100 credit; outstanding.                                                            |
+| `offers`      | Optional campaign offer code; attribution by code on bills.                                                      |
+| `whatsapp`    | All CRM sends (campaign, refill, win-back, feedback request).                                                    |
+| `pos-billing` | `applyEarnBurn` on post; redeem on payable; visit count; medicines bought.                                       |
+| `returns`     | `reverseForCreditNote`.                                                                                          |
+| `books-gst`   | Loyalty earn Cr loyalty payable; redeem Dr loyalty payable (from bill journal using this module’s point rupees). |
+| `audit`       | Redeem, campaign launch, referral, consent-honouring sends.                                                      |
+| `kiosk`       | Must **not** call redeem.                                                                                        |
 
 ---
 
@@ -137,44 +137,44 @@ WhatsApp only through `whatsapp`.
 
 ### LoyaltyLot (`crm` owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `lot_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `customer_id` | UUID | named |
-| `earned_bill_id` | UUID | |
-| `points_earned` | int | |
-| `remaining` | int | |
-| `expires_at` | timestamptz | earned_at + 12 months |
-| `earned_at` | timestamptz | |
-| `reversed_by_cn_id` | UUID | nullable |
+| Field                       | Type        | Notes                 |
+| --------------------------- | ----------- | --------------------- |
+| `lot_id`                    | UUID        | PK                    |
+| `tenant_id` / `location_id` | UUID        |                       |
+| `customer_id`               | UUID        | named                 |
+| `earned_bill_id`            | UUID        |                       |
+| `points_earned`             | int         |                       |
+| `remaining`                 | int         |                       |
+| `expires_at`                | timestamptz | earned_at + 12 months |
+| `earned_at`                 | timestamptz |                       |
+| `reversed_by_cn_id`         | UUID        | nullable              |
 
 ### LoyaltyBurn
 
-| Field | Type | Notes |
-|---|---|---|
-| `burn_id` | UUID | |
-| `bill_id` | UUID | redeem bill |
-| `lot_id` | UUID | FIFO |
-| `points` | int | |
-| `rupees` | decimal | = points |
-| `reversed_by_cn_id` | UUID | nullable |
+| Field               | Type    | Notes       |
+| ------------------- | ------- | ----------- |
+| `burn_id`           | UUID    |             |
+| `bill_id`           | UUID    | redeem bill |
+| `lot_id`            | UUID    | FIFO        |
+| `points`            | int     |             |
+| `rupees`            | decimal | = points    |
+| `reversed_by_cn_id` | UUID    | nullable    |
 
 Unique earn per `earned_bill_id`. Unique burn set per `bill_id` (idempotent apply).
 
 ### Campaign
 
-| Field | Type | Notes |
-|---|---|---|
-| `campaign_id` | UUID | |
-| `name` | string | |
-| `segment` | enum | Chronic, High value, Lapsed, New, On credit, Regular, or At-risk |
-| `offer_code` | string | nullable |
-| `template_key` | string | WABA |
-| `body_params` | JSON | editable fields allowed by template |
-| `status` | enum `draft\|sent\|paused` | |
-| `sent_at` | timestamptz | |
-| `attributed_revenue` | decimal | computed |
+| Field                | Type                       | Notes                                                            |
+| -------------------- | -------------------------- | ---------------------------------------------------------------- |
+| `campaign_id`        | UUID                       |                                                                  |
+| `name`               | string                     |                                                                  |
+| `segment`            | enum                       | Chronic, High value, Lapsed, New, On credit, Regular, or At-risk |
+| `offer_code`         | string                     | nullable                                                         |
+| `template_key`       | string                     | WABA                                                             |
+| `body_params`        | JSON                       | editable fields allowed by template                              |
+| `status`             | enum `draft\|sent\|paused` |                                                                  |
+| `sent_at`            | timestamptz                |                                                                  |
+| `attributed_revenue` | decimal                    | computed                                                         |
 
 ### CampaignRecipient
 
@@ -182,15 +182,15 @@ Unique earn per `earned_bill_id`. Unique burn set per `bill_id` (idempotent appl
 
 ### Feedback
 
-| Field | Type | Notes |
-|---|---|---|
-| `feedback_id` | UUID | |
-| `customer_id` | UUID | nullable if anonymous walk-in log — **v1 require named** (§10) |
-| `stars` | int 1–5 | nullable if NPS-only |
-| `nps` | int 0–10 | nullable |
-| `comment` | string | |
-| `source` | enum `console\|whatsapp` | |
-| `created_at` | timestamptz | |
+| Field         | Type                     | Notes                                                          |
+| ------------- | ------------------------ | -------------------------------------------------------------- |
+| `feedback_id` | UUID                     |                                                                |
+| `customer_id` | UUID                     | nullable if anonymous walk-in log — **v1 require named** (§10) |
+| `stars`       | int 1–5                  | nullable if NPS-only                                           |
+| `nps`         | int 0–10                 | nullable                                                       |
+| `comment`     | string                   |                                                                |
+| `source`      | enum `console\|whatsapp` |                                                                |
+| `created_at`  | timestamptz              |                                                                |
 
 ### Referral
 
@@ -214,7 +214,7 @@ Auth: session Bearer.
   "at_risk": 11,
   "refills_due": 7,
   "loyalty_points": 3200,
-  "loyalty_liability_rupees": 3200.00,
+  "loyalty_liability_rupees": 3200.0,
   "avg_rating": 4.6,
   "segments": {
     "chronic": 22,
@@ -238,7 +238,7 @@ Auth: session Bearer.
       "phone": "9876543210",
       "marketing_consent": true,
       "last_visit_at": "2026-06-01T00:00:00+05:30",
-      "ltv": 18000.00
+      "ltv": 18000.0
     }
   ]
 }
@@ -260,7 +260,7 @@ Requires marketing consent. Calls `whatsapp`.
       "points": 42,
       "orders": 51,
       "last_visit_at": "2026-08-20T00:00:00+05:30",
-      "ltv": 21800.00
+      "ltv": 21800.0
     }
   ]
 }
@@ -288,7 +288,7 @@ Composes customer profile (from `customers`), medicines bought, points, tier, kh
 ```json
 {
   "points_outstanding": 3200,
-  "liability_rupees": 3200.00,
+  "liability_rupees": 3200.0,
   "tiers": { "silver": 10, "gold": 4, "platinum": 1 }
 }
 ```
@@ -297,17 +297,17 @@ Composes customer profile (from `customers`), medicines bought, points, tier, kh
 `quoteRedeem(customerId, payable)`
 
 ```json
-{ "customer_id": "c_01", "payable": 1000.00 }
+{ "customer_id": "c_01", "payable": 1000.0 }
 ```
 
 ```json
 {
   "customer_id": "c_01",
-  "payable": 1000.00,
+  "payable": 1000.0,
   "remaining_points": 42,
   "max_points": 42,
-  "max_rupees": 42.00,
-  "cap_rupees": 200.00
+  "max_rupees": 42.0,
+  "cap_rupees": 200.0
 }
 ```
 
@@ -321,7 +321,7 @@ If remaining 500 and payable 1000: `max_points` 200 (20% cap). Walk-in / missing
   "bill_id": "b_99",
   "customer_id": "c_01",
   "tender": "khata",
-  "net_collected_before_redeem": 1000.00,
+  "net_collected_before_redeem": 1000.0,
   "redeem_points": 42,
   "client_charge_id": "chg_1"
 }
@@ -333,7 +333,7 @@ Validate `redeem_points ≤ quote(max)` using `net_collected_before_redeem` as p
 {
   "bill_id": "b_99",
   "burned_points": 42,
-  "burned_rupees": 42.00,
+  "burned_rupees": 42.0,
   "earned_points": 9,
   "lot_id": "lot_new",
   "remaining_points": 9
@@ -412,23 +412,23 @@ Includes `attributed_revenue`, `attributed_bill_count` (offer code on bills in 1
 
 ```json
 {
-  "avg_ltv": 4200.00,
+  "avg_ltv": 4200.0,
   "retention_pct": 0.62,
   "churn_risk_count": 11,
-  "campaign_sales": 18000.00,
+  "campaign_sales": 18000.0,
   "rfm_leaders": []
 }
 ```
 
 ### 7.6 Events
 
-| Event | Direction |
-|---|---|
-| `bill.posted` | in from POS → applyEarnBurn (or POS calls API in-band) |
-| `credit_note.posted` | in → reverseForCreditNote |
-| `customer.marketing_consent_revoked` | in → exclude from campaigns |
-| `loyalty.balance_changed` | out → `customers` display, `books-gst` amounts already on bill journal |
-| `campaign.sent` | out → audit |
+| Event                                | Direction                                                              |
+| ------------------------------------ | ---------------------------------------------------------------------- |
+| `bill.posted`                        | in from POS → applyEarnBurn (or POS calls API in-band)                 |
+| `credit_note.posted`                 | in → reverseForCreditNote                                              |
+| `customer.marketing_consent_revoked` | in → exclude from campaigns                                            |
+| `loyalty.balance_changed`            | out → `customers` display, `books-gst` amounts already on bill journal |
+| `campaign.sent`                      | out → audit                                                            |
 
 Books: loyalty earn/redeem lines on the **same bill journal** (POS/`books-gst` using figures this API returns). CRM does not post journals.
 
@@ -485,22 +485,22 @@ Books: loyalty earn/redeem lines on the **same bill journal** (POS/`books-gst` u
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Walk-in | no earn, no redeem, no campaign |
-| Redeem > 20% | cap applied; cannot exceed (`400 REDEEM_CAP`) |
-| Redeem > remaining | `400 INSUFFICIENT_POINTS` |
-| Duplicate applyEarnBurn | replay |
-| Expired lots | remaining 0; not redeemable |
-| Return partial | reverse proportional (§10) |
-| Campaign no offer | attributed revenue 0 |
-| Offer code unknown | `400 OFFER_NOT_FOUND` at campaign save |
-| WhatsApp fail | retry in `whatsapp`; recipient Failed; no SMS |
-| Plan expired | CRM locked; no redeem; lots retained |
-| Win-back without marketing consent | `403 MARKETING_CONSENT_REQUIRED` |
-| Refill without refill consent | `403 REFILL_CONSENT_REQUIRED` |
-| Self-referral | `400 REFERRAL_SAME_CUSTOMER` |
-| FIFO burn across lots | nearest `expires_at` first |
+| Case                               | Behaviour                                     |
+| ---------------------------------- | --------------------------------------------- |
+| Walk-in                            | no earn, no redeem, no campaign               |
+| Redeem > 20%                       | cap applied; cannot exceed (`400 REDEEM_CAP`) |
+| Redeem > remaining                 | `400 INSUFFICIENT_POINTS`                     |
+| Duplicate applyEarnBurn            | replay                                        |
+| Expired lots                       | remaining 0; not redeemable                   |
+| Return partial                     | reverse proportional (§10)                    |
+| Campaign no offer                  | attributed revenue 0                          |
+| Offer code unknown                 | `400 OFFER_NOT_FOUND` at campaign save        |
+| WhatsApp fail                      | retry in `whatsapp`; recipient Failed; no SMS |
+| Plan expired                       | CRM locked; no redeem; lots retained          |
+| Win-back without marketing consent | `403 MARKETING_CONSENT_REQUIRED`              |
+| Refill without refill consent      | `403 REFILL_CONSENT_REQUIRED`                 |
+| Self-referral                      | `400 REFERRAL_SAME_CUSTOMER`                  |
+| FIFO burn across lots              | nearest `expires_at` first                    |
 
 ---
 
@@ -509,13 +509,13 @@ Books: loyalty earn/redeem lines on the **same bill journal** (POS/`books-gst` u
 1. **Earn = `floor(net_collected / 100)`** in rupees (not rounded to nearest).
 2. **FIFO lots:** burn order = earliest `expires_at`, then earliest `earned_at`.
 3. **Tier** uses count of posted bills (visits), not points.
-4. **Segment definitions (v1, testable):**  
-   - **Chronic:** `customers.conditions` non-empty or `has_rx`.  
-   - **High value:** LTV in top 20% of named customers at that location (min 1).  
-   - **Lapsed:** last visit > 60 days and < 365 days, `order_count >= 1`.  
-   - **New:** first visit within 30 days.  
-   - **On credit:** khata outstanding > 0.  
-   - **Regular:** `order_count >= 4` and last visit ≤ 60 days and not solely classified as New. A customer may appear in more than one bar (counts are independent).  
+4. **Segment definitions (v1, testable):**
+   - **Chronic:** `customers.conditions` non-empty or `has_rx`.
+   - **High value:** LTV in top 20% of named customers at that location (min 1).
+   - **Lapsed:** last visit > 60 days and < 365 days, `order_count >= 1`.
+   - **New:** first visit within 30 days.
+   - **On credit:** khata outstanding > 0.
+   - **Regular:** `order_count >= 4` and last visit ≤ 60 days and not solely classified as New. A customer may appear in more than one bar (counts are independent).
    - **At-risk:** Lapsed **or** (Regular/Chronic with no visit in 45+ days). Used for Overview at-risk table.
 5. **RFM score:** three digits 1–5 (recency, frequency, monetary) using quintiles at the location. Display as e.g. `555`.
 6. **Refill due in 14 days:** last posted line for an Rx-tagged or Chronic customer’s SKU; estimated days of supply = billed `qty` (1 unit = 1 day) from last sale; due date = last_visit + qty days; show if due date is in [today, today+14]. Crude but testable; pack-duration master is not in v1.

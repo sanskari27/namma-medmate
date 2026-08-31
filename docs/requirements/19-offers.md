@@ -46,16 +46,16 @@ Near-expiry markdown from `purchase-returns` may **create or link** an Offer; th
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. |
-| `plan-gating` | Growth. |
-| `pos-billing` | Applies coupon at charge; one per bill; below-cost warn is POS. |
-| `kiosk` | Price display of running applicable offers on OTC SKUs. |
-| `purchase-returns` | Near-expiry markdown may create/link an Offer; chemist chooses. |
-| `inventory` | Category id / sku_id for applies-to; cart lines identified by `sku_id`. |
-| `crm` | Campaign may include optional offer code; attributed revenue reads bill.coupon_code (POS). |
-| `audit` | Create, pause, delete. |
+| Module             | Why                                                                                        |
+| ------------------ | ------------------------------------------------------------------------------------------ |
+| `tenancy`          | Tenant + `location_id`.                                                                    |
+| `plan-gating`      | Growth.                                                                                    |
+| `pos-billing`      | Applies coupon at charge; one per bill; below-cost warn is POS.                            |
+| `kiosk`            | Price display of running applicable offers on OTC SKUs.                                    |
+| `purchase-returns` | Near-expiry markdown may create/link an Offer; chemist chooses.                            |
+| `inventory`        | Category id / sku_id for applies-to; cart lines identified by `sku_id`.                    |
+| `crm`              | Campaign may include optional offer code; attributed revenue reads bill.coupon_code (POS). |
+| `audit`            | Create, pause, delete.                                                                     |
 
 ---
 
@@ -108,22 +108,22 @@ Near-expiry markdown from `purchase-returns` may **create or link** an Offer; th
 
 ### Offer
 
-| Field | Type | Notes |
-|---|---|---|
-| `offer_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `title` | string | |
-| `code` | string | unique per tenant, stored uppercase |
-| `discount_type` | enum `percent\|flat` | |
-| `discount_value` | decimal | percent 0–100 or INR |
-| `applies_to` | enum `all\|category\|product` | |
-| `category_id` | UUID | nullable |
-| `sku_id` | UUID | nullable |
-| `status` | enum `running\|paused` | |
-| `deleted_at` | timestamptz | nullable (soft delete so bills still resolve title) |
-| `markdown_ref` | string | nullable; purchase-return near-expiry id |
-| `created_at` / `updated_at` | timestamptz | |
-| `created_by_user_id` | UUID | |
+| Field                       | Type                          | Notes                                               |
+| --------------------------- | ----------------------------- | --------------------------------------------------- |
+| `offer_id`                  | UUID                          | PK                                                  |
+| `tenant_id` / `location_id` | UUID                          |                                                     |
+| `title`                     | string                        |                                                     |
+| `code`                      | string                        | unique per tenant, stored uppercase                 |
+| `discount_type`             | enum `percent\|flat`          |                                                     |
+| `discount_value`            | decimal                       | percent 0–100 or INR                                |
+| `applies_to`                | enum `all\|category\|product` |                                                     |
+| `category_id`               | UUID                          | nullable                                            |
+| `sku_id`                    | UUID                          | nullable                                            |
+| `status`                    | enum `running\|paused`        |                                                     |
+| `deleted_at`                | timestamptz                   | nullable (soft delete so bills still resolve title) |
+| `markdown_ref`              | string                        | nullable; purchase-return near-expiry id            |
+| `created_at` / `updated_at` | timestamptz                   |                                                     |
+| `created_by_user_id`        | UUID                          |                                                     |
 
 Bill stores `coupon_code` + discount amount on the POS document (not duplicated as a second ledger here).
 
@@ -193,7 +193,7 @@ Soft delete. `204`.
         "sku_id": "sku_pcm",
         "category_id": "cat_fever",
         "qty": 2,
-        "line_sp": 80.00
+        "line_sp": 80.0
       }
     ]
   }
@@ -208,10 +208,8 @@ Success:
   "offer_id": "o_1",
   "code": "MONSOON10",
   "title": "Monsoon 10%",
-  "discount_total": 8.00,
-  "allocations": [
-    { "line_id": "l1", "sku_id": "sku_pcm", "discount": 8.00 }
-  ]
+  "discount_total": 8.0,
+  "allocations": [{ "line_id": "l1", "sku_id": "sku_pcm", "discount": 8.0 }]
 }
 ```
 
@@ -233,12 +231,12 @@ Kiosk/POS card:
 ```json
 {
   "sku_id": "sku_pcm",
-  "sp": 40.00,
-  "display_sp": 36.00,
+  "sp": 40.0,
+  "display_sp": 36.0,
   "offer": {
     "offer_id": "o_1",
     "code": "MONSOON10",
-    "discount": 4.00
+    "discount": 4.0
   }
 }
 ```
@@ -265,10 +263,10 @@ If `link_offer_id` set, do not create; return that offer (chemist chose existing
 
 ### 7.2 Events
 
-| Event | Listeners |
-|---|---|
+| Event                                              | Listeners            |
+| -------------------------------------------------- | -------------------- |
 | `offer.created` / `offer.paused` / `offer.deleted` | `audit`, kiosk cache |
-| `offer.markdown_linked` | `purchase-returns` |
+| `offer.markdown_linked`                            | `purchase-returns`   |
 
 Consumed: none required. POS does not emit coupons here; it stores code on the Bill.
 
@@ -312,18 +310,18 @@ Consumed: none required. POS does not emit coupons here; it stores code on the B
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Duplicate code | `409 CODE_TAKEN` |
-| Flat ₹ larger than eligible SP | discount = eligible SP (not above line totals) |
-| Percent 0 or 100+ | `400` |
-| Empty cart | `OFFER_NOT_APPLICABLE` |
-| Plan not Growth | `403 PLAN_REQUIRED`; no discount |
-| Deleted offer | `OFFER_NOT_FOUND` |
-| Two running offers on same SKU (display) | larger discount wins; POS still one **entered** code |
-| Kiosk shopper | price display only; no loyalty; charge at staff POS — staff may enter the code |
-| `markdown_ref` retry | same offer returned |
-| Below-cost after coupon | POS warn + PIN; this module does not know cost |
+| Case                                     | Behaviour                                                                      |
+| ---------------------------------------- | ------------------------------------------------------------------------------ |
+| Duplicate code                           | `409 CODE_TAKEN`                                                               |
+| Flat ₹ larger than eligible SP           | discount = eligible SP (not above line totals)                                 |
+| Percent 0 or 100+                        | `400`                                                                          |
+| Empty cart                               | `OFFER_NOT_APPLICABLE`                                                         |
+| Plan not Growth                          | `403 PLAN_REQUIRED`; no discount                                               |
+| Deleted offer                            | `OFFER_NOT_FOUND`                                                              |
+| Two running offers on same SKU (display) | larger discount wins; POS still one **entered** code                           |
+| Kiosk shopper                            | price display only; no loyalty; charge at staff POS — staff may enter the code |
+| `markdown_ref` retry                     | same offer returned                                                            |
+| Below-cost after coupon                  | POS warn + PIN; this module does not know cost                                 |
 
 ---
 

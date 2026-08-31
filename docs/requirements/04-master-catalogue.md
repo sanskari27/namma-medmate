@@ -355,15 +355,15 @@ As a Cashier I must not open HQ catalogue writes.
 - GST slab not in {0,5,12,18,28}: `400 INVALID_GST_SLAB` (assumption).
 - Pharmacy query with `location_id` on these endpoints: ignored if present; not required because resource is platform-scoped. Inventory mapping queries remain tenant-scoped in `inventory`.
 
-| Code | HTTP | When |
-|---|---|---|
-| `VALIDATION_FAILED` | 400 | Schema |
-| `INVALID_CEILING` | 400 | Negative ceiling |
-| `INVALID_GST_SLAB` | 400 | Unknown slab |
-| `NOT_FOUND` | 404 | Unknown master id |
-| `HQ_ONLY` | 403 | Pharmacy write |
-| `ABOVE_DPCO_CEILING` | 200 body | Assert fail |
-| `BANNED_SKU` | 200 body | Assert fail |
+| Code                 | HTTP     | When              |
+| -------------------- | -------- | ----------------- |
+| `VALIDATION_FAILED`  | 400      | Schema            |
+| `INVALID_CEILING`    | 400      | Negative ceiling  |
+| `INVALID_GST_SLAB`   | 400      | Unknown slab      |
+| `NOT_FOUND`          | 404      | Unknown master id |
+| `HQ_ONLY`            | 403      | Pharmacy write    |
+| `ABOVE_DPCO_CEILING` | 200 body | Assert fail       |
+| `BANNED_SKU`         | 200 body | Assert fail       |
 
 ## 10. Open Questions / Assumptions
 
@@ -374,4 +374,5 @@ As a Cashier I must not open HQ catalogue writes.
 - Assumption: category values are free string in v1 (Fever, Cough, … as in POS chips may be copied later); no rigid enum in source.
 - Assumption: cheapest-in-stock generic ranking is POS/inventory, not this module; this module only stores substitute ids.
 - Out of v1: chemist-authored global master, per-state DPCO tables, Jan Aushadhi SKU set.
+
 ---

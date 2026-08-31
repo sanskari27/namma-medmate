@@ -31,14 +31,14 @@ Module layout: `modules/racks/{ui,api,docs}`. UI talks to API only via `@namma-m
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `inventory` | SKU list to map; persist `rack_codes` on **SKU** for Free search; unlocated = SKUs with no assignment. |
-| `plan-gating` | Growth module. Expired paid plan → paywall; data retained. |
-| `tenancy` | Tenant + `location_id`. |
-| `auth` / `manage-users` | Owner / Manager / Pharmacist default include racks; Cashier default does not. |
-| `audit` | **AuditEvent** on create/delete rack, bulk-assign, delete. |
-| `account-settings` | Optional print layout; cut-and-stick may use browser A4 print (not GRN thermal batch stickers). |
+| Module                  | Why                                                                                                    |
+| ----------------------- | ------------------------------------------------------------------------------------------------------ |
+| `inventory`             | SKU list to map; persist `rack_codes` on **SKU** for Free search; unlocated = SKUs with no assignment. |
+| `plan-gating`           | Growth module. Expired paid plan → paywall; data retained.                                             |
+| `tenancy`               | Tenant + `location_id`.                                                                                |
+| `auth` / `manage-users` | Owner / Manager / Pharmacist default include racks; Cashier default does not.                          |
+| `audit`                 | **AuditEvent** on create/delete rack, bulk-assign, delete.                                             |
+| `account-settings`      | Optional print layout; cut-and-stick may use browser A4 print (not GRN thermal batch stickers).        |
 
 Period lock: rack edits are **not** GRN/stock-take posts. `books-gst` lock does not block map edits.
 
@@ -102,41 +102,41 @@ Period lock: rack edits are **not** GRN/stock-take posts. `books-gst` lock does 
 
 ### Rack
 
-| Field | Type | Notes |
-|---|---|---|
-| `rack_id` | string | PK |
-| `code` | string | Unique per location |
-| `zone` | string, null | |
-| `row` | integer | Grid |
-| `col` | integer | Grid |
+| Field     | Type         | Notes               |
+| --------- | ------------ | ------------------- |
+| `rack_id` | string       | PK                  |
+| `code`    | string       | Unique per location |
+| `zone`    | string, null |                     |
+| `row`     | integer      | Grid                |
+| `col`     | integer      | Grid                |
 
 ### Shelf (optional level)
 
-| Field | Type | Notes |
-|---|---|---|
-| `shelf_id` | string | PK |
-| `rack_id` | string | |
-| `code` | string | Unique per rack |
+| Field      | Type   | Notes           |
+| ---------- | ------ | --------------- |
+| `shelf_id` | string | PK              |
+| `rack_id`  | string |                 |
+| `code`     | string | Unique per rack |
 
 ### Bin (optional level)
 
-| Field | Type | Notes |
-|---|---|---|
-| `bin_id` | string | PK |
-| `shelf_id` | string | |
-| `code` | string | Unique per shelf |
+| Field      | Type   | Notes            |
+| ---------- | ------ | ---------------- |
+| `bin_id`   | string | PK               |
+| `shelf_id` | string |                  |
+| `code`     | string | Unique per shelf |
 
 Builder may create shelf/bin on the fly when inline-assigning a new path.
 
 ### SkuLocation
 
-| Field | Type | Notes |
-|---|---|---|
-| `sku_location_id` | string | PK |
-| `sku_id` | string | **SKU** in `inventory` |
-| `rack_id` | string | |
-| `shelf_id` | string, null | |
-| `bin_id` | string, null | |
+| Field             | Type         | Notes                  |
+| ----------------- | ------------ | ---------------------- |
+| `sku_location_id` | string       | PK                     |
+| `sku_id`          | string       | **SKU** in `inventory` |
+| `rack_id`         | string       |                        |
+| `shelf_id`        | string, null |                        |
+| `bin_id`          | string, null |                        |
 
 A SKU may have multiple locations (e.g. overflow). `rack_codes` on SKU = distinct Rack.code.
 
@@ -192,8 +192,8 @@ Storage audit file.
 
 ### Events published
 
-| Event | Payload |
-|---|---|
+| Event                    | Payload                                          |
+| ------------------------ | ------------------------------------------------ |
 | `racks.location.changed` | `{ tenant_id, location_id, sku_id, rack_codes }` |
 
 Inventory may listen **or** racks may PATCH inventory `rack_codes` in-process via inventory API. Prefer inventory PATCH `rack_codes` in the same request as assignment (racks API orchestrates). Event is for cache/search if needed.
@@ -266,21 +266,21 @@ Then they can assign (default access includes racks).
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Plan not Growth/Pro | Mutations `FORBIDDEN`; UI paywall |
-| Delete non-empty rack | `CONFLICT` |
-| Duplicate code or grid cell | `CONFLICT` |
-| Unknown `sku_id` | `NOT_FOUND` |
-| Unknown `rack_id` | `NOT_FOUND` |
-| Empty code | `VALIDATION_ERROR` |
-| Print fail | Assignments stand |
-| SKU removed from last location | Becomes unlocated; `rack_codes` [] |
-| Multiple locations | `rack_codes` lists all distinct codes; POS matches any |
-| Concurrent two creates same code | One success, one `CONFLICT` |
-| `location_id` missing | `VALIDATION_ERROR` |
-| Cashier default | Module hidden / `FORBIDDEN` |
-| Locked books period | Map still editable |
+| Case                             | Behaviour                                              |
+| -------------------------------- | ------------------------------------------------------ |
+| Plan not Growth/Pro              | Mutations `FORBIDDEN`; UI paywall                      |
+| Delete non-empty rack            | `CONFLICT`                                             |
+| Duplicate code or grid cell      | `CONFLICT`                                             |
+| Unknown `sku_id`                 | `NOT_FOUND`                                            |
+| Unknown `rack_id`                | `NOT_FOUND`                                            |
+| Empty code                       | `VALIDATION_ERROR`                                     |
+| Print fail                       | Assignments stand                                      |
+| SKU removed from last location   | Becomes unlocated; `rack_codes` []                     |
+| Multiple locations               | `rack_codes` lists all distinct codes; POS matches any |
+| Concurrent two creates same code | One success, one `CONFLICT`                            |
+| `location_id` missing            | `VALIDATION_ERROR`                                     |
+| Cashier default                  | Module hidden / `FORBIDDEN`                            |
+| Locked books period              | Map still editable                                     |
 
 ## 10. Open Questions / Assumptions
 

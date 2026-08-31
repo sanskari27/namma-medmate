@@ -14,6 +14,7 @@ PR note:
 
 ```markdown
 ### Terraform blast radius
+
 - Env: staging | prod | both
 - Modules touched: …
 - Resources created/changed/destroyed: …

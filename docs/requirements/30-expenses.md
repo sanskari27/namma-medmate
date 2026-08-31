@@ -43,15 +43,15 @@
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | `tenant_id` + `location_id` on every row. |
-| `plan-gating` | Growth gate on routes and APIs. |
-| `auth` / `manage-users` | Owner always; Manager if Books/Expenses granted. Pharmacist/Cashier default off. |
-| `books-gst` | `isPeriodLocked(date)`, `postJournal(event)` for `expense` / `expense_delete`. Expense categories map to COA expense accounts. |
-| `audit` | Create/delete with actor, amount, category, payment mode. No GSTN secrets (this module never sees them). |
-| `reports` | Expense Category and Expense Transaction reports read this register + books lines. |
-| `account-settings` | Pharmacy GSTIN state for CGST+SGST vs IGST on expense GST (intra-state default for shop costs). |
+| Module                  | Why                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| `tenancy`               | `tenant_id` + `location_id` on every row.                                                                                      |
+| `plan-gating`           | Growth gate on routes and APIs.                                                                                                |
+| `auth` / `manage-users` | Owner always; Manager if Books/Expenses granted. Pharmacist/Cashier default off.                                               |
+| `books-gst`             | `isPeriodLocked(date)`, `postJournal(event)` for `expense` / `expense_delete`. Expense categories map to COA expense accounts. |
+| `audit`                 | Create/delete with actor, amount, category, payment mode. No GSTN secrets (this module never sees them).                       |
+| `reports`               | Expense Category and Expense Transaction reports read this register + books lines.                                             |
+| `account-settings`      | Pharmacy GSTIN state for CGST+SGST vs IGST on expense GST (intra-state default for shop costs).                                |
 
 **Does not depend on:** `employees` (recording salary expense does not clock a payroll), `saas-billing`, `pos-billing`.
 
@@ -76,19 +76,19 @@
 
 **FR-5:** The system shall restrict `category` to this closed enum (UI labels in parentheses):
 
-| `category` | UI label | COA `auto_post_key` |
-|---|---|---|
-| `salaries` | Salaries | `exp_salary` |
-| `rent` | Rent | `exp_rent` |
-| `electricity` | Electricity | `exp_electricity` |
-| `telephone` | Telephone | `exp_telephone` |
-| `stationery` | Stationery | `exp_stationery` |
-| `repair` | Repair | `exp_repair` |
-| `transport` | Transport | `exp_transport` |
-| `raw_material` | Raw material | `exp_raw_material` |
-| `marketing` | Marketing | `exp_marketing` |
-| `bank_charges` | Bank charges | `exp_bank_charges` |
-| `miscellaneous` | Miscellaneous | `exp_misc` |
+| `category`      | UI label      | COA `auto_post_key` |
+| --------------- | ------------- | ------------------- |
+| `salaries`      | Salaries      | `exp_salary`        |
+| `rent`          | Rent          | `exp_rent`          |
+| `electricity`   | Electricity   | `exp_electricity`   |
+| `telephone`     | Telephone     | `exp_telephone`     |
+| `stationery`    | Stationery    | `exp_stationery`    |
+| `repair`        | Repair        | `exp_repair`        |
+| `transport`     | Transport     | `exp_transport`     |
+| `raw_material`  | Raw material  | `exp_raw_material`  |
+| `marketing`     | Marketing     | `exp_marketing`     |
+| `bank_charges`  | Bank charges  | `exp_bank_charges`  |
+| `miscellaneous` | Miscellaneous | `exp_misc`          |
 
 **FR-6:** The system shall reject any other category (`422 UNKNOWN_CATEGORY`). Owner-created extra COA children are **not** selectable on the expense form in v1 (manual journal in books covers those).
 
@@ -173,32 +173,32 @@ The UI shall update these three figures as the user types amount and GST % witho
 
 ### 6.1 `Expense`
 
-| Field | Type | Notes |
-|---|---|---|
-| `expense_id` | uuid | PK |
-| `tenant_id`, `location_id` | uuid | |
-| `expense_no` | string | Unique per location per FY |
-| `fy_key` | string | |
-| `value_date` | date | Period lock key |
-| `paid_to` | string | Payee name |
-| `category` | enum | FR-5 |
-| `payment_mode` | enum | `cash` \| `bank` \| `upi` |
-| `amount_incl_gst` | money | > 0 |
-| `gst_rate` | number | 0, 5, 12, 18, 28 |
-| `taxable` | money | persisted |
-| `gst_amount` | money | |
-| `gst_cgst`, `gst_sgst`, `gst_igst` | money | |
-| `itc_eligible` | boolean | |
-| `input_credit` | money | 0 if not eligible |
-| `inter_state` | boolean | default false |
-| `note` | string? | |
-| `journal_id` | uuid? | set when posted |
-| `reverse_journal_id` | uuid? | on delete |
-| `posting_status` | enum | `pending` \| `posted` \| `failed` |
-| `idempotency_key` | string? | unique per location |
-| `actor_user_id` | uuid | |
-| `deleted_at` | timestamptz? | |
-| `created_at`, `updated_at` | timestamptz | |
+| Field                              | Type         | Notes                             |
+| ---------------------------------- | ------------ | --------------------------------- |
+| `expense_id`                       | uuid         | PK                                |
+| `tenant_id`, `location_id`         | uuid         |                                   |
+| `expense_no`                       | string       | Unique per location per FY        |
+| `fy_key`                           | string       |                                   |
+| `value_date`                       | date         | Period lock key                   |
+| `paid_to`                          | string       | Payee name                        |
+| `category`                         | enum         | FR-5                              |
+| `payment_mode`                     | enum         | `cash` \| `bank` \| `upi`         |
+| `amount_incl_gst`                  | money        | > 0                               |
+| `gst_rate`                         | number       | 0, 5, 12, 18, 28                  |
+| `taxable`                          | money        | persisted                         |
+| `gst_amount`                       | money        |                                   |
+| `gst_cgst`, `gst_sgst`, `gst_igst` | money        |                                   |
+| `itc_eligible`                     | boolean      |                                   |
+| `input_credit`                     | money        | 0 if not eligible                 |
+| `inter_state`                      | boolean      | default false                     |
+| `note`                             | string?      |                                   |
+| `journal_id`                       | uuid?        | set when posted                   |
+| `reverse_journal_id`               | uuid?        | on delete                         |
+| `posting_status`                   | enum         | `pending` \| `posted` \| `failed` |
+| `idempotency_key`                  | string?      | unique per location               |
+| `actor_user_id`                    | uuid         |                                   |
+| `deleted_at`                       | timestamptz? |                                   |
+| `created_at`, `updated_at`         | timestamptz  |                                   |
 
 Indexes: `(tenant_id, location_id, value_date desc)`, `(category)`, search trigram optional on `paid_to`.
 
@@ -229,11 +229,11 @@ Response:
         "paid_to": "Sharma Properties",
         "category": "rent",
         "payment_mode": "bank",
-        "amount_incl_gst": 11800.00,
+        "amount_incl_gst": 11800.0,
         "gst_rate": 18,
-        "taxable": 10000.00,
-        "gst_amount": 1800.00,
-        "input_credit": 1800.00,
+        "taxable": 10000.0,
+        "gst_amount": 1800.0,
+        "input_credit": 1800.0,
         "itc_eligible": true,
         "note": "August rent",
         "posting_status": "posted",
@@ -242,10 +242,10 @@ Response:
     ],
     "totals": {
       "count": 1,
-      "amount_incl_gst": 11800.00,
-      "taxable": 10000.00,
-      "gst_amount": 1800.00,
-      "input_credit": 1800.00
+      "amount_incl_gst": 11800.0,
+      "taxable": 10000.0,
+      "gst_amount": 1800.0,
+      "input_credit": 1800.0
     },
     "next_cursor": null
   }
@@ -260,7 +260,7 @@ Deleted rows are excluded unless `include_deleted=true` (Owner debug; default fa
 
 ```json
 {
-  "amount_incl_gst": 11800.00,
+  "amount_incl_gst": 11800.0,
   "gst_rate": 18,
   "itc_eligible": true,
   "inter_state": false
@@ -271,13 +271,13 @@ Deleted rows are excluded unless `include_deleted=true` (Owner debug; default fa
 {
   "success": true,
   "data": {
-    "taxable": 10000.00,
-    "gst_amount": 1800.00,
-    "gst_cgst": 900.00,
-    "gst_sgst": 900.00,
+    "taxable": 10000.0,
+    "gst_amount": 1800.0,
+    "gst_cgst": 900.0,
+    "gst_sgst": 900.0,
     "gst_igst": 0,
-    "input_credit": 1800.00,
-    "expense_net_of_itc": 10000.00
+    "input_credit": 1800.0,
+    "expense_net_of_itc": 10000.0
   }
 }
 ```
@@ -293,7 +293,7 @@ Header: `Idempotency-Key: uuid`
   "paid_to": "Sharma Properties",
   "category": "rent",
   "payment_mode": "upi",
-  "amount_incl_gst": 11800.00,
+  "amount_incl_gst": 11800.0,
   "gst_rate": 18,
   "itc_eligible": true,
   "inter_state": false,
@@ -311,9 +311,9 @@ Header: `Idempotency-Key: uuid`
     "expense_no": "EXP-2627-000041",
     "payment_mode": "upi",
     "books_credit_account": "bank",
-    "taxable": 10000.00,
-    "gst_amount": 1800.00,
-    "input_credit": 1800.00,
+    "taxable": 10000.0,
+    "gst_amount": 1800.0,
+    "input_credit": 1800.0,
     "journal_id": "uuid",
     "posting_status": "posted"
   }
@@ -362,11 +362,11 @@ Every category has `"payroll": false`. Salaries includes copy key `expenses.sala
     "kind": "expense",
     "category": "rent",
     "auto_post_key": "exp_rent",
-    "taxable": 10000.00,
-    "gst": { "cgst": 900.00, "sgst": 900.00, "igst": 0 },
+    "taxable": 10000.0,
+    "gst": { "cgst": 900.0, "sgst": 900.0, "igst": 0 },
     "itc_eligible": true,
     "credit_account": "bank",
-    "amount_incl_gst": 11800.00
+    "amount_incl_gst": 11800.0
   }
 }
 ```
@@ -375,13 +375,13 @@ For `upi`, `"credit_account": "bank"`. For `cash`, `"credit_account": "cash_till
 
 ### 7.6 UI
 
-Sidebar **Business → Expenses** (Growth).  
+Sidebar **Business → Expenses** (Growth).
 
-- Filter bar: period picker, category select, search.  
-- Table: date, expense no, paid-to, category, mode (Cash / Bank / UPI), amount incl. GST, GST, ITC, note, delete. Totals footer.  
-- Primary: **Add expense** drawer/modal with live taxable / GST / input-credit. Payment mode help: “UPI is recorded against Bank. This is not a Cashfree shop payment.” Salaries help: “This is not a payroll run.”  
-- Export Excel, Export PDF.  
-- Locked period: date picker disables locked months; submit error names the locked period.  
+- Filter bar: period picker, category select, search.
+- Table: date, expense no, paid-to, category, mode (Cash / Bank / UPI), amount incl. GST, GST, ITC, note, delete. Totals footer.
+- Primary: **Add expense** drawer/modal with live taxable / GST / input-credit. Payment mode help: “UPI is recorded against Bank. This is not a Cashfree shop payment.” Salaries help: “This is not a payroll run.”
+- Export Excel, Export PDF.
+- Locked period: date picker disables locked months; submit error names the locked period.
 - Paywall on Free/Starter.
 
 ---
@@ -457,21 +457,21 @@ Then expense totals equal the books expense account movements, not a second sum 
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Amount 0 or negative | `422 VALIDATION` |
-| GST rate not in {0,5,12,18,28} | `422 VALIDATION` |
-| Half-paise after GST split | Round CGST/SGST so CGST+SGST = gst_amount at 2 dp (first remainder to CGST). |
-| Paid-to blank | `422` |
-| Period locked | `423 PERIOD_LOCKED` |
-| Books unbalanced (should not happen) | Roll back expense; `500 BOOKS_POST_FAILED`; banner. |
-| Plan expired | `403`; rows retained. |
-| UPI vs cash confusion | UI copy; still post UPI to bank. |
-| Raw material category | Maps to `exp_raw_material`; still not inventory/GRN. |
-| Delete twice | `409 ALREADY_DELETED` |
-| Inter-state expense | IGST input if `inter_state` and eligible. |
-| Note > 500 chars | `422` |
-| Concurrent create | Two rows if different idempotency keys. |
+| Case                                 | Behaviour                                                                    |
+| ------------------------------------ | ---------------------------------------------------------------------------- |
+| Amount 0 or negative                 | `422 VALIDATION`                                                             |
+| GST rate not in {0,5,12,18,28}       | `422 VALIDATION`                                                             |
+| Half-paise after GST split           | Round CGST/SGST so CGST+SGST = gst_amount at 2 dp (first remainder to CGST). |
+| Paid-to blank                        | `422`                                                                        |
+| Period locked                        | `423 PERIOD_LOCKED`                                                          |
+| Books unbalanced (should not happen) | Roll back expense; `500 BOOKS_POST_FAILED`; banner.                          |
+| Plan expired                         | `403`; rows retained.                                                        |
+| UPI vs cash confusion                | UI copy; still post UPI to bank.                                             |
+| Raw material category                | Maps to `exp_raw_material`; still not inventory/GRN.                         |
+| Delete twice                         | `409 ALREADY_DELETED`                                                        |
+| Inter-state expense                  | IGST input if `inter_state` and eligible.                                    |
+| Note > 500 chars                     | `422`                                                                        |
+| Concurrent create                    | Two rows if different idempotency keys.                                      |
 
 ---
 

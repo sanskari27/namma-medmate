@@ -29,17 +29,17 @@ SaaS Billing is the pharmacy-facing subscription and Refer & Earn module: the ch
 
 ## 3. Dependencies (modules + external)
 
-| Dependency | Why |
-|---|---|
-| `tenancy` | **Pharmacy** / **Location**; referral code stored per pharmacy. |
-| `plan-gating` | Reads `plan` + `subscription_status` this module writes. Does not own billing. |
-| `whatsapp` | Share referral deep-link only from UI; dunning / payment-fail templates requested as send (not from share buttons). |
-| `go-live-kyc` | Referral credit grant timing (assumption: KYC approved). |
-| `audit` | Plan change, checkout, webhook apply, credit post, auto-renew toggle. |
-| `admin-platform-settings` | Platform Cashfree keys (not chemist-facing). |
-| `admin-saas-crm` | Same Refer & Earn programme; HQ may call mark-paid / adjust. |
-| `@namma-medmate/api-client` | Console HTTP. |
-| **Cashfree** | SaaS checkout and webhooks only. |
+| Dependency                  | Why                                                                                                                 |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                   | **Pharmacy** / **Location**; referral code stored per pharmacy.                                                     |
+| `plan-gating`               | Reads `plan` + `subscription_status` this module writes. Does not own billing.                                      |
+| `whatsapp`                  | Share referral deep-link only from UI; dunning / payment-fail templates requested as send (not from share buttons). |
+| `go-live-kyc`               | Referral credit grant timing (assumption: KYC approved).                                                            |
+| `audit`                     | Plan change, checkout, webhook apply, credit post, auto-renew toggle.                                               |
+| `admin-platform-settings`   | Platform Cashfree keys (not chemist-facing).                                                                        |
+| `admin-saas-crm`            | Same Refer & Earn programme; HQ may call mark-paid / adjust.                                                        |
+| `@namma-medmate/api-client` | Console HTTP.                                                                                                       |
+| **Cashfree**                | SaaS checkout and webhooks only.                                                                                    |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -49,12 +49,12 @@ SaaS Billing is the pharmacy-facing subscription and Refer & Earn module: the ch
 
 **FR-3:** The system shall recognise plans `free`, `starter`, `growth`, `pro` with these exclusive-of-GST prices in paise and seat limits:
 
-| Plan | Monthly paise | Annual paise (saving) | Seats |
-|---|---|---|---|
-| `free` | 0 | — | 2 |
-| `starter` | 69900 | 796900 (~5% off) | 2 |
-| `growth` | 149900 | 1529000 (~15% off) | 5 |
-| `pro` | 299900 | 2879000 (~20% off) | unlimited (`null`) |
+| Plan      | Monthly paise | Annual paise (saving) | Seats              |
+| --------- | ------------- | --------------------- | ------------------ |
+| `free`    | 0             | —                     | 2                  |
+| `starter` | 69900         | 796900 (~5% off)      | 2                  |
+| `growth`  | 149900        | 1529000 (~15% off)    | 5                  |
+| `pro`     | 299900        | 2879000 (~20% off)    | unlimited (`null`) |
 
 Annual paise = round_half_up(monthly_inr × 12 × (1 − saving), 0) × 100.
 
@@ -140,77 +140,77 @@ Annual paise = round_half_up(monthly_inr × 12 × (1 − saving), 0) × 100.
 
 ### SaasSubscription (this module; also read by `admin-saas-crm`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `tenant_id` | uuid | PK |
-| `location_id` | uuid | |
-| `plan` | enum | `free` \| `starter` \| `growth` \| `pro` — **current billed/entitled plan while active** |
-| `entitlements_plan` | enum | What `plan-gating` consumes; `free` when expired |
-| `status` | enum | `active` \| `past_due` \| `expired` \| `cancelled` |
-| `billing_cycle` | enum null | `monthly` \| `annual` |
-| `auto_renew` | boolean | |
-| `seat_limit` | int null | 2 / 5 / null |
-| `current_period_start` | timestamptz null | |
-| `current_period_end` | timestamptz null | |
-| `pending_plan` | enum null | Scheduled downgrade |
-| `pending_cycle` | enum null | |
-| `last_paid_plan` | enum null | Banner after expiry |
-| `saas_credit_paise` | int | ≥ 0 |
-| `referral_code` | string | Unique |
-| `cashfree_order_id` | string null | Last order |
-| `cashfree_subscription_id` | string null | If auto-renew mandate used |
-| `updated_at` | timestamptz | |
+| Field                      | Type             | Notes                                                                                    |
+| -------------------------- | ---------------- | ---------------------------------------------------------------------------------------- |
+| `tenant_id`                | uuid             | PK                                                                                       |
+| `location_id`              | uuid             |                                                                                          |
+| `plan`                     | enum             | `free` \| `starter` \| `growth` \| `pro` — **current billed/entitled plan while active** |
+| `entitlements_plan`        | enum             | What `plan-gating` consumes; `free` when expired                                         |
+| `status`                   | enum             | `active` \| `past_due` \| `expired` \| `cancelled`                                       |
+| `billing_cycle`            | enum null        | `monthly` \| `annual`                                                                    |
+| `auto_renew`               | boolean          |                                                                                          |
+| `seat_limit`               | int null         | 2 / 5 / null                                                                             |
+| `current_period_start`     | timestamptz null |                                                                                          |
+| `current_period_end`       | timestamptz null |                                                                                          |
+| `pending_plan`             | enum null        | Scheduled downgrade                                                                      |
+| `pending_cycle`            | enum null        |                                                                                          |
+| `last_paid_plan`           | enum null        | Banner after expiry                                                                      |
+| `saas_credit_paise`        | int              | ≥ 0                                                                                      |
+| `referral_code`            | string           | Unique                                                                                   |
+| `cashfree_order_id`        | string null      | Last order                                                                               |
+| `cashfree_subscription_id` | string null      | If auto-renew mandate used                                                               |
+| `updated_at`               | timestamptz      |                                                                                          |
 
 ### Payment (SaaS)
 
-| Field | Type | Notes |
-|---|---|---|
-| `payment_id` | uuid | |
-| `tenant_id` | uuid | |
-| `location_id` | uuid | |
-| `purpose` | enum | `saas` only in this module |
-| `provider` | enum | `cashfree` \| `credit` \| `zero` |
-| `cashfree_order_id` | string null | |
-| `cashfree_payment_id` | string null | Unique when present |
-| `amount_paise` | int | Payable captured |
-| `status` | enum | `pending` \| `paid` \| `failed` |
-| `client_checkout_id` | uuid | |
-| `created_at` | timestamptz | |
+| Field                 | Type        | Notes                            |
+| --------------------- | ----------- | -------------------------------- |
+| `payment_id`          | uuid        |                                  |
+| `tenant_id`           | uuid        |                                  |
+| `location_id`         | uuid        |                                  |
+| `purpose`             | enum        | `saas` only in this module       |
+| `provider`            | enum        | `cashfree` \| `credit` \| `zero` |
+| `cashfree_order_id`   | string null |                                  |
+| `cashfree_payment_id` | string null | Unique when present              |
+| `amount_paise`        | int         | Payable captured                 |
+| `status`              | enum        | `pending` \| `paid` \| `failed`  |
+| `client_checkout_id`  | uuid        |                                  |
+| `created_at`          | timestamptz |                                  |
 
 GMV **Payment** (`cash` \| `khata`) is `pos-billing`, not this table’s `purpose=saas` rows (same entity name, partitioned by purpose / module).
 
 ### SaasInvoice (GST tax invoice Namma → chemist)
 
-| Field | Type | Notes |
-|---|---|---|
-| `invoice_id` | uuid | |
-| `invoice_no` | string | `NMM/{FY}/{seq}` unique |
-| `tenant_id` | uuid | |
-| `location_id` | uuid | |
-| `payment_id` | uuid | |
-| `plan` | enum | |
-| `billing_cycle` | enum | |
-| `list_paise` | int | Before credit |
-| `credit_applied_paise` | int | |
-| `taxable_paise` | int | |
-| `gst_rate` | int | 18 |
-| `sac` | string | `9983` |
-| `gst_paise` | int | |
-| `total_paise` | int | |
-| `issued_at` | timestamptz | |
-| `pdf_object_key` | string | |
+| Field                  | Type        | Notes                   |
+| ---------------------- | ----------- | ----------------------- |
+| `invoice_id`           | uuid        |                         |
+| `invoice_no`           | string      | `NMM/{FY}/{seq}` unique |
+| `tenant_id`            | uuid        |                         |
+| `location_id`          | uuid        |                         |
+| `payment_id`           | uuid        |                         |
+| `plan`                 | enum        |                         |
+| `billing_cycle`        | enum        |                         |
+| `list_paise`           | int         | Before credit           |
+| `credit_applied_paise` | int         |                         |
+| `taxable_paise`        | int         |                         |
+| `gst_rate`             | int         | 18                      |
+| `sac`                  | string      | `9983`                  |
+| `gst_paise`            | int         |                         |
+| `total_paise`          | int         |                         |
+| `issued_at`            | timestamptz |                         |
+| `pdf_object_key`       | string      |                         |
 
 ### Referral
 
-| Field | Type | Notes |
-|---|---|---|
-| `referral_id` | uuid | |
-| `referrer_tenant_id` | uuid | |
-| `referee_tenant_id` | uuid | Unique (one referrer per referee) |
-| `code_used` | string | |
-| `status` | enum | `pending_kyc` \| `credited` \| `ineligible` |
-| `credit_paise` | int | 50000 when credited |
-| `credited_at` | timestamptz null | |
+| Field                | Type             | Notes                                       |
+| -------------------- | ---------------- | ------------------------------------------- |
+| `referral_id`        | uuid             |                                             |
+| `referrer_tenant_id` | uuid             |                                             |
+| `referee_tenant_id`  | uuid             | Unique (one referrer per referee)           |
+| `code_used`          | string           |                                             |
+| `status`             | enum             | `pending_kyc` \| `credited` \| `ineligible` |
+| `credit_paise`       | int              | 50000 when credited                         |
+| `credited_at`        | timestamptz null |                                             |
 
 ## 7. API / Interface Contracts (REST JSON + events + UI)
 
@@ -354,13 +354,13 @@ On `PAYMENT_SUCCESS` / equivalent: FR-13 / FR-14. On failure events: mark **Paym
 
 ### 7.6 Events
 
-| Event | Payload |
-|---|---|
+| Event                               | Payload                                                             |
+| ----------------------------------- | ------------------------------------------------------------------- |
 | `saas-billing.subscription.changed` | `{ tenant_id, location_id, entitlements_plan, status, seat_limit }` |
-| `saas-billing.payment.paid` | `{ tenant_id, location_id, payment_id, invoice_no }` |
-| `saas-billing.payment.failed` | `{ tenant_id, location_id, payment_id }` |
-| `saas-billing.referral.credited` | `{ referrer_tenant_id, referee_tenant_id, credit_paise: 50000 }` |
-| `saas-billing.dunning.requested` | `{ tenant_id, location_id }` |
+| `saas-billing.payment.paid`         | `{ tenant_id, location_id, payment_id, invoice_no }`                |
+| `saas-billing.payment.failed`       | `{ tenant_id, location_id, payment_id }`                            |
+| `saas-billing.referral.credited`    | `{ referrer_tenant_id, referee_tenant_id, credit_paise: 50000 }`    |
+| `saas-billing.dunning.requested`    | `{ tenant_id, location_id }`                                        |
 
 UI: `'saas-billing.subscription.updated': { location_id: string }`.
 
@@ -419,24 +419,24 @@ UI: `'saas-billing.subscription.updated': { location_id: string }`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Missing `location_id` | 400 `LOCATION_REQUIRED` |
-| Non-Owner checkout | 403 `OWNER_ONLY` |
-| Invalid plan / cycle | 400 `VALIDATION_ERROR` |
-| Checkout while Cashfree down | 502 `CASHFREE_UNAVAILABLE`; plan unchanged |
-| Pending / user dropped | Plan unchanged; Payment `failed` or remains `pending` then expires |
-| Duplicate webhook | 200 duplicate; no second invoice |
-| Bad webhook signature | 401; no side effect |
-| `payable_paise=0` | Skip Cashfree; activate; invoice zeros |
-| Self-referral | 409 `REFERRAL_SELF` or ignore at signup |
-| Double KYC approved event | Credit once (`referral_id`) |
-| Downgrade to higher plan | 400 `NOT_A_DOWNGRADE` |
-| Expired + Add 6th user | `manage-users` seat cap 2; this module only writes limit |
-| Shop-floor UPI | Not offered |
-| Add-on SKU | Not offered |
-| Credit > list price | payable 0; leftover credit remains |
-| Auto-renew fail | `past_due` + WhatsApp dunning request; then `expired` |
+| Case                         | Behaviour                                                          |
+| ---------------------------- | ------------------------------------------------------------------ |
+| Missing `location_id`        | 400 `LOCATION_REQUIRED`                                            |
+| Non-Owner checkout           | 403 `OWNER_ONLY`                                                   |
+| Invalid plan / cycle         | 400 `VALIDATION_ERROR`                                             |
+| Checkout while Cashfree down | 502 `CASHFREE_UNAVAILABLE`; plan unchanged                         |
+| Pending / user dropped       | Plan unchanged; Payment `failed` or remains `pending` then expires |
+| Duplicate webhook            | 200 duplicate; no second invoice                                   |
+| Bad webhook signature        | 401; no side effect                                                |
+| `payable_paise=0`            | Skip Cashfree; activate; invoice zeros                             |
+| Self-referral                | 409 `REFERRAL_SELF` or ignore at signup                            |
+| Double KYC approved event    | Credit once (`referral_id`)                                        |
+| Downgrade to higher plan     | 400 `NOT_A_DOWNGRADE`                                              |
+| Expired + Add 6th user       | `manage-users` seat cap 2; this module only writes limit           |
+| Shop-floor UPI               | Not offered                                                        |
+| Add-on SKU                   | Not offered                                                        |
+| Credit > list price          | payable 0; leftover credit remains                                 |
+| Auto-renew fail              | `past_due` + WhatsApp dunning request; then `expired`              |
 
 ## 10. Open Questions / Assumptions
 

@@ -32,17 +32,17 @@ Manage Users is the Pharmacy Partner Console module that owns staff **User** (lo
 
 ## 3. Dependencies (modules + external)
 
-| Dependency | Why |
-|---|---|
-| `tenancy` | Resolve **Pharmacy** tenant and **Location**. Every query carries tenant (from session) + `location_id`. |
-| `auth` | PIN hash, login methods, saved devices, temporary password issue / hash, session subject `user_id`. This module does not store password hashes, PIN hashes, or device secrets. |
-| `plan-gating` | Seat limit for the current plan; module key `manage-users` (always unlocked on Free); module-permission key catalogue. |
-| `whatsapp` | Share-credentials is a deep-link only. Must not call send. Optional: i18n share-copy template id for consistent wording. |
-| `audit` | Append-only **AuditEvent** on money-adjacent and admin actions listed in §4. |
-| `employees` (read) | Optional picker to link `employee_id`. Must not write HR fields. |
-| `@namma-medmate/api-client` | Sole UI HTTP path. |
-| `libs/db-services` | Sole persistence. |
-| `libs/event-bus` | UI events in `modules/manage-users/ui/src/events/events.contract.ts`. |
+| Dependency                  | Why                                                                                                                                                                            |
+| --------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenancy`                   | Resolve **Pharmacy** tenant and **Location**. Every query carries tenant (from session) + `location_id`.                                                                       |
+| `auth`                      | PIN hash, login methods, saved devices, temporary password issue / hash, session subject `user_id`. This module does not store password hashes, PIN hashes, or device secrets. |
+| `plan-gating`               | Seat limit for the current plan; module key `manage-users` (always unlocked on Free); module-permission key catalogue.                                                         |
+| `whatsapp`                  | Share-credentials is a deep-link only. Must not call send. Optional: i18n share-copy template id for consistent wording.                                                       |
+| `audit`                     | Append-only **AuditEvent** on money-adjacent and admin actions listed in §4.                                                                                                   |
+| `employees` (read)          | Optional picker to link `employee_id`. Must not write HR fields.                                                                                                               |
+| `@namma-medmate/api-client` | Sole UI HTTP path.                                                                                                                                                             |
+| `libs/db-services`          | Sole persistence.                                                                                                                                                              |
+| `libs/event-bus`            | UI events in `modules/manage-users/ui/src/events/events.contract.ts`.                                                                                                          |
 
 External systems: none. No Cashfree, no GSTN, no Meta send from this module.
 
@@ -64,36 +64,36 @@ External systems: none. No Cashfree, no GSTN, no Meta send from this module.
 
 **FR-8:** The system shall apply these default module permissions when a User is created or when the Owner chooses **Reset to role defaults**:
 
-| Module key | Owner | Manager | Pharmacist | Cashier |
-|---|---|---|---|---|
-| `dashboard` | true | true | false | false |
-| `pos-billing` | true | true | true | true |
-| `orders` | true | true | true | true |
-| `prescriptions` | true | true | true | false |
-| `khata` | true | true | false | true |
-| `inventory` | true | true | true | false |
-| `purchases` | true | true | false | false |
-| `racks` | true | true | true | false |
-| `distributors-reorder` | true | true | false | false |
-| `reports` | true | true | false | false |
-| `crm` | true | true | true | false |
-| `manage-users` | true | false | false | false |
-| `account-settings` | true | false | false | false |
-| `saas-billing` | true | false | false | false |
-| `go-live-kyc` | true | false | false | false |
-| `employees` | true | false | false | false |
-| `customers` | true | true | true | true |
-| `returns` | true | true | true | true |
-| `purchase-returns` | true | true | false | false |
-| `statutory-registers` | true | true | true | false |
-| `sales-ledger` | true | false | false | false |
-| `offers` | true | false | false | false |
-| `expenses` | true | false | false | false |
-| `books-gst` | true | false | false | false |
-| `stock-take` | true | false | false | false |
-| `ca-sharing` | true | false | false | false |
-| `kiosk` | true | false | false | false |
-| `whatsapp` | true | false | false | false |
+| Module key             | Owner | Manager | Pharmacist | Cashier |
+| ---------------------- | ----- | ------- | ---------- | ------- |
+| `dashboard`            | true  | true    | false      | false   |
+| `pos-billing`          | true  | true    | true       | true    |
+| `orders`               | true  | true    | true       | true    |
+| `prescriptions`        | true  | true    | true       | false   |
+| `khata`                | true  | true    | false      | true    |
+| `inventory`            | true  | true    | true       | false   |
+| `purchases`            | true  | true    | false      | false   |
+| `racks`                | true  | true    | true       | false   |
+| `distributors-reorder` | true  | true    | false      | false   |
+| `reports`              | true  | true    | false      | false   |
+| `crm`                  | true  | true    | true       | false   |
+| `manage-users`         | true  | false   | false      | false   |
+| `account-settings`     | true  | false   | false      | false   |
+| `saas-billing`         | true  | false   | false      | false   |
+| `go-live-kyc`          | true  | false   | false      | false   |
+| `employees`            | true  | false   | false      | false   |
+| `customers`            | true  | true    | true       | true    |
+| `returns`              | true  | true    | true       | true    |
+| `purchase-returns`     | true  | true    | false      | false   |
+| `statutory-registers`  | true  | true    | true       | false   |
+| `sales-ledger`         | true  | false   | false      | false   |
+| `offers`               | true  | false   | false      | false   |
+| `expenses`             | true  | false   | false      | false   |
+| `books-gst`            | true  | false   | false      | false   |
+| `stock-take`           | true  | false   | false      | false   |
+| `ca-sharing`           | true  | false   | false      | false   |
+| `kiosk`                | true  | false   | false      | false   |
+| `whatsapp`             | true  | false   | false      | false   |
 
 **FR-9:** The system shall let the Owner tick or untick any non-Owner User’s module keys independently of the role defaults, persist the map, and leave the role value unchanged.
 
@@ -170,24 +170,24 @@ This module is a system of record for **User** (login), jointly with `auth` for 
 
 ### User (login)
 
-| Field | Type | Notes |
-|---|---|---|
-| `user_id` | uuid | PK. Session `sub`. |
-| `tenant_id` | uuid | **Pharmacy** tenant. |
-| `location_id` | uuid | **Location**. Required on every query. |
-| `login_id` | string | Unique per tenant, case-insensitive. |
-| `role` | enum | `owner` \| `manager` \| `pharmacist` \| `cashier` |
-| `permissions` | jsonb | Map of module key → boolean. Keys = FR-8. |
-| `active` | boolean | Inactive does not count toward seats. |
-| `employee_id` | uuid null | FK to **Employee**; optional. |
-| `otp_mobile` | string null | E.164; required if `otp_enabled`. |
-| `password_enabled` | boolean | |
-| `otp_enabled` | boolean | WhatsApp OTP. |
-| `pin_set` | boolean | True when `auth` holds a PIN hash. |
-| `temp_password_pending` | boolean | True until first successful password login. |
-| `created_at` | timestamptz | |
-| `updated_at` | timestamptz | |
-| `removed_at` | timestamptz null | Set on Remove; login_id may be reused after remove. |
+| Field                   | Type             | Notes                                               |
+| ----------------------- | ---------------- | --------------------------------------------------- |
+| `user_id`               | uuid             | PK. Session `sub`.                                  |
+| `tenant_id`             | uuid             | **Pharmacy** tenant.                                |
+| `location_id`           | uuid             | **Location**. Required on every query.              |
+| `login_id`              | string           | Unique per tenant, case-insensitive.                |
+| `role`                  | enum             | `owner` \| `manager` \| `pharmacist` \| `cashier`   |
+| `permissions`           | jsonb            | Map of module key → boolean. Keys = FR-8.           |
+| `active`                | boolean          | Inactive does not count toward seats.               |
+| `employee_id`           | uuid null        | FK to **Employee**; optional.                       |
+| `otp_mobile`            | string null      | E.164; required if `otp_enabled`.                   |
+| `password_enabled`      | boolean          |                                                     |
+| `otp_enabled`           | boolean          | WhatsApp OTP.                                       |
+| `pin_set`               | boolean          | True when `auth` holds a PIN hash.                  |
+| `temp_password_pending` | boolean          | True until first successful password login.         |
+| `created_at`            | timestamptz      |                                                     |
+| `updated_at`            | timestamptz      |                                                     |
+| `removed_at`            | timestamptz null | Set on Remove; login_id may be reused after remove. |
 
 Credential columns (password hash, PIN hash, saved-device tokens) live in `auth`, keyed by `user_id`.
 
@@ -371,16 +371,16 @@ This module calls (does not re-own):
 
 **API / domain (for `plan-gating`, HQ, audit subscribers):**
 
-| Event | Payload |
-|---|---|
-| `manage-users.user.created` | `{ tenant_id, location_id, user_id, role, actor_user_id }` |
-| `manage-users.user.updated` | `{ tenant_id, location_id, user_id, fields[] }` |
-| `manage-users.user.permissions.changed` | `{ tenant_id, location_id, user_id, permissions }` |
-| `manage-users.user.methods.changed` | `{ tenant_id, location_id, user_id, password_enabled, otp_enabled }` |
-| `manage-users.user.devices.revoked` | `{ tenant_id, location_id, user_id, device_id \| "all" }` |
-| `manage-users.user.deactivated` | `{ tenant_id, location_id, user_id }` |
-| `manage-users.user.removed` | `{ tenant_id, location_id, user_id, employee_id }` |
-| `manage-users.seats.changed` | `{ tenant_id, location_id, active_count, seat_limit }` |
+| Event                                   | Payload                                                              |
+| --------------------------------------- | -------------------------------------------------------------------- |
+| `manage-users.user.created`             | `{ tenant_id, location_id, user_id, role, actor_user_id }`           |
+| `manage-users.user.updated`             | `{ tenant_id, location_id, user_id, fields[] }`                      |
+| `manage-users.user.permissions.changed` | `{ tenant_id, location_id, user_id, permissions }`                   |
+| `manage-users.user.methods.changed`     | `{ tenant_id, location_id, user_id, password_enabled, otp_enabled }` |
+| `manage-users.user.devices.revoked`     | `{ tenant_id, location_id, user_id, device_id \| "all" }`            |
+| `manage-users.user.deactivated`         | `{ tenant_id, location_id, user_id }`                                |
+| `manage-users.user.removed`             | `{ tenant_id, location_id, user_id, employee_id }`                   |
+| `manage-users.seats.changed`            | `{ tenant_id, location_id, active_count, seat_limit }`               |
 
 Payloads are serializable. No passwords, PINs, or tokens.
 
@@ -446,25 +446,25 @@ Payloads are serializable. No passwords, PINs, or tokens.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Missing `location_id` | 400 `LOCATION_REQUIRED` |
-| User of another tenant / location | 404 (no leak) |
-| Caller without `manage-users` permission | 403 `FORBIDDEN` on mutations and User list |
-| Seat cap on Add or reactivate | 409 `SEAT_CAP_REACHED`; UI button disabled |
-| Duplicate `login_id` | 409 `LOGIN_ID_TAKEN` |
-| Both auth methods off | 422 `AUTH_METHOD_REQUIRED` |
-| OTP on, bad / missing mobile | 422 `OTP_MOBILE_REQUIRED` |
-| PIN not 4–6 digits | 400 `VALIDATION_ERROR` |
-| Copy password after first login | 409 `TEMP_PASSWORD_UNAVAILABLE` |
-| Reduce Owner access / change Owner role / remove Owner | 409 `OWNER_ACCESS_IMMUTABLE` or `OWNER_REQUIRED` |
-| Second Owner | 409 `OWNER_ALREADY_EXISTS` |
-| `employee_id` already linked | 409 `EMPLOYEE_ALREADY_LINKED` |
-| `auth` credential provision fails mid-create | Transaction rolls back; no User row; client may retry with same `Idempotency-Key` |
-| Plan expired (shop behaves as Free) | Seat limit becomes 2; Add blocked if `active_count >= 2`; existing extra Users are not auto-deleted (see §10) |
-| Share credentials | Always `sent: false`; Meta outage irrelevant |
-| Unknown module key in PUT | 400 `UNKNOWN_MODULE_KEY` |
-| Idempotency-Key reused with different body | 409 `IDEMPOTENCY_CONFLICT` |
+| Case                                                   | Behaviour                                                                                                     |
+| ------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------- |
+| Missing `location_id`                                  | 400 `LOCATION_REQUIRED`                                                                                       |
+| User of another tenant / location                      | 404 (no leak)                                                                                                 |
+| Caller without `manage-users` permission               | 403 `FORBIDDEN` on mutations and User list                                                                    |
+| Seat cap on Add or reactivate                          | 409 `SEAT_CAP_REACHED`; UI button disabled                                                                    |
+| Duplicate `login_id`                                   | 409 `LOGIN_ID_TAKEN`                                                                                          |
+| Both auth methods off                                  | 422 `AUTH_METHOD_REQUIRED`                                                                                    |
+| OTP on, bad / missing mobile                           | 422 `OTP_MOBILE_REQUIRED`                                                                                     |
+| PIN not 4–6 digits                                     | 400 `VALIDATION_ERROR`                                                                                        |
+| Copy password after first login                        | 409 `TEMP_PASSWORD_UNAVAILABLE`                                                                               |
+| Reduce Owner access / change Owner role / remove Owner | 409 `OWNER_ACCESS_IMMUTABLE` or `OWNER_REQUIRED`                                                              |
+| Second Owner                                           | 409 `OWNER_ALREADY_EXISTS`                                                                                    |
+| `employee_id` already linked                           | 409 `EMPLOYEE_ALREADY_LINKED`                                                                                 |
+| `auth` credential provision fails mid-create           | Transaction rolls back; no User row; client may retry with same `Idempotency-Key`                             |
+| Plan expired (shop behaves as Free)                    | Seat limit becomes 2; Add blocked if `active_count >= 2`; existing extra Users are not auto-deleted (see §10) |
+| Share credentials                                      | Always `sent: false`; Meta outage irrelevant                                                                  |
+| Unknown module key in PUT                              | 400 `UNKNOWN_MODULE_KEY`                                                                                      |
+| Idempotency-Key reused with different body             | 409 `IDEMPOTENCY_CONFLICT`                                                                                    |
 
 ## 10. Open Questions / Assumptions
 

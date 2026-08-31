@@ -52,20 +52,20 @@ HQ **CRM Software** is how Namma sells and runs pharmacy subscriptions: pipeline
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `saas-billing` | Owns `SaasSubscription`, SaaS invoices, Cashfree orders/webhooks, Refer & Earn credit ledger, auto-renew flag, Monthly/Annual. This module **changes plan**, **marks paid**, **suspends/reactivates**, **applies coupons**, **posts referral credit**. Chemist checkout remains `saas-billing`. |
-| `plan-gating` | Plan enum, seat limits, module keys per tier. Read-only matrix source. Support override is stored here as `ModuleOverride` (this module writes; `plan-gating` reads at console gate). |
-| `admin-tenants` | Tenant identity, KYC status, wizard stages, notes, HQ shell badge consumer for at-risk count. |
-| `go-live-kyc` | Wizard stage states for Onboarding tab. Advance/Mark live writes wizard “HQ marked live” only when KYC is approved **and** remaining stages are complete or skipped. |
-| `whatsapp` | Templates: `subscription_dunning`, `seat_cap_upgrade_offer`, `module_nudge`, `save_play_owner` (if used), referral joined. Send via `whatsapp` only; never Meta directly. Shop name in body. |
-| `admin-support` | Open ticket count, NPS if logged on tickets, CSM assignment optional overlap. Deep-link `ticketId`. |
-| `manage-users` | Seats used vs plan limit (read). |
-| `audit` | Plan change, mark paid, suspend, reactivate, coupon mutate, module override, referral mark-joined, save-play open. |
-| `admin-platform-settings` | `HqRole` permissions; Cashfree keys are **not** pasted here. |
-| `admin-finance` | Refunds of SaaS fees originate in Finance; this module’s invoice shows refunded status. |
-| `admin-automation` | May press: WhatsApp Remind, Suspend (after 3 dunning retries), open save-play, expansion nudge. Same APIs as humans. |
-| `auth` | HQ JWT. |
+| Module                    | Need                                                                                                                                                                                                                                                                                            |
+| ------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `saas-billing`            | Owns `SaasSubscription`, SaaS invoices, Cashfree orders/webhooks, Refer & Earn credit ledger, auto-renew flag, Monthly/Annual. This module **changes plan**, **marks paid**, **suspends/reactivates**, **applies coupons**, **posts referral credit**. Chemist checkout remains `saas-billing`. |
+| `plan-gating`             | Plan enum, seat limits, module keys per tier. Read-only matrix source. Support override is stored here as `ModuleOverride` (this module writes; `plan-gating` reads at console gate).                                                                                                           |
+| `admin-tenants`           | Tenant identity, KYC status, wizard stages, notes, HQ shell badge consumer for at-risk count.                                                                                                                                                                                                   |
+| `go-live-kyc`             | Wizard stage states for Onboarding tab. Advance/Mark live writes wizard “HQ marked live” only when KYC is approved **and** remaining stages are complete or skipped.                                                                                                                            |
+| `whatsapp`                | Templates: `subscription_dunning`, `seat_cap_upgrade_offer`, `module_nudge`, `save_play_owner` (if used), referral joined. Send via `whatsapp` only; never Meta directly. Shop name in body.                                                                                                    |
+| `admin-support`           | Open ticket count, NPS if logged on tickets, CSM assignment optional overlap. Deep-link `ticketId`.                                                                                                                                                                                             |
+| `manage-users`            | Seats used vs plan limit (read).                                                                                                                                                                                                                                                                |
+| `audit`                   | Plan change, mark paid, suspend, reactivate, coupon mutate, module override, referral mark-joined, save-play open.                                                                                                                                                                              |
+| `admin-platform-settings` | `HqRole` permissions; Cashfree keys are **not** pasted here.                                                                                                                                                                                                                                    |
+| `admin-finance`           | Refunds of SaaS fees originate in Finance; this module’s invoice shows refunded status.                                                                                                                                                                                                         |
+| `admin-automation`        | May press: WhatsApp Remind, Suspend (after 3 dunning retries), open save-play, expansion nudge. Same APIs as humans.                                                                                                                                                                            |
+| `auth`                    | HQ JWT.                                                                                                                                                                                                                                                                                         |
 
 **External:** Cashfree for SaaS collection is invoked by `saas-billing`; this module does not hold keys. Offline Mark paid does not call Cashfree.
 
@@ -111,16 +111,16 @@ HQ **CRM Software** is how Namma sells and runs pharmacy subscriptions: pipeline
 - FR-22: The system shall show a **module-availability matrix** with one column per plan and one row per gated module. Cells are included / not included. The matrix is the sold truth; there are **no add-on columns**.
 - FR-23: The system shall use this matrix (owned as data by `plan-gating`, displayed here):
 
-| Module | Free | Starter | Growth | Pro |
-|---|---|---|---|---|
-| Billing / POS & GST invoices | yes | yes | yes | yes |
-| Orders (today + last 7 days) | yes | yes | yes | yes |
-| Inventory, Purchases, Returns, Opening stock CSV | yes | yes | yes | yes |
-| Invoice Settings, Manage Users (seat-capped) | yes | yes | yes | yes |
-| Dashboard, Account, Subscription, Settings, Help, Refer & Earn | yes | yes | yes | yes |
-| Prescriptions, Customers, Credit/Khata, H1/X legal register, pharmacist-on-duty, licence alerts, Employees | no | yes | yes | yes |
-| Sales ledger, Reports, CRM, CA sharing, books+GSTN+IRN, stock take, Reorder, Distributors, Offers, Expenses, Rack map | no | no | yes | yes |
-| Self-Order Kiosk, unlimited seats | no | no | no | yes |
+| Module                                                                                                                | Free | Starter | Growth | Pro |
+| --------------------------------------------------------------------------------------------------------------------- | ---- | ------- | ------ | --- |
+| Billing / POS & GST invoices                                                                                          | yes  | yes     | yes    | yes |
+| Orders (today + last 7 days)                                                                                          | yes  | yes     | yes    | yes |
+| Inventory, Purchases, Returns, Opening stock CSV                                                                      | yes  | yes     | yes    | yes |
+| Invoice Settings, Manage Users (seat-capped)                                                                          | yes  | yes     | yes    | yes |
+| Dashboard, Account, Subscription, Settings, Help, Refer & Earn                                                        | yes  | yes     | yes    | yes |
+| Prescriptions, Customers, Credit/Khata, H1/X legal register, pharmacist-on-duty, licence alerts, Employees            | no   | yes     | yes    | yes |
+| Sales ledger, Reports, CRM, CA sharing, books+GSTN+IRN, stock take, Reorder, Distributors, Offers, Expenses, Rack map | no   | no      | yes    | yes |
+| Self-Order Kiosk, unlimited seats                                                                                     | no   | no      | no     | yes |
 
 - FR-24: The system shall change a tenant’s plan from Account-360 or Plans → account picker; the change is **live billing**: `saas-billing` issues/credits the SaaS invoice immediately (proration assumption in §10).
 - FR-25: The system shall not offer attachable add-on SKUs, extra-seat SKUs, or à-la-carte module SKUs anywhere on this tab.
@@ -242,118 +242,118 @@ HQ **CRM Software** is how Namma sells and runs pharmacy subscriptions: pipeline
 
 ### `SaasSubscription` (owned with `saas-billing`; HQ fields this module writes)
 
-| Field | Type | Notes |
-|---|---|---|
-| `tenantId` | UUID PK | |
-| `plan` | enum | `free` `starter` `growth` `pro` |
-| `cadence` | enum | `monthly` `annual` |
-| `status` | enum | `free` `active` `past_due` `suspended` `expired` `trial` |
-| `seatsLimit` | int or null | null = unlimited (Pro) |
-| `periodStart` `periodEnd` | date | |
-| `autoRenew` | bool | chemist-toggled in console; HQ visible |
-| `trialEndsAt` | timestamptz nullable | HQ-granted only |
-| `healthScore` | int 0–100 | see §10 formula |
-| `csmHqUserId` | UUID nullable | |
-| `mrrPaise` | int | denormalised |
-| `dunningRetries` | int | 0–3 |
-| `lastDunnedAt` | timestamptz nullable | |
-| `renewalRisk` | bool | HQ or rule |
+| Field                     | Type                 | Notes                                                    |
+| ------------------------- | -------------------- | -------------------------------------------------------- |
+| `tenantId`                | UUID PK              |                                                          |
+| `plan`                    | enum                 | `free` `starter` `growth` `pro`                          |
+| `cadence`                 | enum                 | `monthly` `annual`                                       |
+| `status`                  | enum                 | `free` `active` `past_due` `suspended` `expired` `trial` |
+| `seatsLimit`              | int or null          | null = unlimited (Pro)                                   |
+| `periodStart` `periodEnd` | date                 |                                                          |
+| `autoRenew`               | bool                 | chemist-toggled in console; HQ visible                   |
+| `trialEndsAt`             | timestamptz nullable | HQ-granted only                                          |
+| `healthScore`             | int 0–100            | see §10 formula                                          |
+| `csmHqUserId`             | UUID nullable        |                                                          |
+| `mrrPaise`                | int                  | denormalised                                             |
+| `dunningRetries`          | int                  | 0–3                                                      |
+| `lastDunnedAt`            | timestamptz nullable |                                                          |
+| `renewalRisk`             | bool                 | HQ or rule                                               |
 
 Status `trial` is only when `trialEndsAt` is in the future **and** plan is still Free (trial is a window, not a sold SKU).
 
 ### `SaasInvoice` (owned with `saas-billing`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `invoiceId` | UUID | |
-| `tenantId` | UUID | |
-| `number` | string | unique per Namma FY |
-| `status` | enum | `draft` `issued` `paid` `overdue` `refunded` `void` |
-| `taxablePaise` | int | |
-| `gstPaise` | int | 18% of taxable |
-| `totalPaise` | int | |
-| `sac` | const | `9983` |
-| `gstRate` | const | `1800` (18.00%) |
-| `cashfreeOrderId` | string nullable | |
-| `paidAt` | timestamptz nullable | |
-| `paidVia` | enum nullable | `cashfree` `offline` |
-| `offlineNote` | text nullable | |
-| `dueAt` | date | |
-| `periodStart` `periodEnd` | date | |
-| `couponId` | UUID nullable | |
+| Field                     | Type                 | Notes                                               |
+| ------------------------- | -------------------- | --------------------------------------------------- |
+| `invoiceId`               | UUID                 |                                                     |
+| `tenantId`                | UUID                 |                                                     |
+| `number`                  | string               | unique per Namma FY                                 |
+| `status`                  | enum                 | `draft` `issued` `paid` `overdue` `refunded` `void` |
+| `taxablePaise`            | int                  |                                                     |
+| `gstPaise`                | int                  | 18% of taxable                                      |
+| `totalPaise`              | int                  |                                                     |
+| `sac`                     | const                | `9983`                                              |
+| `gstRate`                 | const                | `1800` (18.00%)                                     |
+| `cashfreeOrderId`         | string nullable      |                                                     |
+| `paidAt`                  | timestamptz nullable |                                                     |
+| `paidVia`                 | enum nullable        | `cashfree` `offline`                                |
+| `offlineNote`             | text nullable        |                                                     |
+| `dueAt`                   | date                 |                                                     |
+| `periodStart` `periodEnd` | date                 |                                                     |
+| `couponId`                | UUID nullable        |                                                     |
 
 ### `SaasCoupon` (owned here)
 
-| Field | Type | Notes |
-|---|---|---|
-| `couponId` | UUID | |
-| `code` | string unique | |
-| `type` | enum | `percent` `flat` `extra_trial_days` |
-| `percentBps` | int nullable | e.g. 1000 = 10% |
-| `flatPaise` | int nullable | |
-| `extraDays` | int nullable | |
-| `cap` | int nullable | max redemptions |
-| `redeemedCount` | int | |
-| `firstTimeOnly` | bool | |
-| `status` | enum | `running` `paused` |
-| `expiresAt` | timestamptz nullable | |
+| Field           | Type                 | Notes                               |
+| --------------- | -------------------- | ----------------------------------- |
+| `couponId`      | UUID                 |                                     |
+| `code`          | string unique        |                                     |
+| `type`          | enum                 | `percent` `flat` `extra_trial_days` |
+| `percentBps`    | int nullable         | e.g. 1000 = 10%                     |
+| `flatPaise`     | int nullable         |                                     |
+| `extraDays`     | int nullable         |                                     |
+| `cap`           | int nullable         | max redemptions                     |
+| `redeemedCount` | int                  |                                     |
+| `firstTimeOnly` | bool                 |                                     |
+| `status`        | enum                 | `running` `paused`                  |
+| `expiresAt`     | timestamptz nullable |                                     |
 
 ### `SaasLead` (owned here)
 
-| Field | Type | Notes |
-|---|---|---|
-| `leadId` | UUID | |
-| `shopName` | text | |
-| `phone` | text | |
-| `city` | text nullable | |
-| `stage` | enum | `new` `contacted` `demo` `trial` `won` `lost` |
-| `expectedMrrPaise` | int | |
-| `tenantId` | UUID nullable | |
-| `lostReason` | text nullable | |
-| `createdAt` | timestamptz | |
+| Field              | Type          | Notes                                         |
+| ------------------ | ------------- | --------------------------------------------- |
+| `leadId`           | UUID          |                                               |
+| `shopName`         | text          |                                               |
+| `phone`            | text          |                                               |
+| `city`             | text nullable |                                               |
+| `stage`            | enum          | `new` `contacted` `demo` `trial` `won` `lost` |
+| `expectedMrrPaise` | int           |                                               |
+| `tenantId`         | UUID nullable |                                               |
+| `lostReason`       | text nullable |                                               |
+| `createdAt`        | timestamptz   |                                               |
 
 ### `SaasReferral` (owned with `saas-billing`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `referralId` | UUID | |
-| `referrerTenantId` | UUID | |
-| `code` | string | personal code |
-| `refereeTenantId` | UUID nullable | |
-| `status` | enum | `invited` `joined` `credited` |
-| `creditPaiseEach` | const | 50000 (₹500) |
+| Field              | Type          | Notes                         |
+| ------------------ | ------------- | ----------------------------- |
+| `referralId`       | UUID          |                               |
+| `referrerTenantId` | UUID          |                               |
+| `code`             | string        | personal code                 |
+| `refereeTenantId`  | UUID nullable |                               |
+| `status`           | enum          | `invited` `joined` `credited` |
+| `creditPaiseEach`  | const         | 50000 (₹500)                  |
 
 ### `SaasModuleOverride` (owned here; read by `plan-gating`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `tenantId` + `moduleKey` | PK | |
-| `mode` | enum | `force_enable` `force_disable` |
-| `setByHqUserId` | UUID | |
-| `setAt` | timestamptz | |
+| Field                    | Type        | Notes                          |
+| ------------------------ | ----------- | ------------------------------ |
+| `tenantId` + `moduleKey` | PK          |                                |
+| `mode`                   | enum        | `force_enable` `force_disable` |
+| `setByHqUserId`          | UUID        |                                |
+| `setAt`                  | timestamptz |                                |
 
 ### `SaasSavePlay` (owned here)
 
-| Field | Type | Notes |
-|---|---|---|
-| `playId` | UUID | |
-| `tenantId` | UUID | |
-| `openedAt` `openedByHqUserId` | | actor may be automation |
-| `status` | enum | `open` `won` `lost` |
-| `checklist` | jsonb | `{ called, whatsapped, couponOffered, csmAssigned }` |
+| Field                         | Type  | Notes                                                |
+| ----------------------------- | ----- | ---------------------------------------------------- |
+| `playId`                      | UUID  |                                                      |
+| `tenantId`                    | UUID  |                                                      |
+| `openedAt` `openedByHqUserId` |       | actor may be automation                              |
+| `status`                      | enum  | `open` `won` `lost`                                  |
+| `checklist`                   | jsonb | `{ called, whatsapped, couponOffered, csmAssigned }` |
 
 ### `SaasCacEntry` (owned here)
 
-| Field | Type | Notes |
-|---|---|---|
-| `periodYm` | char(7) | `2026-08` |
-| `spendPaise` | int | S&M spend for LTV:CAC |
+| Field        | Type    | Notes                 |
+| ------------ | ------- | --------------------- |
+| `periodYm`   | char(7) | `2026-08`             |
+| `spendPaise` | int     | S&M spend for LTV:CAC |
 
 ### `SaasChurnEvent` (owned here)
 
-| Field | Type | Notes |
-|---|---|---|
-| `tenantId` `at` `fromPlan` `reason` `note` | | |
+| Field                                      | Type | Notes |
+| ------------------------------------------ | ---- | ----- |
+| `tenantId` `at` `fromPlan` `reason` `note` |      |       |
 
 ### Referenced
 
@@ -401,7 +401,13 @@ Base: `/admin/crm`. Auth: HQ JWT. Envelope as in `admin-tenants`. Money = paise.
       { "plan": "pro", "mrrPaise": 299900 }
     ],
     "atRisk": [
-      { "tenantId": "uuid", "shopName": "X", "plan": "growth", "healthScore": 28, "tags": ["dormant", "past_due"] }
+      {
+        "tenantId": "uuid",
+        "shopName": "X",
+        "plan": "growth",
+        "healthScore": 28,
+        "tags": ["dormant", "past_due"]
+      }
     ]
   }
 }
@@ -444,9 +450,13 @@ Base: `/admin/crm`. Auth: HQ JWT. Envelope as in `admin-tenants`. Money = paise.
     "csmHqUserId": "uuid",
     "overrides": [{ "moduleKey": "kiosk", "mode": "force_enable" }],
     "savePlay": null,
-    "invoices": [{ "invoiceId": "uuid", "status": "paid", "totalPaise": 176882, "dueAt": "2026-08-01" }],
+    "invoices": [
+      { "invoiceId": "uuid", "status": "paid", "totalPaise": 176882, "dueAt": "2026-08-01" }
+    ],
     "ticketsOpen": 1,
-    "timeline": [{ "at": "2026-08-01T10:00:00Z", "type": "plan_changed", "summary": "Starter → Growth" }]
+    "timeline": [
+      { "at": "2026-08-01T10:00:00Z", "type": "plan_changed", "summary": "Starter → Growth" }
+    ]
   }
 }
 ```
@@ -557,20 +567,20 @@ No endpoint for add-on attach.
 
 ### 7.11 Events
 
-| Event | Payload |
-|---|---|
-| `saas.plan.changed` | `{ tenantId, fromPlan, toPlan, cadence, actorHqUserId }` |
-| `saas.invoice.marked_paid` | `{ invoiceId, tenantId, via: "offline", actorHqUserId }` |
-| `saas.dunning.reminded` | `{ invoiceId, tenantId, retry }` |
-| `saas.subscription.suspended` | `{ tenantId }` |
-| `saas.subscription.reactivated` | `{ tenantId }` |
-| `saas.health.save_play_opened` | `{ tenantId, playId, healthScore }` |
-| `saas.module.overridden` | `{ tenantId, moduleKey, mode }` |
-| `saas.module.nudged` | `{ tenantId, moduleKey }` |
-| `saas.referral.credited` | `{ referralId, referrerTenantId, refereeTenantId, creditPaiseEach: 50000 }` |
-| `saas.seat_cap.upgrade_offered` | `{ tenantId, seatsUsed, seatsLimit }` |
-| `saas.lead.stage_changed` | `{ leadId, stage }` |
-| `saas.go_live.marked` | `{ tenantId }` |
+| Event                           | Payload                                                                     |
+| ------------------------------- | --------------------------------------------------------------------------- |
+| `saas.plan.changed`             | `{ tenantId, fromPlan, toPlan, cadence, actorHqUserId }`                    |
+| `saas.invoice.marked_paid`      | `{ invoiceId, tenantId, via: "offline", actorHqUserId }`                    |
+| `saas.dunning.reminded`         | `{ invoiceId, tenantId, retry }`                                            |
+| `saas.subscription.suspended`   | `{ tenantId }`                                                              |
+| `saas.subscription.reactivated` | `{ tenantId }`                                                              |
+| `saas.health.save_play_opened`  | `{ tenantId, playId, healthScore }`                                         |
+| `saas.module.overridden`        | `{ tenantId, moduleKey, mode }`                                             |
+| `saas.module.nudged`            | `{ tenantId, moduleKey }`                                                   |
+| `saas.referral.credited`        | `{ referralId, referrerTenantId, refereeTenantId, creditPaiseEach: 50000 }` |
+| `saas.seat_cap.upgrade_offered` | `{ tenantId, seatsUsed, seatsLimit }`                                       |
+| `saas.lead.stage_changed`       | `{ leadId, stage }`                                                         |
+| `saas.go_live.marked`           | `{ tenantId }`                                                              |
 
 ### 7.12 UI
 
@@ -646,25 +656,25 @@ As Super admin, I want a Kanban and weighted forecast, so that I can see SaaS sa
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Expired paid → Free | Active subscribers drop; MRR drops (churn); data retained; chips update. |
-| Trial window ends | Status leaves `trial`; shop stays Free unless they paid; On trial chip decrements. |
-| Coupon % + GST | Discount on taxable; GST 18% of discounted taxable; SAC still 9983. |
-| Flat coupon &gt; taxable | Taxable floors at 0; GST 0; do not credit cash. |
-| Cashfree pending | Invoice not paid; Mark paid still allowed for offline; POS of the chemist unaffected. |
-| Duplicate Cashfree webhook | Ignored by `saas-billing`; HQ shows single paid. |
-| WhatsApp dunning fail | Retry inside `whatsapp`; row shows Failed; HQ can Remind again if retries &lt; 3. |
-| Suspend from tenants and CRM | Same `saas-billing` command; second call `409 ALREADY_SUSPENDED`. |
-| Health score exactly 40 | Not at-risk; save-play not auto-opened; HQ may still open manually. |
-| NPS missing | Health component for NPS = 0. |
-| CAC unset | LTV:CAC shown as "—"; other analytics still render. |
-| Cohort with one tenant | Table still renders; do not hide. |
-| GMV flag on in settings | Still **do not** show GMV settlement UI in this module in v1. |
-| Lead phone duplicates a tenant | Allow link; do not auto-won. |
-| Delete coupon with redemptions | `409`; pause instead. |
-| Finance role on module override | `403`. |
-| Support role on Mark paid | `403`. |
+| Case                            | Behaviour                                                                             |
+| ------------------------------- | ------------------------------------------------------------------------------------- |
+| Expired paid → Free             | Active subscribers drop; MRR drops (churn); data retained; chips update.              |
+| Trial window ends               | Status leaves `trial`; shop stays Free unless they paid; On trial chip decrements.    |
+| Coupon % + GST                  | Discount on taxable; GST 18% of discounted taxable; SAC still 9983.                   |
+| Flat coupon &gt; taxable        | Taxable floors at 0; GST 0; do not credit cash.                                       |
+| Cashfree pending                | Invoice not paid; Mark paid still allowed for offline; POS of the chemist unaffected. |
+| Duplicate Cashfree webhook      | Ignored by `saas-billing`; HQ shows single paid.                                      |
+| WhatsApp dunning fail           | Retry inside `whatsapp`; row shows Failed; HQ can Remind again if retries &lt; 3.     |
+| Suspend from tenants and CRM    | Same `saas-billing` command; second call `409 ALREADY_SUSPENDED`.                     |
+| Health score exactly 40         | Not at-risk; save-play not auto-opened; HQ may still open manually.                   |
+| NPS missing                     | Health component for NPS = 0.                                                         |
+| CAC unset                       | LTV:CAC shown as "—"; other analytics still render.                                   |
+| Cohort with one tenant          | Table still renders; do not hide.                                                     |
+| GMV flag on in settings         | Still **do not** show GMV settlement UI in this module in v1.                         |
+| Lead phone duplicates a tenant  | Allow link; do not auto-won.                                                          |
+| Delete coupon with redemptions  | `409`; pause instead.                                                                 |
+| Finance role on module override | `403`.                                                                                |
+| Support role on Mark paid       | `403`.                                                                                |
 
 ---
 

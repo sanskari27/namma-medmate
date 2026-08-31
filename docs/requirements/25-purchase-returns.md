@@ -33,18 +33,18 @@ Module layout: `modules/purchase-returns/{ui,api,docs}`. UI talks to API only vi
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `purchases` | Original **GRN** and lines; distributor on the GRN. |
-| `inventory` | Batch remaining qty; decrement (`type=purchase_return` / `expiry_return`); no negative qty. |
-| `distributors-reorder` | `return_window_days` and distributor identity (Free stub may have null window). |
-| `plan-gating` | Free (tied to Purchases). Offers shortcut Growth. |
-| `tenancy` | Tenant + `location_id`. |
-| `auth` / `manage-users` | Owner / Manager default (same as Purchases). |
-| `audit` | **AuditEvent** on post and status change. |
-| `books-gst` | Period lock; journal reverse GRN path on posted return; AP display updates. |
-| `offers` | Optional markdown instead of return (Growth). |
-| `account-settings` | Debit note prefix if invoice settings expose one; else module prefix (see §10). |
+| Module                  | Why                                                                                         |
+| ----------------------- | ------------------------------------------------------------------------------------------- |
+| `purchases`             | Original **GRN** and lines; distributor on the GRN.                                         |
+| `inventory`             | Batch remaining qty; decrement (`type=purchase_return` / `expiry_return`); no negative qty. |
+| `distributors-reorder`  | `return_window_days` and distributor identity (Free stub may have null window).             |
+| `plan-gating`           | Free (tied to Purchases). Offers shortcut Growth.                                           |
+| `tenancy`               | Tenant + `location_id`.                                                                     |
+| `auth` / `manage-users` | Owner / Manager default (same as Purchases).                                                |
+| `audit`                 | **AuditEvent** on post and status change.                                                   |
+| `books-gst`             | Period lock; journal reverse GRN path on posted return; AP display updates.                 |
+| `offers`                | Optional markdown instead of return (Growth).                                               |
+| `account-settings`      | Debit note prefix if invoice settings expose one; else module prefix (see §10).             |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -113,60 +113,60 @@ Module layout: `modules/purchase-returns/{ui,api,docs}`. UI talks to API only vi
 
 ### PurchaseReturn (`purchase-returns` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `purchase_return_id` | string | PK |
-| `client_return_id` | string | Idempotency |
-| `grn_id` | string | Original **GRN** |
-| `distributor_id` | string | |
-| `debit_note_no` | string | Unique per tenant+FY |
-| `fy` | string | |
-| `document_date` | date | Lock-checked |
-| `reason` | enum | `wrong` \| `excess` \| `damaged` |
-| `taxable` | number | |
-| `gst_amount` | number | |
-| `total` | number | |
-| `actor_user_id` | string | |
-| `posted_at` | datetime | |
+| Field                | Type     | Notes                            |
+| -------------------- | -------- | -------------------------------- |
+| `purchase_return_id` | string   | PK                               |
+| `client_return_id`   | string   | Idempotency                      |
+| `grn_id`             | string   | Original **GRN**                 |
+| `distributor_id`     | string   |                                  |
+| `debit_note_no`      | string   | Unique per tenant+FY             |
+| `fy`                 | string   |                                  |
+| `document_date`      | date     | Lock-checked                     |
+| `reason`             | enum     | `wrong` \| `excess` \| `damaged` |
+| `taxable`            | number   |                                  |
+| `gst_amount`         | number   |                                  |
+| `total`              | number   |                                  |
+| `actor_user_id`      | string   |                                  |
+| `posted_at`          | datetime |                                  |
 
 ### PurchaseReturnLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | string | |
-| `purchase_return_id` | string | |
-| `grn_line_id` | string | |
-| `sku_id` | string | |
-| `batch_id` | string | |
-| `qty` | number | Base units returned |
+| Field                | Type   | Notes               |
+| -------------------- | ------ | ------------------- |
+| `line_id`            | string |                     |
+| `purchase_return_id` | string |                     |
+| `grn_line_id`        | string |                     |
+| `sku_id`             | string |                     |
+| `batch_id`           | string |                     |
+| `qty`                | number | Base units returned |
 
 ### ExpiryReturn (`purchase-returns` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `expiry_return_id` | string | PK |
-| `client_return_id` | string | |
-| `distributor_id` | string | |
-| `debit_note_no` | string | Issued at claimed |
-| `fy` | string | |
-| `document_date` | date | |
-| `status` | enum | `claimed` \| `accepted` \| `credit_received` |
-| `taxable` | number | |
-| `gst_amount` | number | |
-| `total` | number | |
-| `actor_user_id` | string | |
+| Field              | Type   | Notes                                        |
+| ------------------ | ------ | -------------------------------------------- |
+| `expiry_return_id` | string | PK                                           |
+| `client_return_id` | string |                                              |
+| `distributor_id`   | string |                                              |
+| `debit_note_no`    | string | Issued at claimed                            |
+| `fy`               | string |                                              |
+| `document_date`    | date   |                                              |
+| `status`           | enum   | `claimed` \| `accepted` \| `credit_received` |
+| `taxable`          | number |                                              |
+| `gst_amount`       | number |                                              |
+| `total`            | number |                                              |
+| `actor_user_id`    | string |                                              |
 
 ### ExpiryReturnLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | string | |
-| `expiry_return_id` | string | |
-| `sku_id` | string | |
-| `batch_id` | string | |
-| `qty` | number | |
-| `expiry_date` | date | Snapshot |
-| `grn_id` | string, null | Source GRN if known |
+| Field              | Type         | Notes               |
+| ------------------ | ------------ | ------------------- |
+| `line_id`          | string       |                     |
+| `expiry_return_id` | string       |                     |
+| `sku_id`           | string       |                     |
+| `batch_id`         | string       |                     |
+| `qty`              | number       |                     |
+| `expiry_date`      | date         | Snapshot            |
+| `grn_id`           | string, null | Source GRN if known |
 
 Debit note numbers: separate series from customer CreditNote and from GRN (prefix from settings or `DN-`).
 
@@ -189,7 +189,8 @@ Optional summary `{ purchase_returns_this_month, expiry_claimed_open }` — not 
 **GET `/purchase-returns/grns/{grn_id}/returnable?location_id=`**  
 Lines with `qty_remaining` per Batch (original GRN qty+free minus prior purchase/expiry returns against that batch from this GRN).
 
-**POST `/purchase-returns/purchase-returns?location_id=`**  
+**POST `/purchase-returns/purchase-returns?location_id=`**
+
 ```json
 {
   "client_return_id": "uuid",
@@ -199,6 +200,7 @@ Lines with `qty_remaining` per Batch (original GRN qty+free minus prior purchase
   "lines": [{ "grn_line_id": "...", "batch_id": "...", "qty": 2 }]
 }
 ```
+
 `403` locked; `409` over qty / idempotency body mismatch; `200` `{ purchase_return_id, debit_note_no }`.
 
 **GET `/purchase-returns/purchase-returns?location_id=&page=`**  
@@ -210,7 +212,8 @@ Detail.
 **GET `/purchase-returns/expiry-calendar?location_id=`**  
 `data[]`: `{ sku_id, name, batch_id, batch_no, expiry_date, qty, distributor_id, distributor_name, return_window_days, grn_id, mrp }`.
 
-**POST `/purchase-returns/expiry-returns?location_id=`**  
+**POST `/purchase-returns/expiry-returns?location_id=`**
+
 ```json
 {
   "client_return_id": "uuid",
@@ -219,6 +222,7 @@ Detail.
   "lines": [{ "batch_id": "...", "qty": 5 }]
 }
 ```
+
 Creates **ExpiryReturn** `claimed`, stock out, debit note.
 
 **GET `/purchase-returns/expiry-returns?location_id=&status=`**
@@ -235,11 +239,11 @@ Shop copy PDF.
 
 ### Events published
 
-| Event | Payload |
-|---|---|
-| `purchase-returns.purchase_return.posted` | `{ tenant_id, location_id, purchase_return_id, grn_id, distributor_id, document_date, debit_note_no, taxable, gst_amount, total, lines }` |
-| `purchase-returns.expiry_return.raised` | `{ tenant_id, location_id, expiry_return_id, distributor_id, document_date, debit_note_no, taxable, gst_amount, total, lines, status: "claimed" }` |
-| `purchase-returns.expiry_return.status.changed` | `{ tenant_id, location_id, expiry_return_id, status }` |
+| Event                                           | Payload                                                                                                                                            |
+| ----------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `purchase-returns.purchase_return.posted`       | `{ tenant_id, location_id, purchase_return_id, grn_id, distributor_id, document_date, debit_note_no, taxable, gst_amount, total, lines }`          |
+| `purchase-returns.expiry_return.raised`         | `{ tenant_id, location_id, expiry_return_id, distributor_id, document_date, debit_note_no, taxable, gst_amount, total, lines, status: "claimed" }` |
+| `purchase-returns.expiry_return.status.changed` | `{ tenant_id, location_id, expiry_return_id, status }`                                                                                             |
 
 Books: reverse GRN path on posted/raised (stock+AP). Status accepted/credit_received do **not** post a second AP reversal (see §10).
 
@@ -315,22 +319,22 @@ Then module is forbidden.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| qty > remaining | `CONFLICT` |
-| qty ≤ 0 | `VALIDATION_ERROR` |
-| Locked period | `FORBIDDEN` |
-| Lock down | `DEPENDENCY_FAILURE` |
-| Unknown GRN | `NOT_FOUND` |
-| Batch already 0 | `CONFLICT` |
-| Status skip claimed → credit_received | Allowed forward skip or require sequential — §10 sequential |
-| Status backward | `CONFLICT` |
-| Idempotent retry | Replay |
-| Printer/PDF fail | Return posted; reprint |
-| Scheme-only remaining | Returnable; value 0 taxable if entire remainder is free — §10 |
-| Banned SKU still in stock | Return allowed (disposal) |
-| Offers module locked | Paywall; return still works |
-| `location_id` missing | `VALIDATION_ERROR` |
+| Case                                  | Behaviour                                                     |
+| ------------------------------------- | ------------------------------------------------------------- |
+| qty > remaining                       | `CONFLICT`                                                    |
+| qty ≤ 0                               | `VALIDATION_ERROR`                                            |
+| Locked period                         | `FORBIDDEN`                                                   |
+| Lock down                             | `DEPENDENCY_FAILURE`                                          |
+| Unknown GRN                           | `NOT_FOUND`                                                   |
+| Batch already 0                       | `CONFLICT`                                                    |
+| Status skip claimed → credit_received | Allowed forward skip or require sequential — §10 sequential   |
+| Status backward                       | `CONFLICT`                                                    |
+| Idempotent retry                      | Replay                                                        |
+| Printer/PDF fail                      | Return posted; reprint                                        |
+| Scheme-only remaining                 | Returnable; value 0 taxable if entire remainder is free — §10 |
+| Banned SKU still in stock             | Return allowed (disposal)                                     |
+| Offers module locked                  | Paywall; return still works                                   |
+| `location_id` missing                 | `VALIDATION_ERROR`                                            |
 
 ## 10. Open Questions / Assumptions
 

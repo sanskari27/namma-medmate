@@ -20,15 +20,15 @@
 
 ### In scope (v1) — every named report
 
-**Favourite:** Balance Sheet · Trial Balance · GSTR-1 (Sales) · Profit And Loss · Sales Summary  
+**Favourite:** Balance Sheet · Trial Balance · GSTR-1 (Sales) · Profit And Loss · Sales Summary
 
-**GST:** GSTR-2 (Purchase) · GSTR-2B match · GSTR-3B · GST Purchase (with HSN) · GST Sales (with HSN) · HSN-wise Sales Summary · TDS Payable · TDS Receivable · TCS Payable *(stubs)*  
+**GST:** GSTR-2 (Purchase) · GSTR-2B match · GSTR-3B · GST Purchase (with HSN) · GST Sales (with HSN) · HSN-wise Sales Summary · TDS Payable · TDS Receivable · TCS Payable _(stubs)_
 
-**Transaction:** Audit Trail · Bill-wise Profit · Cash and Bank · Daybook · Expense Category · Expense Transaction · Purchase Summary · Credit notes · Purchase / expiry returns · Stock take variance  
+**Transaction:** Audit Trail · Bill-wise Profit · Cash and Bank · Daybook · Expense Category · Expense Transaction · Purchase Summary · Credit notes · Purchase / expiry returns · Stock take variance
 
-**Item:** Item Report by Party · Item Sales and Purchase Summary · Low Stock Summary · Rate List · Stock Detail (batch & expiry) · Stock Summary  
+**Item:** Item Report by Party · Item Sales and Purchase Summary · Low Stock Summary · Rate List · Stock Detail (batch & expiry) · Stock Summary
 
-**Party:** Receivable Ageing · Party Report by Item · Party Statement (Ledger) · Party-wise Outstanding · Sales Summary – Category Wise  
+**Party:** Receivable Ageing · Party Report by Item · Party Statement (Ledger) · Party-wise Outstanding · Sales Summary – Category Wise
 
 **Analytics dashboard:** Overview · Sales register · Products · Accounts & GST.
 
@@ -49,24 +49,24 @@ Each report: period kinds above, totals footer, Excel + PDF.
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `plan-gating` | Growth. |
-| `tenancy` | `location_id`. |
-| `books-gst` | Trial balance, P&L, BS, daybook, cash & bank, GST money, GSTR-1/3B/2B figures, expense totals. **Do not re-sum bills for P&L.** |
-| `pos-billing` / `sales-ledger` | Bill lines for HSN, qty, channel, tender, bill-wise profit (COGS from the bill’s journal / batch cost already used in books). |
-| `purchases` | GRN lines for purchase reports. |
-| `returns` | Credit notes report. |
-| `purchase-returns` | Purchase / expiry returns report. |
-| `inventory` | Stock summary, stock detail, low stock, rate list, dead-stock flag. |
-| `stock-take` | Variance report. |
-| `expenses` | Expense category / transaction reports (display); P&L still from books. |
-| `khata` / `customers` | Ageing, party outstanding, party statement (party subledger aligned with books `khata_recv` / AP). |
-| `distributors-reorder` | Party = distributor on purchase side. |
-| `audit` | Audit Trail report reads `AuditEvent` only. |
-| `crm` | Loyalty not a named report; ignore except as already in journals. |
-| `ca-sharing` | Downstream consumer of export APIs. |
-| `account-settings` | Shop name, GSTIN, logo on PDF; TDS/TCS **flags** do not fill stub reports. |
+| Module                         | Why                                                                                                                             |
+| ------------------------------ | ------------------------------------------------------------------------------------------------------------------------------- |
+| `plan-gating`                  | Growth.                                                                                                                         |
+| `tenancy`                      | `location_id`.                                                                                                                  |
+| `books-gst`                    | Trial balance, P&L, BS, daybook, cash & bank, GST money, GSTR-1/3B/2B figures, expense totals. **Do not re-sum bills for P&L.** |
+| `pos-billing` / `sales-ledger` | Bill lines for HSN, qty, channel, tender, bill-wise profit (COGS from the bill’s journal / batch cost already used in books).   |
+| `purchases`                    | GRN lines for purchase reports.                                                                                                 |
+| `returns`                      | Credit notes report.                                                                                                            |
+| `purchase-returns`             | Purchase / expiry returns report.                                                                                               |
+| `inventory`                    | Stock summary, stock detail, low stock, rate list, dead-stock flag.                                                             |
+| `stock-take`                   | Variance report.                                                                                                                |
+| `expenses`                     | Expense category / transaction reports (display); P&L still from books.                                                         |
+| `khata` / `customers`          | Ageing, party outstanding, party statement (party subledger aligned with books `khata_recv` / AP).                              |
+| `distributors-reorder`         | Party = distributor on purchase side.                                                                                           |
+| `audit`                        | Audit Trail report reads `AuditEvent` only.                                                                                     |
+| `crm`                          | Loyalty not a named report; ignore except as already in journals.                                                               |
+| `ca-sharing`                   | Downstream consumer of export APIs.                                                                                             |
+| `account-settings`             | Shop name, GSTIN, logo on PDF; TDS/TCS **flags** do not fill stub reports.                                                      |
 
 ---
 
@@ -92,7 +92,7 @@ Each report: period kinds above, totals footer, Excel + PDF.
 
 **FR-9:** The system shall let Owner and Manager (if Reports granted) run all reports. Pharmacist/Cashier default off.
 
-**FR-10:** The system shall make report generation **read-only**. No period lock is required to *view* a locked month; lock only blocks posting.
+**FR-10:** The system shall make report generation **read-only**. No period lock is required to _view_ a locked month; lock only blocks posting.
 
 **FR-11:** The system shall use report `slug` values listed in §6 as the stable API id (for CA sharing and favourites).
 
@@ -295,8 +295,17 @@ Base: `/api/v1/reports`. Bearer + `X-Location-Id`.
         "id": "item",
         "label": "Item",
         "reports": [
-          { "slug": "item-by-party", "name": "Item Report by Party", "stub": false, "requires": ["party_type", "party_id"] },
-          { "slug": "item-sales-purchase-summary", "name": "Item Sales and Purchase Summary", "stub": false },
+          {
+            "slug": "item-by-party",
+            "name": "Item Report by Party",
+            "stub": false,
+            "requires": ["party_type", "party_id"]
+          },
+          {
+            "slug": "item-sales-purchase-summary",
+            "name": "Item Sales and Purchase Summary",
+            "stub": false
+          },
           { "slug": "low-stock-summary", "name": "Low Stock Summary", "stub": false },
           { "slug": "rate-list", "name": "Rate List", "stub": false },
           { "slug": "stock-detail", "name": "Stock Detail (batch & expiry)", "stub": false },
@@ -308,10 +317,24 @@ Base: `/api/v1/reports`. Bearer + `X-Location-Id`.
         "label": "Party",
         "reports": [
           { "slug": "receivable-ageing", "name": "Receivable Ageing", "stub": false },
-          { "slug": "party-by-item", "name": "Party Report by Item", "stub": false, "requires": ["sku_id"] },
-          { "slug": "party-statement", "name": "Party Statement (Ledger)", "stub": false, "requires": ["party_type", "party_id"] },
+          {
+            "slug": "party-by-item",
+            "name": "Party Report by Item",
+            "stub": false,
+            "requires": ["sku_id"]
+          },
+          {
+            "slug": "party-statement",
+            "name": "Party Statement (Ledger)",
+            "stub": false,
+            "requires": ["party_type", "party_id"]
+          },
           { "slug": "party-outstanding", "name": "Party-wise Outstanding", "stub": false },
-          { "slug": "sales-summary-category", "name": "Sales Summary – Category Wise", "stub": false }
+          {
+            "slug": "sales-summary-category",
+            "name": "Sales Summary – Category Wise",
+            "stub": false
+          }
         ]
       }
     ]
@@ -341,10 +364,10 @@ Response:
       { "key": "amount", "label": "Amount", "type": "money" }
     ],
     "rows": [
-      { "account": "Sales", "amount": 450000.00 },
-      { "account": "COGS", "amount": -280000.00 }
+      { "account": "Sales", "amount": 450000.0 },
+      { "account": "COGS", "amount": -280000.0 }
     ],
-    "totals": { "gross_profit": 170000.00, "net_profit": 121000.00, "net_margin_pct": 26.89 },
+    "totals": { "gross_profit": 170000.0, "net_profit": 121000.0, "net_margin_pct": 26.89 },
     "banners": [],
     "next_cursor": null
   }
@@ -386,12 +409,12 @@ Stub example:
 {
   "success": true,
   "data": {
-    "net_revenue": 450000.00,
-    "gross_profit": 170000.00,
+    "net_revenue": 450000.0,
+    "gross_profit": 170000.0,
     "margin_pct": 37.78,
     "units": 8120,
-    "net_gst": 18500.00,
-    "top_items": [{ "sku_id": "uuid", "name": "Dolo 650", "revenue": 22000.00, "units": 400 }],
+    "net_gst": 18500.0,
+    "top_items": [{ "sku_id": "uuid", "name": "Dolo 650", "revenue": 22000.0, "units": 400 }],
     "channel_mix": { "counter_pct": 92.0, "kiosk_pct": 8.0 },
     "payment_mix": { "cash_pct": 71.0, "khata_pct": 29.0 }
   }
@@ -406,13 +429,11 @@ Stub example:
 {
   "success": true,
   "data": {
-    "pnl": { "sales": 450000.00, "cogs": 280000.00, "expenses": 49000.00, "net": 121000.00 },
-    "gst_by_slab": [
-      { "rate": 12, "output": 30000.00, "itc": 18000.00, "net_payable": 12000.00 }
-    ],
-    "cash_and_collections": { "cash_sales": 320000.00, "khata_repayments": 40000.00 },
-    "purchases": { "grn_total": 210000.00, "input_gst": 25200.00 },
-    "daybook_preview": { "journal_count": 86, "debit_total": 900000.00, "credit_total": 900000.00 }
+    "pnl": { "sales": 450000.0, "cogs": 280000.0, "expenses": 49000.0, "net": 121000.0 },
+    "gst_by_slab": [{ "rate": 12, "output": 30000.0, "itc": 18000.0, "net_payable": 12000.0 }],
+    "cash_and_collections": { "cash_sales": 320000.0, "khata_repayments": 40000.0 },
+    "purchases": { "grn_total": 210000.0, "input_gst": 25200.0 },
+    "daybook_preview": { "journal_count": 86, "debit_total": 900000.0, "credit_total": 900000.0 }
   }
 }
 ```
@@ -534,22 +555,22 @@ Then the same columns/rows as the console run for that period.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Books TB broken | Report shows error banner; do not display a forced-tie table. |
-| Empty period | Zero rows, zero totals, success. |
-| Stub reports | Always empty; never copy TDS flags into rows. |
-| `all` huge daybook | Paginate; PDF cap 5,000 rows with notice. |
-| Missing party/sku filter | `422 REPORT_FILTER_REQUIRED` |
-| 2B never pulled | GSTR-2B match empty + “never pulled” banner. |
-| CN in sales HSN | Negative qty/taxable. |
-| Kiosk vs counter | Channel mix uses bill.channel; kiosk still cash at POS. |
-| SaaS in cash report | Excluded. |
-| Expired plan | `403`; no data leak of other tenants. |
-| Audit credential event | Redact secret values. |
-| Rate list banned SKU | Unmapped SKUs do not appear (inventory already unmapped). |
-| Party outstanding ₹0 | Omitted from outstanding report. |
-| FY vs calendar year | Labels distinguish “FY 2026-27” vs “Calendar 2026”. |
+| Case                     | Behaviour                                                     |
+| ------------------------ | ------------------------------------------------------------- |
+| Books TB broken          | Report shows error banner; do not display a forced-tie table. |
+| Empty period             | Zero rows, zero totals, success.                              |
+| Stub reports             | Always empty; never copy TDS flags into rows.                 |
+| `all` huge daybook       | Paginate; PDF cap 5,000 rows with notice.                     |
+| Missing party/sku filter | `422 REPORT_FILTER_REQUIRED`                                  |
+| 2B never pulled          | GSTR-2B match empty + “never pulled” banner.                  |
+| CN in sales HSN          | Negative qty/taxable.                                         |
+| Kiosk vs counter         | Channel mix uses bill.channel; kiosk still cash at POS.       |
+| SaaS in cash report      | Excluded.                                                     |
+| Expired plan             | `403`; no data leak of other tenants.                         |
+| Audit credential event   | Redact secret values.                                         |
+| Rate list banned SKU     | Unmapped SKUs do not appear (inventory already unmapped).     |
+| Party outstanding ₹0     | Omitted from outstanding report.                              |
+| FY vs calendar year      | Labels distinguish “FY 2026-27” vs “Calendar 2026”.           |
 
 ---
 

@@ -42,15 +42,15 @@ HQ **Rx & compliance** lets Namma Compliance review scheduled sales and staff-up
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `statutory-registers` | Legal register lines (H1/X): date, patient, doctor name + registration number, drug, batch, qty, running balance, bill no, pharmacist on duty, tenantId, locationId. Shop doctor list (name, reg. no., active). **Source of truth for line content.** This module stores only HQ annotation (verified/flagged). |
-| `prescriptions` | Staff-uploaded Rx queue metadata (status, patient, doctor, SLA, tenant). Images remain tenant-scoped; HQ Compliance may fetch via a signed URL issued by `prescriptions` if role allows (see §10). |
-| `pos-billing` | Bill identity for deep-link facts (invoice no + FY). Not rewritten here. |
-| `admin-automation` | Seed rule “Flag Schedule-X / Rx sales for audit” calls this module’s Flag API. |
-| `admin-tenants` | Tenant shop name for display. |
-| `audit` | Verify/Flag/doctor-verify events. |
-| `auth` / `admin-platform-settings` | HQ JWT + Compliance / Super admin write. |
+| Module                             | Need                                                                                                                                                                                                                                                                                                            |
+| ---------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `statutory-registers`              | Legal register lines (H1/X): date, patient, doctor name + registration number, drug, batch, qty, running balance, bill no, pharmacist on duty, tenantId, locationId. Shop doctor list (name, reg. no., active). **Source of truth for line content.** This module stores only HQ annotation (verified/flagged). |
+| `prescriptions`                    | Staff-uploaded Rx queue metadata (status, patient, doctor, SLA, tenant). Images remain tenant-scoped; HQ Compliance may fetch via a signed URL issued by `prescriptions` if role allows (see §10).                                                                                                              |
+| `pos-billing`                      | Bill identity for deep-link facts (invoice no + FY). Not rewritten here.                                                                                                                                                                                                                                        |
+| `admin-automation`                 | Seed rule “Flag Schedule-X / Rx sales for audit” calls this module’s Flag API.                                                                                                                                                                                                                                  |
+| `admin-tenants`                    | Tenant shop name for display.                                                                                                                                                                                                                                                                                   |
+| `audit`                            | Verify/Flag/doctor-verify events.                                                                                                                                                                                                                                                                               |
+| `auth` / `admin-platform-settings` | HQ JWT + Compliance / Super admin write.                                                                                                                                                                                                                                                                        |
 
 **External:** none. No NMC/state council API in v1.
 
@@ -118,30 +118,30 @@ HQ **Rx & compliance** lets Namma Compliance review scheduled sales and staff-up
 
 ### `HqRxAuditAnnotation` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `annotationId` | UUID | |
-| `sourceType` | enum | `h1_line` `x_line` `prescription` |
-| `sourceLineId` | string | id from `statutory-registers` or `prescriptions` |
-| `tenantId` | UUID | |
-| `hqVerified` | bool | default false |
-| `verifiedAt` `verifiedByHqUserId` | nullable | |
-| `hqFlagged` | bool | |
-| `flagReason` | enum nullable | `missing_reg` `duty_mismatch` `qty_anomaly` `schedule_x` `other` |
-| `flagNote` | text nullable | |
-| `flaggedAt` `flaggedByHqUserId` | nullable | actor may be `automation` |
-| `unflaggedAt` | nullable | |
+| Field                             | Type          | Notes                                                            |
+| --------------------------------- | ------------- | ---------------------------------------------------------------- |
+| `annotationId`                    | UUID          |                                                                  |
+| `sourceType`                      | enum          | `h1_line` `x_line` `prescription`                                |
+| `sourceLineId`                    | string        | id from `statutory-registers` or `prescriptions`                 |
+| `tenantId`                        | UUID          |                                                                  |
+| `hqVerified`                      | bool          | default false                                                    |
+| `verifiedAt` `verifiedByHqUserId` | nullable      |                                                                  |
+| `hqFlagged`                       | bool          |                                                                  |
+| `flagReason`                      | enum nullable | `missing_reg` `duty_mismatch` `qty_anomaly` `schedule_x` `other` |
+| `flagNote`                        | text nullable |                                                                  |
+| `flaggedAt` `flaggedByHqUserId`   | nullable      | actor may be `automation`                                        |
+| `unflaggedAt`                     | nullable      |                                                                  |
 
 Unique (`sourceType`, `sourceLineId`).
 
 ### `HqDoctorVerify` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `registrationNo` | text PK | normalised uppercase |
-| `hqRegVerified` | bool | |
-| `note` | text nullable | |
-| `verifiedByHqUserId` `verifiedAt` | | |
+| Field                             | Type          | Notes                |
+| --------------------------------- | ------------- | -------------------- |
+| `registrationNo`                  | text PK       | normalised uppercase |
+| `hqRegVerified`                   | bool          |                      |
+| `note`                            | text nullable |                      |
+| `verifiedByHqUserId` `verifiedAt` |               |                      |
 
 ### Referenced (not redefined)
 
@@ -264,12 +264,12 @@ Same Flag semantics; `flaggedByHqUserId` null; `flaggedBy = automation`. Auth: i
 
 ### 7.6 Events
 
-| Event | Payload |
-|---|---|
-| `hq.rx.verified` | `{ sourceType, sourceLineId, tenantId, actorHqUserId }` |
-| `hq.rx.flagged` | `{ sourceType, sourceLineId, tenantId, reason, actor: "hq"\|"automation" }` |
-| `hq.rx.unflagged` | `{ sourceType, sourceLineId, actorHqUserId }` |
-| `hq.doctor.reg_verified` | `{ registrationNo, actorHqUserId }` |
+| Event                    | Payload                                                                     |
+| ------------------------ | --------------------------------------------------------------------------- |
+| `hq.rx.verified`         | `{ sourceType, sourceLineId, tenantId, actorHqUserId }`                     |
+| `hq.rx.flagged`          | `{ sourceType, sourceLineId, tenantId, reason, actor: "hq"\|"automation" }` |
+| `hq.rx.unflagged`        | `{ sourceType, sourceLineId, actorHqUserId }`                               |
+| `hq.doctor.reg_verified` | `{ registrationNo, actorHqUserId }`                                         |
 
 Subscribe: `statutory-registers` / `pos-billing` `register.line.appended` with schedule X (and optionally H1) → auto-flag command.
 
@@ -316,16 +316,16 @@ As Super admin, I want HQ labelled as audit-only, so that we never hand HQ PDF t
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
+| Case                                          | Behaviour                                                                                                                      |
+| --------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
 | Register line deleted/reversed by credit note | Line still listed; qty may be reversed on a new line in `statutory-registers`; HQ annotations stay on original `sourceLineId`. |
-| Missing doctor reg on a line | Allowed to Flag `missing_reg`; HQ still cannot edit the line. |
-| All-tenants register view | Running balance column is "—". |
-| Unknown `sourceLineId` | `404`. |
-| Rx image fetch denied | Queue still shows metadata; image 403. |
-| Duplicate auto-flag | Return existing annotation. |
-| Support views queue | Patient phone masked; no Verify/Flag. |
-| Empty queue | Empty state “No items to audit”. |
+| Missing doctor reg on a line                  | Allowed to Flag `missing_reg`; HQ still cannot edit the line.                                                                  |
+| All-tenants register view                     | Running balance column is "—".                                                                                                 |
+| Unknown `sourceLineId`                        | `404`.                                                                                                                         |
+| Rx image fetch denied                         | Queue still shows metadata; image 403.                                                                                         |
+| Duplicate auto-flag                           | Return existing annotation.                                                                                                    |
+| Support views queue                           | Patient phone masked; no Verify/Flag.                                                                                          |
+| Empty queue                                   | Empty state “No items to audit”.                                                                                               |
 
 ---
 

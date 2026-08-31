@@ -44,18 +44,18 @@ Module layout: `modules/purchases/{ui,api,docs}`. UI talks to API only via `@nam
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `inventory` | Stock-in API (top up / create Batch + SKU); label print payload; DPCO ceiling; FEFO qty after post. |
-| `plan-gating` | Purchases is Free forever. |
-| `tenancy` | Tenant + `location_id`. |
-| `auth` / `manage-users` | Owner / Manager default; Pharmacist/Cashier default cannot post GRNs unless granted. |
-| `audit` | **AuditEvent** on GRN post, failed duplicate, stub create, label print. |
-| `books-gst` | Period/FY lock read; journals from `purchases.grn.posted`; FY bounds for duplicate invoice check. |
-| `master-catalogue` | Match new lines to **PlatformMasterSku**; DPCO on MRP. |
-| `account-settings` | Thermal label template. |
-| `distributors-reorder` | Growth directory is the same `distributor_id` space. Purchases **creates stubs** on Free; Growth enriches them. Record GRN from a **PurchaseOrder** pre-fills this module. |
-| `purchase-returns` | Returns against a posted **GRN** (later module). |
+| Module                  | Why                                                                                                                                                                        |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `inventory`             | Stock-in API (top up / create Batch + SKU); label print payload; DPCO ceiling; FEFO qty after post.                                                                        |
+| `plan-gating`           | Purchases is Free forever.                                                                                                                                                 |
+| `tenancy`               | Tenant + `location_id`.                                                                                                                                                    |
+| `auth` / `manage-users` | Owner / Manager default; Pharmacist/Cashier default cannot post GRNs unless granted.                                                                                       |
+| `audit`                 | **AuditEvent** on GRN post, failed duplicate, stub create, label print.                                                                                                    |
+| `books-gst`             | Period/FY lock read; journals from `purchases.grn.posted`; FY bounds for duplicate invoice check.                                                                          |
+| `master-catalogue`      | Match new lines to **PlatformMasterSku**; DPCO on MRP.                                                                                                                     |
+| `account-settings`      | Thermal label template.                                                                                                                                                    |
+| `distributors-reorder`  | Growth directory is the same `distributor_id` space. Purchases **creates stubs** on Free; Growth enriches them. Record GRN from a **PurchaseOrder** pre-fills this module. |
+| `purchase-returns`      | Returns against a posted **GRN** (later module).                                                                                                                           |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -141,51 +141,51 @@ Module layout: `modules/purchases/{ui,api,docs}`. UI talks to API only via `@nam
 
 ### GRN (`purchases` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `grn_id` | string | PK |
-| `client_grn_id` | string | Unique per tenant; idempotency |
-| `distributor_id` | string | Stub or full directory |
-| `invoice_no` | string | Duplicate key with distributor + `fy` |
-| `document_date` | date | Invoice/goods date; lock-checked |
-| `fy` | string | e.g. `2026-27` |
-| `taxable` | number | Sum of line taxable |
-| `gst_amount` | number | Input GST |
-| `total` | number | taxable + gst |
-| `stocked` | boolean | True after inventory success |
-| `po_id` | string, null | If created from **PurchaseOrder** |
-| `actor_user_id` | string | |
-| `posted_at` | datetime | |
+| Field            | Type         | Notes                                 |
+| ---------------- | ------------ | ------------------------------------- |
+| `grn_id`         | string       | PK                                    |
+| `client_grn_id`  | string       | Unique per tenant; idempotency        |
+| `distributor_id` | string       | Stub or full directory                |
+| `invoice_no`     | string       | Duplicate key with distributor + `fy` |
+| `document_date`  | date         | Invoice/goods date; lock-checked      |
+| `fy`             | string       | e.g. `2026-27`                        |
+| `taxable`        | number       | Sum of line taxable                   |
+| `gst_amount`     | number       | Input GST                             |
+| `total`          | number       | taxable + gst                         |
+| `stocked`        | boolean      | True after inventory success          |
+| `po_id`          | string, null | If created from **PurchaseOrder**     |
+| `actor_user_id`  | string       |                                       |
+| `posted_at`      | datetime     |                                       |
 
 ### GRNLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | string | |
-| `grn_id` | string | |
-| `sku_id` | string | After create |
-| `is_new_sku` | boolean | Created on this GRN |
-| `batch_no` | string | |
-| `batch_id` | string, null | Filled after stock-in |
-| `expiry_date` | date | Must be ≥ today at post |
-| `qty` | number | Paid qty (base units — see inventory §10) |
-| `free_qty` | number | Scheme; cost 0 |
-| `ptr` | number | Per base unit, GST exclusive |
-| `mrp` | number | GST inclusive |
-| `gst_pct` | number | |
-| `taxable` | number | ptr × qty |
-| `gst_amount` | number | |
-| `line_total` | number | |
+| Field         | Type         | Notes                                     |
+| ------------- | ------------ | ----------------------------------------- |
+| `line_id`     | string       |                                           |
+| `grn_id`      | string       |                                           |
+| `sku_id`      | string       | After create                              |
+| `is_new_sku`  | boolean      | Created on this GRN                       |
+| `batch_no`    | string       |                                           |
+| `batch_id`    | string, null | Filled after stock-in                     |
+| `expiry_date` | date         | Must be ≥ today at post                   |
+| `qty`         | number       | Paid qty (base units — see inventory §10) |
+| `free_qty`    | number       | Scheme; cost 0                            |
+| `ptr`         | number       | Per base unit, GST exclusive              |
+| `mrp`         | number       | GST inclusive                             |
+| `gst_pct`     | number       |                                           |
+| `taxable`     | number       | ptr × qty                                 |
+| `gst_amount`  | number       |                                           |
+| `line_total`  | number       |                                           |
 
 ### Distributor stub (created here on Free; owned long-term by `distributors-reorder`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `distributor_id` | string | Same id Growth will enrich |
-| `name` | string | Required |
-| `gstin` | string, null | 15 chars when set |
-| `source` | enum | `stub` \| `directory` |
-| `active` | boolean | Default true |
+| Field            | Type         | Notes                      |
+| ---------------- | ------------ | -------------------------- |
+| `distributor_id` | string       | Same id Growth will enrich |
+| `name`           | string       | Required                   |
+| `gstin`          | string, null | 15 chars when set          |
+| `source`         | enum         | `stub` \| `directory`      |
+| `active`         | boolean      | Default true               |
 
 Growth adds contact, drug licence, address, payment terms, return window, etc. Purchases shall not delete a distributor that has GRNs (remove = Growth `active` toggle).
 
@@ -214,6 +214,7 @@ Header + lines + `po_id`.
 
 **POST `/purchases/grns?location_id=`**  
 Body:
+
 ```json
 {
   "client_grn_id": "uuid",
@@ -236,6 +237,7 @@ Body:
   ]
 }
 ```
+
 `new_sku` when creating: `{ name, composition, manufacturer, pack_size, pack_unit, schedule, hsn, gst_pct, category, form, platform_master_sku_id }`.  
 Responses: `200` posted `{ grn_id, stocked: true, batch_ids[] }`; `409` duplicate invoice or idempotent conflict on different body; `403` locked period; `400` past expiry / validation; `403` plan/role.
 
@@ -260,10 +262,10 @@ Posted GRN has no PATCH in a locked period. v1: posted GRNs are immutable; rever
 
 ### Events published
 
-| Event | Payload |
-|---|---|
-| `purchases.grn.posted` | `{ tenant_id, location_id, grn_id, distributor_id, document_date, taxable, gst_amount, total, lines: [{ sku_id, batch_id, qty, free_qty, ptr, gst_pct, taxable, gst_amount }] }` |
-| `purchases.distributor_stub.created` | `{ tenant_id, location_id, distributor_id, name, gstin }` |
+| Event                                | Payload                                                                                                                                                                          |
+| ------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `purchases.grn.posted`               | `{ tenant_id, location_id, grn_id, distributor_id, document_date, taxable, gst_amount, total, lines: [{ sku_id, batch_id, qty, free_qty, ptr, gst_pct, taxable, gst_amount }] }` |
+| `purchases.distributor_stub.created` | `{ tenant_id, location_id, distributor_id, name, gstin }`                                                                                                                        |
 
 ### Events consumed
 
@@ -353,26 +355,26 @@ Then GRN fails and stock is unchanged.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Missing `client_grn_id` | `VALIDATION_ERROR` |
-| Same key, different body | `CONFLICT` |
-| Duplicate invoice same FY | `CONFLICT` |
-| Expiry in the past | `VALIDATION_ERROR` |
-| qty ≤ 0 | `VALIDATION_ERROR` |
-| free_qty < 0 | `VALIDATION_ERROR` |
-| Locked period | `FORBIDDEN` |
-| Lock API down | `DEPENDENCY_FAILURE`; no post |
-| Inventory stock-in fails | GRN not posted; client retries same `client_grn_id` |
-| Invalid GSTIN length | `VALIDATION_ERROR` |
-| Printer fail | GRN stands |
-| CSV malformed | `VALIDATION_ERROR` with row numbers in `details` |
-| Empty lines array | `VALIDATION_ERROR` |
-| Banned master selected for new map | `VALIDATION_ERROR`; cannot stock a banned **PlatformMasterSku** |
-| Edit posted GRN | Not allowed in v1; use purchase return |
-| `location_id` mismatch | `VALIDATION_ERROR` / empty |
-| Two GRNs same invoice different distributors | Allowed |
-| Hold | Not used; no stock out |
+| Case                                         | Behaviour                                                       |
+| -------------------------------------------- | --------------------------------------------------------------- |
+| Missing `client_grn_id`                      | `VALIDATION_ERROR`                                              |
+| Same key, different body                     | `CONFLICT`                                                      |
+| Duplicate invoice same FY                    | `CONFLICT`                                                      |
+| Expiry in the past                           | `VALIDATION_ERROR`                                              |
+| qty ≤ 0                                      | `VALIDATION_ERROR`                                              |
+| free_qty < 0                                 | `VALIDATION_ERROR`                                              |
+| Locked period                                | `FORBIDDEN`                                                     |
+| Lock API down                                | `DEPENDENCY_FAILURE`; no post                                   |
+| Inventory stock-in fails                     | GRN not posted; client retries same `client_grn_id`             |
+| Invalid GSTIN length                         | `VALIDATION_ERROR`                                              |
+| Printer fail                                 | GRN stands                                                      |
+| CSV malformed                                | `VALIDATION_ERROR` with row numbers in `details`                |
+| Empty lines array                            | `VALIDATION_ERROR`                                              |
+| Banned master selected for new map           | `VALIDATION_ERROR`; cannot stock a banned **PlatformMasterSku** |
+| Edit posted GRN                              | Not allowed in v1; use purchase return                          |
+| `location_id` mismatch                       | `VALIDATION_ERROR` / empty                                      |
+| Two GRNs same invoice different distributors | Allowed                                                         |
+| Hold                                         | Not used; no stock out                                          |
 
 ## 10. Open Questions / Assumptions
 

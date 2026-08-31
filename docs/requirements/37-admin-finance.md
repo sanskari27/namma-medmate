@@ -42,16 +42,16 @@ HQ **Finance** owns Namma’s books for **subscription invoices**: collection st
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `saas-billing` | `SaasInvoice` paid/issued/overdue, Cashfree payment ids, amounts, tenantId, period. Webhook already marked paid. |
-| `admin-saas-crm` | Mark paid offline, dunning status, refund request may originate here or Finance. Shared invoice ids. |
-| `admin-platform-settings` | Namma GSTIN, legal name, address, state code; `gmv_cashfree` flag (off). |
-| `tenancy` | Pharmacy GSTIN + state (place of supply). |
-| `audit` | Refunds, GSTR generate, manual ledger notes. |
-| `auth` | HQ JWT. |
+| Module                    | Need                                                                                                             |
+| ------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| `saas-billing`            | `SaasInvoice` paid/issued/overdue, Cashfree payment ids, amounts, tenantId, period. Webhook already marked paid. |
+| `admin-saas-crm`          | Mark paid offline, dunning status, refund request may originate here or Finance. Shared invoice ids.             |
+| `admin-platform-settings` | Namma GSTIN, legal name, address, state code; `gmv_cashfree` flag (off).                                         |
+| `tenancy`                 | Pharmacy GSTIN + state (place of supply).                                                                        |
+| `audit`                   | Refunds, GSTR generate, manual ledger notes.                                                                     |
+| `auth`                    | HQ JWT.                                                                                                          |
 
-**External:** none for GSTR *prepare* (JSON/Excel). Filing on GSTN is **outside** Namma (Namma’s CA files), same pattern as chemists.
+**External:** none for GSTR _prepare_ (JSON/Excel). Filing on GSTN is **outside** Namma (Namma’s CA files), same pattern as chemists.
 
 ---
 
@@ -94,31 +94,31 @@ HQ **Finance** owns Namma’s books for **subscription invoices**: collection st
 
 ### `NammaSaasLedgerLine` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `lineId` | UUID | |
-| `at` | timestamptz | |
-| `tenantId` | UUID nullable | null = platform control |
-| `account` | enum | `saas_ar` `cashfree_clearing` `cash_offline` `saas_income` `gst_output_cgst` `gst_output_sgst` `gst_output_igst` `saas_credit_liability` |
-| `debitPaise` `creditPaise` | int | one side non-zero |
-| `runningBalancePaise` | int | per (`tenantId`,`account`) after this line |
-| `sourceType` | enum | `invoice` `payment` `refund` `referral_credit` |
-| `sourceId` | UUID | invoiceId / paymentId / creditNoteId / referralId |
-| `memo` | text | |
+| Field                      | Type          | Notes                                                                                                                                    |
+| -------------------------- | ------------- | ---------------------------------------------------------------------------------------------------------------------------------------- |
+| `lineId`                   | UUID          |                                                                                                                                          |
+| `at`                       | timestamptz   |                                                                                                                                          |
+| `tenantId`                 | UUID nullable | null = platform control                                                                                                                  |
+| `account`                  | enum          | `saas_ar` `cashfree_clearing` `cash_offline` `saas_income` `gst_output_cgst` `gst_output_sgst` `gst_output_igst` `saas_credit_liability` |
+| `debitPaise` `creditPaise` | int           | one side non-zero                                                                                                                        |
+| `runningBalancePaise`      | int           | per (`tenantId`,`account`) after this line                                                                                               |
+| `sourceType`               | enum          | `invoice` `payment` `refund` `referral_credit`                                                                                           |
+| `sourceId`                 | UUID          | invoiceId / paymentId / creditNoteId / referralId                                                                                        |
+| `memo`                     | text          |                                                                                                                                          |
 
 Double-entry: each source posts ≥ 2 lines that balance.
 
 ### `SaasCreditNote` (owned here; invoice in `saas-billing`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `creditNoteId` | UUID | |
-| `invoiceId` | UUID | original SaaS invoice |
-| `number` | string | CN prefix, unique per Namma FY |
-| `taxablePaise` `gstPaise` `totalPaise` | int | |
-| `sac` | `9983` | |
-| `reason` | text | |
-| `createdByHqUserId` `createdAt` | | |
+| Field                                  | Type   | Notes                          |
+| -------------------------------------- | ------ | ------------------------------ |
+| `creditNoteId`                         | UUID   |                                |
+| `invoiceId`                            | UUID   | original SaaS invoice          |
+| `number`                               | string | CN prefix, unique per Namma FY |
+| `taxablePaise` `gstPaise` `totalPaise` | int    |                                |
+| `sac`                                  | `9983` |                                |
+| `reason`                               | text   |                                |
+| `createdByHqUserId` `createdAt`        |        |                                |
 
 ### Referenced
 
@@ -228,10 +228,10 @@ v1: `amountPaise` must equal remaining refundable total (`409 PARTIAL_NOT_IN_V1`
 
 ### 7.6 Events
 
-| Event | Payload |
-|---|---|
-| `namma.saas.refunded` | `{ invoiceId, creditNoteId, tenantId, totalPaise, actorHqUserId }` |
-| `namma.gstr.generated` | `{ kind: "gstr1"\|"gstr3b", period, actorHqUserId }` |
+| Event                  | Payload                                                            |
+| ---------------------- | ------------------------------------------------------------------ |
+| `namma.saas.refunded`  | `{ invoiceId, creditNoteId, tenantId, totalPaise, actorHqUserId }` |
+| `namma.gstr.generated` | `{ kind: "gstr1"\|"gstr3b", period, actorHqUserId }`               |
 
 Consumers: `saas-billing` (invoice status), `admin-saas-crm` (drawer), `audit`.
 
@@ -277,16 +277,16 @@ As Super admin, I want GMV settlement documented as off, so that nobody ships sh
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Double refund | Second call same idempotency key returns first CN; different key `409 INVOICE_NOT_REFUNDABLE`. |
-| Refund unpaid invoice | `409`. |
-| Invoice issued, GSTIN on pharmacy missing | GSTR-1 B2C bucket; still SAC 9983. |
-| IGST vs CGST | Other state GSTIN → IGST 18%; same state → 9+9. |
-| Cashfree duplicate webhook | Single payment line. |
-| Period with zero invoices | Empty GSTR with zeroes, not error. |
-| Support POST refund | `403`. |
-| Ledger out of balance | `GET /admin/finance/ledger/health` returns `500 LEDGER_OUT_OF_BALANCE` for HQ Super admin (nightly check). |
+| Case                                      | Behaviour                                                                                                  |
+| ----------------------------------------- | ---------------------------------------------------------------------------------------------------------- |
+| Double refund                             | Second call same idempotency key returns first CN; different key `409 INVOICE_NOT_REFUNDABLE`.             |
+| Refund unpaid invoice                     | `409`.                                                                                                     |
+| Invoice issued, GSTIN on pharmacy missing | GSTR-1 B2C bucket; still SAC 9983.                                                                         |
+| IGST vs CGST                              | Other state GSTIN → IGST 18%; same state → 9+9.                                                            |
+| Cashfree duplicate webhook                | Single payment line.                                                                                       |
+| Period with zero invoices                 | Empty GSTR with zeroes, not error.                                                                         |
+| Support POST refund                       | `403`.                                                                                                     |
+| Ledger out of balance                     | `GET /admin/finance/ledger/health` returns `500 LEDGER_OUT_OF_BALANCE` for HQ Super admin (nightly check). |
 
 ---
 

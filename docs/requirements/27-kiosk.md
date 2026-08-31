@@ -52,19 +52,19 @@ Software cannot fully lock the OS. Production install guide: dedicated tablet + 
 
 ## 3. Dependencies (be specific: APIs/events needed from other slugs)
 
-| Other slug | Need | Contract |
-|---|---|---|
-| `plan-gating` | Pro feature `kiosk` | 403 + paywall if locked |
-| `pos-billing` | Holds + later cash charge | `POST /pos/holds` `{ channel: "kiosk", kiosk_token_id, cart_snapshot }`; staff `GET /pos/holds/by-token/:token`; `POST /bills/charge` tender cash |
-| `inventory` | OTC SKUs in stock | Search with `schedule=OTC` only (kiosk API wraps) |
-| `master-catalogue` | Substitutes | Filter `schedule=OTC` and in-stock |
-| `customers` | Attach/create named OTC profile | `POST /customers` `{ phone, name?, source: "kiosk" }`; allergies |
-| `auth` | Exit PIN verify; WhatsApp OTP for shopper | `POST /kiosk/exit-pin` (this module) wrapping PIN hash; `POST /auth/otp/request` `{ purpose: "kiosk_identify" }` |
-| `whatsapp` | OTP send from Namma WABA | via `auth` |
-| `account-settings` | Shop display name default | |
-| `tenancy` | location_id | |
-| `audit` | Kiosk launch, exit, lockout, token printed, allergy ack | |
-| `pos-billing` Charge | Stock | Kiosk **never** calls decrement |
+| Other slug           | Need                                                    | Contract                                                                                                                                          |
+| -------------------- | ------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `plan-gating`        | Pro feature `kiosk`                                     | 403 + paywall if locked                                                                                                                           |
+| `pos-billing`        | Holds + later cash charge                               | `POST /pos/holds` `{ channel: "kiosk", kiosk_token_id, cart_snapshot }`; staff `GET /pos/holds/by-token/:token`; `POST /bills/charge` tender cash |
+| `inventory`          | OTC SKUs in stock                                       | Search with `schedule=OTC` only (kiosk API wraps)                                                                                                 |
+| `master-catalogue`   | Substitutes                                             | Filter `schedule=OTC` and in-stock                                                                                                                |
+| `customers`          | Attach/create named OTC profile                         | `POST /customers` `{ phone, name?, source: "kiosk" }`; allergies                                                                                  |
+| `auth`               | Exit PIN verify; WhatsApp OTP for shopper               | `POST /kiosk/exit-pin` (this module) wrapping PIN hash; `POST /auth/otp/request` `{ purpose: "kiosk_identify" }`                                  |
+| `whatsapp`           | OTP send from Namma WABA                                | via `auth`                                                                                                                                        |
+| `account-settings`   | Shop display name default                               |                                                                                                                                                   |
+| `tenancy`            | location_id                                             |                                                                                                                                                   |
+| `audit`              | Kiosk launch, exit, lockout, token printed, allergy ack |                                                                                                                                                   |
+| `pos-billing` Charge | Stock                                                   | Kiosk **never** calls decrement                                                                                                                   |
 
 ---
 
@@ -153,23 +153,23 @@ Software cannot fully lock the OS. Production install guide: dedicated tablet + 
 
 ### 6.1 `KioskConfig` (this module)
 
-| Column | Type |
-|---|---|
-| `tenant_id`, `location_id` | PK |
-| `display_name` | TEXT |
-| `welcome_message` | TEXT |
-| `idle_reset_seconds` | INT |
-| `theme` | ENUM green/dark/gold |
-| `show_prices` | BOOL |
-| `exit_pin_hash` | TEXT |
-| `updated_at` | |
+| Column                     | Type                 |
+| -------------------------- | -------------------- |
+| `tenant_id`, `location_id` | PK                   |
+| `display_name`             | TEXT                 |
+| `welcome_message`          | TEXT                 |
+| `idle_reset_seconds`       | INT                  |
+| `theme`                    | ENUM green/dark/gold |
+| `show_prices`              | BOOL                 |
+| `exit_pin_hash`            | TEXT                 |
+| `updated_at`               |                      |
 
 HeldCart lives in `pos-billing`. Kiosk does not own Bill.
 
 ### 6.2 `KioskExitAttempt`
 
-| Column | Notes |
-|---|---|
+| Column                | Notes                  |
+| --------------------- | ---------------------- |
 | `location_id`, window | fail count; lock_until |
 
 ### 6.3 Token
@@ -223,7 +223,7 @@ BillPosted with `channel=kiosk` is emitted by POS later.
 ### 7.5 UI props
 
 ```ts
-type KioskTheme = "green" | "dark" | "gold";
+type KioskTheme = 'green' | 'dark' | 'gold';
 
 type KioskShopperProps = {
   displayName: string;
@@ -234,7 +234,7 @@ type KioskShopperProps = {
   categories: typeof POS_CHIPS;
 };
 
-type KioskPayStep = "token_only"; // never upi | card | khata
+type KioskPayStep = 'token_only'; // never upi | card | khata
 ```
 
 Routes: `/kiosk/run` shopper; `/kiosk/settings` staff config (console chrome, Pro).
@@ -305,18 +305,18 @@ Then cards omit ₹; token may still omit totals if show_prices false — **assu
 
 ## 9. Edge Cases & Error Handling (include §10 failure catalogue rows that apply)
 
-| Catalogue event | Kiosk behaviour |
-|---|---|
-| Kiosk + H/H1/X SKU | Not listed (server-enforced). |
-| Kiosk UPI/Card | Not offered; token → staff cash POS. |
-| OTP / PIN wrong 5× | OTP: 15 min phone lock (`auth`). **Exit PIN: 5 / 10 min.** |
-| Hold expired (30 min) | Token dead; no stock. |
-| Network drop during Charge | Staff POS problem; token remains hold until success/expiry. |
-| Thermal printer offline | Token on screen; hold exists. |
-| Plan expired | Kiosk locks; unpaid holds still chargeable on POS as cash until they expire (do not strand a shopper mid-pay — **assumption: existing open kiosk holds can still be cashed on Free POS**; launching new kiosk cannot). |
-| Banned / above DPCO | Not listed. |
-| Concurrent last unit | Two tokens may both hold snapshots of last unit; first Charge wins; second `STOCK_INSUFFICIENT` — tokens do not reserve. |
-| Walk-in + khata | Impossible on kiosk. |
+| Catalogue event            | Kiosk behaviour                                                                                                                                                                                                        |
+| -------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Kiosk + H/H1/X SKU         | Not listed (server-enforced).                                                                                                                                                                                          |
+| Kiosk UPI/Card             | Not offered; token → staff cash POS.                                                                                                                                                                                   |
+| OTP / PIN wrong 5×         | OTP: 15 min phone lock (`auth`). **Exit PIN: 5 / 10 min.**                                                                                                                                                             |
+| Hold expired (30 min)      | Token dead; no stock.                                                                                                                                                                                                  |
+| Network drop during Charge | Staff POS problem; token remains hold until success/expiry.                                                                                                                                                            |
+| Thermal printer offline    | Token on screen; hold exists.                                                                                                                                                                                          |
+| Plan expired               | Kiosk locks; unpaid holds still chargeable on POS as cash until they expire (do not strand a shopper mid-pay — **assumption: existing open kiosk holds can still be cashed on Free POS**; launching new kiosk cannot). |
+| Banned / above DPCO        | Not listed.                                                                                                                                                                                                            |
+| Concurrent last unit       | Two tokens may both hold snapshots of last unit; first Charge wins; second `STOCK_INSUFFICIENT` — tokens do not reserve.                                                                                               |
+| Walk-in + khata            | Impossible on kiosk.                                                                                                                                                                                                   |
 
 Additional:
 

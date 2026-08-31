@@ -54,20 +54,20 @@ The 2-hour Rx SLA is **not** this module (`prescriptions`).
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. Licence identity may also appear on go-live; this module is the licence desk + alert scheduler. |
-| `plan-gating` | Starter. |
-| `employees` | Registered pharmacists eligible to clock in (`employee_id` + pharmacist registration number). |
-| `whatsapp` | Duty-lapse send is requested by POS; licence alerts sent from this module via `whatsapp`. Mandatory-path for licence. |
-| `pos-billing` | Scheduled sale: calls `isPharmacistOnDuty`, `listDoctors`, `appendRegisterEntry` after post; doctor inline create. Duty-lapse WhatsApp if cart open. |
-| `returns` | H1/X return appends reversing register line. |
-| `prescriptions` | May call `appendRegisterEntry` on dispense when a bill no exists; SLA is not here. |
-| `inventory` | SKU schedule tag H1 vs X; batch; running balance from batch qty after movement. |
-| `customers` | Named patient name + phone on the line. |
-| `audit` | Duty clock, licence edit, doctor add, register append. |
-| `go-live-kyc` / `account-settings` | May collect licence dates at wizard/profile; this module **stores and alerts** licence desk records (single store — see §10). |
-| `admin-rx-compliance` | Downstream read-only copy; must not write this legal register. |
+| Module                             | Why                                                                                                                                                  |
+| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                          | Tenant + `location_id`. Licence identity may also appear on go-live; this module is the licence desk + alert scheduler.                              |
+| `plan-gating`                      | Starter.                                                                                                                                             |
+| `employees`                        | Registered pharmacists eligible to clock in (`employee_id` + pharmacist registration number).                                                        |
+| `whatsapp`                         | Duty-lapse send is requested by POS; licence alerts sent from this module via `whatsapp`. Mandatory-path for licence.                                |
+| `pos-billing`                      | Scheduled sale: calls `isPharmacistOnDuty`, `listDoctors`, `appendRegisterEntry` after post; doctor inline create. Duty-lapse WhatsApp if cart open. |
+| `returns`                          | H1/X return appends reversing register line.                                                                                                         |
+| `prescriptions`                    | May call `appendRegisterEntry` on dispense when a bill no exists; SLA is not here.                                                                   |
+| `inventory`                        | SKU schedule tag H1 vs X; batch; running balance from batch qty after movement.                                                                      |
+| `customers`                        | Named patient name + phone on the line.                                                                                                              |
+| `audit`                            | Duty clock, licence edit, doctor add, register append.                                                                                               |
+| `go-live-kyc` / `account-settings` | May collect licence dates at wizard/profile; this module **stores and alerts** licence desk records (single store — see §10).                        |
+| `admin-rx-compliance`              | Downstream read-only copy; must not write this legal register.                                                                                       |
 
 ---
 
@@ -138,40 +138,40 @@ The 2-hour Rx SLA is **not** this module (`prescriptions`).
 
 ### Doctor (shop list)
 
-| Field | Type | Notes |
-|---|---|---|
-| `doctor_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `name` | string | not null |
-| `registration_number` | string | unique per tenant; identity |
-| `active` | boolean | default true |
-| `created_at` | timestamptz | |
+| Field                                    | Type        | Notes                       |
+| ---------------------------------------- | ----------- | --------------------------- |
+| `doctor_id`                              | UUID        | PK                          |
+| `tenant_id` / `location_id`              | UUID        |                             |
+| `name`                                   | string      | not null                    |
+| `registration_number`                    | string      | unique per tenant; identity |
+| `active`                                 | boolean     | default true                |
+| `created_at`                             | timestamptz |                             |
 | HQ `verify` flag is **not** stored here. |
 
 ### DutyShift
 
-| Field | Type | Notes |
-|---|---|---|
-| `shift_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `employee_id` | UUID | `employees`; must have pharmacist registration |
-| `started_at` | timestamptz | |
-| `ended_at` | timestamptz | null = open |
-| `actor_user_id` | UUID | who clocked |
+| Field                       | Type        | Notes                                          |
+| --------------------------- | ----------- | ---------------------------------------------- |
+| `shift_id`                  | UUID        | PK                                             |
+| `tenant_id` / `location_id` | UUID        |                                                |
+| `employee_id`               | UUID        | `employees`; must have pharmacist registration |
+| `started_at`                | timestamptz |                                                |
+| `ended_at`                  | timestamptz | null = open                                    |
+| `actor_user_id`             | UUID        | who clocked                                    |
 
 Open shift: `ended_at IS NULL`. Partial unique: one open shift per `(location_id, employee_id)`.
 
 ### Licence
 
-| Field | Type | Notes |
-|---|---|---|
-| `licence_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `type` | enum `drug_licence\|fssai\|pharmacist_registration` | one active row per type per location |
-| `number` | string | |
-| `issued_on` | date | |
-| `expires_on` | date | |
-| `updated_at` | timestamptz | |
+| Field                       | Type                                                | Notes                                |
+| --------------------------- | --------------------------------------------------- | ------------------------------------ |
+| `licence_id`                | UUID                                                | PK                                   |
+| `tenant_id` / `location_id` | UUID                                                |                                      |
+| `type`                      | enum `drug_licence\|fssai\|pharmacist_registration` | one active row per type per location |
+| `number`                    | string                                              |                                      |
+| `issued_on`                 | date                                                |                                      |
+| `expires_on`                | date                                                |                                      |
+| `updated_at`                | timestamptz                                         |                                      |
 
 ### LicenceAlertAck
 
@@ -179,29 +179,29 @@ Banner ack: `licence_id`, `days_window` (60|30|7), `acked_at`, `actor_user_id`.
 
 ### RegisterEntry
 
-| Field | Type | Notes |
-|---|---|---|
-| `entry_id` | UUID | PK |
-| `tenant_id` / `location_id` | UUID | |
-| `schedule` | enum `H1\|X` | |
-| `occurred_at` | timestamptz | |
-| `patient_name` | string | |
-| `patient_phone` | string | nullable (walk-in) |
-| `customer_id` | UUID | nullable |
-| `doctor_name` | string | |
-| `doctor_registration_number` | string | required |
-| `sku_id` | UUID | |
-| `drug_name` | string | snapshot |
-| `batch_no` | string | |
-| `qty` | decimal | signed |
-| `running_balance` | decimal | batch qty after movement |
-| `bill_no` | string | invoice or CN number |
-| `bill_id` / `credit_note_id` | UUID | nullable as applicable |
-| `pharmacist_employee_id` | UUID | |
-| `pharmacist_name` | string | snapshot |
-| `pharmacist_registration_number` | string | snapshot |
-| `source` | enum `sale\|dispense\|return` | |
-| `source_line_id` | string | idempotency |
+| Field                            | Type                          | Notes                    |
+| -------------------------------- | ----------------------------- | ------------------------ |
+| `entry_id`                       | UUID                          | PK                       |
+| `tenant_id` / `location_id`      | UUID                          |                          |
+| `schedule`                       | enum `H1\|X`                  |                          |
+| `occurred_at`                    | timestamptz                   |                          |
+| `patient_name`                   | string                        |                          |
+| `patient_phone`                  | string                        | nullable (walk-in)       |
+| `customer_id`                    | UUID                          | nullable                 |
+| `doctor_name`                    | string                        |                          |
+| `doctor_registration_number`     | string                        | required                 |
+| `sku_id`                         | UUID                          |                          |
+| `drug_name`                      | string                        | snapshot                 |
+| `batch_no`                       | string                        |                          |
+| `qty`                            | decimal                       | signed                   |
+| `running_balance`                | decimal                       | batch qty after movement |
+| `bill_no`                        | string                        | invoice or CN number     |
+| `bill_id` / `credit_note_id`     | UUID                          | nullable as applicable   |
+| `pharmacist_employee_id`         | UUID                          |                          |
+| `pharmacist_name`                | string                        | snapshot                 |
+| `pharmacist_registration_number` | string                        | snapshot                 |
+| `source`                         | enum `sale\|dispense\|return` |                          |
+| `source_line_id`                 | string                        | idempotency              |
 
 ---
 
@@ -351,13 +351,13 @@ Dismiss mandatory-path banner.
 
 ### 7.5 Events emitted
 
-| Event | Listeners |
-|---|---|
-| `register.entry.appended` | `admin-rx-compliance` (audit copy), `audit` |
+| Event                                         | Listeners                                                        |
+| --------------------------------------------- | ---------------------------------------------------------------- |
+| `register.entry.appended`                     | `admin-rx-compliance` (audit copy), `audit`                      |
 | `duty.started` / `duty.ended` / `duty.lapsed` | `pos-billing` (block / WhatsApp if scheduled cart open), `audit` |
-| `licence.updated` | `account-settings` projection, `audit` |
-| `licence.alert.failed` | console banner |
-| `doctor.upserted` | POS picker cache |
+| `licence.updated`                             | `account-settings` projection, `audit`                           |
+| `licence.alert.failed`                        | console banner                                                   |
+| `doctor.upserted`                             | POS picker cache                                                 |
 
 Licence send: this module → `whatsapp.send` (template `licence_expiry`).
 
@@ -407,20 +407,20 @@ Licence send: this module → `whatsapp.send` (template `licence_expiry`).
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Clock-in non-pharmacist employee | `400 NOT_REGISTERED_PHARMACIST` |
-| Double clock-in same employee | `409 SHIFT_ALREADY_OPEN` |
-| Last pharmacist clocks out, scheduled POS cart open | `duty.lapsed`; POS sends WhatsApp; charge blocked until new clock-in |
-| Kiosk OTC cart | no duty API required |
-| Duplicate bill line append | idempotent 200 |
-| Return of H1/X | new register line; running balance up if restock |
-| Missing patient name | `400 PATIENT_IDENTITY_REQUIRED` |
-| HQ verify of a doctor | does not change shop list |
-| Plan Free | paywall; POS scheduled still needs duty legally — if module locked, POS cannot sell H1/X (Starter feature). OTC cash still Free |
-| WhatsApp licence fail | banner; no SMS |
-| Two H1 lines one bill | two register entries (per line) |
-| Running balance concurrent | same transactional stock decrement as POS; balance = qty after that txn |
+| Case                                                | Behaviour                                                                                                                       |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
+| Clock-in non-pharmacist employee                    | `400 NOT_REGISTERED_PHARMACIST`                                                                                                 |
+| Double clock-in same employee                       | `409 SHIFT_ALREADY_OPEN`                                                                                                        |
+| Last pharmacist clocks out, scheduled POS cart open | `duty.lapsed`; POS sends WhatsApp; charge blocked until new clock-in                                                            |
+| Kiosk OTC cart                                      | no duty API required                                                                                                            |
+| Duplicate bill line append                          | idempotent 200                                                                                                                  |
+| Return of H1/X                                      | new register line; running balance up if restock                                                                                |
+| Missing patient name                                | `400 PATIENT_IDENTITY_REQUIRED`                                                                                                 |
+| HQ verify of a doctor                               | does not change shop list                                                                                                       |
+| Plan Free                                           | paywall; POS scheduled still needs duty legally — if module locked, POS cannot sell H1/X (Starter feature). OTC cash still Free |
+| WhatsApp licence fail                               | banner; no SMS                                                                                                                  |
+| Two H1 lines one bill                               | two register entries (per line)                                                                                                 |
+| Running balance concurrent                          | same transactional stock decrement as POS; balance = qty after that txn                                                         |
 
 ---
 
