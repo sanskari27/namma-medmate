@@ -1,7 +1,7 @@
 {
   "apps": ["dispensary-app-web"],
-  "moduleUis": ["auth-ui", "tenancy-ui", "whatsapp-ui"],
-  "moduleApis": ["auth-api", "tenancy-api", "whatsapp-api"],
+  "moduleUis": ["auth-ui", "tenancy-ui", "whatsapp-ui", "audit-ui"],
+  "moduleApis": ["auth-api", "tenancy-api", "whatsapp-api", "audit-api"],
   "libs": [
     "api-client",
     "auth-utils",
