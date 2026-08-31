@@ -1,0 +1,13 @@
+---
+description: Terraform remote S3 state only — never commit state, locks, or .terraform
+globs: "infra/terraform/**"
+alwaysApply: false
+---
+
+# Terraform AWS
+
+State and provider locks live in S3 (`namma-medmate-tfstate-105927215604`), DynamoDB lock table `namma-medmate-tf-locks`. Never commit `terraform.tfstate`, `.terraform.lock.hcl` from env stacks, or `.terraform/`.
+
+Prefer editing reusable modules; keep env stacks thin. Document blast radius on the PR. Skill `terraform-change` / `/tf-plan`.
+
+Stop and ask unless the requirement needs infra. Do not invent a local backend.

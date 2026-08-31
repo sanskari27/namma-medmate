@@ -1,0 +1,24 @@
+---
+description: Contract-first OpenAPI — codegen owns generated types; never hand-edit generated files
+globs: "**/swagger.yaml,contracts/**,libs/api-client/**,libs/shared-types/**"
+alwaysApply: false
+---
+
+# OpenAPI contracts
+
+Each module API owns `contract/swagger.yaml`. UI consumes APIs only through `@namma-medmate/api-client`.
+
+After swagger edits: `pnpm codegen` then `pnpm exec nx run contracts:check`. Never hand-edit `libs/*/src/generated`.
+
+Envelope: `{ data }` success; `{ error: { code, message, i18n_key } }` failure.
+
+```yaml
+# GOOD — module-owned path
+# modules/auth/api/contract/swagger.yaml
+paths:
+  /auth/session:
+    get:
+      operationId: getAuthSession
+```
+
+Keep `implemented-routes.json` in sync with controllers (skill `api-contract-tester`).

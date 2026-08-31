@@ -1,0 +1,22 @@
+---
+description: After implementation, verify-gates is mandatory; 100% Vitest coverage; never mark tracker done on red
+alwaysApply: true
+---
+
+# Quality gates
+
+After every implementation, run skill `verify-gates` to completion. Do not skip Playwright because unit passed.
+
+Order: format → `boundaries:validate` → `contracts:check` (if OpenAPI) → `affected -t lint,typecheck,test` (100% coverage) → `nx e2e {project}` → `nx visual {ui}` if UI screens changed.
+
+Thresholds in `tools/vitest-config` are 100% lines, branches, functions, statements. Do not lower them. Do not widen `coverage.exclude` to pass.
+
+```sh
+# BAD
+pnpm exec nx test tenancy-api   # and stop
+
+# GOOD
+# skill verify-gates: format, lint, typecheck, test, e2e, visual as applicable
+```
+
+On red: skill `debug-quality-gate`, fix, re-run from the failed step. Tracker stays `in_progress` until green (or `blocked` with reason).

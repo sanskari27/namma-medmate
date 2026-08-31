@@ -1,0 +1,17 @@
+---
+description: Keep the module implementation tracker in sync; one requirement file per run
+alwaysApply: true
+---
+
+# Requirement tracker
+
+`docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md` is the only place for implementation status.
+
+- Set the row to `in_progress` **before** coding.
+- Set `done` only after skill `verify-gates` is green. Never mark `done` on a red gate.
+- If blocked, set `blocked` with the reason in Notes.
+- Pick tracker order (file number) unless the user names a module. Exceptions: `29-books-gst` period-lock before `28-stock-take` posts; POS (`21`) waits for §3 stubs.
+- One module per run. Never batch rows to `done`.
+- Never record status inside numbered requirement markdown files.
+
+Next pending with no unmet deps: **`01-tenancy`**. Auth (`06`) is `in_progress` as OIDC scaffold only — chemist FRs are not done.

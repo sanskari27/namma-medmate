@@ -1,0 +1,22 @@
+---
+description: Tailwind utilities and shared-ui tokens — no bulky per-component CSS
+globs: "**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# Tailwind utility
+
+Style with Tailwind utilities, `tools/tailwind-config/theme.css`, and `@namma-medmate/shared-ui`.
+
+No new component `.css` files, CSS modules, or styled-components. Translate Stitch HTML into Tailwind classes — do not paste a second stylesheet.
+
+```tsx
+// BAD
+import './auth-widget.css';
+export function AuthWidget() { return <div className="widget" />; }
+
+// GOOD
+export function AuthWidget() {
+  return <section className="flex flex-col gap-4 rounded-lg p-6">{/* ... */}</section>;
+}
+```

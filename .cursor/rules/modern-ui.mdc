@@ -1,0 +1,23 @@
+---
+description: Stitch-first modern SaaS pharmacy UI — not legacy hospital/ERP chrome
+globs: "modules/*/ui/**,apps/**/*.{tsx,css}"
+alwaysApply: false
+---
+
+# Modern UI
+
+Before coding a screen, generate it with Google Stitch MCP (skill `stitch-ui-design`).
+
+Look: contemporary SaaS (clear hierarchy, generous whitespace, accessible contrast) — neighbourhood retail chemist console, not 2010 government portal, grey ERP, or dense data-entry grids as primary chrome. POS: large tap targets, keyboard-first.
+
+```tsx
+// BAD — spreadsheet-in-a-browser as the only layout
+<table className="w-full text-xs text-gray-500">{/* 20 columns */}</table>
+
+// GOOD — task-focused shell + identity
+<header className="flex items-center justify-between gap-4">
+  <ShopIdentityBadge />
+</header>
+```
+
+Do not invent a second design system. Use `shared-ui` + Tailwind. If Stitch is disconnected, stop the UI step — do not guess a legacy layout.

@@ -1,0 +1,21 @@
+---
+description: Module API layout — lambda-bootstrap, swagger, implemented-routes, no db folder
+globs: "modules/*/api/**"
+alwaysApply: false
+---
+
+# Module API
+
+Copy `modules/auth/api`: `handler.ts`, `local.ts`, `app.ts`, `controllers/`, `config/env.ts` (Zod via `env-config`).
+
+- Routes `/<slug>/...`. `/health` comes from `@namma-medmate/lambda-bootstrap` — do not reimplement it.
+- Own `contract/swagger.yaml` + `contract/implemented-routes.json`. One controller file per operation.
+- No `db/` folder. No nested enterprise factories.
+
+```ts
+// BAD
+app.get('/api/v1/auth/session', factory.create('session').handle);
+
+// GOOD — auth-api style
+// controllers/get-session.controller.ts attached at /auth/session
+```

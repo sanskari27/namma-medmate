@@ -1,0 +1,22 @@
+---
+description: Vitest unit tests map each AC; keep 100% coverage thresholds
+globs: "**/*.{spec,test}.{ts,tsx}"
+alwaysApply: false
+---
+
+# Unit tests
+
+Vitest. Web: Testing Library + `tests/setup.ts`. API: supertest against `createApp`. Map each Given/When/Then (AC) to a test.
+
+Do not lower 100% thresholds in `tools/vitest-config`. Do not widen `coverage.exclude` without review.
+
+```ts
+// BAD
+it('works', async () => { expect(true).toBe(true); });
+
+// GOOD
+it('rejects a second location with 409 LOCATION_LIMIT_V1', async () => {
+  const res = await request(app).post('/tenancy/pharmacies/t/locations');
+  expect(res.status).toBe(409);
+});
+```
