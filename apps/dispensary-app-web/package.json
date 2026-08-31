@@ -1,0 +1,26 @@
+{
+  "name": "@namma-medmate/dispensary-app-web",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview --port 4173"
+  },
+  "dependencies": {
+    "@namma-medmate/auth-ui": "workspace:*",
+    "@namma-medmate/api-client": "workspace:*",
+    "@namma-medmate/error-handling": "workspace:*",
+    "@namma-medmate/event-bus": "workspace:*",
+    "@namma-medmate/shared-ui": "workspace:*",
+    "@reduxjs/toolkit": "^2.8.2",
+    "react": "^19.1.1",
+    "react-dom": "^19.1.1",
+    "react-redux": "^9.2.0"
+  },
+  "devDependencies": {
+    "@tailwindcss/vite": "^4.1.11",
+    "tailwindcss": "^4.1.11"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "@namma-medmate/auth-utils",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "dependencies": {
+    "jose": "^6.0.12",
+    "@namma-medmate/error-handling": "workspace:*",
+    "@namma-medmate/constants": "workspace:*",
+    "@namma-medmate/response-envelope": "workspace:*"
+  },
+  "peerDependencies": {
+    "react": "^19.0.0"
+  },
+  "peerDependenciesMeta": {
+    "react": {
+      "optional": true
+    }
+  }
+}

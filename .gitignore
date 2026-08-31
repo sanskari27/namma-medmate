@@ -1,0 +1,53 @@
+# dependencies
+node_modules
+.pnpm-store
+
+# build / cache
+dist
+build
+out
+coverage
+.nx
+.vite
+*.tsbuildinfo
+.eslintcache
+
+# env
+.env
+.env.local
+.env.*.local
+!.env.example
+
+# generated stories (build-time only)
+**/stories/.generated/
+
+# test artifacts
+playwright-report
+test-results
+blob-report
+lighthouseci
+.lighthouseci
+tmp
+
+# terraform
+**/.terraform/
+**/.terraform.lock.hcl
+*.tfstate
+*.tfstate.*
+crash.log
+override.tf
+override.tf.json
+*_override.tf
+*_override.tf.json
+
+# os / editor
+.DS_Store
+.idea
+.vscode/*
+!.vscode/extensions.json
+*.swp
+
+# logs
+*.log
+npm-debug.log*
+pnpm-debug.log*

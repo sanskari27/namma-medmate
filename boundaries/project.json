@@ -1,0 +1,16 @@
+{
+  "name": "boundaries",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "boundaries",
+  "projectType": "library",
+  "tags": ["type:tool", "domain:shared"],
+  "targets": {
+    "validate": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx validate-project-structure.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "name": "contracts",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "contracts",
+  "projectType": "library",
+  "tags": ["type:tool", "domain:shared"],
+  "targets": {
+    "codegen": {
+      "executor": "nx:run-commands",
+      "outputs": [
+        "{workspaceRoot}/contracts/registry",
+        "{workspaceRoot}/contracts/merged-openapi.yaml",
+        "{workspaceRoot}/libs/shared-types/src/generated",
+        "{workspaceRoot}/libs/api-client/src/generated"
+      ],
+      "options": {
+        "command": "tsx codegen/generate-all.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "check": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx validation/generated-files-check.ts && tsx validation/contract-drift-check.ts && tsx validation/route-coverage-check.ts",
+        "cwd": "{projectRoot}"
+      }
+    }
+  }
+}

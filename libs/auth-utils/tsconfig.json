@@ -1,0 +1,7 @@
+{
+  "extends": "../../tools/tsconfig-base/tsconfig.web.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": ["src/**/*.ts", "src/**/*.tsx", "tests/**/*.ts", "tests/**/*.tsx"]
+}

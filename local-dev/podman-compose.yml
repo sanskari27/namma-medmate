@@ -1,0 +1,67 @@
+services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_DB: medmate
+      POSTGRES_USER: medmate
+      POSTGRES_PASSWORD: medmate
+    ports:
+      - '5432:5432'
+    volumes:
+      - postgres-data:/var/lib/postgresql/data
+      - ./containers/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:z
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U medmate -d medmate']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  pgbouncer:
+    image: docker.io/edoburu/pgbouncer:v1.23.1-p1
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgres://medmate:medmate@postgres:5432/medmate
+      POOL_MODE: transaction
+      MAX_CLIENT_CONN: 100
+      DEFAULT_POOL_SIZE: 20
+      AUTH_TYPE: scram-sha-256
+    ports:
+      - '6432:6432'
+    volumes:
+      - ./containers/pgbouncer/pgbouncer.ini:/etc/pgbouncer/pgbouncer.ini:z
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -h 127.0.0.1 -p 6432 || exit 1']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  localstack:
+    image: docker.io/localstack/localstack:3.8
+    environment:
+      SERVICES: s3,sqs,sns,ssm,secretsmanager
+      AWS_DEFAULT_REGION: ap-south-1
+    ports:
+      - '4566:4566'
+    volumes:
+      - ./containers/localstack/init-aws.sh:/etc/localstack/init/ready.d/init-aws.sh:z
+    healthcheck:
+      test: ['CMD', 'curl', '-f', 'http://localhost:4566/_localstack/health']
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  mock-oidc:
+    build:
+      context: ./containers/mock-oidc
+    ports:
+      - '8081:8081'
+    healthcheck:
+      test: ['CMD', 'wget', '-qO-', 'http://127.0.0.1:8081/jwks.json']
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  postgres-data:

@@ -1,0 +1,7 @@
+[
+  {
+    "method": "get",
+    "path": "/auth/session",
+    "operationId": "getAuthSession"
+  }
+]

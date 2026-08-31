@@ -1,0 +1,9 @@
+packages:
+  - 'apps/*'
+  - 'modules/*/ui'
+  - 'modules/*/api'
+  - 'libs/*'
+  - 'tools/*'
+  - 'contracts'
+  - 'boundaries'
+  - 'local-dev'

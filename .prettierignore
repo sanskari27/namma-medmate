@@ -1,0 +1,15 @@
+node_modules
+dist
+coverage
+.nx
+pnpm-lock.yaml
+playwright-report
+test-results
+**/.terraform
+*.tfstate
+stories/.generated
+libs/shared-types/src/generated
+libs/api-client/src/generated
+contracts/registry
+contracts/merged-openapi.yaml
+CHANGELOG.md

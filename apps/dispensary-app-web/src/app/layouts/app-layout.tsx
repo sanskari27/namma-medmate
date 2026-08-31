@@ -1,0 +1,21 @@
+import type { ReactNode } from 'react';
+
+export function AppLayout({ children }: { children: ReactNode }) {
+  return (
+    <div className="min-h-screen">
+      <a
+        href="#main-content"
+        className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-10 focus:rounded-md focus:bg-cta focus:px-4 focus:py-2 focus:text-cta-foreground"
+      >
+        Skip to main content
+      </a>
+      <header className="border-b border-border bg-surface-raised px-6 py-4">
+        <p className="text-sm font-medium uppercase tracking-wide text-ink-muted">Namma MedMate</p>
+        <p className="text-2xl font-semibold text-ink">Dispensary</p>
+      </header>
+      <main id="main-content" className="mx-auto max-w-3xl px-6 py-10">
+        {children}
+      </main>
+    </div>
+  );
+}

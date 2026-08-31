@@ -1,0 +1,58 @@
+name: Rollback
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        type: choice
+        options: [staging, prod]
+      targetType:
+        type: choice
+        options: [lambda, web]
+      targetName:
+        type: string
+      version:
+        type: string
+
+jobs:
+  rollback:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Validate allowlists
+        run: |
+          set -euo pipefail
+          ENV="${{ inputs.environment }}"
+          TYPE="${{ inputs.targetType }}"
+          NAME="${{ inputs.targetName }}"
+          VERSION="${{ inputs.version }}"
+          case "$ENV" in staging|prod) ;; *) echo "unsupported environment"; exit 1 ;; esac
+          case "$TYPE" in
+            lambda)
+              case "$NAME" in namma-medmate-${ENV}-auth-api) ;; *) echo "lambda not allowlisted"; exit 1 ;; esac
+              ;;
+            web)
+              case "$NAME" in dispensary-app-web) ;; *) echo "web target not allowlisted"; exit 1 ;; esac
+              ;;
+            *) echo "unsupported target type"; exit 1 ;;
+          esac
+          if [ -z "$VERSION" ] || ! printf '%s' "$VERSION" | grep -Eq '^[A-Za-z0-9._-]+$'; then
+            echo "invalid version"
+            exit 1
+          fi
+      - name: Rollback lambda
+        if: ${{ inputs.targetType == 'lambda' }}
+        run: |
+          aws lambda update-function-code --function-name "${{ inputs.targetName }}" --s3-bucket "${{ vars.ARTIFACT_BUCKET }}" --s3-key "${{ inputs.targetName }}/${{ inputs.version }}/handler.zip"
+      - name: Rollback web
+        if: ${{ inputs.targetType == 'web' }}
+        run: |
+          aws s3 sync "s3://${{ vars.ARTIFACT_BUCKET }}/${{ inputs.targetName }}/${{ inputs.version }}/" "s3://${{ vars.WEB_BUCKET }}" --delete
+          aws cloudfront create-invalidation --distribution-id "${{ vars.CLOUDFRONT_DISTRIBUTION_ID }}" --paths '/*'

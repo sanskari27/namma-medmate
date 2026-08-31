@@ -1,0 +1,6 @@
+{
+  "name": "@namma-medmate/commit-lint-config",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module"
+}

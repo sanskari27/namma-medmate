@@ -1,0 +1,21 @@
+{
+  "name": "local-dev",
+  "$schema": "../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "local-dev",
+  "projectType": "library",
+  "tags": ["type:tool", "domain:shared"],
+  "targets": {
+    "up": {
+      "executor": "nx:run-commands",
+      "options": { "command": "podman compose -f podman-compose.yml up -d", "cwd": "{projectRoot}" }
+    },
+    "down": {
+      "executor": "nx:run-commands",
+      "options": { "command": "podman compose -f podman-compose.yml down", "cwd": "{projectRoot}" }
+    },
+    "seed": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsx seed/seed-db.ts", "cwd": "{projectRoot}" }
+    }
+  }
+}

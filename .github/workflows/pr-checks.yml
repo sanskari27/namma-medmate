@@ -1,0 +1,115 @@
+name: PR checks
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect:
+    uses: ./.github/workflows/_reusable-detect-changes.yml
+
+  boundaries:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run boundaries:validate
+      - run: pnpm format:check
+
+  contracts:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run contracts:check
+
+  lint-matrix:
+    needs: detect
+    if: ${{ needs.detect.outputs.projects != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.detect.outputs.projects) }}
+    uses: ./.github/workflows/_reusable-lint-typecheck.yml
+    with:
+      project: ${{ matrix.project }}
+
+  unit-matrix:
+    needs: detect
+    if: ${{ needs.detect.outputs.projects != '[]' }}
+    strategy:
+      fail-fast: false
+      matrix:
+        project: ${{ fromJson(needs.detect.outputs.projects) }}
+    uses: ./.github/workflows/_reusable-unit-test.yml
+    with:
+      project: ${{ matrix.project }}
+
+  coverage-gate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run-many -t test --all --configuration=coverage
+
+  playwright:
+    needs: detect
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [dispensary-app-web, auth-ui, auth-api]
+        shard: [1]
+    uses: ./.github/workflows/_reusable-playwright.yml
+    with:
+      project: ${{ matrix.project }}
+      shardIndex: ${{ matrix.shard }}
+      shardTotal: '1'
+
+  visual:
+    uses: ./.github/workflows/_reusable-visual-regression.yml
+    with:
+      project: auth-ui
+
+  terraform-validate:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - run: terraform fmt -check -recursive
+        working-directory: infra/terraform
+      - run: terraform init -backend=false && terraform validate
+        working-directory: infra/terraform/environments/staging
+      - run: terraform init -backend=false && terraform validate
+        working-directory: infra/terraform/environments/prod
+
+  a11y-bundle-lighthouse:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with: { version: 10 }
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm exec nx run dispensary-app-web:build
+      - run: pnpm exec nx run dispensary-app-web:bundle-size
+      - run: pnpm exec nx run dispensary-app-web:lighthouse

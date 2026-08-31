@@ -1,0 +1,22 @@
+openapi: 3.0.3
+info:
+  title: Bootstrap fixture
+  version: 0.0.0
+paths:
+  /auth/ping:
+    get:
+      operationId: ping
+      parameters:
+        - name: q
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: ok
+          content:
+            application/json:
+              schema:
+                type: object
+                additionalProperties: true

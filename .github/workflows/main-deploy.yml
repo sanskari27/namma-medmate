@@ -1,0 +1,75 @@
+name: Main deploy
+on:
+  push:
+    branches: [main]
+
+jobs:
+  detect:
+    uses: ./.github/workflows/_reusable-detect-changes.yml
+
+  build:
+    needs: detect
+    strategy:
+      fail-fast: false
+      matrix:
+        project: [dispensary-app-web, auth-api]
+    uses: ./.github/workflows/_reusable-build.yml
+    with:
+      project: ${{ matrix.project }}
+
+  terraform:
+    needs: detect
+    if: ${{ needs.detect.outputs.infra == 'true' }}
+    uses: ./.github/workflows/_reusable-terraform.yml
+    with:
+      environment: staging
+      apply: true
+
+  deploy-staging-web:
+    needs: [detect, build]
+    uses: ./.github/workflows/_reusable-deploy-web.yml
+    with:
+      project: dispensary-app-web
+      environment: staging
+
+  deploy-staging-lambda:
+    needs: [detect, build]
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        project: [auth-api]
+    uses: ./.github/workflows/_reusable-deploy-lambda.yml
+    with:
+      project: ${{ matrix.project }}
+      environment: staging
+
+  staging-pdt:
+    needs: [deploy-staging-web, deploy-staging-lambda]
+    runs-on: ubuntu-latest
+    environment: staging
+    steps:
+      - uses: actions/checkout@v4
+      - run: curl --fail "${{ vars.STAGING_API_BASE_URL }}/health"
+      - run: curl --fail "https://dispensary.staging.nammamedmate.com"
+
+  deploy-prod-web:
+    needs: staging-pdt
+    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    uses: ./.github/workflows/_reusable-deploy-web.yml
+    with:
+      project: dispensary-app-web
+      environment: prod
+
+  deploy-prod-lambda:
+    needs: staging-pdt
+    if: ${{ vars.PROD_DEPLOY_ENABLED == 'true' }}
+    strategy:
+      fail-fast: false
+      max-parallel: 2
+      matrix:
+        project: [auth-api]
+    uses: ./.github/workflows/_reusable-deploy-lambda.yml
+    with:
+      project: ${{ matrix.project }}
+      environment: prod

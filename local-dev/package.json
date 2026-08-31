@@ -1,0 +1,15 @@
+{
+  "name": "@namma-medmate/local-dev",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "up": "podman compose -f podman-compose.yml up -d",
+    "down": "podman compose -f podman-compose.yml down",
+    "logs": "podman compose -f podman-compose.yml logs -f",
+    "seed": "tsx seed/seed-db.ts"
+  },
+  "dependencies": {
+    "@namma-medmate/db-services": "workspace:*"
+  }
+}

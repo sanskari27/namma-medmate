@@ -1,0 +1,45 @@
+name: Terraform
+on:
+  workflow_call:
+    inputs:
+      environment:
+        required: true
+        type: string
+      apply:
+        required: false
+        type: boolean
+        default: false
+jobs:
+  terraform:
+    runs-on: ubuntu-latest
+    environment: ${{ inputs.environment }}
+    permissions:
+      id-token: write
+      contents: read
+    defaults:
+      run:
+        working-directory: infra/terraform/environments/${{ inputs.environment }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hashicorp/setup-terraform@v3
+      - uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: ${{ vars.AWS_DEPLOY_ROLE_ARN }}
+          aws-region: ap-south-1
+      - name: Restore provider lock from S3
+        run: |
+          BUCKET=$(awk -F '"' '/^bucket/{print $2; exit}' backend.hcl)
+          aws s3 cp "s3://${BUCKET}/namma-medmate/terraform/locks/${{ inputs.environment }}/.terraform.lock.hcl" .terraform.lock.hcl || true
+      - run: terraform init -backend-config=backend.hcl
+      - run: terraform fmt -check -recursive
+      - run: terraform validate
+      - run: terraform plan -out=tfplan
+      - if: ${{ inputs.apply }}
+        run: terraform apply tfplan
+      - name: Persist provider lock to S3
+        if: ${{ always() && inputs.apply }}
+        run: |
+          BUCKET=$(awk -F '"' '/^bucket/{print $2; exit}' backend.hcl)
+          if [ -f .terraform.lock.hcl ]; then
+            aws s3 cp .terraform.lock.hcl "s3://${BUCKET}/namma-medmate/terraform/locks/${{ inputs.environment }}/.terraform.lock.hcl"
+          fi

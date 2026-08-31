@@ -1,0 +1,28 @@
+{
+  "name": "@namma-medmate/auth-api",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/handler.ts",
+  "types": "./src/handler.ts",
+  "scripts": {
+    "serve": "tsx src/local.ts"
+  },
+  "dependencies": {
+    "@namma-medmate/auth-utils": "workspace:*",
+    "@namma-medmate/env-config": "workspace:*",
+    "@namma-medmate/error-handling": "workspace:*",
+    "@namma-medmate/lambda-bootstrap": "workspace:*",
+    "@namma-medmate/logger": "workspace:*",
+    "@namma-medmate/response-envelope": "workspace:*",
+    "express": "^4.21.2",
+    "zod": "^3.25.76"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.152",
+    "@types/express": "^4.17.23",
+    "@types/supertest": "^6.0.3",
+    "jose": "^6.0.12",
+    "supertest": "^7.1.4"
+  }
+}

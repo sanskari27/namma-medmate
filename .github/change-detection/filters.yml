@@ -1,0 +1,15 @@
+apps:
+  - apps/**
+moduleUis:
+  - modules/*/ui/**
+moduleApis:
+  - modules/*/api/**
+libs:
+  - libs/**
+infra:
+  - infra/**
+secrets:
+  - secrets-config/**
+contracts:
+  - contracts/**
+  - modules/*/api/contract/**

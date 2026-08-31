@@ -1,0 +1,53 @@
+name: Detect changes
+on:
+  workflow_call:
+    outputs:
+      apps:
+        value: ${{ jobs.detect.outputs.apps }}
+      module_uis:
+        value: ${{ jobs.detect.outputs.module_uis }}
+      module_apis:
+        value: ${{ jobs.detect.outputs.module_apis }}
+      libs:
+        value: ${{ jobs.detect.outputs.libs }}
+      projects:
+        value: ${{ jobs.detect.outputs.projects }}
+      infra:
+        value: ${{ jobs.detect.outputs.infra }}
+      secrets:
+        value: ${{ jobs.detect.outputs.secrets }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      apps: ${{ steps.nx.outputs.apps }}
+      module_uis: ${{ steps.nx.outputs.module_uis }}
+      module_apis: ${{ steps.nx.outputs.module_apis }}
+      libs: ${{ steps.nx.outputs.libs }}
+      projects: ${{ steps.nx.outputs.projects }}
+      infra: ${{ steps.paths.outputs.infra }}
+      secrets: ${{ steps.paths.outputs.secrets }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10
+      - uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - id: paths
+        uses: dorny/paths-filter@v3
+        with:
+          filters: .github/change-detection/filters.yml
+      - id: nx
+        env:
+          BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
+        run: |
+          BASE="${BASE_SHA:-HEAD~1}"
+          AFFECTED="$(pnpm exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
+          node .github/change-detection/emit-matrix.mjs "$AFFECTED"

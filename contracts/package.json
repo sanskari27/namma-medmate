@@ -1,0 +1,13 @@
+{
+  "name": "@namma-medmate/contracts",
+  "version": "0.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "codegen": "tsx codegen/generate-all.ts",
+    "check": "tsx validation/generated-files-check.ts"
+  },
+  "dependencies": {
+    "js-yaml": "^4.1.0"
+  }
+}
