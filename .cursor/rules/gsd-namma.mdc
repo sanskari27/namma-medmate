@@ -1,0 +1,14 @@
+---
+description: When using global /gsd/*, map one phase to one requirement slug and execute via implement-module
+alwaysApply: true
+---
+
+# GSD adapter
+
+Global `/gsd/*` is optional planning. This repo’s source of truth is `docs/requirements/` + the tracker.
+
+- One GSD phase = one requirement slug (`01-tenancy` … `42-admin-platform-settings`). Do not invent module slugs.
+- Execute with skill `implement-module` (Ponytail → TDD → Stitch → code → `verify-gates`).
+- Status lives in `docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`, not only `.planning/STATE.md`.
+- Follow ADRs, boundaries, e2e-kit, and 100% Vitest coverage. Do not skip Stitch for UI.
+- Do not duplicate GSD command files into this repo. See skill `gsd-namma-adapter`.

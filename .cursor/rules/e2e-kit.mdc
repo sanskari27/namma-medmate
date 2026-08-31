@@ -1,0 +1,25 @@
+---
+description: Playwright e2e-kit — four files per screen; specs never import selectors or locators
+globs: "**/tests/e2e/**"
+alwaysApply: false
+---
+
+# E2E kit
+
+UI screens: `{screen}.selectors.ts` (data) → locators → page (`BasePage`) → steps. Flows compose steps. Specs live under `specs/{smoke,happy-path,failure-cases,a11y,visual}/` and import fixtures, steps, and flows **only**.
+
+Prefer role/label. `testId` if the accessible name is unstable. CSS last. No Cypress.
+
+```ts
+// BAD — spec imports selectors
+import { homeSelectors } from '../../screens/home/home.selectors.ts';
+
+// GOOD
+import { reachHome } from '../../flows/reach-home.flow.ts';
+import { test } from '../../fixtures/e2e-test.ts';
+test('home page is reachable', async ({ homePage }) => {
+  await reachHome({ homePage });
+});
+```
+
+API e2e is HTTP-only (`request`). No page objects.

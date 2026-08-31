@@ -1,0 +1,26 @@
+---
+description: Every new runtime file, screen, and endpoint must have tests in the same change
+alwaysApply: true
+---
+
+# Tests required
+
+TDD (`tdd-enforcer`): write failing specs **before** runtime code. `passWithNoTests` is already `false` — do not add it.
+
+| Change | Required tests |
+|--------|----------------|
+| API controller / validator | Vitest unit **and** Playwright `happy-path` + `failure-cases` |
+| React component / hook | `tests/unit/` + Testing Library |
+| UI screen | e2e-kit four files + smoke, happy-path, failure-cases, a11y, visual |
+| `db-services` query | Unit test in that lib |
+| Lib runtime | `libs/{name}/tests/unit/` |
+
+```ts
+// BAD — only health e2e after adding POST /tenancy/pharmacies
+test('health is mounted', async ({ request }) => { /* ... */ });
+
+// GOOD — AC mapped
+test('POST /tenancy/pharmacies returns 201 with tenant_id and location_id', async ({ request }) => { /* ... */ });
+```
+
+Forbidden: “tests later”, empty `tests/unit`, lowering coverage thresholds, widening `coverage.exclude` without review.

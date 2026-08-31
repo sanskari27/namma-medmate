@@ -1,0 +1,14 @@
+---
+description: Namma MedMate monorepo stack, layout, and agent index
+alwaysApply: true
+---
+
+# Project core
+
+- Product: Namma MedMate TypeScript monorepo. Requirements: `docs/requirements/README.md`. Tracker: `docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`.
+- Node 24, pnpm 10, **Nx** (not Turbo). Conventional Commits via commitlint.
+- Layout: `apps/` product web, `modules/{slug}/{ui,api,docs}` domain, `libs/` shared, `contracts/` OpenAPI codegen, `infra/terraform/` staging/prod (S3 state only).
+- Reference implementations: `modules/auth/ui` and `modules/auth/api`. Copy those, not README-only `modules/_template`.
+- Next module: `01-tenancy`. Current auth is OIDC scaffold; chemist login is `06-auth.md`.
+- Do not invent a new top-level app (HQ) unless the requirement or user asks. Compose pharmacy UI into `apps/dispensary-app-web`.
+- Agent/skill/command index: `AGENTS.md`.

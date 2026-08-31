@@ -1,0 +1,20 @@
+---
+description: All PostgreSQL access lives in libs/db-services — never modules/*/api/db
+globs: "libs/db-services/**,modules/*/api/**"
+alwaysApply: false
+---
+
+# db-services
+
+All Postgres lives in `@namma-medmate/db-services` (Drizzle schema, repositories, services). Module APIs import the lib. No `modules/*/api/db/`.
+
+Pharmacy rows store `tenant_id` + `location_id`. UUIDs for ids.
+
+```ts
+// BAD
+// modules/tenancy/api/src/db/pharmacies.ts
+await pool.query('SELECT * FROM pharmacies WHERE tenant_id = $1', [id]);
+
+// GOOD
+import { getLocationForTenant } from '@namma-medmate/db-services';
+```

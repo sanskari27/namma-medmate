@@ -1,0 +1,27 @@
+---
+description: Strict TypeScript — no any, complete shapes, generated OpenAPI types win
+globs: "**/*.{ts,tsx}"
+alwaysApply: false
+---
+
+# TypeScript strict
+
+`tsconfig.base.json` is already `strict` + `noUncheckedIndexedAccess`. Do not weaken it.
+
+- No `any`, no `as unknown as`, no empty interfaces.
+- Named types for public props and API payloads. Prefer generated types from `@namma-medmate/shared-types` / `@namma-medmate/api-client`.
+- `import type` / `consistent-type-imports`. kebab-case files. No `console.log` (logger lib).
+- `workspace:*` for internal packages.
+
+```ts
+// BAD
+function handle(payload: any) {
+  return payload.data as unknown as Session;
+}
+
+// GOOD
+import type { Session } from '@namma-medmate/shared-types';
+function handle(payload: { data: Session }): Session {
+  return payload.data;
+}
+```

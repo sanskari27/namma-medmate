@@ -1,0 +1,22 @@
+---
+description: Module UI — RTK Query via api-client, Storybook, i18n, event-bus contracts
+globs: "modules/*/ui/**,apps/**/*.tsx"
+alwaysApply: false
+---
+
+# React module UI
+
+- Call APIs through `@namma-medmate/api-client` (`queryEnvelope` + generated `createApiClient`). No per-module HTTP wrapper.
+- i18n keys `{slug}.*` via `@namma-medmate/i18n`. No hardcoded user strings.
+- Cross-module UI: `src/events/events.contract.ts` + `@namma-medmate/event-bus`.
+- Storybook + `src/scenarios/` like auth-ui. Export `./e2e` when apps must traverse this module.
+- Stitch screens before new UI (skill `stitch-ui-design`).
+
+```ts
+// BAD
+const res = await fetch('/auth/session');
+
+// GOOD
+const client = createApiClient({ baseUrl });
+const session = await queryEnvelope(client.GET('/auth/session'));
+```

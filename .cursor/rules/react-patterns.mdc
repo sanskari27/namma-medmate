@@ -1,0 +1,26 @@
+---
+description: React 19 function components and hooks only — RTK for module state
+globs: "**/*.{tsx,jsx}"
+alwaysApply: false
+---
+
+# React patterns
+
+Function components and hooks only. No class components, no `defaultProps` on functions, no legacy lifecycles.
+
+Module state: RTK slices + RTK Query via generated `createApiClient` (skill `rtk-query-api-client`). Extract a hook when logic is reused. Presentational components stay dumb.
+
+Copy `modules/auth/ui` (widget + slice + hook), not a new architecture.
+
+```tsx
+// BAD
+class AuthWidget extends React.Component {
+  render() { return <div />; }
+}
+
+// GOOD
+export function AuthWidget() {
+  const session = useAppSelector((s) => s.session);
+  return <section>{session.status}</section>;
+}
+```

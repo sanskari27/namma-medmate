@@ -1,0 +1,24 @@
+---
+description: Allowed Nx module dependency graph — no UI↔API, no api/db
+alwaysApply: true
+---
+
+# Module boundaries
+
+Allowed: `app → module-ui → lib`, `app → lib`, `module-api → lib`, `lib → lib`.
+
+Forbidden: `app → module-api`, `module-ui → module-api`, `module-ui → module-ui`, `module-api → module-ui`, `module-api → module-api`, `lib → app|module-*`, any `modules/*/api/db/`.
+
+```ts
+// BAD
+import { createApp } from '@namma-medmate/auth-api';
+import { AuthWidget } from '../../inventory/ui/src/components/auth-widget.tsx';
+
+// GOOD
+import { createApiClient } from '@namma-medmate/api-client';
+import { AuthWidget } from '@namma-medmate/auth-ui';
+```
+
+UI talks to APIs only through `@namma-medmate/api-client`. Cross-module UI uses `@namma-medmate/event-bus`. Persistence only via `@namma-medmate/db-services`.
+
+Enforced by `@nx/enforce-module-boundaries` and `pnpm exec nx run boundaries:validate`.
