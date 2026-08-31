@@ -18,7 +18,7 @@ The `audit` module is the platform’s append-only **AuditEvent** log. Every Bil
   - HQ Settings & RBAC page chrome (`admin-platform-settings` consumes the query API).
   - Computing financial totals, stock qty, GST, or IRN success (source modules own those facts and pass before/after).
   - Authentication of staff (`auth`); this module only records what callers send plus server timestamp.
-  - Period lock enforcement (`books-gst`); locked periods still *append* reversing documents as new AuditEvents.
+  - Period lock enforcement (`books-gst`); locked periods still _append_ reversing documents as new AuditEvents.
   - CA pack contents (`ca-sharing` must not dump a full patient AuditEvent stream by default).
 
 ## 3. Dependencies
@@ -262,17 +262,17 @@ As Super admin I change a platform setting and see myself on the HQ audit log.
 - Concurrent ingest without idempotency: two rows (emitters for Charge/GRN/repayment/IRN must pass keys; Charge uses `client_charge_id` as part of the key).
 - Plan expired: query API still returns history (data retained); `reports` paywall is `plan-gating`.
 
-| Code | HTTP | When |
-|---|---|---|
-| `LOCATION_ID_REQUIRED` | 400 | Pharmacy event/query missing location |
-| `LOCATION_TENANT_MISMATCH` | 403 | Pairing |
-| `BEFORE_AFTER_REQUIRED` | 400 | Money/stock missing snapshots |
-| `SECRET_KEY_FORBIDDEN` | 400 | Forbidden json keys |
-| `ACTOR_REQUIRED` | 400 | No actor |
-| `PAYLOAD_TOO_LARGE` | 400 | Snapshot > 64 KiB |
-| `INVALID_RANGE` | 400 | from > to |
-| `MONEY_OR_STOCK_REQUIRED` | 400 | FR-7 |
-| `NOT_FOUND` | 404 | Unknown id or hidden by tenant |
+| Code                       | HTTP | When                                  |
+| -------------------------- | ---- | ------------------------------------- |
+| `LOCATION_ID_REQUIRED`     | 400  | Pharmacy event/query missing location |
+| `LOCATION_TENANT_MISMATCH` | 403  | Pairing                               |
+| `BEFORE_AFTER_REQUIRED`    | 400  | Money/stock missing snapshots         |
+| `SECRET_KEY_FORBIDDEN`     | 400  | Forbidden json keys                   |
+| `ACTOR_REQUIRED`           | 400  | No actor                              |
+| `PAYLOAD_TOO_LARGE`        | 400  | Snapshot > 64 KiB                     |
+| `INVALID_RANGE`            | 400  | from > to                             |
+| `MONEY_OR_STOCK_REQUIRED`  | 400  | FR-7                                  |
+| `NOT_FOUND`                | 404  | Unknown id or hidden by tenant        |
 
 ## 10. Open Questions / Assumptions
 
@@ -284,4 +284,5 @@ As Super admin I change a platform setting and see myself on the HQ audit log.
 - Assumption: HQ platform events may have null tenant; any action on a chemist account must include that Pharmacy’s `tenant_id` + `location_id`.
 - Vague: exhaustive action enum. Implement the listed actions and allow additional strings so later modules are not blocked.
 - Out of v1: chemist-facing “delete my audit”, mutable logs, Tally export of audit.
+
 ---

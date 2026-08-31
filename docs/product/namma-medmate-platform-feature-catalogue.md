@@ -8,11 +8,11 @@
 
 **How to use this file**
 
-| You are | Use |
-|---|---|
-| Product / sales | Sections 1–4, 6 — what is sold and how it is gated |
-| Engineering / QA | Sections 2, 5, 7–10 — invariants, failures, tenancy, security |
-| Implementers | A module is done only when its **invariants** and **failure** rows pass |
+| You are          | Use                                                                     |
+| ---------------- | ----------------------------------------------------------------------- |
+| Product / sales  | Sections 1–4, 6 — what is sold and how it is gated                      |
+| Engineering / QA | Sections 2, 5, 7–10 — invariants, failures, tenancy, security           |
+| Implementers     | A module is done only when its **invariants** and **failure** rows pass |
 
 ---
 
@@ -20,24 +20,24 @@
 
 Pharmacy SaaS: ERP + CRM for a neighbourhood **retail** chemist. The chemist pays a subscription. **One bill writes stock, GST invoice (with IRN when eligible), statutory registers, and ledgers.**
 
-| Product | Who uses it | Job |
-|---|---|---|
-| **Pharmacy Partner Console** | Chemist / retail pharmacy | Counter + kiosk, stock, returns, khata, CRM, full GST books, staff |
-| **Platform Admin HQ** | Namma MedMate | Sell and run subscriptions: plans, dunning, onboarding, master catalogue, Rx audit, GST on SaaS invoices |
+| Product                      | Who uses it               | Job                                                                                                      |
+| ---------------------------- | ------------------------- | -------------------------------------------------------------------------------------------------------- |
+| **Pharmacy Partner Console** | Chemist / retail pharmacy | Counter + kiosk, stock, returns, khata, CRM, full GST books, staff                                       |
+| **Platform Admin HQ**        | Namma MedMate             | Sell and run subscriptions: plans, dunning, onboarding, master catalogue, Rx audit, GST on SaaS invoices |
 
 **Scope:** standalone retail pharmacy. Design the data model for one shop; do not block branches (no stock-transfer or chain-HQ screens). **Branches are not a sold feature** — Pro is unlimited **seats**. Hospital / IPD, wholesale, diagnostics, insurance/TPA, and Jan Aushadhi are out of scope.
 
 ### 1.1 Personas
 
-| Persona | Surface | Job |
-|---|---|---|
-| **Owner** | Pharmacy console | Run the shop, pay SaaS (Cashfree), KYC, GSTN credentials, period lock (Growth books), go-live wizard |
-| **Manager** | Pharmacy console | Bills, stock, purchases, reports, CRM — not user-admin unless granted |
-| **Pharmacist** | Pharmacy console | POS, Rx queue, inventory, duty clock-in |
-| **Cashier** | Pharmacy console | POS, khata collect |
-| **Kiosk shopper** | Kiosk mode | OTC self-order; cannot reach the console |
-| **CA** | No-login share link | Read selected reports; files GSTN outside Namma |
-| **Namma Super admin / Ops / Finance / Support / Compliance** | Admin HQ | SaaS, catalogue, Rx audit, dunning |
+| Persona                                                      | Surface             | Job                                                                                                  |
+| ------------------------------------------------------------ | ------------------- | ---------------------------------------------------------------------------------------------------- |
+| **Owner**                                                    | Pharmacy console    | Run the shop, pay SaaS (Cashfree), KYC, GSTN credentials, period lock (Growth books), go-live wizard |
+| **Manager**                                                  | Pharmacy console    | Bills, stock, purchases, reports, CRM — not user-admin unless granted                                |
+| **Pharmacist**                                               | Pharmacy console    | POS, Rx queue, inventory, duty clock-in                                                              |
+| **Cashier**                                                  | Pharmacy console    | POS, khata collect                                                                                   |
+| **Kiosk shopper**                                            | Kiosk mode          | OTC self-order; cannot reach the console                                                             |
+| **CA**                                                       | No-login share link | Read selected reports; files GSTN outside Namma                                                      |
+| **Namma Super admin / Ops / Finance / Support / Compliance** | Admin HQ            | SaaS, catalogue, Rx audit, dunning                                                                   |
 
 ### 1.2 Tenancy
 
@@ -56,12 +56,12 @@ Every pharmacy starts on **Free**. Core billing is free forever. Richer modules 
 
 Prices (plus **18% GST** on checkout):
 
-| Plan | Monthly | Annual (saving) | Seats | What it unlocks |
-|---|---|---|---|---|
-| **Free** | ₹0 | — | 2 users | Billing / POS & GST invoices · **Orders (today + last 7 days)** · Inventory (batches & expiry) · Purchases / goods-inward · Returns · Opening stock CSV · Invoice Settings · **Manage Users** (up to 2 seats) |
-| **Starter** | ₹699 | ~5% off | 2 users | Everything in Free + **Prescriptions, Customers, Credit / Khata, H1/X registers, pharmacist-on-duty, licence alerts, Employees** + WhatsApp support |
-| **Growth** | ₹1,499 | ~15% off | 5 users | Everything in Starter + **Sales ledger (365-day + export), Reports, CRM, CA sharing, full books + GSTN prepare + IRN, stock take, Reorder, Distributors, Offers, Expenses, Rack map** |
-| **Pro** | ₹2,999 | ~20% off | Unlimited | Everything in Growth + **locked Self-Order Kiosk, unlimited seats**, priority WhatsApp support |
+| Plan        | Monthly | Annual (saving) | Seats     | What it unlocks                                                                                                                                                                                               |
+| ----------- | ------- | --------------- | --------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Free**    | ₹0      | —               | 2 users   | Billing / POS & GST invoices · **Orders (today + last 7 days)** · Inventory (batches & expiry) · Purchases / goods-inward · Returns · Opening stock CSV · Invoice Settings · **Manage Users** (up to 2 seats) |
+| **Starter** | ₹699    | ~5% off         | 2 users   | Everything in Free + **Prescriptions, Customers, Credit / Khata, H1/X registers, pharmacist-on-duty, licence alerts, Employees** + WhatsApp support                                                           |
+| **Growth**  | ₹1,499  | ~15% off        | 5 users   | Everything in Starter + **Sales ledger (365-day + export), Reports, CRM, CA sharing, full books + GSTN prepare + IRN, stock take, Reorder, Distributors, Offers, Expenses, Rack map**                         |
+| **Pro**     | ₹2,999  | ~20% off        | Unlimited | Everything in Growth + **locked Self-Order Kiosk, unlimited seats**, priority WhatsApp support                                                                                                                |
 
 **Not sold in v1:** extra branches as a feature, attachable add-ons (e-invoice / WhatsApp / extra seat / API / analytics SKUs). Seats and modules come **only from the plan**. Extra seat = upgrade plan.
 
@@ -73,12 +73,12 @@ Locked pages show a lock icon. Opening one shows a paywall naming the required p
 
 HR records (**Employees**) and logins (**Manage Users**) are separate.
 
-| Role | Default access |
-|---|---|
-| **Owner** | Everything. Role and access cannot be reduced. |
-| **Manager** | Dashboard, billing, orders, prescriptions, credit, inventory, purchases, racks, distributors, reports, CRM — not user-admin / settings unless granted |
-| **Pharmacist** | Billing, orders, prescriptions, inventory, racks, CRM |
-| **Cashier** | Billing / POS, counter bills, credit (khata) |
+| Role           | Default access                                                                                                                                        |
+| -------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Owner**      | Everything. Role and access cannot be reduced.                                                                                                        |
+| **Manager**    | Dashboard, billing, orders, prescriptions, credit, inventory, purchases, racks, distributors, reports, CRM — not user-admin / settings unless granted |
+| **Pharmacist** | Billing, orders, prescriptions, inventory, racks, CRM                                                                                                 |
+| **Cashier**    | Billing / POS, counter bills, credit (khata)                                                                                                          |
 
 The owner can tick/untick per-module permissions, reset to role defaults, or select all. Adding a user is blocked once the **plan seat limit** is reached (2 / 5 / unlimited). Inactive users can be toggled off without deleting the HR record.
 
@@ -222,7 +222,7 @@ Numbers come from the same sales and stock as the rest of the console.
 
 ---
 
-### 3.2 Billing / POS — *Free forever*
+### 3.2 Billing / POS — _Free forever_
 
 Two-step flow: **Cart & customer → Payment**.
 
@@ -244,23 +244,23 @@ Stock deducts on sale. The same bill appears in Orders (7-day on Free; full on G
 
 ---
 
-### 3.3 Orders — bill board  · *Free (today + last 7 days)*
+### 3.3 Orders — bill board · _Free (today + last 7 days)_
 
 One board for every bill (counter + kiosk) in the **last 7 days including today**. Extra filter: **Held** (parked carts, not yet billed). Bills older than 7 days: row links to **Sales** (Growth paywall if not on Growth).
 
 Filters: **All · Counter · Kiosk · Khata outstanding · Held**. Search by invoice, name, or phone.
 
-| State | Staff can |
-|---|---|
-| Khata outstanding | **Record repayment** (same as 3.7) |
-| Any posted | History, Share bill (WhatsApp), Print invoice, **Return** |
-| Held | Resume / discard |
+| State             | Staff can                                                 |
+| ----------------- | --------------------------------------------------------- |
+| Khata outstanding | **Record repayment** (same as 3.7)                        |
+| Any posted        | History, Share bill (WhatsApp), Print invoice, **Return** |
+| Held              | Resume / discard                                          |
 
 Detail: facts, status timeline, linked prescription, itemised bill.
 
 ---
 
-### 3.4 Sales — full sales ledger  · *Growth*
+### 3.4 Sales — full sales ledger · _Growth_
 
 Every sale from day one for audit.
 
@@ -270,7 +270,7 @@ POS and 7-day Orders remain Free so a shop can still bill and find today’s inv
 
 ---
 
-### 3.5 Prescriptions — review & dispense  · *Starter*
+### 3.5 Prescriptions — review & dispense · _Starter_
 
 Clinical queue for **staff-uploaded** paper prescriptions (photo/PDF at the counter).
 
@@ -286,7 +286,7 @@ Allergy and substitute checks run when dispensing into POS. H1/X lines post to t
 
 ---
 
-### 3.6 Customers — database & history  · *Starter*
+### 3.6 Customers — database & history · _Starter_
 
 Named customers vs walk-ins.
 
@@ -302,9 +302,9 @@ Walk-ins still bill on Free; named CRM starts here. Go-live may import customers
 
 ---
 
-### 3.7 Credit · Khata — receivables  · *Starter*
+### 3.7 Credit · Khata — receivables · _Starter_
 
-Digital *udhaar*. **This is the only receivables ledger.** POS “Record on credit” writes here.
+Digital _udhaar_. **This is the only receivables ledger.** POS “Record on credit” writes here.
 
 KPIs: total outstanding, overdue 30d+, collected this month (collection rate), all-time credit given.
 
@@ -316,17 +316,17 @@ Recording a khata sale here and charging on credit at the counter are the same l
 
 ---
 
-### 3.8 CRM · Patients — retention  · *Growth*
+### 3.8 CRM · Patients — retention · _Growth_
 
-| Tab | What the owner can do |
-|---|---|
-| **Overview** | Patients, active (30d), at-risk, refills due, loyalty points, avg rating. Segment bars (Chronic, High value, Lapsed, New, On credit, Regular). At-risk table with WhatsApp **Win back**. |
-| **Patients & Segments** | Filter by segment. RFM score, loyalty tier, points, orders, last visit, LTV. |
-| **Reminders** | Refills due in 14 days. WhatsApp refill + follow-up (logged). |
-| **Loyalty** | Points outstanding and **₹ liability** (1 pt = ₹1). Tiers: **Silver 12+ / Gold 50+ / Platinum 120+** visits. Per-customer Redeem. Referral: both parties **₹100** (applied via Khata). Expiry: lots older than 12 months drop off the liability. |
-| **Campaigns** | Target a segment, WhatsApp from the **Namma MedMate WABA**, optional offer, editable template. History with attributed revenue (bills with that offer code in the next 14 days). |
-| **Feedback** | Log stars + NPS + comment, or request via WhatsApp. Promoters / detractors. |
-| **Analytics** | Avg LTV, retention %, churn risk, campaign sales, RFM leaders. |
+| Tab                     | What the owner can do                                                                                                                                                                                                                            |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| **Overview**            | Patients, active (30d), at-risk, refills due, loyalty points, avg rating. Segment bars (Chronic, High value, Lapsed, New, On credit, Regular). At-risk table with WhatsApp **Win back**.                                                         |
+| **Patients & Segments** | Filter by segment. RFM score, loyalty tier, points, orders, last visit, LTV.                                                                                                                                                                     |
+| **Reminders**           | Refills due in 14 days. WhatsApp refill + follow-up (logged).                                                                                                                                                                                    |
+| **Loyalty**             | Points outstanding and **₹ liability** (1 pt = ₹1). Tiers: **Silver 12+ / Gold 50+ / Platinum 120+** visits. Per-customer Redeem. Referral: both parties **₹100** (applied via Khata). Expiry: lots older than 12 months drop off the liability. |
+| **Campaigns**           | Target a segment, WhatsApp from the **Namma MedMate WABA**, optional offer, editable template. History with attributed revenue (bills with that offer code in the next 14 days).                                                                 |
+| **Feedback**            | Log stars + NPS + comment, or request via WhatsApp. Promoters / detractors.                                                                                                                                                                      |
+| **Analytics**           | Avg LTV, retention %, churn risk, campaign sales, RFM leaders.                                                                                                                                                                                   |
 
 Patient 360: WhatsApp / **Call** (`tel:` — no telephony product) / Refill / Redeem / New sale; medicines bought; clinical profile (age, gender, blood group, conditions, **allergies**, address, **consent** for refill + marketing). Allergy list is what POS and kiosk check.
 
@@ -334,7 +334,7 @@ Campaigns only go to patients with a phone **and marketing consent**. **Loyalty 
 
 ---
 
-### 3.9 Inventory — stock, batches, expiry  · *Free forever*
+### 3.9 Inventory — stock, batches, expiry · _Free forever_
 
 KPIs (click to filter): total SKUs & units, stock value at cost (with margin %), retail value at MRP, low-on-stock, expiring ≤ 4 months (₹ at risk), dead stock > 90 days.
 
@@ -350,13 +350,13 @@ Edit: name, composition, manufacturer, pack, category, form, schedule, HSN, GST 
 
 **New products are created through Purchases, not here.** Opening stock for go-live is **Excel/CSV** (and a books journal in 3.23 if needed). Stock moves from purchases (in), sales (out), returns, write-offs, and **stock take**. FEFO at billing (override: pharmacist PIN + reason).
 
-**Stock take** · *Growth:* count sheet (by rack or SKU) → system vs counted → variance → **Post adjustment** (journal + batch qty). Cannot post into a locked period. Export blank count sheet; import counted qty.
+**Stock take** · _Growth:_ count sheet (by rack or SKU) → system vs counted → variance → **Post adjustment** (journal + batch qty). Cannot post into a locked period. Export blank count sheet; import counted qty.
 
 After GRN: **Print batch / barcode labels** (SKU, batch, expiry, MRP) for the thermal printer. Rack labels remain on Rack map.
 
 ---
 
-### 3.10 Rack & Locations  · *Growth*
+### 3.10 Rack & Locations · _Growth_
 
 KPI: racks created, zones, medicines mapped, unlocated items.
 
@@ -366,7 +366,7 @@ POS still searches by rack on Free if locations were already assigned.
 
 ---
 
-### 3.11 Purchases — goods inward  · *Free forever*
+### 3.11 Purchases — goods inward · _Free forever_
 
 KPIs: purchases this month, **input-GST credit claimable**, total GRNs.
 
@@ -378,7 +378,7 @@ This is the path new SKUs enter the shop (alongside opening-stock CSV). Input GS
 
 ---
 
-### 3.12 Reorder · Distributor  · *Growth*
+### 3.12 Reorder · Distributor · _Growth_
 
 KPIs: items below reorder level, distributors to order from, estimated savings vs priciest source, open POs.
 
@@ -388,7 +388,7 @@ PO table: Draft / Sent / Received, with **Record GRN** and **Mark received**.
 
 ---
 
-### 3.13 Distributors  · *Growth*
+### 3.13 Distributors · _Growth_
 
 - **Directory** — firm, contact, GSTIN, drug licence, address, payment terms, outstanding, active toggle. Add / edit / remove.
 - **Supply list** — which SKUs each distributor supplies, purchase price, scheme, landed cost, MRP, margin, price rank, preferred-source star.
@@ -398,13 +398,13 @@ Outstanding payable here is the shop’s accounts-payable view.
 
 ---
 
-### 3.14 Offers  · *Growth*
+### 3.14 Offers · _Growth_
 
 Create: title, coupon code, % or flat ₹, applies-to (all / category / one product), running/paused, delete. Applies at **POS** (and kiosk price display). **One coupon per bill.**
 
 ---
 
-### 3.15 Self-Order Kiosk  · *Pro*
+### 3.15 Self-Order Kiosk · _Pro_
 
 In-shop **OTC** self-order on the **same tablet/browser as POS**.
 
@@ -420,13 +420,13 @@ Config: display name, welcome message, **staff exit PIN**, idle-reset timer, the
 
 ---
 
-### 3.16 Reports — *Growth*
+### 3.16 Reports — _Growth_
 
 Searchable catalogue, grouped:
 
 **Favourite:** Balance Sheet · **Trial Balance** · GSTR-1 (Sales) · Profit And Loss · Sales Summary
 
-**GST:** GSTR-2 (Purchase) · **GSTR-2B match** · GSTR-3B · GST Purchase (with HSN) · GST Sales (with HSN) · HSN-wise Sales Summary · TDS Payable · TDS Receivable · TCS Payable *(TDS/TCS reports are stubs in v1)*
+**GST:** GSTR-2 (Purchase) · **GSTR-2B match** · GSTR-3B · GST Purchase (with HSN) · GST Sales (with HSN) · HSN-wise Sales Summary · TDS Payable · TDS Receivable · TCS Payable _(TDS/TCS reports are stubs in v1)_
 
 **Transaction:** Audit Trail · Bill-wise Profit · Cash and Bank · Daybook · Expense Category · Expense Transaction · Purchase Summary · Credit notes · Purchase / expiry returns · Stock take variance
 
@@ -442,7 +442,7 @@ Figures are the same journals the books already posted.
 
 ---
 
-### 3.17 Expenses  · *Growth*
+### 3.17 Expenses · _Growth_
 
 Period + category + search. Categories include salaries, rent, electricity, telephone, stationery, repair, transport, raw material, marketing, bank charges, miscellaneous. **Recording an expense is not a payroll run.**
 
@@ -452,7 +452,7 @@ GST on expenses feeds ITC; totals feed P&L.
 
 ---
 
-### 3.18 CA / Accountant  · *Growth*
+### 3.18 CA / Accountant · _Growth_
 
 Share a **no-login link** with a CA: pick period, advisor, and reports (GST, Sales, P&L, stock, trial balance…). Manage advisors (firm, email, phone). Snapshot: GSTIN, net revenue, output GST, input credit, net GST. Sharing history.
 
@@ -480,7 +480,7 @@ Share a **no-login link** with a CA: pick period, advisor, and reports (GST, Sal
 
 ---
 
-### 3.20 Returns — customer credit notes  · *Free (tied to POS)*
+### 3.20 Returns — customer credit notes · _Free (tied to POS)_
 
 Reverse a counter or kiosk bill without deleting history.
 
@@ -494,7 +494,7 @@ H1/X returns also reverse the **pharmacy legal register**.
 
 ---
 
-### 3.21 Purchase & expiry returns to distributor  · *Free (tied to Purchases)*
+### 3.21 Purchase & expiry returns to distributor · _Free (tied to Purchases)_
 
 - **Purchase return:** against a GRN (wrong / excess / damaged). Debit note, stock out, AP reduced.
 - **Expiry return calendar:** batches expiring inside the distributor’s return window; raise return; track claimed / accepted / credit received.
@@ -504,49 +504,49 @@ Cannot return more than remaining batch qty.
 
 ---
 
-### 3.22 Pharmacy statutory registers & duty  · *Starter*
+### 3.22 Pharmacy statutory registers & duty · _Starter_
 
 Tabs: **H1 register · X register · Pharmacist on duty · Licence desk**.
 
 - Each scheduled sale / dispense / return appends: date, patient, doctor **name + registration number**, drug, batch, qty, running balance, bill no, pharmacist on duty.
 - **Export / print for the drug inspector — this printout is the legal record.**
 - **On duty:** clock-in the registered pharmacist (from Employees). **Scheduled staff-POS** is blocked if no one is on duty. WhatsApp if a scheduled POS cart is open and duty has lapsed. Kiosk is OTC-only, so it does not depend on duty.
-**Licence desk:** drug licence, FSSAI, pharmacist registration — issue date, expiry. WhatsApp at 60 / 30 / 7 days.
+  **Licence desk:** drug licence, FSSAI, pharmacist registration — issue date, expiry. WhatsApp at 60 / 30 / 7 days.
 
 **Doctors (shop list)** on this module: name, **registration number**, active. POS scheduled sale picks from this list (add-inline allowed). HQ doctor directory is the audit/verify copy, not a substitute for the shop list.
 
 ---
 
-### 3.23 Books, GSTN, and e-invoice  · *Growth*
+### 3.23 Books, GSTN, and e-invoice · _Growth_
 
 **Operational books** (not a blank accounting suite). No payroll run, no fixed assets, no cost centres.
 
 **Default chart of accounts** (Owner may rename/add children; do not delete control accounts that auto-post):
 
-| Group | Control accounts |
-|---|---|
-| Assets | Cash in till · Bank · Khata receivable · Inventory · GST input CGST/SGST/IGST |
-| Liabilities | AP distributors · GST output CGST/SGST/IGST · Loyalty points payable · Round-off |
-| Equity | Owner capital · Opening balances |
-| Income | Sales |
-| Cost | COGS |
-| Expense | Salary (manual expense) · Rent · Electricity · Telephone · Stationery · Repair · Transport · Marketing · Bank charges · Miscellaneous |
+| Group       | Control accounts                                                                                                                      |
+| ----------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Assets      | Cash in till · Bank · Khata receivable · Inventory · GST input CGST/SGST/IGST                                                         |
+| Liabilities | AP distributors · GST output CGST/SGST/IGST · Loyalty points payable · Round-off                                                      |
+| Equity      | Owner capital · Opening balances                                                                                                      |
+| Income      | Sales                                                                                                                                 |
+| Cost        | COGS                                                                                                                                  |
+| Expense     | Salary (manual expense) · Rent · Electricity · Telephone · Stationery · Repair · Transport · Marketing · Bank charges · Miscellaneous |
 
 **Auto-post (same event as the source document):**
 
-| Event | Posting (summary) |
-|---|---|
-| Cash sale | Dr Cash; Cr Sales; Cr GST output; Dr COGS / Cr Inventory |
-| Khata sale | Dr Khata; same income/GST/COGS as cash |
-| Khata repayment (cash) | Dr Cash; Cr Khata |
-| Loyalty earn | Cr Loyalty payable (points × ₹1); offset to sales contra / discount as one line on the bill journal |
-| Loyalty redeem | Dr Loyalty payable; reduces cash/khata Dr on the same bill |
-| Return / CN | Reverse the original bill path (stock restock or Dr write-off); reverse loyalty lots |
-| GRN | Dr Inventory; Dr GST input; Cr AP (scheme qty cost 0) |
-| Purchase return | Reverse GRN path |
-| Expense | Dr Expense (+ GST input if eligible); Cr Cash or Bank |
-| Stock take variance | Inventory vs COGS/write-off per posted variance |
-| Opening wizard | Dr/Cr Cash, Khata, AP, Inventory as declared; Cr/Dr Opening balances |
+| Event                  | Posting (summary)                                                                                   |
+| ---------------------- | --------------------------------------------------------------------------------------------------- |
+| Cash sale              | Dr Cash; Cr Sales; Cr GST output; Dr COGS / Cr Inventory                                            |
+| Khata sale             | Dr Khata; same income/GST/COGS as cash                                                              |
+| Khata repayment (cash) | Dr Cash; Cr Khata                                                                                   |
+| Loyalty earn           | Cr Loyalty payable (points × ₹1); offset to sales contra / discount as one line on the bill journal |
+| Loyalty redeem         | Dr Loyalty payable; reduces cash/khata Dr on the same bill                                          |
+| Return / CN            | Reverse the original bill path (stock restock or Dr write-off); reverse loyalty lots                |
+| GRN                    | Dr Inventory; Dr GST input; Cr AP (scheme qty cost 0)                                               |
+| Purchase return        | Reverse GRN path                                                                                    |
+| Expense                | Dr Expense (+ GST input if eligible); Cr Cash or Bank                                               |
+| Stock take variance    | Inventory vs COGS/write-off per posted variance                                                     |
+| Opening wizard         | Dr/Cr Cash, Khata, AP, Inventory as declared; Cr/Dr Opening balances                                |
 
 - **Journals:** wastage, damage, opening balances, adjustments. Cannot post into a locked period.
 - **Pay distributor** — record payment against AP (v1: cash / bank / NEFT recorded locally); outstanding on Distributors updates.
@@ -558,7 +558,7 @@ Tabs: **H1 register · X register · Pharmacist on duty · Licence desk**.
 - **Period / FY lock:** Owner locks a month or FY. Posted bills, GRNs, journals, stock takes, and credit notes in that period cannot be edited or deleted. New reversing documents post in the **open** period only. FY lock writes **opening-balance carry-forward**.
 - Failures (GSTN down, IRN reject) → WhatsApp to owner with the bill number **and** a console banner. IRN reject reasons shown verbatim from IRP. 2B pull fail → prepare from local books; banner that 2B is stale.
 
-Free still prints a GST invoice; IRN + return *preparation* start at Growth.
+Free still prints a GST invoice; IRN + return _preparation_ start at Growth.
 
 ---
 
@@ -596,21 +596,21 @@ This is **your subscription business**, not the chemist’s patient CRM.
 
 Chips: MRR, ARR, active subscribers, on trial, past due, at risk.
 
-| Tab | What you do |
-|---|---|
-| Overview | MRR by plan, SaaS metrics, at-risk list |
-| Sales pipeline | Kanban: new → contacted → demo → trial → won. + New lead. Weighted forecast, win rate |
-| Subscribers | Plan, seats used/limit, invoices/mo, NPS, health, renews-in. CSV export |
-| Plans | Plan cards. **Module-availability matrix by tier only.** No attachable add-on SKUs in v1. Change plan = live billing |
-| Modules | Feature adoption % per module; enable/disable per account **only as a support override** (logged); nudge eligible-but-not-using |
-| Discounts | Subscription coupons (% / ₹ / extra trial days), cap, first-time-only, pause/delete |
-| Billing | Collected / due / overdue, DSO, dunning queue with WhatsApp Remind. Invoice drawer GST @18% SAC 9983. **Cashfree** collection of **SaaS**; Mark paid if collected offline |
-| Onboarding | Go-live stepper + per-stage checklist (KYC → wizard). Advance / Mark live |
-| Adoption | Power / healthy / low / dormant. Last active |
-| Success & support | Tickets, CSM book of business, NPS |
-| Referrals | Chemist-to-chemist SaaS: both parties **₹500 SaaS credit**, personal code, Mark joined, top referrers. Same programme as pharmacy **Refer & Earn**. |
-| Revenue analytics | MRR/ARR, NRR/GRR, Rule of 40, LTV:CAC, MRR bridge (new/expansion/contraction/churn), cohorts |
-| Renewals & churn | Renewing in 30d, auto-renew, risk, churn reasons, save-play banner |
+| Tab               | What you do                                                                                                                                                               |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Overview          | MRR by plan, SaaS metrics, at-risk list                                                                                                                                   |
+| Sales pipeline    | Kanban: new → contacted → demo → trial → won. + New lead. Weighted forecast, win rate                                                                                     |
+| Subscribers       | Plan, seats used/limit, invoices/mo, NPS, health, renews-in. CSV export                                                                                                   |
+| Plans             | Plan cards. **Module-availability matrix by tier only.** No attachable add-on SKUs in v1. Change plan = live billing                                                      |
+| Modules           | Feature adoption % per module; enable/disable per account **only as a support override** (logged); nudge eligible-but-not-using                                           |
+| Discounts         | Subscription coupons (% / ₹ / extra trial days), cap, first-time-only, pause/delete                                                                                       |
+| Billing           | Collected / due / overdue, DSO, dunning queue with WhatsApp Remind. Invoice drawer GST @18% SAC 9983. **Cashfree** collection of **SaaS**; Mark paid if collected offline |
+| Onboarding        | Go-live stepper + per-stage checklist (KYC → wizard). Advance / Mark live                                                                                                 |
+| Adoption          | Power / healthy / low / dormant. Last active                                                                                                                              |
+| Success & support | Tickets, CSM book of business, NPS                                                                                                                                        |
+| Referrals         | Chemist-to-chemist SaaS: both parties **₹500 SaaS credit**, personal code, Mark joined, top referrers. Same programme as pharmacy **Refer & Earn**.                       |
+| Revenue analytics | MRR/ARR, NRR/GRR, Rule of 40, LTV:CAC, MRR bridge (new/expansion/contraction/churn), cohorts                                                                              |
+| Renewals & churn  | Renewing in 30d, auto-renew, risk, churn reasons, save-play banner                                                                                                        |
 
 **Account-360 drawer:** health, usage & seats, change **plan**, billing/contract, support, activity timeline. Upgrade, Mark paid, Suspend, Reactivate. No add-on attach.
 
@@ -634,7 +634,7 @@ Schedule-X sales can be auto-flagged. **Do not treat HQ as the inspector’s leg
 
 ### 4.6 Finance
 
-SaaS invoice collection, GST on subscriptions (SAC 9983), refunds of SaaS fees. Ledger with running balance. GSTR-1 / GSTR-3B for *your* SaaS tax.
+SaaS invoice collection, GST on subscriptions (SAC 9983), refunds of SaaS fees. Ledger with running balance. GSTR-1 / GSTR-3B for _your_ SaaS tax.
 
 ### 4.7 Marketing
 
@@ -707,15 +707,15 @@ Automation on the same events: overdue SaaS invoice → WhatsApp dunning; health
 
 ## 6. Packaging
 
-| Module | Sold to | Plan gate |
-|---|---|---|
-| Core billing (cash + khata tender), inventory, purchases, returns, thermal print, scanner, CSV opening stock, **Orders (7-day)**, **Manage Users** (seat cap), hold bill | Pharmacy | **Free forever** |
-| Prescriptions, customers, khata, H1/X **legal** register, pharmacist-on-duty, **Employees** (HR), licence alerts | Pharmacy | **Starter** |
-| CRM (WhatsApp), full operational books + GSTN prepare + IRN, **period/FY lock**, **stock take**, CA JSON+Excel, reorder, reports | Pharmacy | **Growth** |
-| Locked kiosk (OTC, token → cash at POS) + unlimited **seats** | Pharmacy | **Pro** |
-| SaaS billing (Cashfree), catalogue, Rx **audit copy**, your GST, automation (dunning/compliance) | You (Admin HQ) | Internal |
+| Module                                                                                                                                                                   | Sold to        | Plan gate        |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------- | ---------------- |
+| Core billing (cash + khata tender), inventory, purchases, returns, thermal print, scanner, CSV opening stock, **Orders (7-day)**, **Manage Users** (seat cap), hold bill | Pharmacy       | **Free forever** |
+| Prescriptions, customers, khata, H1/X **legal** register, pharmacist-on-duty, **Employees** (HR), licence alerts                                                         | Pharmacy       | **Starter**      |
+| CRM (WhatsApp), full operational books + GSTN prepare + IRN, **period/FY lock**, **stock take**, CA JSON+Excel, reorder, reports                                         | Pharmacy       | **Growth**       |
+| Locked kiosk (OTC, token → cash at POS) + unlimited **seats**                                                                                                            | Pharmacy       | **Pro**          |
+| SaaS billing (Cashfree), catalogue, Rx **audit copy**, your GST, automation (dunning/compliance)                                                                         | You (Admin HQ) | Internal         |
 
-Accounting + IRN / return *preparation* are a **Growth upsell**. Free still bills, prints, and lists 7 days of orders. CA files.
+Accounting + IRN / return _preparation_ are a **Growth upsell**. Free still bills, prints, and lists 7 days of orders. CA files.
 
 ---
 
@@ -744,30 +744,30 @@ Accounting + IRN / return *preparation* are a **Growth upsell**. Free still bill
 
 Tenant-scoped unless noted.
 
-| Object | Identity | Must store |
-|---|---|---|
-| Pharmacy / Location | tenant + location_id | GSTIN, licences + expiry, plan, seats, Regular GST, e-invoicing flag, IRP/GSTN secret ref, wizard complete |
-| User (login) | user_id | role, permissions, password hash (optional), OTP mobile, PIN hash, allowed methods, saved devices, active, seat |
-| Employee (HR) | employee_id | may link to a User; pharmacist registration; **no payroll run** |
-| SKU | sku_id, mapped to platform master | schedule, HSN, GST %, MRP (inclusive), loose, reorder, racks |
-| Batch | sku + batch no | expiry, qty, cost, MRP, scheme flag |
-| Bill | invoice no + FY | lines, GST breakup, round-off, **one tender (cash\|khata)**, tendered/change, loyalty redeem, doctor, pharmacist-on-duty, IRN, actor |
-| Held cart | hold_id | cart snapshot, expiry, kiosk token id, **no stock reserve** |
-| Credit note | CN no + FY | original bill, lines, restock vs write-off, GST reason |
-| GRN | grn_id | distributor invoice no, lines, batches |
-| Stock take | take_id | counts, variances, posted journal ids |
-| Purchase return / expiry return | debit note no | original GRN, qty, status |
-| Customer | phone unique per tenant when named | consent, allergies, points lots, khata, **credit limit** |
-| Loyalty lot | customer + earn bill | points, remaining, expires_at |
-| Khata ledger | customer | bills, repayments, ageing |
-| Doctor (shop list) | reg. no. | name, reg. no., verify flag |
-| Duty shift | pharmacist + start | clock-in/out |
-| Journal / COA | account_id | default tree; postings from bills, GRN, expenses, write-offs, stock take, loyalty, openings |
-| GSTR-2B match | 2B row + GRN | matched / mismatch / missing; ITC claim flag |
-| Payment | payment_id | **cash \| khata** (v1 GMV); SaaS Cashfree on subscription invoices only |
-| Platform master SKU | platform | schedule, substitutes, DPCO ceiling, banned |
-| SaaS subscription | pharmacy | plan, seats, invoices, dunning state, Cashfree order id |
-| WhatsApp message | message_id | template, to, status, tenant, purpose |
+| Object                          | Identity                           | Must store                                                                                                                           |
+| ------------------------------- | ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------ |
+| Pharmacy / Location             | tenant + location_id               | GSTIN, licences + expiry, plan, seats, Regular GST, e-invoicing flag, IRP/GSTN secret ref, wizard complete                           |
+| User (login)                    | user_id                            | role, permissions, password hash (optional), OTP mobile, PIN hash, allowed methods, saved devices, active, seat                      |
+| Employee (HR)                   | employee_id                        | may link to a User; pharmacist registration; **no payroll run**                                                                      |
+| SKU                             | sku_id, mapped to platform master  | schedule, HSN, GST %, MRP (inclusive), loose, reorder, racks                                                                         |
+| Batch                           | sku + batch no                     | expiry, qty, cost, MRP, scheme flag                                                                                                  |
+| Bill                            | invoice no + FY                    | lines, GST breakup, round-off, **one tender (cash\|khata)**, tendered/change, loyalty redeem, doctor, pharmacist-on-duty, IRN, actor |
+| Held cart                       | hold_id                            | cart snapshot, expiry, kiosk token id, **no stock reserve**                                                                          |
+| Credit note                     | CN no + FY                         | original bill, lines, restock vs write-off, GST reason                                                                               |
+| GRN                             | grn_id                             | distributor invoice no, lines, batches                                                                                               |
+| Stock take                      | take_id                            | counts, variances, posted journal ids                                                                                                |
+| Purchase return / expiry return | debit note no                      | original GRN, qty, status                                                                                                            |
+| Customer                        | phone unique per tenant when named | consent, allergies, points lots, khata, **credit limit**                                                                             |
+| Loyalty lot                     | customer + earn bill               | points, remaining, expires_at                                                                                                        |
+| Khata ledger                    | customer                           | bills, repayments, ageing                                                                                                            |
+| Doctor (shop list)              | reg. no.                           | name, reg. no., verify flag                                                                                                          |
+| Duty shift                      | pharmacist + start                 | clock-in/out                                                                                                                         |
+| Journal / COA                   | account_id                         | default tree; postings from bills, GRN, expenses, write-offs, stock take, loyalty, openings                                          |
+| GSTR-2B match                   | 2B row + GRN                       | matched / mismatch / missing; ITC claim flag                                                                                         |
+| Payment                         | payment_id                         | **cash \| khata** (v1 GMV); SaaS Cashfree on subscription invoices only                                                              |
+| Platform master SKU             | platform                           | schedule, substitutes, DPCO ceiling, banned                                                                                          |
+| SaaS subscription               | pharmacy                           | plan, seats, invoices, dunning state, Cashfree order id                                                                              |
+| WhatsApp message                | message_id                         | template, to, status, tenant, purpose                                                                                                |
 
 **Invariants:** qty on batch ≥ 0; bill lines reference a living batch; H1/X sale implies duty + doctor reg. no.; banned SKU cannot be billed; list price cannot exceed DPCO ceiling; one tender per posted bill; hold never decrements stock; locked period has no in-period edits; walk-in cannot khata; loyalty redeem ≤ 20% of payable; v1 GMV tender ∈ {cash, khata}; pharmacy register is the legal H1/X record.
 
@@ -795,34 +795,34 @@ Tenant-scoped unless noted.
 
 ## 10. Failure catalogue (QA)
 
-| Event | Product behaviour |
-|---|---|
-| Network drop during Charge | No stock change; staff retries; same `client_charge_id` cannot post twice |
-| SaaS Cashfree pending / timeout | Subscription not marked paid; pharmacy POS unaffected |
-| Duplicate SaaS Cashfree webhook | Ignored after first successful post |
-| Thermal printer offline | Bill posted; reprint |
-| WhatsApp send fail | Retry 3×; inbox Failed; no SMS; OTP users can use password if enabled |
-| OTP / password / PIN wrong 5× | Lock 15 min |
-| IRP down / IRN reject | B2B bill not posted (default); Owner banner + WhatsApp |
-| GSTN pull fail | Prepare pack from local books; banner that 2B is stale |
-| Plan expired | Paid modules lock; POS/inventory/purchases/returns/Orders 7-day/Manage Users stay if Free |
-| Seat cap | Add user disabled |
-| Banned / above DPCO | Cannot add to cart |
-| No pharmacist on duty | Cannot charge scheduled POS |
-| Kiosk + H/H1/X SKU | Not listed |
-| Kiosk UPI/Card | Not offered in v1; token → staff cash POS |
-| Walk-in + khata | Cannot charge |
-| Credit over limit | PIN required; else blocked |
-| Loyalty redeem > 20% | Cap applied; cannot exceed |
-| Second coupon on one bill | Blocked |
-| Expired batch | Cannot FEFO-pick; hidden from default picker unless PIN override |
-| Hold expired (30 min) | Cart discarded; no stock move |
-| Locked period | Cannot post or edit in that period; reverse in open period |
-| Stock take vs locked month | Post blocked |
-| Wizard / KYC incomplete | Cannot post first bill |
-| CA link leaked | Owner can revoke; link expires (default 30 days) |
-| Concurrent last unit | One bill succeeds; the other sees out of stock |
+| Event                           | Product behaviour                                                                         |
+| ------------------------------- | ----------------------------------------------------------------------------------------- |
+| Network drop during Charge      | No stock change; staff retries; same `client_charge_id` cannot post twice                 |
+| SaaS Cashfree pending / timeout | Subscription not marked paid; pharmacy POS unaffected                                     |
+| Duplicate SaaS Cashfree webhook | Ignored after first successful post                                                       |
+| Thermal printer offline         | Bill posted; reprint                                                                      |
+| WhatsApp send fail              | Retry 3×; inbox Failed; no SMS; OTP users can use password if enabled                     |
+| OTP / password / PIN wrong 5×   | Lock 15 min                                                                               |
+| IRP down / IRN reject           | B2B bill not posted (default); Owner banner + WhatsApp                                    |
+| GSTN pull fail                  | Prepare pack from local books; banner that 2B is stale                                    |
+| Plan expired                    | Paid modules lock; POS/inventory/purchases/returns/Orders 7-day/Manage Users stay if Free |
+| Seat cap                        | Add user disabled                                                                         |
+| Banned / above DPCO             | Cannot add to cart                                                                        |
+| No pharmacist on duty           | Cannot charge scheduled POS                                                               |
+| Kiosk + H/H1/X SKU              | Not listed                                                                                |
+| Kiosk UPI/Card                  | Not offered in v1; token → staff cash POS                                                 |
+| Walk-in + khata                 | Cannot charge                                                                             |
+| Credit over limit               | PIN required; else blocked                                                                |
+| Loyalty redeem > 20%            | Cap applied; cannot exceed                                                                |
+| Second coupon on one bill       | Blocked                                                                                   |
+| Expired batch                   | Cannot FEFO-pick; hidden from default picker unless PIN override                          |
+| Hold expired (30 min)           | Cart discarded; no stock move                                                             |
+| Locked period                   | Cannot post or edit in that period; reverse in open period                                |
+| Stock take vs locked month      | Post blocked                                                                              |
+| Wizard / KYC incomplete         | Cannot post first bill                                                                    |
+| CA link leaked                  | Owner can revoke; link expires (default 30 days)                                          |
+| Concurrent last unit            | One bill succeeds; the other sees out of stock                                            |
 
 ---
 
-*v1 application spec from founder decisions through 31 August 2026. All product calls in this file are settled. This is the product to build.*
+_v1 application spec from founder decisions through 31 August 2026. All product calls in this file are settled. This is the product to build._

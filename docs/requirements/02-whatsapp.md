@@ -289,19 +289,19 @@ HQ and pharmacy (read-only):
 
 English bodies (v1 catalogue — implement these strings; Meta template names may differ in WABA but keys stay stable):
 
-| template_key | English body (shop name always present) |
-|---|---|
-| `login_otp` | `{{shop_name}}: your login code is {{otp}}. It expires in 10 minutes.` |
-| `khata_remind` | `{{shop_name}}: khata reminder. Amount due {{amount}}. Please visit the pharmacy.` |
-| `refill` | `{{shop_name}}: your medicine refill is due. Reply or visit the pharmacy.` |
-| `low_stock` | `{{shop_name}}: low stock alert for {{sku_name}}.` |
-| `licence_expiry` | `{{shop_name}}: {{licence_type}} expires on {{expiry_date}}.` |
-| `irn_fail` | `{{shop_name}}: IRN request failed for bill {{bill_no}}. Open the console.` |
-| `gstn_fail` | `{{shop_name}}: GSTN request failed. Open the console. 2B may be stale.` |
-| `subscription_dunning` | `{{shop_name}}: Namma MedMate subscription payment is due.` |
-| `rx_pending` | `{{shop_name}}: a prescription has been waiting more than 2 hours.` |
-| `kiosk_token` | `{{shop_name}}: your pickup token is {{token}}. Pay cash at the counter.` |
-| `bill_share` | `{{shop_name}}: bill {{bill_no}} total {{amount}}.` |
+| template_key           | English body (shop name always present)                                            |
+| ---------------------- | ---------------------------------------------------------------------------------- |
+| `login_otp`            | `{{shop_name}}: your login code is {{otp}}. It expires in 10 minutes.`             |
+| `khata_remind`         | `{{shop_name}}: khata reminder. Amount due {{amount}}. Please visit the pharmacy.` |
+| `refill`               | `{{shop_name}}: your medicine refill is due. Reply or visit the pharmacy.`         |
+| `low_stock`            | `{{shop_name}}: low stock alert for {{sku_name}}.`                                 |
+| `licence_expiry`       | `{{shop_name}}: {{licence_type}} expires on {{expiry_date}}.`                      |
+| `irn_fail`             | `{{shop_name}}: IRN request failed for bill {{bill_no}}. Open the console.`        |
+| `gstn_fail`            | `{{shop_name}}: GSTN request failed. Open the console. 2B may be stale.`           |
+| `subscription_dunning` | `{{shop_name}}: Namma MedMate subscription payment is due.`                        |
+| `rx_pending`           | `{{shop_name}}: a prescription has been waiting more than 2 hours.`                |
+| `kiosk_token`          | `{{shop_name}}: your pickup token is {{token}}. Pay cash at the counter.`          |
+| `bill_share`           | `{{shop_name}}: bill {{bill_no}} total {{amount}}.`                                |
 
 `bill_share` exists for callers that truly want WABA send; POS on-demand share uses the deeplink helper instead of this send.
 
@@ -386,16 +386,16 @@ As the platform we are at-least-once with dedupe.
 - Concurrent retries: single-worker per `message_id` (lease/lock) so Meta is not blasted in parallel.
 - HQ marketing send: `tenant_id`/`location_id` of the chemist account being messaged; still the Namma WABA.
 
-| Code | HTTP | When |
-|---|---|---|
-| `LOCATION_ID_REQUIRED` | 400 | Missing location |
-| `INVALID_WHATSAPP_TO` | 400 | Bad `to` |
-| `UNKNOWN_TEMPLATE` | 400 | Unknown `template_key` |
-| `IDEMPOTENCY_KEY_REQUIRED` | 400 | No `bill_id` and no key |
-| `TEXT_TOO_LONG` | 400 | Share text too long |
-| `LOCATION_TENANT_MISMATCH` | 403 | Pairing |
-| `FORBIDDEN_ROLE` | 403 | Ack by non-Owner |
-| `NOT_MANDATORY_FAILURE` | 409 | Ack not applicable |
+| Code                         | HTTP         | When                     |
+| ---------------------------- | ------------ | ------------------------ |
+| `LOCATION_ID_REQUIRED`       | 400          | Missing location         |
+| `INVALID_WHATSAPP_TO`        | 400          | Bad `to`                 |
+| `UNKNOWN_TEMPLATE`           | 400          | Unknown `template_key`   |
+| `IDEMPOTENCY_KEY_REQUIRED`   | 400          | No `bill_id` and no key  |
+| `TEXT_TOO_LONG`              | 400          | Share text too long      |
+| `LOCATION_TENANT_MISMATCH`   | 403          | Pairing                  |
+| `FORBIDDEN_ROLE`             | 403          | Ack by non-Owner         |
+| `NOT_MANDATORY_FAILURE`      | 409          | Ack not applicable       |
 | `WHATSAPP_OTP_UNDELIVERABLE` | async/result | OTP failed after retries |
 
 ## 10. Open Questions / Assumptions
@@ -410,4 +410,5 @@ As the platform we are at-least-once with dedupe.
 - Assumption: webhook signature verification uses the platform App secret from SSM.
 - Vague: exact Meta error mapping. Treat timeout and 5xx as retryable.
 - Out of v1: chemist-owned WhatsApp, SMS fallback, inbound Rx media, language packs beyond English copy keys.
+
 ---

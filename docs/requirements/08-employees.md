@@ -31,16 +31,16 @@ Employees is the Pharmacy Partner Console **HR directory** for one **Pharmacy** 
 
 ## 3. Dependencies (modules + external)
 
-| Dependency | Why |
-|---|---|
-| `tenancy` | **Pharmacy** tenant + **Location**; shop name / logo for ID card. |
-| `plan-gating` | Module key `employees` unlocked on Starter and above. Locked page + paywall naming Starter ₹699 + 18% GST when on Free. |
-| `manage-users` / `auth` | Optional `user_id` link validation; do not create logins here. |
-| `statutory-registers` (later consumer) | Reads pharmacist-eligible employees; owns **DutyShift**. |
-| `account-settings` | Logo for ID card if uploaded. |
-| `audit` | **AuditEvent** on create, PII edit, document upload, status change, user link. |
-| `@namma-medmate/api-client` | Sole UI HTTP path. |
-| `libs/db-services` | Persistence. Object storage for photo / documents via presigned URLs. |
+| Dependency                             | Why                                                                                                                     |
+| -------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                              | **Pharmacy** tenant + **Location**; shop name / logo for ID card.                                                       |
+| `plan-gating`                          | Module key `employees` unlocked on Starter and above. Locked page + paywall naming Starter ₹699 + 18% GST when on Free. |
+| `manage-users` / `auth`                | Optional `user_id` link validation; do not create logins here.                                                          |
+| `statutory-registers` (later consumer) | Reads pharmacist-eligible employees; owns **DutyShift**.                                                                |
+| `account-settings`                     | Logo for ID card if uploaded.                                                                                           |
+| `audit`                                | **AuditEvent** on create, PII edit, document upload, status change, user link.                                          |
+| `@namma-medmate/api-client`            | Sole UI HTTP path.                                                                                                      |
+| `libs/db-services`                     | Persistence. Object storage for photo / documents via presigned URLs.                                                   |
 
 External: none.
 
@@ -118,48 +118,48 @@ External: none.
 
 ### Employee (HR) — system of record in this module
 
-| Field | Type | Notes |
-|---|---|---|
-| `employee_id` | uuid | PK |
-| `tenant_id` | uuid | **Pharmacy** |
-| `location_id` | uuid | **Location** |
-| `employee_code` | string | Unique per tenant |
-| `full_name` | string | Required |
-| `phone` | string | Required; E.164 preferred |
-| `email` | string null | |
-| `date_of_birth` | date null | |
-| `gender` | enum null | `female` \| `male` \| `other` \| `undisclosed` |
-| `address` | string null | |
-| `photo_object_key` | string null | |
-| `position` | enum | See FR-7 |
-| `position_label` | string null | When position = `other` |
-| `status` | enum | `active` \| `inactive` \| `separated` |
-| `join_date` | date null | |
-| `user_id` | uuid null | Optional **User** |
-| `pan` | encrypted string null | |
-| `aadhaar` | encrypted string null | |
-| `pharmacist_registration_no` | string null | |
-| `pharmacist_registration_expiry` | date null | |
-| `bank_account_holder` | string null | Master data only |
-| `bank_account_number` | encrypted string null | Master data only |
-| `bank_ifsc` | string null | |
-| `bank_upi_id` | string null | |
-| `emergency_name` | string null | |
-| `emergency_phone` | string null | |
-| `emergency_relation` | string null | |
-| `created_at` | timestamptz | |
-| `updated_at` | timestamptz | |
+| Field                            | Type                  | Notes                                          |
+| -------------------------------- | --------------------- | ---------------------------------------------- |
+| `employee_id`                    | uuid                  | PK                                             |
+| `tenant_id`                      | uuid                  | **Pharmacy**                                   |
+| `location_id`                    | uuid                  | **Location**                                   |
+| `employee_code`                  | string                | Unique per tenant                              |
+| `full_name`                      | string                | Required                                       |
+| `phone`                          | string                | Required; E.164 preferred                      |
+| `email`                          | string null           |                                                |
+| `date_of_birth`                  | date null             |                                                |
+| `gender`                         | enum null             | `female` \| `male` \| `other` \| `undisclosed` |
+| `address`                        | string null           |                                                |
+| `photo_object_key`               | string null           |                                                |
+| `position`                       | enum                  | See FR-7                                       |
+| `position_label`                 | string null           | When position = `other`                        |
+| `status`                         | enum                  | `active` \| `inactive` \| `separated`          |
+| `join_date`                      | date null             |                                                |
+| `user_id`                        | uuid null             | Optional **User**                              |
+| `pan`                            | encrypted string null |                                                |
+| `aadhaar`                        | encrypted string null |                                                |
+| `pharmacist_registration_no`     | string null           |                                                |
+| `pharmacist_registration_expiry` | date null             |                                                |
+| `bank_account_holder`            | string null           | Master data only                               |
+| `bank_account_number`            | encrypted string null | Master data only                               |
+| `bank_ifsc`                      | string null           |                                                |
+| `bank_upi_id`                    | string null           |                                                |
+| `emergency_name`                 | string null           |                                                |
+| `emergency_phone`                | string null           |                                                |
+| `emergency_relation`             | string null           |                                                |
+| `created_at`                     | timestamptz           |                                                |
+| `updated_at`                     | timestamptz           |                                                |
 
 ### EmployeeDocument
 
-| Field | Type | Notes |
-|---|---|---|
-| `document_id` | uuid | |
-| `employee_id` | uuid | |
-| `type` | enum | `id_proof` \| `pharmacist_registration` \| `other` |
-| `object_key` | string | |
-| `file_name` | string | |
-| `uploaded_at` | timestamptz | |
+| Field         | Type        | Notes                                              |
+| ------------- | ----------- | -------------------------------------------------- |
+| `document_id` | uuid        |                                                    |
+| `employee_id` | uuid        |                                                    |
+| `type`        | enum        | `id_proof` \| `pharmacist_registration` \| `other` |
+| `object_key`  | string      |                                                    |
+| `file_name`   | string      |                                                    |
+| `uploaded_at` | timestamptz |                                                    |
 
 **DutyShift** is not stored here. **User** is not stored here.
 
@@ -288,13 +288,13 @@ Removes metadata and object. **200** `{ "deleted": true }`.
 
 ### 7.2 Events
 
-| Event | Payload |
-|---|---|
-| `employees.employee.created` | `{ tenant_id, location_id, employee_id }` |
-| `employees.employee.updated` | `{ tenant_id, location_id, employee_id, fields[] }` |
-| `employees.employee.status.changed` | `{ tenant_id, location_id, employee_id, status }` |
-| `employees.employee.user.linked` | `{ tenant_id, location_id, employee_id, user_id }` |
-| `employees.employee.user.unlinked` | `{ tenant_id, location_id, employee_id, user_id }` |
+| Event                               | Payload                                             |
+| ----------------------------------- | --------------------------------------------------- |
+| `employees.employee.created`        | `{ tenant_id, location_id, employee_id }`           |
+| `employees.employee.updated`        | `{ tenant_id, location_id, employee_id, fields[] }` |
+| `employees.employee.status.changed` | `{ tenant_id, location_id, employee_id, status }`   |
+| `employees.employee.user.linked`    | `{ tenant_id, location_id, employee_id, user_id }`  |
+| `employees.employee.user.unlinked`  | `{ tenant_id, location_id, employee_id, user_id }`  |
 
 UI: `'employees.list.changed': { location_id: string }`.
 
@@ -354,20 +354,20 @@ UI: `'employees.list.changed': { location_id: string }`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Missing `location_id` | 400 `LOCATION_REQUIRED` |
-| Free plan | 403 `PLAN_REQUIRED` |
-| Duplicate `employee_code` | 409 `EMPLOYEE_CODE_TAKEN` |
-| Duplicate User link | 409 `USER_ALREADY_LINKED` or `EMPLOYEE_ALREADY_LINKED` |
-| Presigned key mismatch | 400 `UPLOAD_KEY_INVALID` |
-| File too large / bad type | 400 `VALIDATION_ERROR` |
-| 21st document | 409 `DOCUMENT_LIMIT` |
-| Hard delete attempted | No route; 405 if clients guess `DELETE /employees/{id}` |
-| Inactive pharmacist | Omitted from pharmacist-eligible |
+| Case                                  | Behaviour                                                                                                                        |
+| ------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------- |
+| Missing `location_id`                 | 400 `LOCATION_REQUIRED`                                                                                                          |
+| Free plan                             | 403 `PLAN_REQUIRED`                                                                                                              |
+| Duplicate `employee_code`             | 409 `EMPLOYEE_CODE_TAKEN`                                                                                                        |
+| Duplicate User link                   | 409 `USER_ALREADY_LINKED` or `EMPLOYEE_ALREADY_LINKED`                                                                           |
+| Presigned key mismatch                | 400 `UPLOAD_KEY_INVALID`                                                                                                         |
+| File too large / bad type             | 400 `VALIDATION_ERROR`                                                                                                           |
+| 21st document                         | 409 `DOCUMENT_LIMIT`                                                                                                             |
+| Hard delete attempted                 | No route; 405 if clients guess `DELETE /employees/{id}`                                                                          |
+| Inactive pharmacist                   | Omitted from pharmacist-eligible                                                                                                 |
 | Expired registration date in the past | Still eligible if number present and active (licence desk alerts are `statutory-registers`; this module does not block clock-in) |
-| `expenses` salary entry | Unrelated; this module does not post books |
-| CSV of another tenant | Impossible; tenant from session |
+| `expenses` salary entry               | Unrelated; this module does not post books                                                                                       |
+| CSV of another tenant                 | Impossible; tenant from session                                                                                                  |
 
 ## 10. Open Questions / Assumptions
 

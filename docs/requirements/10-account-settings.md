@@ -32,20 +32,20 @@ Account Settings is the Pharmacy Partner Console module for **Account**, **Invoi
 
 ## 3. Dependencies (modules + external)
 
-| Dependency | Why |
-|---|---|
-| `tenancy` | **Pharmacy** / **Location** name, member-since, business type. |
-| `go-live-kyc` | KYC card; Run / re-run wizard; licence fields overlap with wizard step 1. |
-| `plan-gating` | Plan name, seat limit, module unlock for display bars. Invoice Settings always unlocked. |
-| `manage-users` | Team count / seats used (`active_count`). |
-| `saas-billing` | Plan display, member billing period (read). |
-| `pos-billing` (later) | Invoice count, lifetime sales for KPI tiles (read aggregates). |
-| `auth` | Sign out. |
-| `whatsapp` | Support chat is a `wa.me` deep-link to Namma WABA / support number; not auto-send. |
-| `admin-support` (later) | **Ticket** create from raise-ticket form. |
-| `audit` | GSTN/IRP credential edit, profile tax edit, invoice prefix change. |
-| `@namma-medmate/api-client` | UI HTTP. |
-| Object storage | Logo, signature/seal images. |
+| Dependency                  | Why                                                                                      |
+| --------------------------- | ---------------------------------------------------------------------------------------- |
+| `tenancy`                   | **Pharmacy** / **Location** name, member-since, business type.                           |
+| `go-live-kyc`               | KYC card; Run / re-run wizard; licence fields overlap with wizard step 1.                |
+| `plan-gating`               | Plan name, seat limit, module unlock for display bars. Invoice Settings always unlocked. |
+| `manage-users`              | Team count / seats used (`active_count`).                                                |
+| `saas-billing`              | Plan display, member billing period (read).                                              |
+| `pos-billing` (later)       | Invoice count, lifetime sales for KPI tiles (read aggregates).                           |
+| `auth`                      | Sign out.                                                                                |
+| `whatsapp`                  | Support chat is a `wa.me` deep-link to Namma WABA / support number; not auto-send.       |
+| `admin-support` (later)     | **Ticket** create from raise-ticket form.                                                |
+| `audit`                     | GSTN/IRP credential edit, profile tax edit, invoice prefix change.                       |
+| `@namma-medmate/api-client` | UI HTTP.                                                                                 |
+| Object storage              | Logo, signature/seal images.                                                             |
 
 External: browser print dialog (no vendor SDK). No chemist Cashfree keys.
 
@@ -127,32 +127,32 @@ External: browser print dialog (no vendor SDK). No chemist Cashfree keys.
 
 ### InvoiceSettings (this module SoR)
 
-| Field | Type | Notes |
-|---|---|---|
-| `tenant_id` + `location_id` | uuid | PK |
-| `template` | enum | `modern` \| `minimal` \| `thermal` default `thermal` |
-| `accent_hex` | string | e.g. `#0F7B4B` |
-| `logo_object_key` | string null | May share Account logo |
-| `signature_object_key` | string null | Seal / signature |
-| `title` | string | Default Tax Invoice |
-| `invoice_prefix` | string | Unique numbering owned by `pos-billing` using this prefix |
-| `credit_note_prefix` | string | Default `CN` |
-| `signatory_label` | string | e.g. Authorised Signatory |
-| `bank_account_holder` | string null | Printed when `print_bank` |
-| `bank_account_number` | encrypted null | |
-| `bank_ifsc` | string null | |
-| `terms` | string null | T&C |
-| `footer` | string null | |
-| `show_you_saved` | boolean | “You saved…” vs MRP |
-| `include_doctor` | boolean | |
-| `show_hsn` | boolean | |
-| `print_bank` | boolean | |
-| `print_irn_ack` | boolean | When IRN/ACK present |
-| `label_sku` | boolean | GRN sticker; default true |
-| `label_batch` | boolean | default true |
-| `label_expiry` | boolean | default true |
-| `label_mrp` | boolean | default true |
-| `updated_at` | timestamptz | |
+| Field                       | Type           | Notes                                                     |
+| --------------------------- | -------------- | --------------------------------------------------------- |
+| `tenant_id` + `location_id` | uuid           | PK                                                        |
+| `template`                  | enum           | `modern` \| `minimal` \| `thermal` default `thermal`      |
+| `accent_hex`                | string         | e.g. `#0F7B4B`                                            |
+| `logo_object_key`           | string null    | May share Account logo                                    |
+| `signature_object_key`      | string null    | Seal / signature                                          |
+| `title`                     | string         | Default Tax Invoice                                       |
+| `invoice_prefix`            | string         | Unique numbering owned by `pos-billing` using this prefix |
+| `credit_note_prefix`        | string         | Default `CN`                                              |
+| `signatory_label`           | string         | e.g. Authorised Signatory                                 |
+| `bank_account_holder`       | string null    | Printed when `print_bank`                                 |
+| `bank_account_number`       | encrypted null |                                                           |
+| `bank_ifsc`                 | string null    |                                                           |
+| `terms`                     | string null    | T&C                                                       |
+| `footer`                    | string null    |                                                           |
+| `show_you_saved`            | boolean        | “You saved…” vs MRP                                       |
+| `include_doctor`            | boolean        |                                                           |
+| `show_hsn`                  | boolean        |                                                           |
+| `print_bank`                | boolean        |                                                           |
+| `print_irn_ack`             | boolean        | When IRN/ACK present                                      |
+| `label_sku`                 | boolean        | GRN sticker; default true                                 |
+| `label_batch`               | boolean        | default true                                              |
+| `label_expiry`              | boolean        | default true                                              |
+| `label_mrp`                 | boolean        | default true                                              |
+| `updated_at`                | timestamptz    |                                                           |
 
 ### Pharmacy profile fields (written here, row owned by `tenancy`)
 
@@ -291,13 +291,13 @@ Owner-only. **Request:** `{ "gstn_username": "...", "gstn_password": "...", "irp
 
 ### 7.5 Events
 
-| Event | Payload |
-|---|---|
-| `account-settings.invoice.updated` | `{ tenant_id, location_id, invoice_prefix }` |
-| `account-settings.profile.updated` | `{ tenant_id, location_id, fields[] }` |
-| `account-settings.gstn-irp.updated` | `{ tenant_id, location_id }` (no secrets) |
-| `account-settings.export.summary` | `{ tenant_id, location_id, actor_user_id }` |
-| `account-settings.ticket.opened` | `{ tenant_id, location_id, ticket_id }` |
+| Event                               | Payload                                      |
+| ----------------------------------- | -------------------------------------------- |
+| `account-settings.invoice.updated`  | `{ tenant_id, location_id, invoice_prefix }` |
+| `account-settings.profile.updated`  | `{ tenant_id, location_id, fields[] }`       |
+| `account-settings.gstn-irp.updated` | `{ tenant_id, location_id }` (no secrets)    |
+| `account-settings.export.summary`   | `{ tenant_id, location_id, actor_user_id }`  |
+| `account-settings.ticket.opened`    | `{ tenant_id, location_id, ticket_id }`      |
 
 UI: `'account-settings.account.changed': { location_id: string }`.
 
@@ -357,20 +357,20 @@ UI: `'account-settings.account.changed': { location_id: string }`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Missing `location_id` | 400 `LOCATION_REQUIRED` |
-| Invalid prefix | 400 `VALIDATION_ERROR` |
-| Non-Owner GSTN PUT | 403 |
-| GSTN password in GET | Must not appear; if a bug returns it, treat as P0 |
-| Export includes patients | Forbidden; contract test on export keys |
-| `pos-billing` down | KPIs invoices/sales = 0, Account still loads |
-| `admin-support` down | Ticket POST 503 `TICKET_BACKEND_UNAVAILABLE`; UI toast; no silent success |
-| Logo > 2 MB | 400 `VALIDATION_ERROR` |
-| Print sample cancelled | Settings unchanged |
-| KYC reject | KYC card shows rejected + reason from `go-live-kyc`; still not a posted bill |
-| Composition GST toggle | Not offered; `gst_scheme` always `regular` |
-| Cashfree merchant key field | Not present |
+| Case                        | Behaviour                                                                    |
+| --------------------------- | ---------------------------------------------------------------------------- |
+| Missing `location_id`       | 400 `LOCATION_REQUIRED`                                                      |
+| Invalid prefix              | 400 `VALIDATION_ERROR`                                                       |
+| Non-Owner GSTN PUT          | 403                                                                          |
+| GSTN password in GET        | Must not appear; if a bug returns it, treat as P0                            |
+| Export includes patients    | Forbidden; contract test on export keys                                      |
+| `pos-billing` down          | KPIs invoices/sales = 0, Account still loads                                 |
+| `admin-support` down        | Ticket POST 503 `TICKET_BACKEND_UNAVAILABLE`; UI toast; no silent success    |
+| Logo > 2 MB                 | 400 `VALIDATION_ERROR`                                                       |
+| Print sample cancelled      | Settings unchanged                                                           |
+| KYC reject                  | KYC card shows rejected + reason from `go-live-kyc`; still not a posted bill |
+| Composition GST toggle      | Not offered; `gst_scheme` always `regular`                                   |
+| Cashfree merchant key field | Not present                                                                  |
 
 ## 10. Open Questions / Assumptions
 

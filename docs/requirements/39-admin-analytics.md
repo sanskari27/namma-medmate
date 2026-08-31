@@ -37,15 +37,15 @@ HQ **Analytics** is the SaaS report library: **MRR, subscribers, churn, onboardi
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `admin-saas-crm` | Canonical MRR/ARR, subscriber chips, churn events, adoption bands, module adoption %, NRR/GRR if shown as a library row. **Do not recompute incompatible definitions.** |
-| `admin-tenants` / `go-live-kyc` | Onboarding funnel counts. |
-| `saas-billing` | Invoice/subscription facts if CRM aggregates are not yet materialised. |
-| `whatsapp` | Optional “export ready” to HQ user phone. |
-| `admin-platform-settings` | HQ user phone; roles. |
-| `audit` | Schedule create/delete; export download is not money-critical but schedule changes are audited. |
-| `auth` | HQ JWT. |
+| Module                          | Need                                                                                                                                                                    |
+| ------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin-saas-crm`                | Canonical MRR/ARR, subscriber chips, churn events, adoption bands, module adoption %, NRR/GRR if shown as a library row. **Do not recompute incompatible definitions.** |
+| `admin-tenants` / `go-live-kyc` | Onboarding funnel counts.                                                                                                                                               |
+| `saas-billing`                  | Invoice/subscription facts if CRM aggregates are not yet materialised.                                                                                                  |
+| `whatsapp`                      | Optional “export ready” to HQ user phone.                                                                                                                               |
+| `admin-platform-settings`       | HQ user phone; roles.                                                                                                                                                   |
+| `audit`                         | Schedule create/delete; export download is not money-critical but schedule changes are audited.                                                                         |
+| `auth`                          | HQ JWT.                                                                                                                                                                 |
 
 ---
 
@@ -84,31 +84,31 @@ HQ **Analytics** is the SaaS report library: **MRR, subscribers, churn, onboardi
 
 ### `HqAnalyticsSchedule` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `scheduleId` | UUID | |
-| `reportKey` | enum | five keys in FR-1 |
-| `cadence` | enum | `daily` `weekly` `monthly` |
-| `dayOfWeek` | int nullable | |
-| `dayOfMonth` | int nullable | |
-| `hourIst` | int | |
-| `notifyWhatsApp` | bool | |
-| `createdByHqUserId` | UUID | |
-| `status` | enum | `running` `paused` |
+| Field               | Type         | Notes                      |
+| ------------------- | ------------ | -------------------------- |
+| `scheduleId`        | UUID         |                            |
+| `reportKey`         | enum         | five keys in FR-1          |
+| `cadence`           | enum         | `daily` `weekly` `monthly` |
+| `dayOfWeek`         | int nullable |                            |
+| `dayOfMonth`        | int nullable |                            |
+| `hourIst`           | int          |                            |
+| `notifyWhatsApp`    | bool         |                            |
+| `createdByHqUserId` | UUID         |                            |
+| `status`            | enum         | `running` `paused`         |
 
 ### `HqAnalyticsJob` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `jobId` | UUID | |
-| `scheduleId` | UUID nullable | null = on-demand export |
-| `reportKey` | enum | |
-| `periodFrom` `periodTo` | date | |
-| `status` | enum | `queued` `success` `failed` |
-| `objectKey` | text nullable | |
-| `error` | text nullable | |
-| `finishedAt` | timestamptz nullable | |
-| `periodKey` | text | idempotency |
+| Field                   | Type                 | Notes                       |
+| ----------------------- | -------------------- | --------------------------- |
+| `jobId`                 | UUID                 |                             |
+| `scheduleId`            | UUID nullable        | null = on-demand export     |
+| `reportKey`             | enum                 |                             |
+| `periodFrom` `periodTo` | date                 |                             |
+| `status`                | enum                 | `queued` `success` `failed` |
+| `objectKey`             | text nullable        |                             |
+| `error`                 | text nullable        |                             |
+| `finishedAt`            | timestamptz nullable |                             |
+| `periodKey`             | text                 | idempotency                 |
 
 ---
 
@@ -199,15 +199,15 @@ As Operations, I want a weekly onboarding CSV, so that I can review the funnel w
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Custom from &gt; to | `400`. |
-| Unknown reportKey | `404`. |
-| Job failed | status failed + error; next cadence still runs. |
-| Download expired | `410 EXPIRED`; re-run or new export. |
-| Support creates schedule | `403`. |
-| CRM API down | `502 UPSTREAM`; do not show invented zeros silently — error banner. |
-| Duplicate periodKey | Return existing job. |
+| Case                     | Behaviour                                                           |
+| ------------------------ | ------------------------------------------------------------------- |
+| Custom from &gt; to      | `400`.                                                              |
+| Unknown reportKey        | `404`.                                                              |
+| Job failed               | status failed + error; next cadence still runs.                     |
+| Download expired         | `410 EXPIRED`; re-run or new export.                                |
+| Support creates schedule | `403`.                                                              |
+| CRM API down             | `502 UPSTREAM`; do not show invented zeros silently — error banner. |
+| Duplicate periodKey      | Return existing job.                                                |
 
 ---
 

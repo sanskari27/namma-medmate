@@ -43,14 +43,14 @@ HQ **Settings & RBAC** is how Namma runs the control plane: **team & roles** (Su
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `auth` | Create HQ sessions; password/OTP/PIN lock policy same 5-fail / 15 min; HQ users have `principalType=hq`. Pharmacy JWTs cannot pass HQ authorizer. |
-| `whatsapp` | Reads WABA secret at send time; this module writes secret + public metadata. |
-| `saas-billing` | Reads Cashfree SaaS keys at checkout; never from chemist console. |
-| `audit` | Append-only `AuditEvent`; this module’s viewer queries platform scope. |
-| `admin-tenants` | Shell hides sidebar items using this module’s permission API. |
-| All HQ modules | Must call `GET /admin/me` or authorizer that embeds `HqRole` + permission codes. |
+| Module          | Need                                                                                                                                              |
+| --------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth`          | Create HQ sessions; password/OTP/PIN lock policy same 5-fail / 15 min; HQ users have `principalType=hq`. Pharmacy JWTs cannot pass HQ authorizer. |
+| `whatsapp`      | Reads WABA secret at send time; this module writes secret + public metadata.                                                                      |
+| `saas-billing`  | Reads Cashfree SaaS keys at checkout; never from chemist console.                                                                                 |
+| `audit`         | Append-only `AuditEvent`; this module’s viewer queries platform scope.                                                                            |
+| `admin-tenants` | Shell hides sidebar items using this module’s permission API.                                                                                     |
+| All HQ modules  | Must call `GET /admin/me` or authorizer that embeds `HqRole` + permission codes.                                                                  |
 
 **External:** AWS SSM (or equivalent) for secret material. Cashfree dashboard is not in-app. Meta WABA admin is not in-app.
 
@@ -67,33 +67,33 @@ HQ **Settings & RBAC** is how Namma runs the control plane: **team & roles** (Su
 - FR-5: The system shall not allow an HQ user to be attached to a pharmacy tenant as staff through this screen.
 - FR-6: The system shall enforce the permission matrix:
 
-| Permission code | Super admin | Operations | Finance | Support | Compliance |
-|---|---|---|---|---|---|
-| `hq.shell` | yes | yes | yes | yes | yes |
-| `tenants.read` | yes | yes | yes | yes | yes |
-| `kyc.decide` | yes | yes | no | no | yes |
-| `subscription.suspend` | yes | yes | yes | no | no |
-| `crm.read` | yes | yes | yes | yes | yes |
-| `crm.plan_change` | yes | yes | yes | no | no |
-| `crm.mark_paid` | yes | yes | yes | no | no |
-| `crm.pipeline` | yes | yes | no | no | no |
-| `crm.module_override` | yes | no | no | yes | no |
-| `crm.coupon` | yes | yes | yes | no | no |
-| `crm.csm` | yes | no | no | yes | no |
-| `rx.annotate` | yes | no | no | no | yes |
-| `rx.read` | yes | yes | no | yes (masked PII) | yes |
-| `finance.refund` | yes | no | yes | no | no |
-| `finance.gstr` | yes | no | yes | no | no |
-| `finance.ledger.read` | yes | yes | yes | no | no |
-| `marketing.launch` | yes | yes | no | no | no |
-| `analytics.schedule` | yes | yes | yes | no | no |
-| `support.agent` | yes | no | no | yes | no |
-| `support.read` | yes | yes | no | yes | yes |
-| `automation.write` | yes | yes | no | no | no |
-| `settings.write` | yes | no | no | no | no |
-| `secrets.write` | yes | no | no | no | no |
-| `audit.read` | yes | yes | yes | no | yes |
-| `platform_gstin.read` | yes | no | yes | no | no |
+| Permission code        | Super admin | Operations | Finance | Support          | Compliance |
+| ---------------------- | ----------- | ---------- | ------- | ---------------- | ---------- |
+| `hq.shell`             | yes         | yes        | yes     | yes              | yes        |
+| `tenants.read`         | yes         | yes        | yes     | yes              | yes        |
+| `kyc.decide`           | yes         | yes        | no      | no               | yes        |
+| `subscription.suspend` | yes         | yes        | yes     | no               | no         |
+| `crm.read`             | yes         | yes        | yes     | yes              | yes        |
+| `crm.plan_change`      | yes         | yes        | yes     | no               | no         |
+| `crm.mark_paid`        | yes         | yes        | yes     | no               | no         |
+| `crm.pipeline`         | yes         | yes        | no      | no               | no         |
+| `crm.module_override`  | yes         | no         | no      | yes              | no         |
+| `crm.coupon`           | yes         | yes        | yes     | no               | no         |
+| `crm.csm`              | yes         | no         | no      | yes              | no         |
+| `rx.annotate`          | yes         | no         | no      | no               | yes        |
+| `rx.read`              | yes         | yes        | no      | yes (masked PII) | yes        |
+| `finance.refund`       | yes         | no         | yes     | no               | no         |
+| `finance.gstr`         | yes         | no         | yes     | no               | no         |
+| `finance.ledger.read`  | yes         | yes        | yes     | no               | no         |
+| `marketing.launch`     | yes         | yes        | no      | no               | no         |
+| `analytics.schedule`   | yes         | yes        | yes     | no               | no         |
+| `support.agent`        | yes         | no         | no      | yes              | no         |
+| `support.read`         | yes         | yes        | no      | yes              | yes        |
+| `automation.write`     | yes         | yes        | no      | no               | no         |
+| `settings.write`       | yes         | no         | no      | no               | no         |
+| `secrets.write`        | yes         | no         | no      | no               | no         |
+| `audit.read`           | yes         | yes        | yes     | no               | yes        |
+| `platform_gstin.read`  | yes         | no         | yes     | no               | no         |
 
 - FR-7: The system shall return `403 FORBIDDEN` with the missing permission code when a role attempts a denied mutation.
 - FR-8: The system shall allow Super admin to set `isL2=true` on a Support user (for ticket escalation).
@@ -153,44 +153,44 @@ HQ **Settings & RBAC** is how Namma runs the control plane: **team & roles** (Su
 
 ### `HqUser` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `hqUserId` | UUID | `auth` subject for HQ |
-| `name` `email` `phone` | | phone for WhatsApp OTP |
-| `role` | enum | five roles |
-| `isL2` | bool | Support only meaningful |
-| `active` | bool | |
-| `createdAt` | timestamptz | |
+| Field                  | Type        | Notes                   |
+| ---------------------- | ----------- | ----------------------- |
+| `hqUserId`             | UUID        | `auth` subject for HQ   |
+| `name` `email` `phone` |             | phone for WhatsApp OTP  |
+| `role`                 | enum        | five roles              |
+| `isL2`                 | bool        | Support only meaningful |
+| `active`               | bool        |                         |
+| `createdAt`            | timestamptz |                         |
 
-### `HqPermission` 
+### `HqPermission`
 
 Not a table required if role→permission is code. Optional overlay table out of v1 — matrix is FR-6 constants.
 
 ### `PlatformFlag` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `key` | text PK | `gmv_cashfree` |
-| `valueJson` | jsonb | bool or number |
-| `updatedByHqUserId` `updatedAt` | | |
+| Field                           | Type    | Notes          |
+| ------------------------------- | ------- | -------------- |
+| `key`                           | text PK | `gmv_cashfree` |
+| `valueJson`                     | jsonb   | bool or number |
+| `updatedByHqUserId` `updatedAt` |         |                |
 
 ### `PlatformTaxpayer` (owned, singleton)
 
-| Field | Type | Notes |
-|---|---|---|
-| `legalName` | text | |
-| `gstin` | text | |
-| `address` | text | |
-| `stateCode` | text | GSTIN state |
-| `sacSaas` | const | `9983` |
+| Field       | Type  | Notes       |
+| ----------- | ----- | ----------- |
+| `legalName` | text  |             |
+| `gstin`     | text  |             |
+| `address`   | text  |             |
+| `stateCode` | text  | GSTIN state |
+| `sacSaas`   | const | `9983`      |
 
 ### Secrets (not in Postgres plaintext)
 
-| SSM name | Purpose |
-|---|---|
-| `waba_token` | Namma WABA |
-| `cashfree_saas_app_id` / `cashfree_saas_secret` | SaaS checkout |
-| `cashfree_gmv_app_id` / `cashfree_gmv_secret` | unused in v1 product |
+| SSM name                                        | Purpose              |
+| ----------------------------------------------- | -------------------- |
+| `waba_token`                                    | Namma WABA           |
+| `cashfree_saas_app_id` / `cashfree_saas_secret` | SaaS checkout        |
+| `cashfree_gmv_app_id` / `cashfree_gmv_secret`   | unused in v1 product |
 
 ### Referenced
 
@@ -214,7 +214,15 @@ Base: `/admin/settings`. HQ JWT except where noted.
     "name": "Asha",
     "role": "operations",
     "isL2": false,
-    "permissions": ["hq.shell", "tenants.read", "kyc.decide", "crm.pipeline", "marketing.launch", "automation.write", "audit.read"]
+    "permissions": [
+      "hq.shell",
+      "tenants.read",
+      "kyc.decide",
+      "crm.pipeline",
+      "marketing.launch",
+      "automation.write",
+      "audit.read"
+    ]
   }
 }
 ```
@@ -310,13 +318,13 @@ Never `token`.
 
 ### 7.8 Events
 
-| Event | Payload |
-|---|---|
-| `hq.user.invited` | `{ hqUserId, role }` |
-| `hq.user.role_changed` | `{ hqUserId, from, to }` |
-| `hq.flag.changed` | `{ key, value }` |
-| `hq.secret.rotated` | `{ name: "waba_token" \| "cashfree_saas" }` no secret material |
-| `hq.taxpayer.updated` | `{ gstinLast4 }` |
+| Event                  | Payload                                                        |
+| ---------------------- | -------------------------------------------------------------- |
+| `hq.user.invited`      | `{ hqUserId, role }`                                           |
+| `hq.user.role_changed` | `{ hqUserId, from, to }`                                       |
+| `hq.flag.changed`      | `{ key, value }`                                               |
+| `hq.secret.rotated`    | `{ name: "waba_token" \| "cashfree_saas" }` no secret material |
+| `hq.taxpayer.updated`  | `{ gstinLast4 }`                                               |
 
 ### 7.9 UI
 
@@ -369,17 +377,17 @@ As Operations, I want to see who suspended a subscription, so that critical admi
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Pharmacy JWT `/admin/me` | `403 HQ_SURFACE_ONLY`. |
-| Duplicate email invite | `409`. |
-| Invalid GSTIN checksum | `400 VALIDATION`. |
-| Flag key unknown | `404`. |
-| Concurrent last Super admin role change | Transaction: at least one active Super admin remains. |
-| Secret put empty string | `400`. |
-| Audit export huge | same 10,000 row cap as other HQ CSVs; require filters. |
-| Support opens Cashfree tab | read last-4 SaaS only or `403 secrets.write`; no rotate. **Assumption:** Support cannot GET full cashfree settings; `403`. |
-| Automation actor in audit | `actorHqUserId` null, `actorLabel` `automation`. |
+| Case                                    | Behaviour                                                                                                                  |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------- |
+| Pharmacy JWT `/admin/me`                | `403 HQ_SURFACE_ONLY`.                                                                                                     |
+| Duplicate email invite                  | `409`.                                                                                                                     |
+| Invalid GSTIN checksum                  | `400 VALIDATION`.                                                                                                          |
+| Flag key unknown                        | `404`.                                                                                                                     |
+| Concurrent last Super admin role change | Transaction: at least one active Super admin remains.                                                                      |
+| Secret put empty string                 | `400`.                                                                                                                     |
+| Audit export huge                       | same 10,000 row cap as other HQ CSVs; require filters.                                                                     |
+| Support opens Cashfree tab              | read last-4 SaaS only or `403 secrets.write`; no rotate. **Assumption:** Support cannot GET full cashfree settings; `403`. |
+| Automation actor in audit               | `actorHqUserId` null, `actorLabel` `automation`.                                                                           |
 
 ---
 

@@ -51,10 +51,10 @@ terraform apply
 
 Each environment has one HTTP API custom domain. Lambda short names are API mapping keys, so the mapping prefix is stripped before the request reaches the function.
 
-| Environment | Host | Auth health |
-| --- | --- | --- |
-| staging | `api.staging.nammamedmate.com` | `https://api.staging.nammamedmate.com/auth-api/health` |
-| prod | `api.nammamedmate.com` | `https://api.nammamedmate.com/auth-api/health` |
+| Environment | Host                           | Auth health                                            |
+| ----------- | ------------------------------ | ------------------------------------------------------ |
+| staging     | `api.staging.nammamedmate.com` | `https://api.staging.nammamedmate.com/auth-api/health` |
+| prod        | `api.nammamedmate.com`         | `https://api.nammamedmate.com/auth-api/health`         |
 
 Add another Lambda by instantiating `modules/api-gateway` again with the same `custom_domain_name` and a new `base_path` (the Nx project name).
 

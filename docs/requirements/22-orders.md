@@ -48,18 +48,18 @@ This module never posts a Charge, never deducts stock, never deletes a bill, and
 
 ## 3. Dependencies (be specific: APIs/events needed from other slugs)
 
-| Other slug | Need | Contract |
-|---|---|---|
-| `pos-billing` | Posted Bills in window; invoice PDF/thermal/WhatsApp share payload; HeldCart list | `GET /bills?from&to&channel&tender&paid_status`; `GET /bills/:id`; `GET /bills/:id.pdf`; `GET /bills/:id/print`; `GET /bills/:id/whatsapp-share`; `GET /pos/holds`; `POST /pos/holds/:id/resume`; `POST /pos/holds/:id/discard` |
-| `plan-gating` | Sales deep-link paywall | `GET /plan/features` → `sales-ledger` |
-| `auth` | Session; permission `orders` (defaults: Owner, Manager, Pharmacist, Cashier) | Bearer token |
-| `tenancy` | `location_id` | header |
-| `khata` | Outstanding flag; Record repayment modal | `GET /khata/bills/:billId/outstanding`; `POST /khata/repayments` (idempotent `client_repayment_id`) — Orders **hosts** the button, khata **owns** the POST |
-| `returns` | Return action | Navigate `/returns/new?billId=` |
-| `customers` | Name/phone already on bill snapshot; 360 History | Navigate `/customers/:id` |
-| `prescriptions` | Linked Rx on bill | `GET /prescriptions/:id` summary for timeline |
-| `audit` | Timeline facts may include charge actor | Read via bill payload / `GET /audit?entity=bill&id=` |
-| `whatsapp` | Not auto-send; share uses POS `wa.me` | — |
+| Other slug      | Need                                                                              | Contract                                                                                                                                                                                                                        |
+| --------------- | --------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `pos-billing`   | Posted Bills in window; invoice PDF/thermal/WhatsApp share payload; HeldCart list | `GET /bills?from&to&channel&tender&paid_status`; `GET /bills/:id`; `GET /bills/:id.pdf`; `GET /bills/:id/print`; `GET /bills/:id/whatsapp-share`; `GET /pos/holds`; `POST /pos/holds/:id/resume`; `POST /pos/holds/:id/discard` |
+| `plan-gating`   | Sales deep-link paywall                                                           | `GET /plan/features` → `sales-ledger`                                                                                                                                                                                           |
+| `auth`          | Session; permission `orders` (defaults: Owner, Manager, Pharmacist, Cashier)      | Bearer token                                                                                                                                                                                                                    |
+| `tenancy`       | `location_id`                                                                     | header                                                                                                                                                                                                                          |
+| `khata`         | Outstanding flag; Record repayment modal                                          | `GET /khata/bills/:billId/outstanding`; `POST /khata/repayments` (idempotent `client_repayment_id`) — Orders **hosts** the button, khata **owns** the POST                                                                      |
+| `returns`       | Return action                                                                     | Navigate `/returns/new?billId=`                                                                                                                                                                                                 |
+| `customers`     | Name/phone already on bill snapshot; 360 History                                  | Navigate `/customers/:id`                                                                                                                                                                                                       |
+| `prescriptions` | Linked Rx on bill                                                                 | `GET /prescriptions/:id` summary for timeline                                                                                                                                                                                   |
+| `audit`         | Timeline facts may include charge actor                                           | Read via bill payload / `GET /audit?entity=bill&id=`                                                                                                                                                                            |
+| `whatsapp`      | Not auto-send; share uses POS `wa.me`                                             | —                                                                                                                                                                                                                               |
 
 Events consumed (read-model optional): `BillPosted`, hold expired/discarded/charged. If no projector, list queries `pos-billing` tables directly via `libs/db-services` **read** APIs owned by POS (Orders must not write Bill rows).
 
@@ -136,9 +136,9 @@ Orders **owns no durable money entities**. Optional read cache:
 
 ### 6.1 `OrdersListProjection` (optional)
 
-| Column | Notes |
-|---|---|
-| `tenant_id, location_id, bill_id` | PK for posted |
+| Column                                                                                                                                           | Notes                    |
+| ------------------------------------------------------------------------------------------------------------------------------------------------ | ------------------------ |
+| `tenant_id, location_id, bill_id`                                                                                                                | PK for posted            |
 | `bill_date`, `posted_at`, `channel`, `tender`, `invoice_no`, `customer_name`, `phone`, `total_paise`, `khata_remaining_paise`, `prescription_id` | denorm from Bill + khata |
 
 If omitted, `GET /orders` queries `pos-billing` + `khata` remaining.
@@ -153,12 +153,12 @@ Held rows are `HeldCart` from POS.
 
 Query:
 
-| Param | Values |
-|---|---|
-| `location_id` | required |
-| `tab` | `all` \| `counter` \| `kiosk` \| `khata_outstanding` \| `held` |
-| `q` | optional search |
-| `cursor`, `limit` | default 25 |
+| Param             | Values                                                         |
+| ----------------- | -------------------------------------------------------------- |
+| `location_id`     | required                                                       |
+| `tab`             | `all` \| `counter` \| `kiosk` \| `khata_outstanding` \| `held` |
+| `q`               | optional search                                                |
+| `cursor`, `limit` | default 25                                                     |
 
 Server applies 7-day `bill_date` filter for posted tabs. **Does not accept `from`/`to` that exceed the window** (ignore or 400 `WINDOW_FIXED`).
 
@@ -253,10 +253,10 @@ Consumes `BillPosted` to bump tab counts.
 type OrdersPageProps = {
   locationId: string;
   salesLedgerUnlocked: boolean; // Growth
-  khataUnlocked: boolean;       // Starter; hide repay if false and none outstanding
+  khataUnlocked: boolean; // Starter; hide repay if false and none outstanding
 };
 
-type OrdersTab = "all" | "counter" | "kiosk" | "khata_outstanding" | "held";
+type OrdersTab = 'all' | 'counter' | 'kiosk' | 'khata_outstanding' | 'held';
 ```
 
 No UPI/Card columns.
@@ -337,16 +337,16 @@ Then there is no Delete control.
 
 ## 9. Edge Cases & Error Handling (include §10 failure catalogue rows that apply)
 
-| Catalogue event | Orders behaviour |
-|---|---|
-| Thermal printer offline | Reprint; bill stands. |
-| WhatsApp send fail | Share is `wa.me` pre-fill; if WhatsApp missing, URL still copies; no SMS. |
-| Plan expired | 7-day Orders stay; Sales link paywalls. |
-| Hold expired (30 min) | Disappears from Held; no stock. |
-| Walk-in + khata | Cannot exist if POS invariants hold; if remaining data, still list. |
-| Locked period | Orders still **displays** historical bills; does not post. Return action may fail in `returns` if period locked — show that error from returns. |
-| Concurrent last unit | Irrelevant to list; holds may resume into `STOCK_INSUFFICIENT` at Charge — POS error. |
-| Network drop during Charge | Incomplete charges appear as **Held**, not as bills (POS FR-81). |
+| Catalogue event            | Orders behaviour                                                                                                                                |
+| -------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
+| Thermal printer offline    | Reprint; bill stands.                                                                                                                           |
+| WhatsApp send fail         | Share is `wa.me` pre-fill; if WhatsApp missing, URL still copies; no SMS.                                                                       |
+| Plan expired               | 7-day Orders stay; Sales link paywalls.                                                                                                         |
+| Hold expired (30 min)      | Disappears from Held; no stock.                                                                                                                 |
+| Walk-in + khata            | Cannot exist if POS invariants hold; if remaining data, still list.                                                                             |
+| Locked period              | Orders still **displays** historical bills; does not post. Return action may fail in `returns` if period locked — show that error from returns. |
+| Concurrent last unit       | Irrelevant to list; holds may resume into `STOCK_INSUFFICIENT` at Charge — POS error.                                                           |
+| Network drop during Charge | Incomplete charges appear as **Held**, not as bills (POS FR-81).                                                                                |
 
 Additional:
 

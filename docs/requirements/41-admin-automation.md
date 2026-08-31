@@ -42,14 +42,14 @@ HQ **Automation & rules** is the operator for platform rules: a **kill-switch** 
 
 ## 3. Dependencies
 
-| Module | Human button automation may press |
-|---|---|
-| `admin-saas-crm` | `POST .../invoices/{id}/remind` (WhatsApp dunning); `POST .../subscribers/{id}/suspend`; `POST .../save-play/open`; `POST .../upgrade-offer` (seat cap). |
-| `admin-support` | `POST .../tickets/{id}/escalate` or `internal/escalate-if-breached`. |
-| `admin-rx-compliance` | `POST .../flag` or `internal/auto-flag`. |
-| `whatsapp` | Only via those modules’ Remind/nudge APIs (never a raw send unless the human path is that send). |
-| `admin-platform-settings` | Super admin / Operations mutate automation; others read. |
-| `audit` | Kill-switch, interval, rule enable, approve/reject, each live action. |
+| Module                    | Human button automation may press                                                                                                                        |
+| ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `admin-saas-crm`          | `POST .../invoices/{id}/remind` (WhatsApp dunning); `POST .../subscribers/{id}/suspend`; `POST .../save-play/open`; `POST .../upgrade-offer` (seat cap). |
+| `admin-support`           | `POST .../tickets/{id}/escalate` or `internal/escalate-if-breached`.                                                                                     |
+| `admin-rx-compliance`     | `POST .../flag` or `internal/auto-flag`.                                                                                                                 |
+| `whatsapp`                | Only via those modules’ Remind/nudge APIs (never a raw send unless the human path is that send).                                                         |
+| `admin-platform-settings` | Super admin / Operations mutate automation; others read.                                                                                                 |
+| `audit`                   | Kill-switch, interval, rule enable, approve/reject, each live action.                                                                                    |
 
 Seed rule 1 dunning: Remind is the WhatsApp button; Suspend after 3 retries is the Suspend button.
 
@@ -76,13 +76,13 @@ Seed rule 1 dunning: Remind is the WhatsApp button; Suspend after 3 retries is t
 
 - FR-10: The system shall ship these **v1 seed rules** (ids stable):
 
-| id | Name | When | Button pressed | Cap |
-|---|---|---|---|---|
-| `dunning_saas` | Dunning on overdue SaaS invoices (suspend after 3 retries) | Invoice overdue | 1) WhatsApp Remind if retries &lt; 3; 2) Suspend if retries ≥ 3 | Max 50 Remind/hour; max 10 Suspend/day |
-| `sla_escalate` | Escalate SLA-breached tickets to L2 | Ticket `slaBreach` and not escalated | Escalate | Max 100 escalations/hour |
-| `health_save_play` | Open save-play when health score &lt; 40 | `healthScore < 40` and no open play | Open save-play | Max 20 opens/day |
-| `flag_schedule_x` | Flag Schedule-X / Rx sales for audit | New X register line or X Rx dispense | Flag `schedule_x` | Max 500 flags/hour |
-| `seat_cap_nudge` | Expansion nudge near seat cap | seats used/limit ≥ 0.8, limit finite, no nudge in 7d | Upgrade offer WhatsApp | Max 30 nudges/day |
+| id                 | Name                                                       | When                                                 | Button pressed                                                  | Cap                                    |
+| ------------------ | ---------------------------------------------------------- | ---------------------------------------------------- | --------------------------------------------------------------- | -------------------------------------- |
+| `dunning_saas`     | Dunning on overdue SaaS invoices (suspend after 3 retries) | Invoice overdue                                      | 1) WhatsApp Remind if retries &lt; 3; 2) Suspend if retries ≥ 3 | Max 50 Remind/hour; max 10 Suspend/day |
+| `sla_escalate`     | Escalate SLA-breached tickets to L2                        | Ticket `slaBreach` and not escalated                 | Escalate                                                        | Max 100 escalations/hour               |
+| `health_save_play` | Open save-play when health score &lt; 40                   | `healthScore < 40` and no open play                  | Open save-play                                                  | Max 20 opens/day                       |
+| `flag_schedule_x`  | Flag Schedule-X / Rx sales for audit                       | New X register line or X Rx dispense                 | Flag `schedule_x`                                               | Max 500 flags/hour                     |
+| `seat_cap_nudge`   | Expansion nudge near seat cap                              | seats used/limit ≥ 0.8, limit finite, no nudge in 7d | Upgrade offer WhatsApp                                          | Max 30 nudges/day                      |
 
 - FR-11: The system shall not invent additional live rules in v1 beyond these five (HQ cannot author new rule code).
 - FR-12: The system shall allow enable/disable per seed rule (immediate) and mode `simulation` | `live`.
@@ -107,12 +107,12 @@ Seed rule 1 dunning: Remind is the WhatsApp button; Suspend after 3 retries is t
 
 - FR-23: The system shall show four workflows:
 
-| Workflow | Rules included (v1) |
-|---|---|
-| **Dunning ladder** | `dunning_saas` (Remind → grace display in CRM → Suspend after 3) |
+| Workflow                      | Rules included (v1)                                                                                                                                                                                                                            |
+| ----------------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Dunning ladder**            | `dunning_saas` (Remind → grace display in CRM → Suspend after 3)                                                                                                                                                                               |
 | **New-subscriber onboarding** | No extra button in seed 1–5; workflow is **documentation + optional enable of future** — v1 links to CRM Onboarding and does **not** fake a sixth rule. Show checklist: KYC queue (`admin-tenants`) is human; automation does not Approve KYC. |
-| **At-risk win-back** | `health_save_play` |
-| **Renewal playbook** | `dunning_saas` (if past due) + `seat_cap_nudge` (expansion) |
+| **At-risk win-back**          | `health_save_play`                                                                                                                                                                                                                             |
+| **Renewal playbook**          | `dunning_saas` (if past due) + `seat_cap_nudge` (expansion)                                                                                                                                                                                    |
 
 - FR-24: The system shall allow enabling/disabling a workflow which toggles its member rules together (onboarding workflow has **zero automated buttons** in v1 — enable is a no-op with copy “KYC Approve and Mark live stay human”).
 - FR-25: The system shall not auto-Approve KYC or Mark live (those buttons exist for humans; they are **not** in the seed rule list, so automation must not press them).
@@ -140,43 +140,43 @@ Seed rule 1 dunning: Remind is the WhatsApp button; Suspend after 3 retries is t
 
 ### `AutomationSettings` (owned, singleton)
 
-| Field | Type | Notes |
-|---|---|---|
+| Field        | Type | Notes                   |
+| ------------ | ---- | ----------------------- |
 | `killSwitch` | bool | true = killed (stopped) |
-| `interval` | enum | `off` `10s` `30s` `1m` |
+| `interval`   | enum | `off` `10s` `30s` `1m`  |
 
 ### `AutomationRule` (owned — glossary)
 
-| Field | Type | Notes |
-|---|---|---|
-| `ruleId` | text PK | seed ids |
-| `enabled` | bool | |
-| `mode` | enum | `simulation` `live` |
-| `requireApproval` | bool | |
-| `capRemindPerHour` etc. | jsonb | per-rule caps |
-| `lastRunAt` | timestamptz nullable | |
+| Field                   | Type                 | Notes               |
+| ----------------------- | -------------------- | ------------------- |
+| `ruleId`                | text PK              | seed ids            |
+| `enabled`               | bool                 |                     |
+| `mode`                  | enum                 | `simulation` `live` |
+| `requireApproval`       | bool                 |                     |
+| `capRemindPerHour` etc. | jsonb                | per-rule caps       |
+| `lastRunAt`             | timestamptz nullable |                     |
 
 ### `AutomationActivity` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `activityId` | UUID | |
-| `ruleId` | text | |
-| `at` | timestamptz | |
-| `mode` | enum | |
-| `targetType` `targetId` | | |
-| `result` | enum | |
-| `detail` | jsonb | |
+| Field                   | Type        | Notes |
+| ----------------------- | ----------- | ----- |
+| `activityId`            | UUID        |       |
+| `ruleId`                | text        |       |
+| `at`                    | timestamptz |       |
+| `mode`                  | enum        |       |
+| `targetType` `targetId` |             |       |
+| `result`                | enum        |       |
+| `detail`                | jsonb       |       |
 
 ### `AutomationApproval` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `approvalId` | UUID | |
-| `ruleId` | text | |
-| `payload` | jsonb | enough to call the button |
-| `status` | enum | `pending` `approved` `rejected` |
-| `decidedByHqUserId` | nullable | |
+| Field               | Type     | Notes                           |
+| ------------------- | -------- | ------------------------------- |
+| `approvalId`        | UUID     |                                 |
+| `ruleId`            | text     |                                 |
+| `payload`           | jsonb    | enough to call the button       |
+| `status`            | enum     | `pending` `approved` `rejected` |
+| `decidedByHqUserId` | nullable |                                 |
 
 ---
 
@@ -204,7 +204,7 @@ Base: `/admin/automation`. HQ JWT.
 
 `PUT /admin/automation/kill-switch` `{ "killed": true }`
 
-`PUT /admin/automation/interval` `{ "interval": "10s" }`  // `off` | `10s` | `30s` | `1m`
+`PUT /admin/automation/interval` `{ "interval": "10s" }` // `off` | `10s` | `30s` | `1m`
 
 `POST /admin/automation/run-all` → `202` `{ "runId": "uuid" }` or `409 KILL_SWITCH`
 
@@ -227,11 +227,11 @@ Base: `/admin/automation`. HQ JWT.
 
 ### Events
 
-| Event | Payload |
-|---|---|
-| `automation.kill_switch` | `{ killed, actorHqUserId }` |
-| `automation.action` | `{ ruleId, targetId, result }` |
-| `automation.approved` | `{ approvalId, ruleId }` |
+| Event                    | Payload                        |
+| ------------------------ | ------------------------------ |
+| `automation.kill_switch` | `{ killed, actorHqUserId }`    |
+| `automation.action`      | `{ ruleId, targetId, result }` |
+| `automation.approved`    | `{ approvalId, ruleId }`       |
 
 ### UI
 
@@ -283,17 +283,17 @@ As Finance, I want automation to press Suspend only after 3 WhatsApp retries, so
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Overlapping 10s ticks | Single flight lock; skip overlapping. |
-| Downstream 403/500 | activity `failed`; do not disable the rule automatically. |
-| Cap exceeded + requireApproval false | skip `skipped_cap` (do not violate cap). |
-| Cap exceeded + requireApproval true | enqueue approval if under 500 pending. |
-| Duplicate flag | downstream idempotent; activity success. |
-| Interval Off + kill armed | only Run all now. |
-| Support PATCH rule | `403`. |
-| Unknown ruleId PATCH | `404`. |
-| Workflow onboarding enable | success message, zero jobs. |
+| Case                                 | Behaviour                                                 |
+| ------------------------------------ | --------------------------------------------------------- |
+| Overlapping 10s ticks                | Single flight lock; skip overlapping.                     |
+| Downstream 403/500                   | activity `failed`; do not disable the rule automatically. |
+| Cap exceeded + requireApproval false | skip `skipped_cap` (do not violate cap).                  |
+| Cap exceeded + requireApproval true  | enqueue approval if under 500 pending.                    |
+| Duplicate flag                       | downstream idempotent; activity success.                  |
+| Interval Off + kill armed            | only Run all now.                                         |
+| Support PATCH rule                   | `403`.                                                    |
+| Unknown ruleId PATCH                 | `404`.                                                    |
+| Workflow onboarding enable           | success message, zero jobs.                               |
 
 ---
 

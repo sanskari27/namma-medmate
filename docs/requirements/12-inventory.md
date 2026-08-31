@@ -41,17 +41,17 @@ Module layout: `modules/inventory/{ui,api,docs}`. UI talks to API only via `@nam
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Pharmacy tenant and `location_id`. |
-| `master-catalogue` | **PlatformMasterSku** map, DPCO ceiling, ban/un-ban events, salt/brand/composition for search. |
-| `plan-gating` | Inventory route is Free forever; Rack map shortcut may paywall Growth. |
-| `auth` / `manage-users` | Session; Owner / Manager / Pharmacist (default) may open Inventory; Cashier default cannot. |
-| `audit` | Append **AuditEvent** on opening import, SKU edit that changes sellable fields, every stock qty mutation, un-map on ban, label print request. |
-| `books-gst` | Read-only period/FY lock. Opening stock may require a journal — inventory emits the event; books posts. |
-| `account-settings` | Thermal label template (batch sticker). Inventory supplies print payload. |
-| `purchases` | After GRN, purchases calls inventory stock-in and may request label print. (Caller; not a compile-time API import of UI.) |
-| `pos-billing`, `kiosk`, `returns`, `purchase-returns`, `stock-take` | Call inventory contracts in §7; they do not own Batch qty. |
+| Module                                                              | Why                                                                                                                                           |
+| ------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                                                           | Pharmacy tenant and `location_id`.                                                                                                            |
+| `master-catalogue`                                                  | **PlatformMasterSku** map, DPCO ceiling, ban/un-ban events, salt/brand/composition for search.                                                |
+| `plan-gating`                                                       | Inventory route is Free forever; Rack map shortcut may paywall Growth.                                                                        |
+| `auth` / `manage-users`                                             | Session; Owner / Manager / Pharmacist (default) may open Inventory; Cashier default cannot.                                                   |
+| `audit`                                                             | Append **AuditEvent** on opening import, SKU edit that changes sellable fields, every stock qty mutation, un-map on ban, label print request. |
+| `books-gst`                                                         | Read-only period/FY lock. Opening stock may require a journal — inventory emits the event; books posts.                                       |
+| `account-settings`                                                  | Thermal label template (batch sticker). Inventory supplies print payload.                                                                     |
+| `purchases`                                                         | After GRN, purchases calls inventory stock-in and may request label print. (Caller; not a compile-time API import of UI.)                     |
+| `pos-billing`, `kiosk`, `returns`, `purchase-returns`, `stock-take` | Call inventory contracts in §7; they do not own Batch qty.                                                                                    |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -156,88 +156,88 @@ All entities: `tenant_id`, `location_id`, `created_at`, `updated_at`.
 
 ### SKU (`inventory` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `sku_id` | string | PK |
-| `platform_master_sku_id` | string, null | Map to **PlatformMasterSku**; null after un-map or if never mapped |
-| `unmapped_at` | datetime, null | Set on ban un-map |
-| `name` | string | |
-| `composition` | string, null | salt / composition |
-| `manufacturer` | string, null | |
-| `brand` | string, null | Searchable; may copy from master |
-| `pack_size` | integer ≥ 1 | Base units per pack |
-| `pack_unit` | string | e.g. tablet, ml |
-| `pack_label` | string | Display e.g. “10 tablets” |
-| `category` | string, null | Fever, Cough, … as used on POS chips |
-| `form` | string, null | tablet, syrup, … |
-| `schedule` | enum | `OTC` \| `H` \| `H1` \| `X` |
-| `hsn` | string, null | |
-| `gst_pct` | number | Invoice default |
-| `mrp` | number | GST-inclusive; ≤ DPCO when mapped |
-| `reorder_level` | integer, null | Base units; null/0 = not “low” |
-| `loose` | boolean | Per-tablet sell |
-| `photo_url` | string, null | |
-| `rack_codes` | string[] | Stored here; `racks` map UI edits via API |
-| `barcodes` | string[] | SKU-level barcodes if any |
+| Field                    | Type           | Notes                                                              |
+| ------------------------ | -------------- | ------------------------------------------------------------------ |
+| `sku_id`                 | string         | PK                                                                 |
+| `platform_master_sku_id` | string, null   | Map to **PlatformMasterSku**; null after un-map or if never mapped |
+| `unmapped_at`            | datetime, null | Set on ban un-map                                                  |
+| `name`                   | string         |                                                                    |
+| `composition`            | string, null   | salt / composition                                                 |
+| `manufacturer`           | string, null   |                                                                    |
+| `brand`                  | string, null   | Searchable; may copy from master                                   |
+| `pack_size`              | integer ≥ 1    | Base units per pack                                                |
+| `pack_unit`              | string         | e.g. tablet, ml                                                    |
+| `pack_label`             | string         | Display e.g. “10 tablets”                                          |
+| `category`               | string, null   | Fever, Cough, … as used on POS chips                               |
+| `form`                   | string, null   | tablet, syrup, …                                                   |
+| `schedule`               | enum           | `OTC` \| `H` \| `H1` \| `X`                                        |
+| `hsn`                    | string, null   |                                                                    |
+| `gst_pct`                | number         | Invoice default                                                    |
+| `mrp`                    | number         | GST-inclusive; ≤ DPCO when mapped                                  |
+| `reorder_level`          | integer, null  | Base units; null/0 = not “low”                                     |
+| `loose`                  | boolean        | Per-tablet sell                                                    |
+| `photo_url`              | string, null   |                                                                    |
+| `rack_codes`             | string[]       | Stored here; `racks` map UI edits via API                          |
+| `barcodes`               | string[]       | SKU-level barcodes if any                                          |
 
 Computed (not stored, or denormalized with refresh): `on_hand` (sum Batch.qty), `batch_count`, `earliest_expiry`, `stock_value_cost`, `stock_value_mrp`, `stock_pill`, `units_sold_30d`, `units_sold_90d`, `days_of_cover`, `last_sold_at`, `is_dead`, `is_unallocated`.
 
 ### Batch (`inventory` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `batch_id` | string | PK |
-| `sku_id` | string | |
-| `batch_no` | string | Unique per sku_id + location |
-| `expiry_date` | date | |
-| `qty` | number ≥ 0 | **Base units** |
-| `cost` | number | PTR per base unit; 0 for scheme-only remainder tracking — see movements |
-| `mrp` | number | GST-inclusive at receipt; SKU MRP may refresh |
-| `scheme` | boolean | True if this Batch (or a slice) entered as free qty |
-| `received_at` | datetime | FEFO tie-break |
-| `barcode` | string, null | Printed on label |
-| `source` | enum | `opening` \| `grn` \| `stock_take` \| `return_restock` |
-| `source_id` | string, null | **GRN** id, take_id, etc. |
+| Field         | Type         | Notes                                                                   |
+| ------------- | ------------ | ----------------------------------------------------------------------- |
+| `batch_id`    | string       | PK                                                                      |
+| `sku_id`      | string       |                                                                         |
+| `batch_no`    | string       | Unique per sku_id + location                                            |
+| `expiry_date` | date         |                                                                         |
+| `qty`         | number ≥ 0   | **Base units**                                                          |
+| `cost`        | number       | PTR per base unit; 0 for scheme-only remainder tracking — see movements |
+| `mrp`         | number       | GST-inclusive at receipt; SKU MRP may refresh                           |
+| `scheme`      | boolean      | True if this Batch (or a slice) entered as free qty                     |
+| `received_at` | datetime     | FEFO tie-break                                                          |
+| `barcode`     | string, null | Printed on label                                                        |
+| `source`      | enum         | `opening` \| `grn` \| `stock_take` \| `return_restock`                  |
+| `source_id`   | string, null | **GRN** id, take_id, etc.                                               |
 
 Identity: sku + batch no (glossary). Scheme free qty may share batch_no with paid qty on the same GRN: one Batch row; cost is weighted (paid PTR × paid qty + 0 × free) / total qty.
 
 ### StockMovement
 
-| Field | Type | Notes |
-|---|---|---|
-| `movement_id` | string | PK |
-| `sku_id` | string | |
-| `batch_id` | string | |
-| `qty_delta` | number | Signed base units; after-apply Batch.qty ≥ 0 |
-| `type` | enum | `opening` \| `grn` \| `sale` \| `sale_reversal` \| `customer_restock` \| `write_off` \| `purchase_return` \| `expiry_return` \| `stock_take` |
-| `source_id` | string | Bill / **GRN** / **StockTake** / **PurchaseReturn** / **ExpiryReturn** / import id |
-| `client_mutation_id` | string, null | Idempotency |
-| `actor_user_id` | string | |
-| `occurred_at` | datetime | Document date (lock-checked) |
+| Field                | Type         | Notes                                                                                                                                        |
+| -------------------- | ------------ | -------------------------------------------------------------------------------------------------------------------------------------------- |
+| `movement_id`        | string       | PK                                                                                                                                           |
+| `sku_id`             | string       |                                                                                                                                              |
+| `batch_id`           | string       |                                                                                                                                              |
+| `qty_delta`          | number       | Signed base units; after-apply Batch.qty ≥ 0                                                                                                 |
+| `type`               | enum         | `opening` \| `grn` \| `sale` \| `sale_reversal` \| `customer_restock` \| `write_off` \| `purchase_return` \| `expiry_return` \| `stock_take` |
+| `source_id`          | string       | Bill / **GRN** / **StockTake** / **PurchaseReturn** / **ExpiryReturn** / import id                                                           |
+| `client_mutation_id` | string, null | Idempotency                                                                                                                                  |
+| `actor_user_id`      | string       |                                                                                                                                              |
+| `occurred_at`        | datetime     | Document date (lock-checked)                                                                                                                 |
 
 ### OpeningStockImport
 
-| Field | Type | Notes |
-|---|---|---|
-| `import_id` | string | PK |
-| `status` | enum | `pending` \| `posted` \| `failed` |
-| `row_count` | integer | |
-| `client_mutation_id` | string | Idempotent post |
-| `document_date` | date | Lock-checked |
-| `actor_user_id` | string | |
+| Field                | Type    | Notes                             |
+| -------------------- | ------- | --------------------------------- |
+| `import_id`          | string  | PK                                |
+| `status`             | enum    | `pending` \| `posted` \| `failed` |
+| `row_count`          | integer |                                   |
+| `client_mutation_id` | string  | Idempotent post                   |
+| `document_date`      | date    | Lock-checked                      |
+| `actor_user_id`      | string  |                                   |
 
 ### KPI definitions (Location)
 
-| KPI | Formula |
-|---|---|
-| Total SKUs | Count of SKU rows |
-| Total units | Sum of Batch.qty (base units) |
-| Stock value at cost | Sum(Batch.qty × Batch.cost) |
-| Retail value at MRP | Sum(Batch.qty × SKU.mrp) |
-| Margin % | `(retail − cost) / retail × 100` if retail > 0; else 0 |
-| Low-on-stock | Count SKUs matching FR-29 |
-| Expiring ≤ 4 months ₹ at risk | FR-30 |
-| Dead stock > 90 days | Count SKUs matching FR-31 |
+| KPI                           | Formula                                                |
+| ----------------------------- | ------------------------------------------------------ |
+| Total SKUs                    | Count of SKU rows                                      |
+| Total units                   | Sum of Batch.qty (base units)                          |
+| Stock value at cost           | Sum(Batch.qty × Batch.cost)                            |
+| Retail value at MRP           | Sum(Batch.qty × SKU.mrp)                               |
+| Margin %                      | `(retail − cost) / retail × 100` if retail > 0; else 0 |
+| Low-on-stock                  | Count SKUs matching FR-29                              |
+| Expiring ≤ 4 months ₹ at risk | FR-30                                                  |
+| Dead stock > 90 days          | Count SKUs matching FR-31                              |
 
 ### Days of cover
 
@@ -309,20 +309,20 @@ Body: `{ "batch_ids": [] }`. Returns print payload `{ lines: [ { sku_name, sku_i
 
 ### Events (this module publishes)
 
-| Event | Payload (serializable) |
-|---|---|
-| `inventory.stock.changed` | `{ tenant_id, location_id, sku_id, batch_id, qty_after, type, source_id, document_date }` |
-| `inventory.sku.created` | `{ tenant_id, location_id, sku_id, platform_master_sku_id }` |
-| `inventory.sku.updated` | `{ tenant_id, location_id, sku_id }` |
-| `inventory.sku.unmapped` | `{ tenant_id, location_id, sku_id, platform_master_sku_id }` |
-| `inventory.opening_stock.posted` | `{ tenant_id, location_id, import_id, document_date, inventory_value_cost }` |
+| Event                            | Payload (serializable)                                                                    |
+| -------------------------------- | ----------------------------------------------------------------------------------------- |
+| `inventory.stock.changed`        | `{ tenant_id, location_id, sku_id, batch_id, qty_after, type, source_id, document_date }` |
+| `inventory.sku.created`          | `{ tenant_id, location_id, sku_id, platform_master_sku_id }`                              |
+| `inventory.sku.updated`          | `{ tenant_id, location_id, sku_id }`                                                      |
+| `inventory.sku.unmapped`         | `{ tenant_id, location_id, sku_id, platform_master_sku_id }`                              |
+| `inventory.opening_stock.posted` | `{ tenant_id, location_id, import_id, document_date, inventory_value_cost }`              |
 
 ### Events (this module consumes)
 
-| Event | Behaviour |
-|---|---|
-| `master-catalogue.sku.banned` | Un-map all shop SKUs with that **PlatformMasterSku** (FR-10). |
-| `master-catalogue.sku.unbanned` | Do **not** auto-remap (see §10). |
+| Event                           | Behaviour                                                                               |
+| ------------------------------- | --------------------------------------------------------------------------------------- |
+| `master-catalogue.sku.banned`   | Un-map all shop SKUs with that **PlatformMasterSku** (FR-10).                           |
+| `master-catalogue.sku.unbanned` | Do **not** auto-remap (see §10).                                                        |
 | `master-catalogue.dpco.updated` | Do not rewrite historical Batches; subsequent MRP set/refresh must respect new ceiling. |
 
 Callers (`purchases`, `pos-billing`, `returns`, `purchase-returns`, `stock-take`) use REST in this section rather than writing Batch rows.
@@ -435,31 +435,31 @@ Then H/H1/X SKUs are omitted.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Negative or zero decrement qty | `VALIDATION_ERROR` |
-| Unknown `batch_id` | `NOT_FOUND` |
-| Concurrent last unit | One success, one `CONFLICT` |
-| Retry same `client_mutation_id` | Replay, no double move |
-| Hold | No inventory call / no qty change |
-| Expired batch on default FEFO | Hidden |
-| GRN/opening expiry in the past | `VALIDATION_ERROR` (purchases also validates) |
-| MRP > DPCO | `VALIDATION_ERROR` |
-| Banned master | Not billable; un-map async; search excludes |
-| Locked period | No opening/stock-in/adjust/decrement with that `document_date` |
-| Lock service down | `DEPENDENCY_FAILURE`; no post |
-| Empty opening CSV | Allowed (zero stock) |
-| Duplicate SKU+batch_no on stock-in | Top up existing Batch |
-| Loose off, POS sends qty not multiple of pack | POS must send base units; inventory only checks qty ≤ on_hand |
-| Photo too large | `VALIDATION_ERROR` |
-| Unallocated with racks later assigned by `racks` | Tab membership updates |
-| Plan expiry | Inventory remains usable |
-| Printer fail | Stock stands; reprint labels |
-| Two tabs: Out of stock vs Low | Zero is Out, not Low |
-| Never sold + qty > 0 | Dead stock |
-| Un-map then un-ban | Mapping stays null until a later GRN rematch (§10) |
-| `location_id` missing | `VALIDATION_ERROR` |
-| Wrong tenant | Empty or `NOT_FOUND`, never another shop’s rows |
+| Case                                             | Behaviour                                                      |
+| ------------------------------------------------ | -------------------------------------------------------------- |
+| Negative or zero decrement qty                   | `VALIDATION_ERROR`                                             |
+| Unknown `batch_id`                               | `NOT_FOUND`                                                    |
+| Concurrent last unit                             | One success, one `CONFLICT`                                    |
+| Retry same `client_mutation_id`                  | Replay, no double move                                         |
+| Hold                                             | No inventory call / no qty change                              |
+| Expired batch on default FEFO                    | Hidden                                                         |
+| GRN/opening expiry in the past                   | `VALIDATION_ERROR` (purchases also validates)                  |
+| MRP > DPCO                                       | `VALIDATION_ERROR`                                             |
+| Banned master                                    | Not billable; un-map async; search excludes                    |
+| Locked period                                    | No opening/stock-in/adjust/decrement with that `document_date` |
+| Lock service down                                | `DEPENDENCY_FAILURE`; no post                                  |
+| Empty opening CSV                                | Allowed (zero stock)                                           |
+| Duplicate SKU+batch_no on stock-in               | Top up existing Batch                                          |
+| Loose off, POS sends qty not multiple of pack    | POS must send base units; inventory only checks qty ≤ on_hand  |
+| Photo too large                                  | `VALIDATION_ERROR`                                             |
+| Unallocated with racks later assigned by `racks` | Tab membership updates                                         |
+| Plan expiry                                      | Inventory remains usable                                       |
+| Printer fail                                     | Stock stands; reprint labels                                   |
+| Two tabs: Out of stock vs Low                    | Zero is Out, not Low                                           |
+| Never sold + qty > 0                             | Dead stock                                                     |
+| Un-map then un-ban                               | Mapping stays null until a later GRN rematch (§10)             |
+| `location_id` missing                            | `VALIDATION_ERROR`                                             |
+| Wrong tenant                                     | Empty or `NOT_FOUND`, never another shop’s rows                |
 
 ## 10. Open Questions / Assumptions
 

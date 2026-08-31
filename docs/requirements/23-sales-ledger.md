@@ -46,16 +46,16 @@ This is a Growth upsell so a shop can still bill and find today’s invoice on F
 
 ## 3. Dependencies (be specific: APIs/events needed from other slugs)
 
-| Other slug | Need | Contract |
-|---|---|---|
-| `plan-gating` | Unlock | `GET /plan/features` → `sales-ledger: true` else paywall |
-| `pos-billing` | Every posted Bill | `GET /bills` with unbounded dates (server still tenant-scoped); `GET /bills/:id`; print/PDF/share |
-| `khata` | paid-status, repayment | outstanding remaining; `POST /khata/repayments` |
-| `returns` | optional net-of-CN in summary | `GET /credit-notes?bill_id=` or aggregated refunds in range |
-| `customers` | History | `/customers/:id` |
-| `auth` | permission `sales-ledger` (Owner, Manager default; Pharmacist/Cashier per owner grid) | |
-| `audit` | Export may log `sales.exported` | `audit.append` |
-| `books-gst` | Period labels only; not journals | — |
+| Other slug    | Need                                                                                  | Contract                                                                                          |
+| ------------- | ------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| `plan-gating` | Unlock                                                                                | `GET /plan/features` → `sales-ledger: true` else paywall                                          |
+| `pos-billing` | Every posted Bill                                                                     | `GET /bills` with unbounded dates (server still tenant-scoped); `GET /bills/:id`; print/PDF/share |
+| `khata`       | paid-status, repayment                                                                | outstanding remaining; `POST /khata/repayments`                                                   |
+| `returns`     | optional net-of-CN in summary                                                         | `GET /credit-notes?bill_id=` or aggregated refunds in range                                       |
+| `customers`   | History                                                                               | `/customers/:id`                                                                                  |
+| `auth`        | permission `sales-ledger` (Owner, Manager default; Pharmacist/Cashier per owner grid) |                                                                                                   |
+| `audit`       | Export may log `sales.exported`                                                       | `audit.append`                                                                                    |
+| `books-gst`   | Period labels only; not journals                                                      | —                                                                                                 |
 
 ---
 
@@ -69,7 +69,7 @@ This is a Growth upsell so a shop can still bill and find today’s invoice on F
 - **FR-6:** The system shall filter `channel` ∈ {all, counter, kiosk}.
 - **FR-7:** The system shall filter `payment_mode` ∈ {all, cash, khata} only — no UPI/Card.
 - **FR-8:** The system shall filter `paid_status` ∈ {all, paid, outstanding, partial, settled} as defined in Orders.
-- **FR-9:** The system shall show summary chips: `period` (from–to IST), `bill_count` (posted bills in filter), `units` (sum of BillLine.qty), `gross_paise` = sum of `invoice_total_paise` (credit notes do not remove the original sale), `gst_paise` = sum of (cgst+sgst+igst), `net_collected_paise` = the same as `gross_paise` with caption **“Invoice totals (khata included)”**. Khata *cash collections* are a `khata` KPI, not this footer.
+- **FR-9:** The system shall show summary chips: `period` (from–to IST), `bill_count` (posted bills in filter), `units` (sum of BillLine.qty), `gross_paise` = sum of `invoice_total_paise` (credit notes do not remove the original sale), `gst_paise` = sum of (cgst+sgst+igst), `net_collected_paise` = the same as `gross_paise` with caption **“Invoice totals (khata included)”**. Khata _cash collections_ are a `khata` KPI, not this footer.
 - **FR-10:** The system shall show a sortable table: invoice no, date, channel, customer, phone, tender, paid-status, units, taxable, GST, invoice total, actor. Default sort date desc.
 - **FR-11:** The system shall show a **totals footer** for the **full filtered set**, not only the current page.
 - **FR-12:** The system shall paginate rows (50 default) without changing footer totals.
@@ -105,17 +105,17 @@ No owned money entity. Read `Bill` + `BillLine` + `Payment` from `pos-billing`; 
 
 ### 6.1 `SalesExportJob` (this module)
 
-| Column | Type |
-|---|---|
-| `job_id` | UUID |
-| `tenant_id`, `location_id` | |
-| `actor_user_id` | |
-| `filter_json` | JSONB |
-| `format` | `xlsx` \| `pdf` |
-| `status` | `queued` \| `done` \| `failed` |
-| `s3_key` | TEXT NULL |
-| `error` | TEXT NULL |
-| `created_at`, `completed_at` | |
+| Column                       | Type                           |
+| ---------------------------- | ------------------------------ |
+| `job_id`                     | UUID                           |
+| `tenant_id`, `location_id`   |                                |
+| `actor_user_id`              |                                |
+| `filter_json`                | JSONB                          |
+| `format`                     | `xlsx` \| `pdf`                |
+| `status`                     | `queued` \| `done` \| `failed` |
+| `s3_key`                     | TEXT NULL                      |
+| `error`                      | TEXT NULL                      |
+| `created_at`, `completed_at` |                                |
 
 TTL: files expire 24 h.
 
@@ -181,7 +181,14 @@ Response:
 {
   "location_id": "uuid",
   "format": "xlsx",
-  "filter": { "from": "2025-09-01", "to": "2026-08-31", "channel": "all", "payment_mode": "khata", "paid_status": "outstanding", "q": "" }
+  "filter": {
+    "from": "2025-09-01",
+    "to": "2026-08-31",
+    "channel": "all",
+    "payment_mode": "khata",
+    "paid_status": "outstanding",
+    "q": ""
+  }
 }
 ```
 
@@ -201,7 +208,7 @@ Same URLs as Orders §7.3 (`khata` repay, POS print/share, customers, returns op
 type SalesLedgerPageProps = {
   locationId: string;
   unlocked: boolean;
-  requiredPlan?: { name: "Growth"; monthlyPaise: 149900; gstNote: "18% GST" };
+  requiredPlan?: { name: 'Growth'; monthlyPaise: 149900; gstNote: '18% GST' };
   khataUnlocked: boolean;
 };
 ```
@@ -277,14 +284,14 @@ Then payment mode filter has only Cash and Khata.
 
 ## 9. Edge Cases & Error Handling (include §10 failure catalogue rows that apply)
 
-| Catalogue event | Sales behaviour |
-|---|---|
-| Plan expired | Module locks immediately; data retained; reopen after renew. POS/Orders 7-day stay. |
-| Thermal printer offline | Invoice reprint from row; bill stands. |
-| Locked period | Ledger still **reads** locked months (read-only). Cannot edit. |
-| Wizard / KYC incomplete | No bills yet; empty ledger. |
-| WhatsApp share fail | `wa.me` only. |
-| Concurrent last unit | Not applicable to read path. |
+| Catalogue event         | Sales behaviour                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------- |
+| Plan expired            | Module locks immediately; data retained; reopen after renew. POS/Orders 7-day stay. |
+| Thermal printer offline | Invoice reprint from row; bill stands.                                              |
+| Locked period           | Ledger still **reads** locked months (read-only). Cannot edit.                      |
+| Wizard / KYC incomplete | No bills yet; empty ledger.                                                         |
+| WhatsApp share fail     | `wa.me` only.                                                                       |
+| Concurrent last unit    | Not applicable to read path.                                                        |
 
 Additional:
 
@@ -300,7 +307,7 @@ Additional:
 
 ## 10. Open Questions / Assumptions
 
-1. **Gross / net collected (v1):** `gross_paise = sum(invoice_total_paise)` of posted bills in filter; **net collected = same number**, with UI caption “Invoice totals (khata included)”. Khata *collections* are a khata KPI, not this footer, unless product later splits “collected cash”.
+1. **Gross / net collected (v1):** `gross_paise = sum(invoice_total_paise)` of posted bills in filter; **net collected = same number**, with UI caption “Invoice totals (khata included)”. Khata _collections_ are a khata KPI, not this footer, unless product later splits “collected cash”.
 2. Credit notes **do not remove** the original sale row (audit). Linked CN count may show on detail, not subtracted from bill_count.
 3. Max query span **36 months**; export cap **20,000** rows.
 4. Held carts are **not** sales.

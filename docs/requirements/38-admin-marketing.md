@@ -40,15 +40,15 @@ HQ **Marketing** lets Namma launch and pause **WhatsApp campaigns to chemist Own
 
 ## 3. Dependencies
 
-| Module | Need |
-|---|---|
-| `whatsapp` | Template catalogue, send with `purpose=hq_campaign`, at-least-once, 3 retries, inbox statuses delivered/read/failed. WABA is platform-scoped. |
-| `admin-tenants` | Tenant list, Owner contact phone, KYC/onboarding flags. |
-| `admin-saas-crm` / `saas-billing` | Plan, period end, trial, past due for segments. |
-| `go-live-kyc` | Wizard incomplete segment. |
-| `admin-platform-settings` | Permission; optional `whatsappConversationRatePaise` for estimator. |
-| `audit` | Launch/Pause. |
-| `auth` | HQ JWT. |
+| Module                            | Need                                                                                                                                          |
+| --------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| `whatsapp`                        | Template catalogue, send with `purpose=hq_campaign`, at-least-once, 3 retries, inbox statuses delivered/read/failed. WABA is platform-scoped. |
+| `admin-tenants`                   | Tenant list, Owner contact phone, KYC/onboarding flags.                                                                                       |
+| `admin-saas-crm` / `saas-billing` | Plan, period end, trial, past due for segments.                                                                                               |
+| `go-live-kyc`                     | Wizard incomplete segment.                                                                                                                    |
+| `admin-platform-settings`         | Permission; optional `whatsappConversationRatePaise` for estimator.                                                                           |
+| `audit`                           | Launch/Pause.                                                                                                                                 |
+| `auth`                            | HQ JWT.                                                                                                                                       |
 
 **External:** Meta only via `whatsapp`.
 
@@ -90,27 +90,27 @@ HQ **Marketing** lets Namma launch and pause **WhatsApp campaigns to chemist Own
 
 ### `HqChemistCampaign` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `campaignId` | UUID | |
-| `title` | text | |
-| `purpose` | enum | `renewal` `onboarding` `other` |
-| `templateKey` | text | |
-| `audienceFilter` | jsonb | `{ plans?, statuses?, renewingWithinDays?, kyc?, wizardIncomplete?, tenantIds? }` |
-| `status` | enum | `draft` `running` `paused` `completed` |
-| `scheduledAt` | timestamptz nullable | |
-| `ratePaiseSnapshot` | int | frozen at launch for estimator vs actual |
-| `createdByHqUserId` | UUID | |
-| `launchedAt` `pausedAt` | nullable | |
+| Field                   | Type                 | Notes                                                                             |
+| ----------------------- | -------------------- | --------------------------------------------------------------------------------- |
+| `campaignId`            | UUID                 |                                                                                   |
+| `title`                 | text                 |                                                                                   |
+| `purpose`               | enum                 | `renewal` `onboarding` `other`                                                    |
+| `templateKey`           | text                 |                                                                                   |
+| `audienceFilter`        | jsonb                | `{ plans?, statuses?, renewingWithinDays?, kyc?, wizardIncomplete?, tenantIds? }` |
+| `status`                | enum                 | `draft` `running` `paused` `completed`                                            |
+| `scheduledAt`           | timestamptz nullable |                                                                                   |
+| `ratePaiseSnapshot`     | int                  | frozen at launch for estimator vs actual                                          |
+| `createdByHqUserId`     | UUID                 |                                                                                   |
+| `launchedAt` `pausedAt` | nullable             |                                                                                   |
 
 ### `HqChemistCampaignSend` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `campaignId` + `tenantId` | PK | |
-| `messageId` | UUID | from `whatsapp` |
-| `status` | enum | `queued` `sent` `delivered` `read` `failed` `skipped_no_phone` |
-| `error` | text nullable | |
+| Field                     | Type          | Notes                                                          |
+| ------------------------- | ------------- | -------------------------------------------------------------- |
+| `campaignId` + `tenantId` | PK            |                                                                |
+| `messageId`               | UUID          | from `whatsapp`                                                |
+| `status`                  | enum          | `queued` `sent` `delivered` `read` `failed` `skipped_no_phone` |
+| `error`                   | text nullable |                                                                |
 
 ---
 
@@ -158,10 +158,10 @@ Errors: `409 EMPTY_AUDIENCE`, `400 AUDIENCE_CAP`, `409 NOT_DRAFT` on edit, `409 
 
 ### Events
 
-| Event | Payload |
-|---|---|
+| Event                  | Payload                                       |
+| ---------------------- | --------------------------------------------- |
 | `hq.campaign.launched` | `{ campaignId, audienceSize, actorHqUserId }` |
-| `hq.campaign.paused` | `{ campaignId, actorHqUserId }` |
+| `hq.campaign.paused`   | `{ campaignId, actorHqUserId }`               |
 
 Sends: request `whatsapp` `POST` send `{ templateKey, to, tenantId, purpose: "hq_campaign", campaignId }`.
 
@@ -197,15 +197,15 @@ As Super admin, I want this module labelled for chemist accounts, so that agents
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Owner phone missing | Skip; count skipped_no_phone; do not fail campaign. |
-| WhatsApp fail after 3 retries | Send status failed; campaign can still complete. |
-| Duplicate Launch | Second Launch on `running` → `409`. |
-| Template not in catalogue | `400 UNKNOWN_TEMPLATE`. |
-| Meta marketing window | Failed visible; no SMS. |
-| Support Launch | `403`. |
-| ScheduledAt in the past | `400`. |
+| Case                          | Behaviour                                           |
+| ----------------------------- | --------------------------------------------------- |
+| Owner phone missing           | Skip; count skipped_no_phone; do not fail campaign. |
+| WhatsApp fail after 3 retries | Send status failed; campaign can still complete.    |
+| Duplicate Launch              | Second Launch on `running` → `409`.                 |
+| Template not in catalogue     | `400 UNKNOWN_TEMPLATE`.                             |
+| Meta marketing window         | Failed visible; no SMS.                             |
+| Support Launch                | `403`.                                              |
+| ScheduledAt in the past       | `400`.                                              |
 
 ---
 

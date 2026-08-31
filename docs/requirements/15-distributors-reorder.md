@@ -34,16 +34,16 @@ Module layout: `modules/distributors-reorder/{ui,api,docs}`. UI talks to API onl
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `purchases` | Historical PTR/scheme from **GRN** lines to seed supply list; Record GRN navigation; Free stubs share `distributor_id`. |
-| `inventory` | On-hand, reorder_level, MRP, SKU identity for suggestions. |
-| `plan-gating` | Growth. |
-| `tenancy` | Tenant + `location_id`. |
-| `auth` / `manage-users` | Owner / Manager default; Pharmacist/Cashier default no. |
-| `audit` | **AuditEvent** on PO send, directory add/edit/remove, preferred-source change. |
-| `books-gst` | Read AP outstanding per `distributor_id`; Pay distributor lives there. |
-| `purchase-returns` | Reads `return_window_days` from distributor (later). |
+| Module                  | Why                                                                                                                     |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `purchases`             | Historical PTR/scheme from **GRN** lines to seed supply list; Record GRN navigation; Free stubs share `distributor_id`. |
+| `inventory`             | On-hand, reorder_level, MRP, SKU identity for suggestions.                                                              |
+| `plan-gating`           | Growth.                                                                                                                 |
+| `tenancy`               | Tenant + `location_id`.                                                                                                 |
+| `auth` / `manage-users` | Owner / Manager default; Pharmacist/Cashier default no.                                                                 |
+| `audit`                 | **AuditEvent** on PO send, directory add/edit/remove, preferred-source change.                                          |
+| `books-gst`             | Read AP outstanding per `distributor_id`; Pay distributor lives there.                                                  |
+| `purchase-returns`      | Reads `return_window_days` from distributor (later).                                                                    |
 
 ## 4. Functional Requirements (FR-n: The system shall ...)
 
@@ -113,34 +113,34 @@ Module layout: `modules/distributors-reorder/{ui,api,docs}`. UI talks to API onl
 
 ### Distributor (`distributors-reorder` owns; stubs created by `purchases`)
 
-| Field | Type | Notes |
-|---|---|---|
-| `distributor_id` | string | PK |
-| `name` | string | Firm |
-| `contact_name` | string, null | |
-| `contact_phone` | string, null | |
-| `contact_email` | string, null | |
-| `gstin` | string, null | |
-| `drug_licence` | string, null | |
-| `address` | string, null | |
-| `payment_terms` | string, null | |
-| `return_window_days` | integer, null | For expiry returns |
-| `active` | boolean | |
-| `source` | enum | `stub` \| `directory` |
+| Field                | Type          | Notes                 |
+| -------------------- | ------------- | --------------------- |
+| `distributor_id`     | string        | PK                    |
+| `name`               | string        | Firm                  |
+| `contact_name`       | string, null  |                       |
+| `contact_phone`      | string, null  |                       |
+| `contact_email`      | string, null  |                       |
+| `gstin`              | string, null  |                       |
+| `drug_licence`       | string, null  |                       |
+| `address`            | string, null  |                       |
+| `payment_terms`      | string, null  |                       |
+| `return_window_days` | integer, null | For expiry returns    |
+| `active`             | boolean       |                       |
+| `source`             | enum          | `stub` \| `directory` |
 
 Outstanding is **not** stored here; read from books.
 
 ### SupplyListRow
 
-| Field | Type | Notes |
-|---|---|---|
-| `supply_id` | string | PK |
-| `distributor_id` | string | |
-| `sku_id` | string | |
-| `purchase_price` | number | Per pack or per base unit — §10: per **pack** as chemist quotes |
-| `scheme_paid_qty` | integer | e.g. 10 |
-| `scheme_free_qty` | integer | e.g. 1 |
-| `preferred` | boolean | Star; at most one true per sku_id among active distributors |
+| Field             | Type    | Notes                                                           |
+| ----------------- | ------- | --------------------------------------------------------------- |
+| `supply_id`       | string  | PK                                                              |
+| `distributor_id`  | string  |                                                                 |
+| `sku_id`          | string  |                                                                 |
+| `purchase_price`  | number  | Per pack or per base unit — §10: per **pack** as chemist quotes |
+| `scheme_paid_qty` | integer | e.g. 10                                                         |
+| `scheme_free_qty` | integer | e.g. 1                                                          |
+| `preferred`       | boolean | Star; at most one true per sku_id among active distributors     |
 
 Landed per pack = `purchase_price * scheme_paid_qty / (scheme_paid_qty + scheme_free_qty)` when scheme_free > 0; else `purchase_price`.  
 Price rank: rank of landed among active supply rows for that `sku_id` (1 = best).  
@@ -148,24 +148,24 @@ Margin: `(SKU.mrp − landed) / SKU.mrp` when MRP > 0 (MRP is pack MRP GST-inclu
 
 ### PurchaseOrder (`distributors-reorder` owns)
 
-| Field | Type | Notes |
-|---|---|---|
-| `po_id` | string | PK |
-| `distributor_id` | string | |
-| `status` | enum | `draft` \| `sent` \| `received` |
-| `sent_at` | datetime, null | |
-| `received_at` | datetime, null | |
-| `actor_user_id` | string | |
+| Field            | Type           | Notes                           |
+| ---------------- | -------------- | ------------------------------- |
+| `po_id`          | string         | PK                              |
+| `distributor_id` | string         |                                 |
+| `status`         | enum           | `draft` \| `sent` \| `received` |
+| `sent_at`        | datetime, null |                                 |
+| `received_at`    | datetime, null |                                 |
+| `actor_user_id`  | string         |                                 |
 
 ### PurchaseOrderLine
 
-| Field | Type | Notes |
-|---|---|---|
-| `po_line_id` | string | |
-| `po_id` | string | |
-| `sku_id` | string | |
-| `qty` | number | Order qty in **packs** |
-| `landed_snapshot` | number | At send time |
+| Field             | Type   | Notes                  |
+| ----------------- | ------ | ---------------------- |
+| `po_line_id`      | string |                        |
+| `po_id`           | string |                        |
+| `sku_id`          | string |                        |
+| `qty`             | number | Order qty in **packs** |
+| `landed_snapshot` | number | At send time           |
 
 ## 7. API / Interface Contracts (REST JSON, events, UI)
 
@@ -232,11 +232,11 @@ Side-by-side quotes. If `sku_id` omitted, list SKUs (filtered by multi-source to
 
 ### Events published
 
-| Event | Payload |
-|---|---|
-| `distributors-reorder.po.raised` | `{ tenant_id, location_id, po_id, distributor_id, status, lines }` |
-| `distributors-reorder.po.status.changed` | `{ tenant_id, location_id, po_id, status }` |
-| `distributors-reorder.distributor.updated` | `{ tenant_id, location_id, distributor_id, active }` |
+| Event                                      | Payload                                                            |
+| ------------------------------------------ | ------------------------------------------------------------------ |
+| `distributors-reorder.po.raised`           | `{ tenant_id, location_id, po_id, distributor_id, status, lines }` |
+| `distributors-reorder.po.status.changed`   | `{ tenant_id, location_id, po_id, status }`                        |
+| `distributors-reorder.distributor.updated` | `{ tenant_id, location_id, distributor_id, active }`               |
 
 ### Events / APIs consumed
 
@@ -312,21 +312,21 @@ Then `distributor_id` is unchanged and GRNs still link.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| No supply list for a low SKU | SKU omitted from grouped suggestions (cannot choose a distributor) |
-| All suppliers inactive | SKU omitted |
-| Send with qty ≤ 0 | `VALIDATION_ERROR` |
-| Mark received on Draft | `CONFLICT` (must be Sent) |
-| Send on Received | `CONFLICT` |
-| Plan not Growth | `FORBIDDEN` |
-| Delete distributor with GRNs | Deactivate only |
-| Books outstanding fail | Show “—” / `DEPENDENCY_FAILURE` on outstanding field; directory still loads |
-| Duplicate GSTIN same location | `CONFLICT` (assumption §10) |
-| Switch to distributor without supply row | `VALIDATION_ERROR` |
-| `location_id` missing | `VALIDATION_ERROR` |
-| Cashier | `FORBIDDEN` |
-| PO Record GRN after plan expiry | Purchases still Free; PO GET may be Growth-gated — see §10 |
+| Case                                     | Behaviour                                                                   |
+| ---------------------------------------- | --------------------------------------------------------------------------- |
+| No supply list for a low SKU             | SKU omitted from grouped suggestions (cannot choose a distributor)          |
+| All suppliers inactive                   | SKU omitted                                                                 |
+| Send with qty ≤ 0                        | `VALIDATION_ERROR`                                                          |
+| Mark received on Draft                   | `CONFLICT` (must be Sent)                                                   |
+| Send on Received                         | `CONFLICT`                                                                  |
+| Plan not Growth                          | `FORBIDDEN`                                                                 |
+| Delete distributor with GRNs             | Deactivate only                                                             |
+| Books outstanding fail                   | Show “—” / `DEPENDENCY_FAILURE` on outstanding field; directory still loads |
+| Duplicate GSTIN same location            | `CONFLICT` (assumption §10)                                                 |
+| Switch to distributor without supply row | `VALIDATION_ERROR`                                                          |
+| `location_id` missing                    | `VALIDATION_ERROR`                                                          |
+| Cashier                                  | `FORBIDDEN`                                                                 |
+| PO Record GRN after plan expiry          | Purchases still Free; PO GET may be Growth-gated — see §10                  |
 
 ## 10. Open Questions / Assumptions
 

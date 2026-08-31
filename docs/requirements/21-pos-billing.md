@@ -73,29 +73,29 @@ The Charge Lambda is one transaction boundary: after validations (and IRN wait w
 
 All calls are tenant-scoped. `location_id` is on every query. POS **must not** import other modules’ UI. Persistence only through `libs/db-services`. POS talks to other APIs via typed clients / domain services.
 
-| Other slug | What POS needs | Contract POS calls |
-|---|---|---|
-| `auth` | Session; current user id/role/permissions; **counter PIN verify** for overrides | `POST /auth/pin/verify` (or POS-owned wrapper in §7.4 that delegates here). Roles: Owner, Manager, Pharmacist, Cashier. |
-| `manage-users` | Permission `pos-billing` on the session | Read-only: user may open POS iff permission granted (Cashier default includes POS). |
-| `plan-gating` | Feature flags for sub-features | `GET /plan/features` → `khata`, `customers`, `offers`, `crm`, `statutory-registers`, `books-gst.e_invoice`. POS route itself is always unlocked. |
-| `go-live-kyc` | Block first posted bill | `GET /go-live/status` → `{ kyc_approved, wizard_complete, can_post_bills }` |
-| `tenancy` | `tenant_id`, `location_id`, pharmacy state (GSTIN first two digits), GSTIN, e-invoicing on/off, Regular GST | `GET /tenancy/location` |
-| `inventory` | SKU search, batch qty/expiry/cost/MRP, rack, loose flag, reorder level, FEFO order; **conditional decrement** | Search + `inventory.decrementBatches` in the Charge TX. `qty` after decrement ≥ 0. |
-| `master-catalogue` | Substitutes list, DPCO ceiling, banned flag, schedule tag, salt/brand | `GET /master/skus/:id/substitutes`; ceiling/ban copied onto tenant SKU — still re-check at add-to-cart and charge. |
-| `racks` | Rack code on the product card and search | Inventory already denormalises rack; if missing, card shows “Unlocated”. POS still searches rack on Free. |
-| `customers` | Named customer by phone; create-at-POS; allergies; GSTIN on 360 | `GET /customers?phone=`; `POST /customers` (quick); `GET /customers/:id` including `allergies[]`, `gstin`, `state_code`. Gated Starter. |
-| `khata` | Credit limit, outstanding, **post sale** | `GET /khata/:customerId/summary` → `{ credit_limit_paise, outstanding_paise }`; `khata.postSale` in Charge TX. Gated Starter. |
-| `statutory-registers` | Pharmacist on duty; shop doctor list; inline add doctor; **append H1/X** | `GET /statutory/duty/current`; `GET /statutory/doctors`; `POST /statutory/doctors`; `statutoryRegisters.appendScheduledSale` in Charge TX. Gated Starter for clock-in UI, but **clinical rule is not plan-based**: no duty → cannot charge scheduled. |
-| `offers` | Validate exactly one coupon | `POST /offers/validate` `{ code, cart }`. Gated Growth. |
-| `crm` | Loyalty balance, FIFO lots, earn/burn | `crm.quoteRedeem`; `crm.earnAndBurn` in Charge TX. Gated Growth. Redeem requires named customer. |
-| `account-settings` | Invoice prefix, template (thermal default), show HSN/doctor/IRN, hold TTL (10–120, default 30), “you saved” toggle | `GET /settings/invoice`; `GET /settings/pos` `{ hold_ttl_minutes }` |
-| `books-gst` | Period lock; IRN request; sale journal | `GET /books/period-lock?date=`; `booksGst.requestIrn` **before** stock TX; `booksGst.postSaleJournal` **inside** stock TX. |
-| `audit` | Append-only money/stock/override events | `audit.append` inside Charge TX and on every PIN override. |
-| `whatsapp` | Optional: template body for bill share | POS **does not auto-send**. It builds a pre-filled `wa.me` URL. May call `GET /whatsapp/templates/bill-share` for the English body with shop name. |
-| `prescriptions` | Optional link `prescription_id` on the bill when “Dispense → billing” landed the cart | Read `prescription_id` from cart payload; POS does not own the queue. |
-| `kiosk` | HeldCart + pickup token created by kiosk | `GET /pos/holds/by-token/:token`. Charge with `kiosk_token_id` + tender `cash` only. |
-| `returns` | Invoice modal **Return** / **Cancel** | Navigate to returns with `bill_id`. POS never issues a CN. |
-| `orders` / `sales-ledger` / `dashboard` / `reports` | Consumers of posted bills | They subscribe to `BillPosted` / query bills. POS does not call them. |
+| Other slug                                          | What POS needs                                                                                                     | Contract POS calls                                                                                                                                                                                                                                    |
+| --------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `auth`                                              | Session; current user id/role/permissions; **counter PIN verify** for overrides                                    | `POST /auth/pin/verify` (or POS-owned wrapper in §7.4 that delegates here). Roles: Owner, Manager, Pharmacist, Cashier.                                                                                                                               |
+| `manage-users`                                      | Permission `pos-billing` on the session                                                                            | Read-only: user may open POS iff permission granted (Cashier default includes POS).                                                                                                                                                                   |
+| `plan-gating`                                       | Feature flags for sub-features                                                                                     | `GET /plan/features` → `khata`, `customers`, `offers`, `crm`, `statutory-registers`, `books-gst.e_invoice`. POS route itself is always unlocked.                                                                                                      |
+| `go-live-kyc`                                       | Block first posted bill                                                                                            | `GET /go-live/status` → `{ kyc_approved, wizard_complete, can_post_bills }`                                                                                                                                                                           |
+| `tenancy`                                           | `tenant_id`, `location_id`, pharmacy state (GSTIN first two digits), GSTIN, e-invoicing on/off, Regular GST        | `GET /tenancy/location`                                                                                                                                                                                                                               |
+| `inventory`                                         | SKU search, batch qty/expiry/cost/MRP, rack, loose flag, reorder level, FEFO order; **conditional decrement**      | Search + `inventory.decrementBatches` in the Charge TX. `qty` after decrement ≥ 0.                                                                                                                                                                    |
+| `master-catalogue`                                  | Substitutes list, DPCO ceiling, banned flag, schedule tag, salt/brand                                              | `GET /master/skus/:id/substitutes`; ceiling/ban copied onto tenant SKU — still re-check at add-to-cart and charge.                                                                                                                                    |
+| `racks`                                             | Rack code on the product card and search                                                                           | Inventory already denormalises rack; if missing, card shows “Unlocated”. POS still searches rack on Free.                                                                                                                                             |
+| `customers`                                         | Named customer by phone; create-at-POS; allergies; GSTIN on 360                                                    | `GET /customers?phone=`; `POST /customers` (quick); `GET /customers/:id` including `allergies[]`, `gstin`, `state_code`. Gated Starter.                                                                                                               |
+| `khata`                                             | Credit limit, outstanding, **post sale**                                                                           | `GET /khata/:customerId/summary` → `{ credit_limit_paise, outstanding_paise }`; `khata.postSale` in Charge TX. Gated Starter.                                                                                                                         |
+| `statutory-registers`                               | Pharmacist on duty; shop doctor list; inline add doctor; **append H1/X**                                           | `GET /statutory/duty/current`; `GET /statutory/doctors`; `POST /statutory/doctors`; `statutoryRegisters.appendScheduledSale` in Charge TX. Gated Starter for clock-in UI, but **clinical rule is not plan-based**: no duty → cannot charge scheduled. |
+| `offers`                                            | Validate exactly one coupon                                                                                        | `POST /offers/validate` `{ code, cart }`. Gated Growth.                                                                                                                                                                                               |
+| `crm`                                               | Loyalty balance, FIFO lots, earn/burn                                                                              | `crm.quoteRedeem`; `crm.earnAndBurn` in Charge TX. Gated Growth. Redeem requires named customer.                                                                                                                                                      |
+| `account-settings`                                  | Invoice prefix, template (thermal default), show HSN/doctor/IRN, hold TTL (10–120, default 30), “you saved” toggle | `GET /settings/invoice`; `GET /settings/pos` `{ hold_ttl_minutes }`                                                                                                                                                                                   |
+| `books-gst`                                         | Period lock; IRN request; sale journal                                                                             | `GET /books/period-lock?date=`; `booksGst.requestIrn` **before** stock TX; `booksGst.postSaleJournal` **inside** stock TX.                                                                                                                            |
+| `audit`                                             | Append-only money/stock/override events                                                                            | `audit.append` inside Charge TX and on every PIN override.                                                                                                                                                                                            |
+| `whatsapp`                                          | Optional: template body for bill share                                                                             | POS **does not auto-send**. It builds a pre-filled `wa.me` URL. May call `GET /whatsapp/templates/bill-share` for the English body with shop name.                                                                                                    |
+| `prescriptions`                                     | Optional link `prescription_id` on the bill when “Dispense → billing” landed the cart                              | Read `prescription_id` from cart payload; POS does not own the queue.                                                                                                                                                                                 |
+| `kiosk`                                             | HeldCart + pickup token created by kiosk                                                                           | `GET /pos/holds/by-token/:token`. Charge with `kiosk_token_id` + tender `cash` only.                                                                                                                                                                  |
+| `returns`                                           | Invoice modal **Return** / **Cancel**                                                                              | Navigate to returns with `bill_id`. POS never issues a CN.                                                                                                                                                                                            |
+| `orders` / `sales-ledger` / `dashboard` / `reports` | Consumers of posted bills                                                                                          | They subscribe to `BillPosted` / query bills. POS does not call them.                                                                                                                                                                                 |
 
 POS **owns** `Bill`, `BillLine`, `Payment` (GMV), `HeldCart`, and the Charge idempotency table. It does **not** own Batch qty (inventory), KhataLedger, LoyaltyLot, DutyShift, Journal, or CreditNote.
 
@@ -292,114 +292,114 @@ Owner: `pos-billing` unless noted. Money: `BIGINT` paise. Dates: `timestamptz`. 
 
 ### 6.1 `Bill`
 
-| Column | Type | Notes |
-|---|---|---|
-| `bill_id` | UUID PK | |
-| `tenant_id` | UUID | |
-| `location_id` | UUID | |
-| `client_charge_id` | UUID | unique with tenant+location |
-| `invoice_no` | TEXT | unique with tenant+location+`fy` when status=posted |
-| `fy` | TEXT | e.g. `2026-27` |
-| `status` | ENUM | `draft_irn` \| `posted` |
-| `bill_date` | DATE | default today IST; cannot land in locked period |
-| `channel` | ENUM | `counter` \| `kiosk` |
-| `customer_id` | UUID NULL | null = walk-in |
-| `customer_snapshot` | JSONB | name, phone, gstin, state_code at charge |
-| `doctor_name` | TEXT NULL | required if any scheduled line |
-| `doctor_registration_no` | TEXT NULL | required if any scheduled |
-| `pharmacist_on_duty_employee_id` | UUID NULL | required if any scheduled |
-| `pharmacist_on_duty_snapshot` | JSONB NULL | name + reg no |
-| `prescription_id` | UUID NULL | from prescriptions dispense→billing |
-| `kiosk_token_id` | TEXT NULL | |
-| `hold_id` | UUID NULL | consumed hold |
-| `tender` | ENUM | `cash` \| `khata` |
-| `tendered_paise` | BIGINT NULL | cash only |
-| `change_due_paise` | BIGINT NULL | cash only |
-| `items_inclusive_paise` | BIGINT | pre-discount sum |
-| `coupon_code` | TEXT NULL | at most one |
-| `coupon_discount_paise` | BIGINT | |
-| `manual_discount_type` | ENUM NULL | `flat` \| `percent` |
-| `manual_discount_value` | BIGINT NULL | paise or rate×100 (e.g. 10% → 1000) — see §7 |
-| `manual_discount_paise` | BIGINT | computed |
-| `loyalty_redeem_points` | INT | |
-| `loyalty_redeem_paise` | BIGINT | 1 pt = ₹1 |
-| `loyalty_earn_points` | INT | |
-| `round_off_paise` | BIGINT | signed; usually −1..+1 paise range but can be more |
-| `invoice_total_paise` | BIGINT | rounded payable |
-| `taxable_paise` | BIGINT | sum of lines |
-| `cgst_paise` | BIGINT | |
-| `sgst_paise` | BIGINT | |
-| `igst_paise` | BIGINT | |
-| `place_of_supply_state` | CHAR(2) | |
-| `gst_supply_type` | ENUM | `intra_b2c` \| `intra_b2b` \| `inter_b2b` |
-| `irn` | TEXT NULL | |
-| `irn_ack_no` | TEXT NULL | |
-| `irn_ack_dt` | TIMESTAMPTZ NULL | |
-| `irn_signed_qr` | TEXT NULL | |
-| `issued_without_irn` | BOOL | default false |
-| `allergy_acknowledged_at` | TIMESTAMPTZ NULL | |
-| `below_cost_override` | BOOL | |
-| `credit_limit_override` | BOOL | |
-| `actor_user_id` | UUID | |
-| `actor_role` | TEXT | |
-| `posted_at` | TIMESTAMPTZ NULL | |
-| `created_at` | TIMESTAMPTZ | |
+| Column                           | Type             | Notes                                               |
+| -------------------------------- | ---------------- | --------------------------------------------------- |
+| `bill_id`                        | UUID PK          |                                                     |
+| `tenant_id`                      | UUID             |                                                     |
+| `location_id`                    | UUID             |                                                     |
+| `client_charge_id`               | UUID             | unique with tenant+location                         |
+| `invoice_no`                     | TEXT             | unique with tenant+location+`fy` when status=posted |
+| `fy`                             | TEXT             | e.g. `2026-27`                                      |
+| `status`                         | ENUM             | `draft_irn` \| `posted`                             |
+| `bill_date`                      | DATE             | default today IST; cannot land in locked period     |
+| `channel`                        | ENUM             | `counter` \| `kiosk`                                |
+| `customer_id`                    | UUID NULL        | null = walk-in                                      |
+| `customer_snapshot`              | JSONB            | name, phone, gstin, state_code at charge            |
+| `doctor_name`                    | TEXT NULL        | required if any scheduled line                      |
+| `doctor_registration_no`         | TEXT NULL        | required if any scheduled                           |
+| `pharmacist_on_duty_employee_id` | UUID NULL        | required if any scheduled                           |
+| `pharmacist_on_duty_snapshot`    | JSONB NULL       | name + reg no                                       |
+| `prescription_id`                | UUID NULL        | from prescriptions dispense→billing                 |
+| `kiosk_token_id`                 | TEXT NULL        |                                                     |
+| `hold_id`                        | UUID NULL        | consumed hold                                       |
+| `tender`                         | ENUM             | `cash` \| `khata`                                   |
+| `tendered_paise`                 | BIGINT NULL      | cash only                                           |
+| `change_due_paise`               | BIGINT NULL      | cash only                                           |
+| `items_inclusive_paise`          | BIGINT           | pre-discount sum                                    |
+| `coupon_code`                    | TEXT NULL        | at most one                                         |
+| `coupon_discount_paise`          | BIGINT           |                                                     |
+| `manual_discount_type`           | ENUM NULL        | `flat` \| `percent`                                 |
+| `manual_discount_value`          | BIGINT NULL      | paise or rate×100 (e.g. 10% → 1000) — see §7        |
+| `manual_discount_paise`          | BIGINT           | computed                                            |
+| `loyalty_redeem_points`          | INT              |                                                     |
+| `loyalty_redeem_paise`           | BIGINT           | 1 pt = ₹1                                           |
+| `loyalty_earn_points`            | INT              |                                                     |
+| `round_off_paise`                | BIGINT           | signed; usually −1..+1 paise range but can be more  |
+| `invoice_total_paise`            | BIGINT           | rounded payable                                     |
+| `taxable_paise`                  | BIGINT           | sum of lines                                        |
+| `cgst_paise`                     | BIGINT           |                                                     |
+| `sgst_paise`                     | BIGINT           |                                                     |
+| `igst_paise`                     | BIGINT           |                                                     |
+| `place_of_supply_state`          | CHAR(2)          |                                                     |
+| `gst_supply_type`                | ENUM             | `intra_b2c` \| `intra_b2b` \| `inter_b2b`           |
+| `irn`                            | TEXT NULL        |                                                     |
+| `irn_ack_no`                     | TEXT NULL        |                                                     |
+| `irn_ack_dt`                     | TIMESTAMPTZ NULL |                                                     |
+| `irn_signed_qr`                  | TEXT NULL        |                                                     |
+| `issued_without_irn`             | BOOL             | default false                                       |
+| `allergy_acknowledged_at`        | TIMESTAMPTZ NULL |                                                     |
+| `below_cost_override`            | BOOL             |                                                     |
+| `credit_limit_override`          | BOOL             |                                                     |
+| `actor_user_id`                  | UUID             |                                                     |
+| `actor_role`                     | TEXT             |                                                     |
+| `posted_at`                      | TIMESTAMPTZ NULL |                                                     |
+| `created_at`                     | TIMESTAMPTZ      |                                                     |
 
 Invariants: `tender ∈ {cash, khata}`; one tender; `status=posted` ⇒ stock already decremented; walk-in ⇒ `tender=cash` and `customer_id` null; scheduled lines ⇒ doctor name+reg + pharmacist snapshot; `loyalty_redeem_paise ≤ 0.20 * (items − coupon − manual)`.
 
 ### 6.2 `BillLine`
 
-| Column | Type | Notes |
-|---|---|---|
-| `line_id` | UUID PK | |
-| `bill_id` | UUID FK | |
-| `sku_id` | UUID | |
-| `batch_id` | UUID | living batch at post |
-| `schedule` | ENUM | `OTC` \| `H` \| `H1` \| `X` |
-| `hsn` | TEXT | |
-| `gst_rate_percent` | NUMERIC(5,2) | e.g. 12.00 |
-| `qty` | INT | tablets if loose; packs otherwise; > 0 |
-| `mrp_paise` | BIGINT | GST-inclusive list, ≤ DPCO |
-| `unit_sp_paise` | BIGINT | GST-inclusive after discount allocation |
-| `line_sp_paise` | BIGINT | qty × unit SP (before line-level round) |
-| `taxable_paise` | BIGINT | |
-| `gst_paise` | BIGINT | |
-| `cgst_paise` | BIGINT | |
-| `sgst_paise` | BIGINT | |
-| `igst_paise` | BIGINT | |
-| `cost_paise` | BIGINT | snapshot batch cost × qty |
-| `batch_no` | TEXT | snapshot |
-| `expiry` | DATE | snapshot |
-| `substituted_from_sku_id` | UUID NULL | |
+| Column                    | Type         | Notes                                   |
+| ------------------------- | ------------ | --------------------------------------- |
+| `line_id`                 | UUID PK      |                                         |
+| `bill_id`                 | UUID FK      |                                         |
+| `sku_id`                  | UUID         |                                         |
+| `batch_id`                | UUID         | living batch at post                    |
+| `schedule`                | ENUM         | `OTC` \| `H` \| `H1` \| `X`             |
+| `hsn`                     | TEXT         |                                         |
+| `gst_rate_percent`        | NUMERIC(5,2) | e.g. 12.00                              |
+| `qty`                     | INT          | tablets if loose; packs otherwise; > 0  |
+| `mrp_paise`               | BIGINT       | GST-inclusive list, ≤ DPCO              |
+| `unit_sp_paise`           | BIGINT       | GST-inclusive after discount allocation |
+| `line_sp_paise`           | BIGINT       | qty × unit SP (before line-level round) |
+| `taxable_paise`           | BIGINT       |                                         |
+| `gst_paise`               | BIGINT       |                                         |
+| `cgst_paise`              | BIGINT       |                                         |
+| `sgst_paise`              | BIGINT       |                                         |
+| `igst_paise`              | BIGINT       |                                         |
+| `cost_paise`              | BIGINT       | snapshot batch cost × qty               |
+| `batch_no`                | TEXT         | snapshot                                |
+| `expiry`                  | DATE         | snapshot                                |
+| `substituted_from_sku_id` | UUID NULL    |                                         |
 
 ### 6.3 `Payment` (GMV)
 
-| Column | Type | Notes |
-|---|---|---|
-| `payment_id` | UUID PK | |
-| `bill_id` | UUID | |
-| `method` | ENUM | `cash` \| `khata` |
-| `amount_paise` | BIGINT | = invoice_total |
-| `tendered_paise` | BIGINT NULL | |
-| `change_due_paise` | BIGINT NULL | |
+| Column             | Type        | Notes             |
+| ------------------ | ----------- | ----------------- |
+| `payment_id`       | UUID PK     |                   |
+| `bill_id`          | UUID        |                   |
+| `method`           | ENUM        | `cash` \| `khata` |
+| `amount_paise`     | BIGINT      | = invoice_total   |
+| `tendered_paise`   | BIGINT NULL |                   |
+| `change_due_paise` | BIGINT NULL |                   |
 
 SaaS Cashfree payments are **not** this table (`saas-billing`).
 
 ### 6.4 `HeldCart`
 
-| Column | Type | Notes |
-|---|---|---|
-| `hold_id` | UUID PK | |
-| `tenant_id` | UUID | |
-| `location_id` | UUID | |
-| `client_charge_id` | UUID | reused on resume→charge |
-| `channel` | ENUM | `counter` \| `kiosk` |
-| `kiosk_token_id` | TEXT NULL unique per tenant | 4–6 digit or alphanumeric pickup token |
-| `cart_snapshot` | JSONB | lines, customer, doctor, discounts, prescription_id |
-| `created_by` | UUID | kiosk holds: kiosk session / staff who launched |
-| `expires_at` | TIMESTAMPTZ | now + TTL |
-| `status` | ENUM | `open` \| `resumed` \| `charged` \| `discarded` \| `expired` |
-| `expired_at` | TIMESTAMPTZ NULL | |
+| Column             | Type                        | Notes                                                        |
+| ------------------ | --------------------------- | ------------------------------------------------------------ |
+| `hold_id`          | UUID PK                     |                                                              |
+| `tenant_id`        | UUID                        |                                                              |
+| `location_id`      | UUID                        |                                                              |
+| `client_charge_id` | UUID                        | reused on resume→charge                                      |
+| `channel`          | ENUM                        | `counter` \| `kiosk`                                         |
+| `kiosk_token_id`   | TEXT NULL unique per tenant | 4–6 digit or alphanumeric pickup token                       |
+| `cart_snapshot`    | JSONB                       | lines, customer, doctor, discounts, prescription_id          |
+| `created_by`       | UUID                        | kiosk holds: kiosk session / staff who launched              |
+| `expires_at`       | TIMESTAMPTZ                 | now + TTL                                                    |
+| `status`           | ENUM                        | `open` \| `resumed` \| `charged` \| `discarded` \| `expired` |
+| `expired_at`       | TIMESTAMPTZ NULL            |                                                              |
 
 **HeldCart never decrements stock and never allocates invoice_no.**
 
@@ -409,12 +409,12 @@ Same shape as Bill at `status=draft_irn` (can be stored in `Bill` with null `inv
 
 ### 6.6 `ChargeIdempotency`
 
-| Column | Type |
-|---|---|
-| `tenant_id, location_id, client_charge_id` | PK |
-| `bill_id` | UUID |
-| `response_json` | JSONB |
-| `created_at` | TIMESTAMPTZ |
+| Column                                     | Type        |
+| ------------------------------------------ | ----------- |
+| `tenant_id, location_id, client_charge_id` | PK          |
+| `bill_id`                                  | UUID        |
+| `response_json`                            | JSONB       |
+| `created_at`                               | TIMESTAMPTZ |
 
 ### 6.7 `PinOverrideToken` (short-lived, may live in `auth`)
 
@@ -496,8 +496,16 @@ Response:
 
 ```json
 {
-  "in_stock_substitutes": [{ "sku_id": "...", "name": "...", "mrp_paise": 900, "sellable_qty": 12, "schedule": "H" }],
-  "cheapest_in_stock_generic": { "sku_id": "...", "name": "...", "mrp_paise": 700, "sellable_qty": 50, "schedule": "H" }
+  "in_stock_substitutes": [
+    { "sku_id": "...", "name": "...", "mrp_paise": 900, "sellable_qty": 12, "schedule": "H" }
+  ],
+  "cheapest_in_stock_generic": {
+    "sku_id": "...",
+    "name": "...",
+    "mrp_paise": 700,
+    "sellable_qty": 50,
+    "schedule": "H"
+  }
 }
 ```
 
@@ -513,9 +521,7 @@ Body: same cart object as Charge minus `tendered_paise` (optional). Server is au
 {
   "location_id": "uuid",
   "customer_id": null,
-  "lines": [
-    { "sku_id": "uuid", "batch_id": "uuid", "qty": 2 }
-  ],
+  "lines": [{ "sku_id": "uuid", "batch_id": "uuid", "qty": 2 }],
   "coupon_code": "FEVER10",
   "manual_discount": { "type": "percent", "value": 500 },
   "loyalty_redeem_points": 80,
@@ -582,13 +588,13 @@ POS UI must not collect “any PIN” without a purpose. This endpoint delegates
 
 `purpose` enum:
 
-| purpose | Who | Extra |
-|---|---|---|
-| `fefo_override` | Pharmacist, Manager, Owner | reason required; sku+batch |
-| `expired_batch` | Pharmacist, Manager, Owner | reason required; sku+batch |
-| `below_cost` | **Owner or Manager only** | reason optional |
-| `credit_limit` | **Owner or Manager only** | |
-| `issue_without_irn` | **Owner only** | |
+| purpose             | Who                        | Extra                      |
+| ------------------- | -------------------------- | -------------------------- |
+| `fefo_override`     | Pharmacist, Manager, Owner | reason required; sku+batch |
+| `expired_batch`     | Pharmacist, Manager, Owner | reason required; sku+batch |
+| `below_cost`        | **Owner or Manager only**  | reason optional            |
+| `credit_limit`      | **Owner or Manager only**  |                            |
+| `issue_without_irn` | **Owner only**             |                            |
 
 Response:
 
@@ -680,8 +686,8 @@ Request:
 15. Tender ∈ {cash, khata}. No other. Kiosk token → cash only.
 16. Cash: `tendered_paise >= invoice_total_paise` else `INSUFFICIENT_TENDER`. Change = difference.
 17. Khata: module unlocked; `khata.postSale` will run; over-limit without token → `CREDIT_LIMIT_EXCEEDED`.
-18. **IRN branch:** if customer GSTIN and location.e_invoicing: call `booksGst.requestIrn` (idempotent on `client_charge_id`).  
-    - Success: keep IRN fields for insert.  
+18. **IRN branch:** if customer GSTIN and location.e_invoicing: call `booksGst.requestIrn` (idempotent on `client_charge_id`).
+    - Success: keep IRN fields for insert.
     - Fail: persist `draft_irn` (no stock, no invoice_no), return `IRN_UNAVAILABLE` unless `issue_without_irn_token` from Owner — then continue with `issued_without_irn=true`.
 19. **BEGIN TRANSACTION**
     - Allocate `invoice_no` (posted only).
@@ -704,10 +710,23 @@ Request:
 {
   "ok": true,
   "data": {
-    "bill": { "bill_id": "uuid", "invoice_no": "INV-260001", "status": "posted", "invoice_total_paise": 11800, "change_due_paise": 8200, "irn": null },
+    "bill": {
+      "bill_id": "uuid",
+      "invoice_no": "INV-260001",
+      "status": "posted",
+      "invoice_total_paise": 11800,
+      "change_due_paise": 8200,
+      "irn": null
+    },
     "idempotent_replay": false,
-    "print": { "thermal_html_url": "/api/v1/bills/{id}/print?fmt=thermal", "pdf_url": "/api/v1/bills/{id}.pdf" },
-    "whatsapp_share": { "wa_me_url": "https://wa.me/?text=...", "body": "Namma Pharmacy\nInvoice INV-260001\nTotal ₹118.00" }
+    "print": {
+      "thermal_html_url": "/api/v1/bills/{id}/print?fmt=thermal",
+      "pdf_url": "/api/v1/bills/{id}.pdf"
+    },
+    "whatsapp_share": {
+      "wa_me_url": "https://wa.me/?text=...",
+      "body": "Namma Pharmacy\nInvoice INV-260001\nTotal ₹118.00"
+    }
   }
 }
 ```
@@ -716,38 +735,38 @@ Request:
 
 **Charge error codes (closed set):**
 
-| code | HTTP | retryable | Meaning |
-|---|---|---|---|
-| `GO_LIVE_INCOMPLETE` | 403 | no | KYC/wizard |
-| `NOT_REGULAR_DEALER` | 403 | no | |
-| `PERIOD_LOCKED` | 409 | no | |
-| `BANNED_SKU` | 422 | no | |
-| `ABOVE_DPCO` | 422 | no | |
-| `STOCK_INSUFFICIENT` | 409 | yes | qty |
-| `CONCURRENT_STOCK` | 409 | yes | last unit race |
-| `BATCH_GONE` | 409 | yes | |
-| `BATCH_EXPIRED_HIDDEN` | 422 | no | need PIN |
-| `FEFO_PIN_REQUIRED` | 422 | no | |
-| `SECOND_COUPON` | 422 | no | |
-| `COUPON_INVALID` | 422 | no | |
-| `OFFERS_MODULE_LOCKED` | 403 | no | |
-| `LOYALTY_MODULE_LOCKED` | 403 | no | |
-| `CUSTOMERS_MODULE_LOCKED` | 403 | no | |
-| `KHATA_MODULE_LOCKED` | 403 | no | |
-| `WALKIN_KHATA_BLOCKED` | 422 | no | |
-| `CREDIT_LIMIT_EXCEEDED` | 422 | no | |
-| `BELOW_COST_PIN_REQUIRED` | 422 | no | |
-| `NO_PHARMACIST_ON_DUTY` | 422 | no | |
-| `DOCTOR_REQUIRED` | 422 | no | |
-| `ALLERGY_ACK_REQUIRED` | 422 | no | |
-| `INSUFFICIENT_TENDER` | 422 | no | |
-| `TENDER_INVALID` | 422 | no | not cash/khata; or kiosk+khata |
-| `KIOSK_TOKEN_EXPIRED` | 409 | no | |
-| `KIOSK_SCHEDULED_BLOCKED` | 422 | no | should not happen if kiosk filtered |
-| `IRN_UNAVAILABLE` | 503 | yes | draft saved, no stock |
-| `OVERRIDE_EXPIRED` | 422 | yes | re-PIN |
-| `PIN_ROLE_INSUFFICIENT` | 403 | no | |
-| `NETWORK` | 503 | yes | gateway |
+| code                      | HTTP | retryable | Meaning                             |
+| ------------------------- | ---- | --------- | ----------------------------------- |
+| `GO_LIVE_INCOMPLETE`      | 403  | no        | KYC/wizard                          |
+| `NOT_REGULAR_DEALER`      | 403  | no        |                                     |
+| `PERIOD_LOCKED`           | 409  | no        |                                     |
+| `BANNED_SKU`              | 422  | no        |                                     |
+| `ABOVE_DPCO`              | 422  | no        |                                     |
+| `STOCK_INSUFFICIENT`      | 409  | yes       | qty                                 |
+| `CONCURRENT_STOCK`        | 409  | yes       | last unit race                      |
+| `BATCH_GONE`              | 409  | yes       |                                     |
+| `BATCH_EXPIRED_HIDDEN`    | 422  | no        | need PIN                            |
+| `FEFO_PIN_REQUIRED`       | 422  | no        |                                     |
+| `SECOND_COUPON`           | 422  | no        |                                     |
+| `COUPON_INVALID`          | 422  | no        |                                     |
+| `OFFERS_MODULE_LOCKED`    | 403  | no        |                                     |
+| `LOYALTY_MODULE_LOCKED`   | 403  | no        |                                     |
+| `CUSTOMERS_MODULE_LOCKED` | 403  | no        |                                     |
+| `KHATA_MODULE_LOCKED`     | 403  | no        |                                     |
+| `WALKIN_KHATA_BLOCKED`    | 422  | no        |                                     |
+| `CREDIT_LIMIT_EXCEEDED`   | 422  | no        |                                     |
+| `BELOW_COST_PIN_REQUIRED` | 422  | no        |                                     |
+| `NO_PHARMACIST_ON_DUTY`   | 422  | no        |                                     |
+| `DOCTOR_REQUIRED`         | 422  | no        |                                     |
+| `ALLERGY_ACK_REQUIRED`    | 422  | no        |                                     |
+| `INSUFFICIENT_TENDER`     | 422  | no        |                                     |
+| `TENDER_INVALID`          | 422  | no        | not cash/khata; or kiosk+khata      |
+| `KIOSK_TOKEN_EXPIRED`     | 409  | no        |                                     |
+| `KIOSK_SCHEDULED_BLOCKED` | 422  | no        | should not happen if kiosk filtered |
+| `IRN_UNAVAILABLE`         | 503  | yes       | draft saved, no stock               |
+| `OVERRIDE_EXPIRED`        | 422  | yes       | re-PIN                              |
+| `PIN_ROLE_INSUFFICIENT`   | 403  | no        |                                     |
+| `NETWORK`                 | 503  | yes       | gateway                             |
 
 Allergy ack: `POST /pos/allergy-ack` `{ client_charge_id, customer_id }` after staff confirms → `{ allergy_ack_token }` (120 s, bound to charge id + allergy hash).
 
@@ -822,9 +841,22 @@ Topic: `bill.posted`. Payload:
   "tender": "cash",
   "invoiceTotalPaise": 11800,
   "lines": [
-    { "skuId": "uuid", "batchId": "uuid", "qty": 2, "schedule": "H", "lineSpPaise": 11800, "gstPaise": 1800 }
+    {
+      "skuId": "uuid",
+      "batchId": "uuid",
+      "qty": 2,
+      "schedule": "H",
+      "lineSpPaise": 11800,
+      "gstPaise": 1800
+    }
   ],
-  "gst": { "taxablePaise": 10000, "cgstPaise": 900, "sgstPaise": 900, "igstPaise": 0, "roundOffPaise": 0 },
+  "gst": {
+    "taxablePaise": 10000,
+    "cgstPaise": 900,
+    "sgstPaise": 900,
+    "igstPaise": 0,
+    "roundOffPaise": 0
+  },
   "customerId": "uuid-or-null",
   "doctor": { "name": "Dr A", "registrationNo": "KA12345" },
   "pharmacistOnDuty": { "employeeId": "uuid", "name": "...", "registrationNo": "..." },
@@ -869,10 +901,10 @@ type PosAppProps = {
 };
 
 type PosPaymentStepProps = {
-  tender: "cash" | "khata"; // no other union members in v1
+  tender: 'cash' | 'khata'; // no other union members in v1
   tenderedPaise: number | null;
   changeDuePaise: number;
-  onCharge: () => void;      // "Charge & invoice" | "Record on credit"
+  onCharge: () => void; // "Charge & invoice" | "Record on credit"
   showUpi?: never;
   showCard?: never;
 };
@@ -1059,23 +1091,23 @@ Then only Cash and Credit (khata) [khata hidden if Starter locked]; no UPI/Card 
 
 Catalogue §10 rows that **apply to POS** and required behaviour:
 
-| Catalogue event | POS behaviour |
-|---|---|
-| Network drop during Charge | Error toast; no second decrement; retry same `client_charge_id`. |
-| Thermal printer offline | Bill posted; reprint. |
-| IRP down / IRN reject | B2B not posted (default); Owner banner + WhatsApp from `books-gst`; POS shows `IRN_UNAVAILABLE` + draft. |
-| Plan expired | POS cash remains; khata/coupon/loyalty/duty UI lock; scheduled charge still legally blocked without duty. |
-| Banned / above DPCO | Cannot add to cart. |
-| No pharmacist on duty | Cannot charge scheduled POS. |
-| Walk-in + khata | Cannot charge. |
-| Credit over limit | PIN required; else blocked. |
-| Loyalty redeem > 20% | Cap applied; cannot exceed. |
-| Second coupon on one bill | Blocked. |
-| Expired batch | Hidden from default FEFO unless PIN. |
-| Hold expired (30 min) | Cart discarded; no stock. |
-| Locked period | Cannot post backdated bill into it. |
-| Wizard / KYC incomplete | Cannot post first bill. |
-| Concurrent last unit | One succeeds; other out of stock. |
+| Catalogue event            | POS behaviour                                                                                             |
+| -------------------------- | --------------------------------------------------------------------------------------------------------- |
+| Network drop during Charge | Error toast; no second decrement; retry same `client_charge_id`.                                          |
+| Thermal printer offline    | Bill posted; reprint.                                                                                     |
+| IRP down / IRN reject      | B2B not posted (default); Owner banner + WhatsApp from `books-gst`; POS shows `IRN_UNAVAILABLE` + draft.  |
+| Plan expired               | POS cash remains; khata/coupon/loyalty/duty UI lock; scheduled charge still legally blocked without duty. |
+| Banned / above DPCO        | Cannot add to cart.                                                                                       |
+| No pharmacist on duty      | Cannot charge scheduled POS.                                                                              |
+| Walk-in + khata            | Cannot charge.                                                                                            |
+| Credit over limit          | PIN required; else blocked.                                                                               |
+| Loyalty redeem > 20%       | Cap applied; cannot exceed.                                                                               |
+| Second coupon on one bill  | Blocked.                                                                                                  |
+| Expired batch              | Hidden from default FEFO unless PIN.                                                                      |
+| Hold expired (30 min)      | Cart discarded; no stock.                                                                                 |
+| Locked period              | Cannot post backdated bill into it.                                                                       |
+| Wizard / KYC incomplete    | Cannot post first bill.                                                                                   |
+| Concurrent last unit       | One succeeds; other out of stock.                                                                         |
 
 Additional:
 

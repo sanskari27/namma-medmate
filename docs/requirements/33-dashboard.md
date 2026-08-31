@@ -50,18 +50,18 @@ Numbers are not a second ledger — they are `SUM`/`COUNT` of posted Bills and l
 
 ## 3. Dependencies (be specific: APIs/events needed from other slugs)
 
-| Other slug | Need | Contract |
-|---|---|---|
-| `pos-billing` | Posted bills today/MTD/windows, recent txns, channel split, category via lines→SKU | Aggregates: `GET /dashboard/sales` implemented here querying Bill tables **or** POS read APIs `GET /bills?from&to` |
-| `inventory` | Low stock count, expiring ≤ 4 months (match inventory KPI), units | `GET /inventory/alerts/summary` `{ low, expiring, expiring_list }` |
-| `prescriptions` | Pending review count, Verify list | `GET /prescriptions/counts` `{ pending_review, overdue_sla }`; `GET /prescriptions?status=pending&limit=5` |
-| `khata` | Outstanding total | `GET /khata/summary` `{ outstanding_paise }` Starter |
-| `plan-gating` | Reorder, Prescriptions, Khata, Kiosk presence in charts | features map |
-| `distributors-reorder` | Reorder action | navigate; 403 paywall Growth |
-| `purchases` | New purchase | `/purchases/new` |
-| `pos-billing` UI | New sale | `/pos` |
-| `auth` | Greeting name, permission `dashboard` (all roles with console) | |
-| `tenancy` | location | |
+| Other slug             | Need                                                                               | Contract                                                                                                           |
+| ---------------------- | ---------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |
+| `pos-billing`          | Posted bills today/MTD/windows, recent txns, channel split, category via lines→SKU | Aggregates: `GET /dashboard/sales` implemented here querying Bill tables **or** POS read APIs `GET /bills?from&to` |
+| `inventory`            | Low stock count, expiring ≤ 4 months (match inventory KPI), units                  | `GET /inventory/alerts/summary` `{ low, expiring, expiring_list }`                                                 |
+| `prescriptions`        | Pending review count, Verify list                                                  | `GET /prescriptions/counts` `{ pending_review, overdue_sla }`; `GET /prescriptions?status=pending&limit=5`         |
+| `khata`                | Outstanding total                                                                  | `GET /khata/summary` `{ outstanding_paise }` Starter                                                               |
+| `plan-gating`          | Reorder, Prescriptions, Khata, Kiosk presence in charts                            | features map                                                                                                       |
+| `distributors-reorder` | Reorder action                                                                     | navigate; 403 paywall Growth                                                                                       |
+| `purchases`            | New purchase                                                                       | `/purchases/new`                                                                                                   |
+| `pos-billing` UI       | New sale                                                                           | `/pos`                                                                                                             |
+| `auth`                 | Greeting name, permission `dashboard` (all roles with console)                     |                                                                                                                    |
+| `tenancy`              | location                                                                           |                                                                                                                    |
 
 Dashboard **may** subscribe to `BillPosted` to invalidate cache. It must not write GMV.
 
@@ -138,14 +138,14 @@ Optional rollup (this module):
 
 ### 6.1 `DashboardDailySales`
 
-| Column | Notes |
-|---|---|
-| `tenant_id, location_id, bill_date` | PK |
-| `revenue_counter_paise`, `revenue_kiosk_paise` | |
-| `bills_counter`, `bills_kiosk` | |
-| `units` | |
-| `cash_paise`, `khata_paise` | invoice totals by tender |
-| `gst_paise` | |
+| Column                                         | Notes                    |
+| ---------------------------------------------- | ------------------------ |
+| `tenant_id, location_id, bill_date`            | PK                       |
+| `revenue_counter_paise`, `revenue_kiosk_paise` |                          |
+| `bills_counter`, `bills_kiosk`                 |                          |
+| `units`                                        |                          |
+| `cash_paise`, `khata_paise`                    | invoice totals by tender |
+| `gst_paise`                                    |                          |
 
 Maintained by `BillPosted` / `CreditNotePosted` projector **or** computed live. Credit notes: **assumption v1 dashboard revenue is gross posted bills, not net of CN** (same as Sales ledger assumption) unless product later switches to net. Document in UI? Keep gross for “today’s sales” to match bill count; CN is returns.
 
@@ -194,10 +194,13 @@ Query: `metric=revenue|orders`, `window=7d|30d|12m`, `location_id`.
 {
   "ok": true,
   "data": {
-    "series": [
-      { "bucket": "2026-08-31", "counter": 20000, "kiosk": 3600 }
-    ],
-    "channel_split": { "counter_paise": 20000, "kiosk_paise": 3600, "counter_pct": 84.7, "kiosk_pct": 15.3 },
+    "series": [{ "bucket": "2026-08-31", "counter": 20000, "kiosk": 3600 }],
+    "channel_split": {
+      "counter_paise": 20000,
+      "kiosk_paise": 3600,
+      "counter_pct": 84.7,
+      "kiosk_pct": 15.3
+    },
     "payment_mix": { "cash_paise": 18000, "khata_paise": 5600, "cash_bills": 1, "khata_bills": 1 },
     "top_categories": [{ "id": "fever", "label": "Fever", "revenue_paise": 9000 }]
   }
@@ -210,11 +213,30 @@ Query: `metric=revenue|orders`, `window=7d|30d|12m`, `location_id`.
 
 ```json
 {
-  "prescriptions_to_verify": [{ "prescription_id": "uuid", "patient_name": "...", "overdue": true }],
+  "prescriptions_to_verify": [
+    { "prescription_id": "uuid", "patient_name": "...", "overdue": true }
+  ],
   "low_stock": [{ "sku_id": "uuid", "name": "...", "sellable_qty": 2, "reorder_level": 10 }],
-  "expiring_soon": [{ "sku_id": "uuid", "batch_no": "...", "expiry": "2026-11-30", "qty": 8, "mrp_value_paise": 40000 }],
+  "expiring_soon": [
+    {
+      "sku_id": "uuid",
+      "batch_no": "...",
+      "expiry": "2026-11-30",
+      "qty": 8,
+      "mrp_value_paise": 40000
+    }
+  ],
   "top_sellers_7d": [{ "sku_id": "uuid", "name": "...", "units": 40, "revenue_paise": 50000 }],
-  "recent": [{ "bill_id": "uuid", "invoice_no": "INV-260011", "invoice_total_paise": 11800, "tender": "cash", "channel": "counter", "posted_at": "..." }]
+  "recent": [
+    {
+      "bill_id": "uuid",
+      "invoice_no": "INV-260011",
+      "invoice_total_paise": 11800,
+      "tender": "cash",
+      "channel": "counter",
+      "posted_at": "..."
+    }
+  ]
 }
 ```
 
@@ -246,7 +268,7 @@ type DashboardPageProps = {
 };
 
 type PaymentMix = { cash: number; khata: number }; // no upi
-type ChannelLegend = "Counter" | "Kiosk";
+type ChannelLegend = 'Counter' | 'Kiosk';
 ```
 
 Charts: Donut/Grouped bars/Line — implement with a single analytics response.
@@ -317,14 +339,14 @@ Then Dashboard route 200 with sales from POS; Prescriptions/Reorder actions payw
 
 ## 9. Edge Cases & Error Handling (include §10 failure catalogue rows that apply)
 
-| Catalogue event | Dashboard behaviour |
-|---|---|
-| Plan expired | Dashboard stays; Growth Reorder paywalls; kiosk series may be historical. |
-| Wizard / KYC incomplete | All zeros; greeting still shows; New sale may fail at Charge (POS). |
-| WhatsApp send fail | N/A. |
-| Locked period | Historical months still in 12M chart (read-only). |
-| Concurrent last unit | N/A. |
-| Hold expired | Never counted as a bill. |
+| Catalogue event         | Dashboard behaviour                                                       |
+| ----------------------- | ------------------------------------------------------------------------- |
+| Plan expired            | Dashboard stays; Growth Reorder paywalls; kiosk series may be historical. |
+| Wizard / KYC incomplete | All zeros; greeting still shows; New sale may fail at Charge (POS).       |
+| WhatsApp send fail      | N/A.                                                                      |
+| Locked period           | Historical months still in 12M chart (read-only).                         |
+| Concurrent last unit    | N/A.                                                                      |
+| Hold expired            | Never counted as a bill.                                                  |
 
 Additional:
 

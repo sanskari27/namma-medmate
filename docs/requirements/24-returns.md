@@ -49,20 +49,20 @@ Refund is **cash** or **back to khata** (one method, matching constraints below)
 
 ## 3. Dependencies (be specific: APIs/events needed from other slugs)
 
-| Other slug | Need | Contract |
-|---|---|---|
-| `pos-billing` | Original Bill + lines + tender + IRN + loyalty snapshot + channel | `GET /bills/:id` |
-| `account-settings` | CN prefix, invoice template | `GET /settings/invoice` `{ credit_note_prefix }` |
-| `inventory` | Restock same batch; qty ≥ 0 | `inventory.incrementBatch` (restock) or no qty change on write-off |
-| `khata` | Refund to khata; reduce outstanding | `khata.postCreditNote` |
-| `crm` | Reverse earn/burn lots from `bill_id` | `crm.reverseBillLoyalty` |
-| `statutory-registers` | Reverse H1/X | `statutoryRegisters.appendScheduledReturn` |
-| `books-gst` | Period lock; IRN CN; journal | `requestIrnCreditNote`; `postCreditNoteJournal` |
-| `audit` | Append | CN posted, IRN CN, restock vs write-off |
-| `go-live-kyc` | Should already have bills; still refuse if `can_post_bills` false | |
-| `auth` | PIN not generally required except write-off may use Manager? **Assume Cashier can return; write-off logged** | permission `returns` (Free; Cashier yes) |
-| `whatsapp` | IRN fail banner is books-gst; optional CN share pre-fill | |
-| `plan-gating` | Always unlocked | |
+| Other slug            | Need                                                                                                         | Contract                                                           |
+| --------------------- | ------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------ |
+| `pos-billing`         | Original Bill + lines + tender + IRN + loyalty snapshot + channel                                            | `GET /bills/:id`                                                   |
+| `account-settings`    | CN prefix, invoice template                                                                                  | `GET /settings/invoice` `{ credit_note_prefix }`                   |
+| `inventory`           | Restock same batch; qty ≥ 0                                                                                  | `inventory.incrementBatch` (restock) or no qty change on write-off |
+| `khata`               | Refund to khata; reduce outstanding                                                                          | `khata.postCreditNote`                                             |
+| `crm`                 | Reverse earn/burn lots from `bill_id`                                                                        | `crm.reverseBillLoyalty`                                           |
+| `statutory-registers` | Reverse H1/X                                                                                                 | `statutoryRegisters.appendScheduledReturn`                         |
+| `books-gst`           | Period lock; IRN CN; journal                                                                                 | `requestIrnCreditNote`; `postCreditNoteJournal`                    |
+| `audit`               | Append                                                                                                       | CN posted, IRN CN, restock vs write-off                            |
+| `go-live-kyc`         | Should already have bills; still refuse if `can_post_bills` false                                            |                                                                    |
+| `auth`                | PIN not generally required except write-off may use Manager? **Assume Cashier can return; write-off logged** | permission `returns` (Free; Cashier yes)                           |
+| `whatsapp`            | IRN fail banner is books-gst; optional CN share pre-fill                                                     |                                                                    |
+| `plan-gating`         | Always unlocked                                                                                              |                                                                    |
 
 Event in: none required (user-driven). Event out: `CreditNotePosted`.
 
@@ -83,14 +83,14 @@ Event in: none required (user-driven). Event out: `CreditNotePosted`.
 
 - **FR-7:** The system shall require exactly one GST reason per CN:
 
-| Staff reason | GST mapping |
-|---|---|
-| Customer changed mind | `sales_return` |
-| Wrong item | `sales_return` |
-| Damaged | `sales_return` |
-| Expired at home | `sales_return` |
+| Staff reason                     | GST mapping          |
+| -------------------------------- | -------------------- |
+| Customer changed mind            | `sales_return`       |
+| Wrong item                       | `sales_return`       |
+| Damaged                          | `sales_return`       |
+| Expired at home                  | `sales_return`       |
 | Owner-initiated price correction | `post_sale_discount` |
-| Other | `other` |
+| Other                            | `other`              |
 
 - **FR-8:** The system shall persist both `staff_reason` and `gst_reason`.
 - **FR-9:** The system shall **not** offer customer debit-note reasons or issue debit notes.
@@ -154,40 +154,40 @@ Event in: none required (user-driven). Event out: `CreditNotePosted`.
 
 ### 6.1 `CreditNote`
 
-| Column | Type | Notes |
-|---|---|---|
-| `cn_id` | UUID | |
-| `tenant_id`, `location_id` | | |
-| `client_credit_note_id` | UUID unique | |
-| `cn_no` | TEXT | unique with fy |
-| `fy` | TEXT | |
-| `status` | `draft_irn` \| `posted` | |
-| `cn_date` | DATE | open period |
-| `bill_id` | UUID | original |
-| `staff_reason` | ENUM | `changed_mind` \| `wrong_item` \| `damaged` \| `expired_at_home` \| `price_correction` \| `other` |
-| `gst_reason` | ENUM | `sales_return` \| `post_sale_discount` \| `other` |
-| `refund_method` | `cash` \| `khata` | |
-| `subtotal_sp_paise` | BIGINT | |
-| `gst_paise` / cgst/sgst/igst | | |
-| `round_off_paise` | | |
-| `total_paise` | | |
-| `irn` | TEXT NULL | CN IRN |
-| `issued_without_irn` | BOOL | |
-| `actor_user_id` | | |
-| `posted_at` | | |
+| Column                       | Type                    | Notes                                                                                             |
+| ---------------------------- | ----------------------- | ------------------------------------------------------------------------------------------------- |
+| `cn_id`                      | UUID                    |                                                                                                   |
+| `tenant_id`, `location_id`   |                         |                                                                                                   |
+| `client_credit_note_id`      | UUID unique             |                                                                                                   |
+| `cn_no`                      | TEXT                    | unique with fy                                                                                    |
+| `fy`                         | TEXT                    |                                                                                                   |
+| `status`                     | `draft_irn` \| `posted` |                                                                                                   |
+| `cn_date`                    | DATE                    | open period                                                                                       |
+| `bill_id`                    | UUID                    | original                                                                                          |
+| `staff_reason`               | ENUM                    | `changed_mind` \| `wrong_item` \| `damaged` \| `expired_at_home` \| `price_correction` \| `other` |
+| `gst_reason`                 | ENUM                    | `sales_return` \| `post_sale_discount` \| `other`                                                 |
+| `refund_method`              | `cash` \| `khata`       |                                                                                                   |
+| `subtotal_sp_paise`          | BIGINT                  |                                                                                                   |
+| `gst_paise` / cgst/sgst/igst |                         |                                                                                                   |
+| `round_off_paise`            |                         |                                                                                                   |
+| `total_paise`                |                         |                                                                                                   |
+| `irn`                        | TEXT NULL               | CN IRN                                                                                            |
+| `issued_without_irn`         | BOOL                    |                                                                                                   |
+| `actor_user_id`              |                         |                                                                                                   |
+| `posted_at`                  |                         |                                                                                                   |
 
 ### 6.2 `CreditNoteLine`
 
-| Column | Notes |
-|---|---|
-| `cn_line_id` | |
-| `cn_id` | |
-| `bill_line_id` | |
-| `sku_id`, `batch_id` | same as original |
-| `qty` | > 0 |
-| `destination` | `restock` \| `write_off` |
-| `unit_sp_paise` | snapshot from bill allocation |
-| `line_sp_paise`, taxable, gst | |
+| Column                        | Notes                         |
+| ----------------------------- | ----------------------------- |
+| `cn_line_id`                  |                               |
+| `cn_id`                       |                               |
+| `bill_line_id`                |                               |
+| `sku_id`, `batch_id`          | same as original              |
+| `qty`                         | > 0                           |
+| `destination`                 | `restock` \| `write_off`      |
+| `unit_sp_paise`               | snapshot from bill allocation |
+| `line_sp_paise`, taxable, gst |                               |
 
 ### 6.3 Sequence
 
@@ -210,9 +210,7 @@ Returns original bill, remaining qty per line, original tender, whether IRN CN r
   "bill_id": "uuid",
   "cn_date": null,
   "staff_reason": "changed_mind",
-  "lines": [
-    { "bill_line_id": "uuid", "qty": 1, "destination": "restock" }
-  ],
+  "lines": [{ "bill_line_id": "uuid", "qty": 1, "destination": "restock" }],
   "refund_method": "cash",
   "issue_without_irn_token": null
 }
@@ -255,12 +253,12 @@ List CNs for Orders timeline.
 ### 7.7 Domain services
 
 ```ts
-inventory.incrementBatch(tx, { batchId, qty })
-khata.postCreditNote(tx, { customerId, cnId, amountPaise })
-crm.reverseBillLoyalty(tx, { billId, fraction })
-statutoryRegisters.appendScheduledReturn(tx, { originalBill, cn, lines })
-booksGst.requestIrnCreditNote({ originalIrn, cnDraft })
-booksGst.postCreditNoteJournal(tx, { cn, originalBill })
+inventory.incrementBatch(tx, { batchId, qty });
+khata.postCreditNote(tx, { customerId, cnId, amountPaise });
+crm.reverseBillLoyalty(tx, { billId, fraction });
+statutoryRegisters.appendScheduledReturn(tx, { originalBill, cn, lines });
+booksGst.requestIrnCreditNote({ originalIrn, cnDraft });
+booksGst.postCreditNoteJournal(tx, { cn, originalBill });
 ```
 
 ### 7.8 UI
@@ -269,7 +267,7 @@ booksGst.postCreditNoteJournal(tx, { cn, originalBill })
 Opened as `/returns/new?billId=` from POS invoice modal.
 
 ```ts
-type ReturnRefundMethod = "cash" | "khata"; // no upi/card
+type ReturnRefundMethod = 'cash' | 'khata'; // no upi/card
 ```
 
 ---
@@ -351,18 +349,18 @@ Then allowed (staff console, not kiosk shopper).
 
 ## 9. Edge Cases & Error Handling (include §10 failure catalogue rows that apply)
 
-| Catalogue event | Returns behaviour |
-|---|---|
-| Network drop during Charge | N/A to CN; same pattern: retry same `client_credit_note_id`. |
-| Thermal printer offline | CN posted; reprint. |
-| IRP down / IRN reject | CN not posted default; Owner override; WhatsApp/banner via books-gst. |
-| Plan expired | Returns stay Free. |
-| Loyalty redeem > 20% | Original already capped; reverse uses actual redeemed. |
-| Locked period | Cannot post CN **into** locked period; post in open period. |
-| Wizard / KYC incomplete | Cannot post CN. |
-| Concurrent last unit | Analogous remaining qty race. |
-| Expired batch restock | Allowed (same batch); qty increases even if expiry past. |
-| Banned SKU | Original could not have billed banned; no extra check except don’t create new SKUs. |
+| Catalogue event            | Returns behaviour                                                                   |
+| -------------------------- | ----------------------------------------------------------------------------------- |
+| Network drop during Charge | N/A to CN; same pattern: retry same `client_credit_note_id`.                        |
+| Thermal printer offline    | CN posted; reprint.                                                                 |
+| IRP down / IRN reject      | CN not posted default; Owner override; WhatsApp/banner via books-gst.               |
+| Plan expired               | Returns stay Free.                                                                  |
+| Loyalty redeem > 20%       | Original already capped; reverse uses actual redeemed.                              |
+| Locked period              | Cannot post CN **into** locked period; post in open period.                         |
+| Wizard / KYC incomplete    | Cannot post CN.                                                                     |
+| Concurrent last unit       | Analogous remaining qty race.                                                       |
+| Expired batch restock      | Allowed (same batch); qty increases even if expiry past.                            |
+| Banned SKU                 | Original could not have billed banned; no extra check except don’t create new SKUs. |
 
 Additional:
 

@@ -55,19 +55,19 @@ v1 named customers are created at POS or on this screen. There is no bulk custom
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. All Customer rows belong to that shop. |
-| `plan-gating` | Starter required for console routes and APIs. Read-only gate. |
-| `auth` / `manage-users` | Session; role/permission `customers`. Owner always allowed. |
-| `audit` | Append-only log for create/update, consent change, credit-limit change. |
-| `khata` | 360 embeds outstanding, due tag, repayment, remind, ledger, credit-limit check at charge. Credit outstanding KPI. |
-| `crm` | Loyalty points **display** (lots owned by `crm`). |
-| `pos-billing` | Creates named customers at the counter; New sale shortcut; purchase history from posted Bills; lifetime sales / order count / units / last visit. |
-| `prescriptions` | Rx tag / chronic-Rx KPI input (linked Rx), not stored as queue here. |
-| `inventory` / `master-catalogue` | Allergy match against cart SKU name and composition. |
-| `whatsapp` | Not called directly by this module. Khata remind and CRM campaigns go through those modules → `whatsapp`. |
-| `kiosk` | May attach an existing named customer after phone + OTP (kiosk module). Allergy check uses this store. |
+| Module                           | Why                                                                                                                                               |
+| -------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                        | Tenant + `location_id`. All Customer rows belong to that shop.                                                                                    |
+| `plan-gating`                    | Starter required for console routes and APIs. Read-only gate.                                                                                     |
+| `auth` / `manage-users`          | Session; role/permission `customers`. Owner always allowed.                                                                                       |
+| `audit`                          | Append-only log for create/update, consent change, credit-limit change.                                                                           |
+| `khata`                          | 360 embeds outstanding, due tag, repayment, remind, ledger, credit-limit check at charge. Credit outstanding KPI.                                 |
+| `crm`                            | Loyalty points **display** (lots owned by `crm`).                                                                                                 |
+| `pos-billing`                    | Creates named customers at the counter; New sale shortcut; purchase history from posted Bills; lifetime sales / order count / units / last visit. |
+| `prescriptions`                  | Rx tag / chronic-Rx KPI input (linked Rx), not stored as queue here.                                                                              |
+| `inventory` / `master-catalogue` | Allergy match against cart SKU name and composition.                                                                                              |
+| `whatsapp`                       | Not called directly by this module. Khata remind and CRM campaigns go through those modules → `whatsapp`.                                         |
+| `kiosk`                          | May attach an existing named customer after phone + OTP (kiosk module). Allergy check uses this store.                                            |
 
 This module does **not** depend on `khata` or `crm` to **create** a Customer. Display fields that those modules own are read through their published contracts (or denormalized projections they update).
 
@@ -146,31 +146,31 @@ Tenant-scoped. Table names illustrative.
 
 ### Customer
 
-| Field | Type | Notes |
-|---|---|---|
-| `customer_id` | UUID | PK |
-| `tenant_id` | UUID | not null |
-| `location_id` | UUID | not null |
-| `name` | string | required for named |
-| `phone_e164` / `phone_national` | string | unique per `tenant_id` among named; required |
-| `address` | string | nullable |
-| `age` | int | nullable; years |
-| `gender` | enum `male\|female\|other\|unspecified` | nullable |
-| `blood_group` | string | nullable; free text constrained to ABO/Rh set in UI |
-| `conditions` | string[] | clinical conditions |
-| `allergies` | string[] | source of truth for POS/kiosk check |
-| `marketing_consent` | boolean | default false |
-| `marketing_consent_revoked_at` | timestamptz | nullable |
-| `refill_consent` | boolean | default false |
-| `credit_limit` | decimal(12,2) | nullable = no limit; Owner write |
-| `has_rx` | boolean | denormalized from `prescriptions` |
-| `order_count` | int | denormalized from posted Bills |
-| `units_sold` | int | denormalized |
-| `lifetime_value` | decimal(14,2) | sum of posted bill totals (GST-inclusive) |
-| `last_visit_at` | timestamptz | nullable |
-| `loyalty_points_display` | int | denormalized from `crm` lots remaining; not the lot ledger |
-| `created_at` / `updated_at` | timestamptz | |
-| `created_by_user_id` | UUID | |
+| Field                           | Type                                    | Notes                                                      |
+| ------------------------------- | --------------------------------------- | ---------------------------------------------------------- |
+| `customer_id`                   | UUID                                    | PK                                                         |
+| `tenant_id`                     | UUID                                    | not null                                                   |
+| `location_id`                   | UUID                                    | not null                                                   |
+| `name`                          | string                                  | required for named                                         |
+| `phone_e164` / `phone_national` | string                                  | unique per `tenant_id` among named; required               |
+| `address`                       | string                                  | nullable                                                   |
+| `age`                           | int                                     | nullable; years                                            |
+| `gender`                        | enum `male\|female\|other\|unspecified` | nullable                                                   |
+| `blood_group`                   | string                                  | nullable; free text constrained to ABO/Rh set in UI        |
+| `conditions`                    | string[]                                | clinical conditions                                        |
+| `allergies`                     | string[]                                | source of truth for POS/kiosk check                        |
+| `marketing_consent`             | boolean                                 | default false                                              |
+| `marketing_consent_revoked_at`  | timestamptz                             | nullable                                                   |
+| `refill_consent`                | boolean                                 | default false                                              |
+| `credit_limit`                  | decimal(12,2)                           | nullable = no limit; Owner write                           |
+| `has_rx`                        | boolean                                 | denormalized from `prescriptions`                          |
+| `order_count`                   | int                                     | denormalized from posted Bills                             |
+| `units_sold`                    | int                                     | denormalized                                               |
+| `lifetime_value`                | decimal(14,2)                           | sum of posted bill totals (GST-inclusive)                  |
+| `last_visit_at`                 | timestamptz                             | nullable                                                   |
+| `loyalty_points_display`        | int                                     | denormalized from `crm` lots remaining; not the lot ledger |
+| `created_at` / `updated_at`     | timestamptz                             |                                                            |
+| `created_by_user_id`            | UUID                                    |                                                            |
 
 Unique: `(tenant_id, phone_national)` where phone is not null.  
 No walk-in row.  
@@ -211,10 +211,10 @@ Response:
 ```json
 {
   "named_customers": 128,
-  "lifetime_sales": 1842500.00,
+  "lifetime_sales": 1842500.0,
   "repeat_customers": 61,
   "patients_on_chronic_rx": 22,
-  "credit_outstanding": 47320.50
+  "credit_outstanding": 47320.5
 }
 ```
 
@@ -237,8 +237,8 @@ Response:
       "units": 86,
       "last_visit_at": "2026-08-28T10:11:00+05:30",
       "loyalty_points": 42,
-      "lifetime_value": 21800.00,
-      "credit_limit": 5000.00
+      "lifetime_value": 21800.0,
+      "credit_limit": 5000.0
     }
   ],
   "page": 1,
@@ -265,7 +265,7 @@ Response: `200` binary file (`application/vnd.openxmlformats-officedocument.spre
   "allergies": ["penicillin"],
   "marketing_consent": true,
   "refill_consent": true,
-  "credit_limit": 5000.00
+  "credit_limit": 5000.0
 }
 ```
 
@@ -281,7 +281,7 @@ Response: `200` binary file (`application/vnd.openxmlformats-officedocument.spre
   "allergies": ["penicillin"],
   "marketing_consent": true,
   "refill_consent": true,
-  "credit_limit": 5000.00
+  "credit_limit": 5000.0
 }
 ```
 
@@ -330,7 +330,7 @@ Empty `hits` = no match. Unknown SKU ids are skipped (not 404).
       "invoice_no": "INV-2026-0412",
       "posted_at": "2026-08-28T10:11:00+05:30",
       "tender": "cash",
-      "total": 430.00,
+      "total": 430.0,
       "line_count": 3
     }
   ],
@@ -355,22 +355,22 @@ Non-Owner: `403`.
 
 ### 7.2 Events consumed
 
-| Event | From | Effect |
-|---|---|---|
-| `bill.posted` | `pos-billing` | Recompute `order_count`, `units_sold`, `lifetime_value`, `last_visit_at`. |
-| `credit_note.posted` | `returns` | Adjust lifetime value / units per CN lines (GST history remains). |
-| `loyalty.balance_changed` | `crm` | Update `loyalty_points_display`. |
-| `prescription.approved` / `prescription.dispensed` | `prescriptions` | `has_rx = true`. |
-| `khata.balance_changed` | `khata` | Due tag on next list read (or denormalize `due_tag`). |
+| Event                                              | From            | Effect                                                                    |
+| -------------------------------------------------- | --------------- | ------------------------------------------------------------------------- |
+| `bill.posted`                                      | `pos-billing`   | Recompute `order_count`, `units_sold`, `lifetime_value`, `last_visit_at`. |
+| `credit_note.posted`                               | `returns`       | Adjust lifetime value / units per CN lines (GST history remains).         |
+| `loyalty.balance_changed`                          | `crm`           | Update `loyalty_points_display`.                                          |
+| `prescription.approved` / `prescription.dispensed` | `prescriptions` | `has_rx = true`.                                                          |
+| `khata.balance_changed`                            | `khata`         | Due tag on next list read (or denormalize `due_tag`).                     |
 
 ### 7.3 Events emitted
 
-| Event | Payload (min) | Listeners |
-|---|---|---|
-| `customer.created` | `customer_id`, phone, name, `location_id` | `audit`, POS |
-| `customer.updated` | `customer_id`, changed fields | `audit` |
-| `customer.marketing_consent_revoked` | `customer_id` | `crm` (stop campaigns), `audit` |
-| `customer.credit_limit_changed` | `customer_id`, old, new | `khata`, `audit` |
+| Event                                | Payload (min)                             | Listeners                       |
+| ------------------------------------ | ----------------------------------------- | ------------------------------- |
+| `customer.created`                   | `customer_id`, phone, name, `location_id` | `audit`, POS                    |
+| `customer.updated`                   | `customer_id`, changed fields             | `audit`                         |
+| `customer.marketing_consent_revoked` | `customer_id`                             | `crm` (stop campaigns), `audit` |
+| `customer.credit_limit_changed`      | `customer_id`, old, new                   | `khata`, `audit`                |
 
 ### 7.4 UI (Pharmacy Partner Console)
 
@@ -409,23 +409,23 @@ Non-Owner: `403`.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Plan Free / expired | Paywall; API `403 PLAN_REQUIRED`; data retained |
-| Duplicate phone | `409 PHONE_TAKEN` |
-| Invalid phone (not 10-digit national after normalize) | `400 PHONE_INVALID` |
-| Missing name | `400 NAME_REQUIRED` |
-| Non-Owner sets credit_limit | `403 CREDIT_LIMIT_OWNER_ONLY` |
-| Non-Owner revokes marketing consent | `403` |
-| Unknown `customer_id` | `404` |
-| Cross-tenant id | `404` (no leak) |
-| Allergy match with empty allergies | `hits: []` |
-| Allergy match unknown sku_id | skip id |
-| Export with zero rows | valid empty spreadsheet/PDF |
-| `crm` down for points display | list shows `0` / em dash; do not fail list |
-| `khata` down for due tag | due tag false / omitted; do not fail list |
-| Concurrent duplicate create same phone | one `201`, one `409` |
-| Walk-in phone typed but not saved as named | no Customer; POS decides walk-in vs create |
+| Case                                                  | Behaviour                                       |
+| ----------------------------------------------------- | ----------------------------------------------- |
+| Plan Free / expired                                   | Paywall; API `403 PLAN_REQUIRED`; data retained |
+| Duplicate phone                                       | `409 PHONE_TAKEN`                               |
+| Invalid phone (not 10-digit national after normalize) | `400 PHONE_INVALID`                             |
+| Missing name                                          | `400 NAME_REQUIRED`                             |
+| Non-Owner sets credit_limit                           | `403 CREDIT_LIMIT_OWNER_ONLY`                   |
+| Non-Owner revokes marketing consent                   | `403`                                           |
+| Unknown `customer_id`                                 | `404`                                           |
+| Cross-tenant id                                       | `404` (no leak)                                 |
+| Allergy match with empty allergies                    | `hits: []`                                      |
+| Allergy match unknown sku_id                          | skip id                                         |
+| Export with zero rows                                 | valid empty spreadsheet/PDF                     |
+| `crm` down for points display                         | list shows `0` / em dash; do not fail list      |
+| `khata` down for due tag                              | due tag false / omitted; do not fail list       |
+| Concurrent duplicate create same phone                | one `201`, one `409`                            |
+| Walk-in phone typed but not saved as named            | no Customer; POS decides walk-in vs create      |
 
 ---
 

@@ -12,7 +12,7 @@ import '@namma-medmate/event-bus/event-map';
 
 declare module '@namma-medmate/event-bus/event-map' {
   interface EventMap {
-    'slug.event.name': { /* payload */ };
+    'slug.event.name': {/* payload */};
   }
 }
 

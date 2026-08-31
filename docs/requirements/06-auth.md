@@ -20,7 +20,7 @@ The `auth` module authenticates **User (login)** staff on the Pharmacy Partner C
 - Out of scope:
   - Creating Users, permission grid, seat cap, copy/share credentials WhatsApp deeplink (`manage-users`).
   - HQ Super admin / Ops / Finance / Support / Compliance login (separate IdP; do not require the current OIDC mock as chemist login).
-  - Kiosk shopper phone OTP to attach a **Customer** (`kiosk` + `whatsapp`); this module only verifies staff PIN for kiosk *exit*.
+  - Kiosk shopper phone OTP to attach a **Customer** (`kiosk` + `whatsapp`); this module only verifies staff PIN for kiosk _exit_.
   - SMS backup codes.
   - Changing login methods UI (`manage-users` writes allowed methods; this module enforces them).
   - Plan paywalls (`plan-gating`).
@@ -30,7 +30,7 @@ The `auth` module authenticates **User (login)** staff on the Pharmacy Partner C
 - Other modules/slugs and what is needed:
   - `tenancy`: User is bound to one Pharmacy + Location; session includes both; `location_id` on subsequent queries.
   - `whatsapp`: POST `/whatsapp/messages` for `login_otp`; handle `WHATSAPP_OTP_UNDELIVERABLE`.
-  - `audit`: ingest `login_succeeded`, `login_failed`, `session_revoked`, `pin_verified`, `pin_failed`, `account_locked`, and saved-device remember/revoke. Login-method *change* is emitted by `manage-users` but this module still audits login events.
+  - `audit`: ingest `login_succeeded`, `login_failed`, `session_revoked`, `pin_verified`, `pin_failed`, `account_locked`, and saved-device remember/revoke. Login-method _change_ is emitted by `manage-users` but this module still audits login events.
   - `manage-users` (later): owns User create, role, allowed methods, PIN set/reset, password set/reset, active flag. This module reads User credential fields via db-services User record.
   - `plan-gating`: not required to log in (login is always reachable).
 - External services/APIs/libraries:
@@ -400,25 +400,25 @@ As Owner my session role stays Owner.
 - Brute force on kiosk: lock 10 minutes; attempts reset after lock expires.
 - `manage-users` sets password_enabled off while a session exists: existing session remains until logout; new password logins fail. Assumption.
 
-| Code | HTTP | When |
-|---|---|---|
-| `INVALID_CREDENTIALS` | 401 | Bad login/password / unknown user |
-| `INVALID_OTP` | 401 | Wrong OTP |
-| `OTP_EXPIRED` | 401 | >10 min |
-| `OTP_CONSUMED` | 401 | Replay |
-| `UNAUTHENTICATED` | 401 | Bad session |
-| `INVALID_DEVICE` | 401 | Revoked/unknown device token |
-| `DEVICE_EXPIRED` | 401 | >30 days |
-| `METHOD_DISABLED` | 403 | Method off |
-| `USER_INACTIVE` | 403 | Inactive |
-| `NO_LOGIN_METHOD` | 400 | Both methods off |
-| `INVALID_PIN_FORMAT` | 400 | PIN not 4–6 digits |
-| `PIN_NOT_SET` | 412 | Remember/unlock without PIN |
-| `ACCOUNT_LOCKED` | 423 | 5 fails / 15 min |
-| `KIOSK_PIN_LOCKED` | 423 | 5 fails / 10 min |
-| `RESEND_COOLDOWN` | 429 | <30 s |
-| `WHATSAPP_OTP_UNDELIVERABLE` | 503 | OTP not delivered |
-| `LOCATION_ID_REQUIRED` | 400 | Device list/revoke missing location |
+| Code                         | HTTP | When                                |
+| ---------------------------- | ---- | ----------------------------------- |
+| `INVALID_CREDENTIALS`        | 401  | Bad login/password / unknown user   |
+| `INVALID_OTP`                | 401  | Wrong OTP                           |
+| `OTP_EXPIRED`                | 401  | >10 min                             |
+| `OTP_CONSUMED`               | 401  | Replay                              |
+| `UNAUTHENTICATED`            | 401  | Bad session                         |
+| `INVALID_DEVICE`             | 401  | Revoked/unknown device token        |
+| `DEVICE_EXPIRED`             | 401  | >30 days                            |
+| `METHOD_DISABLED`            | 403  | Method off                          |
+| `USER_INACTIVE`              | 403  | Inactive                            |
+| `NO_LOGIN_METHOD`            | 400  | Both methods off                    |
+| `INVALID_PIN_FORMAT`         | 400  | PIN not 4–6 digits                  |
+| `PIN_NOT_SET`                | 412  | Remember/unlock without PIN         |
+| `ACCOUNT_LOCKED`             | 423  | 5 fails / 15 min                    |
+| `KIOSK_PIN_LOCKED`           | 423  | 5 fails / 10 min                    |
+| `RESEND_COOLDOWN`            | 429  | <30 s                               |
+| `WHATSAPP_OTP_UNDELIVERABLE` | 503  | OTP not delivered                   |
+| `LOCATION_ID_REQUIRED`       | 400  | Device list/revoke missing location |
 
 ## 10. Open Questions / Assumptions
 
@@ -435,4 +435,5 @@ As Owner my session role stays Owner.
 - Assumption: Kiosk shopper OTP is not this module.
 - Vague: exact session TTL. Logged above rather than silent infinite sessions.
 - Out of v1: SMS backup, WebAuthn, chemist SSO, forcing single session, OIDC as chemist login.
+
 ---

@@ -60,27 +60,27 @@ Free shops still issue a GST tax invoice from POS. Requesting IRN from IRP, pull
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | `tenant_id` + `location_id` on every row and query. |
-| `plan-gating` | Growth gate on every console route and write API. Free POS still prints GST invoices without calling IRN/prepare. |
-| `auth` / `manage-users` | Owner vs Manager permissions; Owner cannot be reduced. |
-| `audit` | Append-only `AuditEvent` for journal post, lock, IRN, 2B pull, prepare, till close, bank rec, distributor payment. **Never** put secrets in the payload. |
-| `whatsapp` | Mandatory-path Owner templates for IRN/GSTN fail. This module requests a send; it does not talk to Meta. |
-| `account-settings` | GSTIN, pharmacy state (place of supply), e-invoicing on/off, invoice prefix (for GSTR doc-issue), **secrets accessor** for GSTN/IRP credentials. TDS/TCS **flags** only. |
-| `go-live-kyc` | Opening-books step of the wizard emits the opening declaration this module journals. |
-| `pos-billing` | `BillPosted` / `BillDraftForIrn`; POS owns charge UX and draft-hold; books owns `requestIrn` and the sale journal. |
-| `purchases` | `GrnPosted` → inventory + GST input + AP. |
-| `purchase-returns` | Purchase / expiry return → reverse GRN path. |
-| `returns` | Customer `CreditNotePosted` → reverse bill path + loyalty reverse. |
-| `khata` | Khata sale Dr and cash repayment journal. Outstanding remains owned by `khata`; books posts the GL. |
-| `crm` | Loyalty lots; earn/redeem amounts on the bill event. Books posts loyalty liability; CRM owns lots. |
-| `inventory` | Batch cost for COGS; opening-stock CSV; stock-take qty. Books never adjusts qty. |
-| `stock-take` | Calls `isPeriodLocked`; after post, books journals variance. |
-| `expenses` | Expense rows call `postJournal`; GST input on eligible expenses. |
-| `distributors-reorder` | AP outstanding display reads books AP (or is updated when distributor payment posts). |
-| `reports` | Reads journals / COA balances; must not keep a second ledger. |
-| `ca-sharing` | Consumes `prepareGstr1` / `prepareGstr3b` JSON. Pack must not receive secrets. |
+| Module                  | Why                                                                                                                                                                      |
+| ----------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| `tenancy`               | `tenant_id` + `location_id` on every row and query.                                                                                                                      |
+| `plan-gating`           | Growth gate on every console route and write API. Free POS still prints GST invoices without calling IRN/prepare.                                                        |
+| `auth` / `manage-users` | Owner vs Manager permissions; Owner cannot be reduced.                                                                                                                   |
+| `audit`                 | Append-only `AuditEvent` for journal post, lock, IRN, 2B pull, prepare, till close, bank rec, distributor payment. **Never** put secrets in the payload.                 |
+| `whatsapp`              | Mandatory-path Owner templates for IRN/GSTN fail. This module requests a send; it does not talk to Meta.                                                                 |
+| `account-settings`      | GSTIN, pharmacy state (place of supply), e-invoicing on/off, invoice prefix (for GSTR doc-issue), **secrets accessor** for GSTN/IRP credentials. TDS/TCS **flags** only. |
+| `go-live-kyc`           | Opening-books step of the wizard emits the opening declaration this module journals.                                                                                     |
+| `pos-billing`           | `BillPosted` / `BillDraftForIrn`; POS owns charge UX and draft-hold; books owns `requestIrn` and the sale journal.                                                       |
+| `purchases`             | `GrnPosted` → inventory + GST input + AP.                                                                                                                                |
+| `purchase-returns`      | Purchase / expiry return → reverse GRN path.                                                                                                                             |
+| `returns`               | Customer `CreditNotePosted` → reverse bill path + loyalty reverse.                                                                                                       |
+| `khata`                 | Khata sale Dr and cash repayment journal. Outstanding remains owned by `khata`; books posts the GL.                                                                      |
+| `crm`                   | Loyalty lots; earn/redeem amounts on the bill event. Books posts loyalty liability; CRM owns lots.                                                                       |
+| `inventory`             | Batch cost for COGS; opening-stock CSV; stock-take qty. Books never adjusts qty.                                                                                         |
+| `stock-take`            | Calls `isPeriodLocked`; after post, books journals variance.                                                                                                             |
+| `expenses`              | Expense rows call `postJournal`; GST input on eligible expenses.                                                                                                         |
+| `distributors-reorder`  | AP outstanding display reads books AP (or is updated when distributor payment posts).                                                                                    |
+| `reports`               | Reads journals / COA balances; must not keep a second ledger.                                                                                                            |
+| `ca-sharing`            | Consumes `prepareGstr1` / `prepareGstr3b` JSON. Pack must not receive secrets.                                                                                           |
 
 **Consumed secrets accessor (this module never persists the plaintext):**
 
@@ -117,14 +117,14 @@ Credentials are used for the outbound GSTN/IRP HTTPS call, then discarded. They 
 
 Default COA control accounts (seeded on first Growth unlock or first opening-books journal, whichever is earlier). Owner may **rename** and **add children**. The system shall **not** allow delete of control accounts that auto-post.
 
-| Group | Control accounts (auto-post keys) |
-|---|---|
-| **Assets** | Cash in till (`cash_till`) · Bank (`bank`) · Khata receivable (`khata_recv`) · Inventory (`inventory`) · GST input CGST (`gst_in_cgst`) · GST input SGST (`gst_in_sgst`) · GST input IGST (`gst_in_igst`) |
-| **Liabilities** | AP distributors (`ap_distributors`) · GST output CGST (`gst_out_cgst`) · GST output SGST (`gst_out_sgst`) · GST output IGST (`gst_out_igst`) · Loyalty points payable (`loyalty_payable`) · Round-off (`round_off`) |
-| **Equity** | Owner capital (`owner_capital`) · Opening balances (`opening_balances`) |
-| **Income** | Sales (`sales`) |
-| **Cost** | COGS (`cogs`) |
-| **Expense** | Salary — manual expense (`exp_salary`) · Rent (`exp_rent`) · Electricity (`exp_electricity`) · Telephone (`exp_telephone`) · Stationery (`exp_stationery`) · Repair (`exp_repair`) · Transport (`exp_transport`) · Marketing (`exp_marketing`) · Bank charges (`exp_bank_charges`) · Miscellaneous (`exp_misc`) |
+| Group           | Control accounts (auto-post keys)                                                                                                                                                                                                                                                                               |
+| --------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Assets**      | Cash in till (`cash_till`) · Bank (`bank`) · Khata receivable (`khata_recv`) · Inventory (`inventory`) · GST input CGST (`gst_in_cgst`) · GST input SGST (`gst_in_sgst`) · GST input IGST (`gst_in_igst`)                                                                                                       |
+| **Liabilities** | AP distributors (`ap_distributors`) · GST output CGST (`gst_out_cgst`) · GST output SGST (`gst_out_sgst`) · GST output IGST (`gst_out_igst`) · Loyalty points payable (`loyalty_payable`) · Round-off (`round_off`)                                                                                             |
+| **Equity**      | Owner capital (`owner_capital`) · Opening balances (`opening_balances`)                                                                                                                                                                                                                                         |
+| **Income**      | Sales (`sales`)                                                                                                                                                                                                                                                                                                 |
+| **Cost**        | COGS (`cogs`)                                                                                                                                                                                                                                                                                                   |
+| **Expense**     | Salary — manual expense (`exp_salary`) · Rent (`exp_rent`) · Electricity (`exp_electricity`) · Telephone (`exp_telephone`) · Stationery (`exp_stationery`) · Repair (`exp_repair`) · Transport (`exp_transport`) · Marketing (`exp_marketing`) · Bank charges (`exp_bank_charges`) · Miscellaneous (`exp_misc`) |
 
 **Seeded non-control child (expenses module):** Raw material (`exp_raw_material`) under Expense. It is in the expenses category list (§3.17) but is **not** a control account that auto-posts from POS/GRN. Owner may rename or, if unused and zero balance, delete it.
 
@@ -144,19 +144,19 @@ Default COA control accounts (seeded on first Growth unlock or first opening-boo
 
 The system shall post **the same event as the source document**. One source id → one balanced journal (plus the inventory/COGS pair on the same journal when applicable). Summary:
 
-| Event | Posting (summary) |
-|---|---|
-| Cash sale | Dr Cash; Cr Sales; Cr GST output; Dr COGS / Cr Inventory |
-| Khata sale | Dr Khata; same income/GST/COGS as cash |
-| Khata repayment (cash) | Dr Cash; Cr Khata |
-| Loyalty earn | Cr Loyalty payable (points × ₹1); offset to sales contra/discount as one line on the bill journal |
-| Loyalty redeem | Dr Loyalty payable; reduces cash/khata Dr on the same bill |
-| Return / CN | Reverse the original bill path (stock restock or Dr write-off); reverse loyalty lots |
-| GRN | Dr Inventory; Dr GST input; Cr AP (scheme qty cost 0) |
-| Purchase return | Reverse GRN path |
-| Expense | Dr Expense (+ GST input if eligible); Cr Cash or Bank |
-| Stock take variance | Inventory vs COGS/write-off per posted variance |
-| Opening wizard | Dr/Cr Cash, Khata, AP, Inventory as declared; Cr/Dr Opening balances |
+| Event                  | Posting (summary)                                                                                 |
+| ---------------------- | ------------------------------------------------------------------------------------------------- |
+| Cash sale              | Dr Cash; Cr Sales; Cr GST output; Dr COGS / Cr Inventory                                          |
+| Khata sale             | Dr Khata; same income/GST/COGS as cash                                                            |
+| Khata repayment (cash) | Dr Cash; Cr Khata                                                                                 |
+| Loyalty earn           | Cr Loyalty payable (points × ₹1); offset to sales contra/discount as one line on the bill journal |
+| Loyalty redeem         | Dr Loyalty payable; reduces cash/khata Dr on the same bill                                        |
+| Return / CN            | Reverse the original bill path (stock restock or Dr write-off); reverse loyalty lots              |
+| GRN                    | Dr Inventory; Dr GST input; Cr AP (scheme qty cost 0)                                             |
+| Purchase return        | Reverse GRN path                                                                                  |
+| Expense                | Dr Expense (+ GST input if eligible); Cr Cash or Bank                                             |
+| Stock take variance    | Inventory vs COGS/write-off per posted variance                                                   |
+| Opening wizard         | Dr/Cr Cash, Khata, AP, Inventory as declared; Cr/Dr Opening balances                              |
 
 **FR-13:** The system shall post each auto-journal in the **same unit of work** as acknowledging the source event (at-least-once consumer + idempotent upsert). A Bill that is posted shall not exist without its sale journal when the tenant is on Growth. If books post fails after the source commit, the system shall retry until success and surface a console banner `BOOKS_POST_PENDING` with the source document number; it shall not silently skip.
 
@@ -436,84 +436,84 @@ Tenant + `location_id` on every table unless noted.
 
 ### 6.1 `ChartOfAccount`
 
-| Field | Type | Notes |
-|---|---|---|
-| `account_id` | uuid | PK |
-| `tenant_id`, `location_id` | uuid | |
-| `code` | string | Unique per location; stable |
-| `name` | string | Owner-renameable |
-| `group` | enum | `asset` \| `liability` \| `equity` \| `income` \| `cost` \| `expense` |
-| `parent_account_id` | uuid? | |
-| `is_control` | boolean | Delete forbidden if true |
-| `auto_post_key` | string? | See §4.2; unique when set |
-| `is_active` | boolean | |
+| Field                      | Type    | Notes                                                                 |
+| -------------------------- | ------- | --------------------------------------------------------------------- |
+| `account_id`               | uuid    | PK                                                                    |
+| `tenant_id`, `location_id` | uuid    |                                                                       |
+| `code`                     | string  | Unique per location; stable                                           |
+| `name`                     | string  | Owner-renameable                                                      |
+| `group`                    | enum    | `asset` \| `liability` \| `equity` \| `income` \| `cost` \| `expense` |
+| `parent_account_id`        | uuid?   |                                                                       |
+| `is_control`               | boolean | Delete forbidden if true                                              |
+| `auto_post_key`            | string? | See §4.2; unique when set                                             |
+| `is_active`                | boolean |                                                                       |
 
 ### 6.2 `Journal`
 
-| Field | Type | Notes |
-|---|---|---|
-| `journal_id` | uuid | PK |
-| `journal_no` | string | Unique per location per FY |
-| `fy_key` | string | `FY2026-27` |
-| `value_date` | date | Determines period lock |
-| `posted_at` | timestamptz | |
-| `source_type` | enum | `bill` \| `credit_note` \| `grn` \| `purchase_return` \| `expense` \| `expense_delete` \| `stock_take` \| `khata_repayment` \| `distributor_payment` \| `till_close` \| `opening` \| `manual` \| `fy_carry` |
-| `source_id` | string | Unique with source_type per location |
-| `idempotency_key` | string | Unique per location |
-| `memo` | string | |
-| `manual_type` | enum? | `wastage` \| `damage` \| `opening_adjustment` \| `general_adjustment` |
-| `actor_user_id` | uuid | |
-| `reversed_by_journal_id` | uuid? | |
+| Field                    | Type        | Notes                                                                                                                                                                                                       |
+| ------------------------ | ----------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `journal_id`             | uuid        | PK                                                                                                                                                                                                          |
+| `journal_no`             | string      | Unique per location per FY                                                                                                                                                                                  |
+| `fy_key`                 | string      | `FY2026-27`                                                                                                                                                                                                 |
+| `value_date`             | date        | Determines period lock                                                                                                                                                                                      |
+| `posted_at`              | timestamptz |                                                                                                                                                                                                             |
+| `source_type`            | enum        | `bill` \| `credit_note` \| `grn` \| `purchase_return` \| `expense` \| `expense_delete` \| `stock_take` \| `khata_repayment` \| `distributor_payment` \| `till_close` \| `opening` \| `manual` \| `fy_carry` |
+| `source_id`              | string      | Unique with source_type per location                                                                                                                                                                        |
+| `idempotency_key`        | string      | Unique per location                                                                                                                                                                                         |
+| `memo`                   | string      |                                                                                                                                                                                                             |
+| `manual_type`            | enum?       | `wastage` \| `damage` \| `opening_adjustment` \| `general_adjustment`                                                                                                                                       |
+| `actor_user_id`          | uuid        |                                                                                                                                                                                                             |
+| `reversed_by_journal_id` | uuid?       |                                                                                                                                                                                                             |
 
 Unique: `(tenant_id, location_id, source_type, source_id)`.
 
 ### 6.3 `JournalLine`
 
-| Field | Type | Notes |
-|---|---|---|
-| `line_id` | uuid | |
-| `journal_id` | uuid | |
-| `account_id` | uuid | |
-| `debit` | money | ≥ 0 |
-| `credit` | money | ≥ 0; exactly one of debit/credit > 0 |
-| `gst_component` | enum? | `cgst` \| `sgst` \| `igst` |
-| `party_type` | enum? | `customer` \| `distributor` |
-| `party_id` | uuid? | |
-| `note` | string? | e.g. `loyalty_earn_contra` |
+| Field           | Type    | Notes                                |
+| --------------- | ------- | ------------------------------------ |
+| `line_id`       | uuid    |                                      |
+| `journal_id`    | uuid    |                                      |
+| `account_id`    | uuid    |                                      |
+| `debit`         | money   | ≥ 0                                  |
+| `credit`        | money   | ≥ 0; exactly one of debit/credit > 0 |
+| `gst_component` | enum?   | `cgst` \| `sgst` \| `igst`           |
+| `party_type`    | enum?   | `customer` \| `distributor`          |
+| `party_id`      | uuid?   |                                      |
+| `note`          | string? | e.g. `loyalty_earn_contra`           |
 
 ### 6.4 `PeriodLock`
 
-| Field | Type | Notes |
-|---|---|---|
-| `lock_id` | uuid | |
-| `kind` | enum | `month` \| `fy` |
-| `period_key` | string | `2026-04` or `FY2026-27` |
-| `locked_at`, `locked_by` | | |
-| `unlocked_at`, `unlocked_by` | | month only; FY null forever |
-| `carry_forward_journal_id` | uuid? | FY only |
+| Field                        | Type   | Notes                       |
+| ---------------------------- | ------ | --------------------------- |
+| `lock_id`                    | uuid   |                             |
+| `kind`                       | enum   | `month` \| `fy`             |
+| `period_key`                 | string | `2026-04` or `FY2026-27`    |
+| `locked_at`, `locked_by`     |        |                             |
+| `unlocked_at`, `unlocked_by` |        | month only; FY null forever |
+| `carry_forward_journal_id`   | uuid?  | FY only                     |
 
 ### 6.5 `TillClose`
 
-| Field | Type | Notes |
-|---|---|---|
-| `close_id` | uuid | |
-| `business_date` | date | Unique per location when posted |
-| `system_cash`, `declared_cash`, `variance` | money | |
-| `journal_id` | uuid? | variance journal |
-| `actor_user_id` | uuid | |
-| **No** `upi_declared` in v1 | | |
+| Field                                      | Type  | Notes                           |
+| ------------------------------------------ | ----- | ------------------------------- |
+| `close_id`                                 | uuid  |                                 |
+| `business_date`                            | date  | Unique per location when posted |
+| `system_cash`, `declared_cash`, `variance` | money |                                 |
+| `journal_id`                               | uuid? | variance journal                |
+| `actor_user_id`                            | uuid  |                                 |
+| **No** `upi_declared` in v1                |       |                                 |
 
 ### 6.6 `DistributorPayment`
 
-| Field | Type | Notes |
-|---|---|---|
-| `payment_id` | uuid | |
-| `distributor_id` | uuid | |
-| `amount` | money | |
-| `mode` | enum | `cash` \| `bank` \| `neft` |
-| `value_date` | date | |
-| `journal_id` | uuid | |
-| `allocations` | `{ grn_id, amount }[]` | |
+| Field            | Type                   | Notes                      |
+| ---------------- | ---------------------- | -------------------------- |
+| `payment_id`     | uuid                   |                            |
+| `distributor_id` | uuid                   |                            |
+| `amount`         | money                  |                            |
+| `mode`           | enum                   | `cash` \| `bank` \| `neft` |
+| `value_date`     | date                   |                            |
+| `journal_id`     | uuid                   |                            |
+| `allocations`    | `{ grn_id, amount }[]` |                            |
 
 ### 6.7 `BankStatement` / `BankStatementLine` / `BankMatch`
 
@@ -523,17 +523,17 @@ Match: statement_line_ids[], journal_line_ids[], amount.
 
 ### 6.8 `IrnRecord`
 
-| Field | Type | Notes |
-|---|---|---|
-| `irn_id` | uuid | |
-| `document_type` | enum | `bill` \| `credit_note` |
-| `document_id` | string | bill_id or cn_id |
-| `invoice_no` | string | for WhatsApp / banner |
-| `client_charge_id` | string | idempotency |
-| `irn`, `ack_no`, `ack_dt`, `signed_qr` | string? | |
-| `status` | enum | `requested` \| `success` \| `rejected` \| `cancelled` \| `issued_without_irn` \| `skipped_b2c` \| `skipped_einvoicing_off` |
-| `irp_error` | string? | **verbatim** |
-| **No credential fields** | | |
+| Field                                  | Type    | Notes                                                                                                                      |
+| -------------------------------------- | ------- | -------------------------------------------------------------------------------------------------------------------------- |
+| `irn_id`                               | uuid    |                                                                                                                            |
+| `document_type`                        | enum    | `bill` \| `credit_note`                                                                                                    |
+| `document_id`                          | string  | bill_id or cn_id                                                                                                           |
+| `invoice_no`                           | string  | for WhatsApp / banner                                                                                                      |
+| `client_charge_id`                     | string  | idempotency                                                                                                                |
+| `irn`, `ack_no`, `ack_dt`, `signed_qr` | string? |                                                                                                                            |
+| `status`                               | enum    | `requested` \| `success` \| `rejected` \| `cancelled` \| `issued_without_irn` \| `skipped_b2c` \| `skipped_einvoicing_off` |
+| `irp_error`                            | string? | **verbatim**                                                                                                               |
+| **No credential fields**               |         |                                                                                                                            |
 
 ### 6.9 `Gstr2bPull` / `Gstr2bMatch`
 
@@ -542,14 +542,14 @@ Match: 2B invoice fields, `grn_id?`, `status` (`matched` \| `mismatch` \| `missi
 
 ### 6.10 `GstrPrepare`
 
-| Field | Type | Notes |
-|---|---|---|
-| `kind` | enum | `gstr1` \| `gstr3b` |
-| `period_key` | string | |
-| `json` | jsonb | GSTN-shaped; **no secrets** |
-| `generated_at` | timestamptz | |
-| `two_b_stale` | boolean | |
-| `itc_unmarked` | boolean | 3B only |
+| Field          | Type        | Notes                       |
+| -------------- | ----------- | --------------------------- |
+| `kind`         | enum        | `gstr1` \| `gstr3b`         |
+| `period_key`   | string      |                             |
+| `json`         | jsonb       | GSTN-shaped; **no secrets** |
+| `generated_at` | timestamptz |                             |
+| `two_b_stale`  | boolean     |                             |
+| `itc_unmarked` | boolean     | 3B only                     |
 
 ### 6.11 `BooksBanner`
 
@@ -612,12 +612,12 @@ Request:
     "bill_id": "uuid",
     "invoice_no": "INV-26-000123",
     "tender": "cash",
-    "rounded_total": 118.00,
-    "taxable": 100.00,
-    "gst": { "cgst": 9.00, "sgst": 9.00, "igst": 0 },
-    "round_off": 0.00,
-    "cogs": 70.00,
-    "loyalty_earn_rupees": 1.00,
+    "rounded_total": 118.0,
+    "taxable": 100.0,
+    "gst": { "cgst": 9.0, "sgst": 9.0, "igst": 0 },
+    "round_off": 0.0,
+    "cogs": 70.0,
+    "loyalty_earn_rupees": 1.0,
     "loyalty_redeem_rupees": 0,
     "place_of_supply": "INTRA"
   }
@@ -649,19 +649,19 @@ Request:
         "sku_id": "uuid",
         "hsn": "3004",
         "qty": 2,
-        "taxable": 100.00,
+        "taxable": 100.0,
         "gst_rate": 12,
-        "cgst": 6.00,
-        "sgst": 6.00,
+        "cgst": 6.0,
+        "sgst": 6.0,
         "igst": 0
       }
     ],
-    "taxable": 100.00,
-    "cgst": 6.00,
-    "sgst": 6.00,
+    "taxable": 100.0,
+    "cgst": 6.0,
+    "sgst": 6.0,
     "igst": 0,
     "round_off": 0,
-    "total": 112.00
+    "total": 112.0
   }
 }
 ```
@@ -709,40 +709,40 @@ Same request shape. `json` includes `gstin`, `ret_period`, outward taxable/GST, 
 
 ### 7.2 Console REST
 
-| Method | Path | Purpose |
-|---|---|---|
-| `GET` | `/api/v1/books/coa` | Tree of accounts |
-| `PATCH` | `/api/v1/books/coa/accounts/{accountId}` | Rename |
-| `POST` | `/api/v1/books/coa/accounts` | Add child `{ parent_account_id?, group, name }` |
-| `DELETE` | `/api/v1/books/coa/accounts/{accountId}` | Non-control, unused only |
-| `GET` | `/api/v1/books/periods` | Locks + current FY |
-| `POST` | `/api/v1/books/periods/lock` | Owner `{ kind, period_key }` |
-| `POST` | `/api/v1/books/periods/unlock` | Owner month only `{ period_key }` |
-| `GET` | `/api/v1/books/journals` | Filter `from,to,source_type,q` |
-| `GET` | `/api/v1/books/journals/{journalId}` | Lines |
-| `POST` | `/api/v1/books/journals` | Manual only |
-| `GET` | `/api/v1/books/trial-balance?period_kind&…` | TB |
-| `GET` | `/api/v1/books/profit-and-loss?…` | P&L |
-| `GET` | `/api/v1/books/balance-sheet?…` | BS |
-| `POST` | `/api/v1/books/distributor-payments` | `{ distributor_id, amount, mode, value_date, allocations? }` |
-| `GET` | `/api/v1/books/distributor-payments` | List |
-| `POST` | `/api/v1/books/till-close` | `{ business_date, declared_cash, replace? }` |
-| `GET` | `/api/v1/books/till-close?from&to` | List |
-| `POST` | `/api/v1/books/bank-statements` | multipart file + `account_id` |
-| `GET` | `/api/v1/books/bank-statements/{id}` | Lines + match status |
-| `POST` | `/api/v1/books/bank-statements/{id}/matches` | `{ statement_line_ids, journal_line_ids }` |
-| `POST` | `/api/v1/books/irn/{documentId}/cancel` | Owner, within IRP window |
-| `GET` | `/api/v1/books/gstr/2b?period=` | Pull meta + matches |
-| `POST` | `/api/v1/books/gstr/2b/pull` | Owner/Manager |
-| `PATCH` | `/api/v1/books/gstr/2b/matches/{matchId}` | `{ itc_mark: "claim" \| "unclaim" }` |
-| `POST` | `/api/v1/books/gstr/1/prepare` | `{ period }` |
-| `GET` | `/api/v1/books/gstr/1/{period}` | Stored JSON |
-| `GET` | `/api/v1/books/gstr/1/{period}/download` | `application/json` attachment |
-| `POST` | `/api/v1/books/gstr/3b/prepare` | `{ period }` |
-| `GET` | `/api/v1/books/gstr/3b/{period}` | Stored JSON |
-| `GET` | `/api/v1/books/gstr/3b/{period}/download` | attachment |
-| `GET` | `/api/v1/books/banners` | Unacknowledged |
-| `POST` | `/api/v1/books/banners/{bannerId}/ack` | Owner |
+| Method   | Path                                         | Purpose                                                      |
+| -------- | -------------------------------------------- | ------------------------------------------------------------ |
+| `GET`    | `/api/v1/books/coa`                          | Tree of accounts                                             |
+| `PATCH`  | `/api/v1/books/coa/accounts/{accountId}`     | Rename                                                       |
+| `POST`   | `/api/v1/books/coa/accounts`                 | Add child `{ parent_account_id?, group, name }`              |
+| `DELETE` | `/api/v1/books/coa/accounts/{accountId}`     | Non-control, unused only                                     |
+| `GET`    | `/api/v1/books/periods`                      | Locks + current FY                                           |
+| `POST`   | `/api/v1/books/periods/lock`                 | Owner `{ kind, period_key }`                                 |
+| `POST`   | `/api/v1/books/periods/unlock`               | Owner month only `{ period_key }`                            |
+| `GET`    | `/api/v1/books/journals`                     | Filter `from,to,source_type,q`                               |
+| `GET`    | `/api/v1/books/journals/{journalId}`         | Lines                                                        |
+| `POST`   | `/api/v1/books/journals`                     | Manual only                                                  |
+| `GET`    | `/api/v1/books/trial-balance?period_kind&…`  | TB                                                           |
+| `GET`    | `/api/v1/books/profit-and-loss?…`            | P&L                                                          |
+| `GET`    | `/api/v1/books/balance-sheet?…`              | BS                                                           |
+| `POST`   | `/api/v1/books/distributor-payments`         | `{ distributor_id, amount, mode, value_date, allocations? }` |
+| `GET`    | `/api/v1/books/distributor-payments`         | List                                                         |
+| `POST`   | `/api/v1/books/till-close`                   | `{ business_date, declared_cash, replace? }`                 |
+| `GET`    | `/api/v1/books/till-close?from&to`           | List                                                         |
+| `POST`   | `/api/v1/books/bank-statements`              | multipart file + `account_id`                                |
+| `GET`    | `/api/v1/books/bank-statements/{id}`         | Lines + match status                                         |
+| `POST`   | `/api/v1/books/bank-statements/{id}/matches` | `{ statement_line_ids, journal_line_ids }`                   |
+| `POST`   | `/api/v1/books/irn/{documentId}/cancel`      | Owner, within IRP window                                     |
+| `GET`    | `/api/v1/books/gstr/2b?period=`              | Pull meta + matches                                          |
+| `POST`   | `/api/v1/books/gstr/2b/pull`                 | Owner/Manager                                                |
+| `PATCH`  | `/api/v1/books/gstr/2b/matches/{matchId}`    | `{ itc_mark: "claim" \| "unclaim" }`                         |
+| `POST`   | `/api/v1/books/gstr/1/prepare`               | `{ period }`                                                 |
+| `GET`    | `/api/v1/books/gstr/1/{period}`              | Stored JSON                                                  |
+| `GET`    | `/api/v1/books/gstr/1/{period}/download`     | `application/json` attachment                                |
+| `POST`   | `/api/v1/books/gstr/3b/prepare`              | `{ period }`                                                 |
+| `GET`    | `/api/v1/books/gstr/3b/{period}`             | Stored JSON                                                  |
+| `GET`    | `/api/v1/books/gstr/3b/{period}/download`    | attachment                                                   |
+| `GET`    | `/api/v1/books/banners`                      | Unacknowledged                                               |
+| `POST`   | `/api/v1/books/banners/{bannerId}/ack`       | Owner                                                        |
 
 **Manual journal body:**
 
@@ -752,8 +752,8 @@ Same request shape. `json` includes `gstin`, `ret_period`, outward taxable/GST, 
   "memo": "Wastage — broken syrups",
   "manual_type": "wastage",
   "lines": [
-    { "account_id": "uuid-cogs", "debit": 250.00, "credit": 0, "note": "wastage" },
-    { "account_id": "uuid-inv", "debit": 0, "credit": 250.00, "note": "wastage" }
+    { "account_id": "uuid-cogs", "debit": 250.0, "credit": 0, "note": "wastage" },
+    { "account_id": "uuid-inv", "debit": 0, "credit": 250.0, "note": "wastage" }
   ]
 }
 ```
@@ -961,34 +961,34 @@ Then the original IRN is returned; IRP is not issued a second document.
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Unbalanced computed sale (round-off omitted) | Refuse post `422 UNBALANCED_JOURNAL`; do not skip round-off. |
-| Locked period document edit/delete | `423 PERIOD_LOCKED` from books and from source module. |
-| Backdated bill into locked month | POS blocked via `isPeriodLocked`; books also rejects. |
-| IRP down | `503`; POS draft-hold; Owner WhatsApp + banner; no journal. |
-| IRN reject | `422`; verbatim reason; WhatsApp + banner with bill no. |
-| GSTN down | 2B stale; prepare from local books; WhatsApp + banner. |
-| Missing GSTN/IRP credentials | `409 *_CREDENTIALS_MISSING`; banner “Owner must save GSTN/IRP credentials in Settings”; no log of empties as secrets. |
-| E-invoicing off + B2B | Skip IRN; GST invoice still printable. |
-| B2C + IRN call | Skip; never IRP. |
-| WhatsApp send fail (mandatory-path) | Banner remains until Owner ack even if inbox shows Failed. |
-| Duplicate `source_id` event | Return existing journal. |
-| Scheme qty on GRN | Cost 0, stock still in inventory module. |
-| Opening stock CSV without valuation | Inventory qty only; no inventory journal until valuation declared. |
-| Till close twice | `409` unless replace in open period. |
-| Bank rec SaaS line | Never auto-match. |
-| FY lock twice | `409 FY_ALREADY_LOCKED`. |
-| Delete control COA | `409 CONTROL_ACCOUNT_PROTECTED`. |
-| Plan expired mid-month | Writes blocked; existing journals retained; Free POS invoice print still works. |
-| Concurrent post same bill | Unique constraint; one journal. |
-| Credit note > original | `422 CN_EXCEEDS_ORIGINAL`. |
-| Place of supply inter-state B2B | IGST output only; no CGST/SGST. |
-| Issue without IRN | POS logged confirm; books `issued_without_irn`; journal posts as normal sale. |
-| 2B mismatch amounts | Status `mismatch`; ITC still markable; 3B uses chemist mark not auto. |
-| Manual journal that changes stock | UI warning only; qty unchanged. |
-| `exp_raw_material` unused delete | Allowed if zero balance (not a control key). |
-| Trial balance broken | `500 TRIAL_BALANCE_BROKEN` + banner; engineering P0. |
+| Case                                         | Behaviour                                                                                                             |
+| -------------------------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Unbalanced computed sale (round-off omitted) | Refuse post `422 UNBALANCED_JOURNAL`; do not skip round-off.                                                          |
+| Locked period document edit/delete           | `423 PERIOD_LOCKED` from books and from source module.                                                                |
+| Backdated bill into locked month             | POS blocked via `isPeriodLocked`; books also rejects.                                                                 |
+| IRP down                                     | `503`; POS draft-hold; Owner WhatsApp + banner; no journal.                                                           |
+| IRN reject                                   | `422`; verbatim reason; WhatsApp + banner with bill no.                                                               |
+| GSTN down                                    | 2B stale; prepare from local books; WhatsApp + banner.                                                                |
+| Missing GSTN/IRP credentials                 | `409 *_CREDENTIALS_MISSING`; banner “Owner must save GSTN/IRP credentials in Settings”; no log of empties as secrets. |
+| E-invoicing off + B2B                        | Skip IRN; GST invoice still printable.                                                                                |
+| B2C + IRN call                               | Skip; never IRP.                                                                                                      |
+| WhatsApp send fail (mandatory-path)          | Banner remains until Owner ack even if inbox shows Failed.                                                            |
+| Duplicate `source_id` event                  | Return existing journal.                                                                                              |
+| Scheme qty on GRN                            | Cost 0, stock still in inventory module.                                                                              |
+| Opening stock CSV without valuation          | Inventory qty only; no inventory journal until valuation declared.                                                    |
+| Till close twice                             | `409` unless replace in open period.                                                                                  |
+| Bank rec SaaS line                           | Never auto-match.                                                                                                     |
+| FY lock twice                                | `409 FY_ALREADY_LOCKED`.                                                                                              |
+| Delete control COA                           | `409 CONTROL_ACCOUNT_PROTECTED`.                                                                                      |
+| Plan expired mid-month                       | Writes blocked; existing journals retained; Free POS invoice print still works.                                       |
+| Concurrent post same bill                    | Unique constraint; one journal.                                                                                       |
+| Credit note > original                       | `422 CN_EXCEEDS_ORIGINAL`.                                                                                            |
+| Place of supply inter-state B2B              | IGST output only; no CGST/SGST.                                                                                       |
+| Issue without IRN                            | POS logged confirm; books `issued_without_irn`; journal posts as normal sale.                                         |
+| 2B mismatch amounts                          | Status `mismatch`; ITC still markable; 3B uses chemist mark not auto.                                                 |
+| Manual journal that changes stock            | UI warning only; qty unchanged.                                                                                       |
+| `exp_raw_material` unused delete             | Allowed if zero balance (not a control key).                                                                          |
+| Trial balance broken                         | `500 TRIAL_BALANCE_BROKEN` + banner; engineering P0.                                                                  |
 
 Error codes: `PLAN_REQUIRED`, `PERIOD_LOCKED`, `UNBALANCED_JOURNAL`, `CONTROL_ACCOUNT_PROTECTED`, `ACCOUNT_IN_USE`, `OPENING_ALREADY_POSTED`, `FY_LOCK_IRREVERSIBLE`, `MONTH_IN_LOCKED_FY`, `CANNOT_LOCK_FUTURE_MONTH`, `TILL_ALREADY_CLOSED`, `IRN_REJECTED`, `IRP_UNAVAILABLE`, `IRP_CREDENTIALS_MISSING`, `GSTN_UNAVAILABLE`, `GSTN_CREDENTIALS_MISSING`, `CN_EXCEEDS_ORIGINAL`, `RETURN_EXCEEDS_GRN`, `TRIAL_BALANCE_BROKEN`, `FORBIDDEN`.
 

@@ -47,16 +47,16 @@
 
 ## 3. Dependencies
 
-| Module | Why |
-|---|---|
-| `tenancy` | Tenant + `location_id`. |
-| `plan-gating` | Growth for create/manage. Public CA GET does not check plan at read time if the link was created while Growth was active; if plan later expires, **existing unexpired links remain readable until expiry/revoke** (data retention; CA filing mid-month). New shares blocked on expired plan. |
-| `auth` / `manage-users` | **Owner** creates/revokes/manages advisors. Manager: only if granted “CA sharing”; default off (reports ≠ share). |
-| `books-gst` | `prepareGstr1`, `prepareGstr3b` for pack JSON; snapshot GST figures from journals; never secrets accessor. |
-| `reports` | `POST /internal/v1/reports/run` and Excel builder for selected slugs. |
-| `account-settings` | GSTIN **display** for snapshot (public tax id, not credentials). Logo optional on CA PDF/Excel header. |
-| `audit` | Share create, revoke, CA download. |
-| `whatsapp` | Not required for CA. Owner may use copy. Do not put token in WhatsApp templates by default (leak surface); if Owner uses pre-fill, that is an explicit tap. |
+| Module                  | Why                                                                                                                                                                                                                                                                                          |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`               | Tenant + `location_id`.                                                                                                                                                                                                                                                                      |
+| `plan-gating`           | Growth for create/manage. Public CA GET does not check plan at read time if the link was created while Growth was active; if plan later expires, **existing unexpired links remain readable until expiry/revoke** (data retention; CA filing mid-month). New shares blocked on expired plan. |
+| `auth` / `manage-users` | **Owner** creates/revokes/manages advisors. Manager: only if granted “CA sharing”; default off (reports ≠ share).                                                                                                                                                                            |
+| `books-gst`             | `prepareGstr1`, `prepareGstr3b` for pack JSON; snapshot GST figures from journals; never secrets accessor.                                                                                                                                                                                   |
+| `reports`               | `POST /internal/v1/reports/run` and Excel builder for selected slugs.                                                                                                                                                                                                                        |
+| `account-settings`      | GSTIN **display** for snapshot (public tax id, not credentials). Logo optional on CA PDF/Excel header.                                                                                                                                                                                       |
+| `audit`                 | Share create, revoke, CA download.                                                                                                                                                                                                                                                           |
+| `whatsapp`              | Not required for CA. Owner may use copy. Do not put token in WhatsApp templates by default (leak surface); if Owner uses pre-fill, that is an explicit tap.                                                                                                                                  |
 
 **Must not depend on:** GSTN secrets accessor, `prescriptions` (Rx), `pos-billing` charge, IRP.
 
@@ -182,45 +182,45 @@
 
 ### 6.1 `CaAdvisor`
 
-| Field | Type | Notes |
-|---|---|---|
-| `advisor_id` | uuid | PK |
-| `tenant_id`, `location_id` | uuid | |
-| `firm` | string | |
-| `contact_name` | string? | |
-| `email` | string | unique per location |
-| `phone` | string | |
-| `active` | boolean | default true |
-| `created_at`, `updated_at` | timestamptz | |
+| Field                      | Type        | Notes               |
+| -------------------------- | ----------- | ------------------- |
+| `advisor_id`               | uuid        | PK                  |
+| `tenant_id`, `location_id` | uuid        |                     |
+| `firm`                     | string      |                     |
+| `contact_name`             | string?     |                     |
+| `email`                    | string      | unique per location |
+| `phone`                    | string      |                     |
+| `active`                   | boolean     | default true        |
+| `created_at`, `updated_at` | timestamptz |                     |
 
 ### 6.2 `CaShareLink`
 
-| Field | Type | Notes |
-|---|---|---|
-| `share_id` | uuid | PK |
-| `tenant_id`, `location_id` | uuid | |
-| `advisor_id` | uuid | |
-| `token_hash` | bytes | unique |
-| `period_kind` | enum | same as reports |
-| `period_params` | jsonb | month/fy/from/to… |
-| `period_label` | string | display |
-| `report_slugs` | text[] | |
-| `include_gstr1_json` | boolean | |
-| `include_gstr3b_json` | boolean | |
-| `expires_at` | timestamptz | default now+30d |
-| `revoked_at` | timestamptz? | |
-| `revoked_by` | uuid? | |
-| `created_by` | uuid | Owner |
-| `pack_status` | enum | `pending` \| `ready` \| `failed` |
-| `pack_error` | string? | no secrets |
-| `pack_object_key` | string? | encrypted bucket object |
-| `preview_json` | jsonb | frozen tables |
-| `snapshot_gstin` | string | |
-| `snapshot_net_revenue` | money | |
-| `snapshot_output_gst` | money | |
-| `snapshot_input_credit` | money | |
-| `snapshot_net_gst` | money | |
-| `created_at` | timestamptz | |
+| Field                      | Type         | Notes                            |
+| -------------------------- | ------------ | -------------------------------- |
+| `share_id`                 | uuid         | PK                               |
+| `tenant_id`, `location_id` | uuid         |                                  |
+| `advisor_id`               | uuid         |                                  |
+| `token_hash`               | bytes        | unique                           |
+| `period_kind`              | enum         | same as reports                  |
+| `period_params`            | jsonb        | month/fy/from/to…                |
+| `period_label`             | string       | display                          |
+| `report_slugs`             | text[]       |                                  |
+| `include_gstr1_json`       | boolean      |                                  |
+| `include_gstr3b_json`      | boolean      |                                  |
+| `expires_at`               | timestamptz  | default now+30d                  |
+| `revoked_at`               | timestamptz? |                                  |
+| `revoked_by`               | uuid?        |                                  |
+| `created_by`               | uuid         | Owner                            |
+| `pack_status`              | enum         | `pending` \| `ready` \| `failed` |
+| `pack_error`               | string?      | no secrets                       |
+| `pack_object_key`          | string?      | encrypted bucket object          |
+| `preview_json`             | jsonb        | frozen tables                    |
+| `snapshot_gstin`           | string       |                                  |
+| `snapshot_net_revenue`     | money        |                                  |
+| `snapshot_output_gst`      | money        |                                  |
+| `snapshot_input_credit`    | money        |                                  |
+| `snapshot_net_gst`         | money        |                                  |
+| `created_at`               | timestamptz  |                                  |
 
 **Never stored:** token plaintext, GSTN password, IRP keys, Rx.
 
@@ -278,10 +278,10 @@ Bearer + `X-Location-Id`.
         "pack_status": "ready",
         "snapshot": {
           "gstin": "29ABCDE1234F1Z5",
-          "net_revenue": 450000.00,
-          "output_gst": 54000.00,
-          "input_credit": 25200.00,
-          "net_gst": 28800.00
+          "net_revenue": 450000.0,
+          "output_gst": 54000.0,
+          "input_credit": 25200.0,
+          "net_gst": 28800.0
         },
         "created_at": "2026-08-31T10:00:00.000Z",
         "url_available": false
@@ -300,7 +300,14 @@ Bearer + `X-Location-Id`.
   "advisor_id": "uuid",
   "period_kind": "month",
   "month": "2026-08",
-  "report_slugs": ["trial-balance", "profit-and-loss", "gstr-1", "gstr-3b", "stock-summary", "sales-summary"],
+  "report_slugs": [
+    "trial-balance",
+    "profit-and-loss",
+    "gstr-1",
+    "gstr-3b",
+    "stock-summary",
+    "sales-summary"
+  ],
   "include_gstr1_json": true,
   "include_gstr3b_json": true,
   "expires_in_days": 30
@@ -320,10 +327,10 @@ Bearer + `X-Location-Id`.
     "pack_status": "pending",
     "snapshot": {
       "gstin": "29ABCDE1234F1Z5",
-      "net_revenue": 450000.00,
-      "output_gst": 54000.00,
-      "input_credit": 25200.00,
-      "net_gst": 28800.00
+      "net_revenue": 450000.0,
+      "output_gst": 54000.0,
+      "input_credit": 25200.0,
+      "net_gst": 28800.0
     },
     "copy_warning": "Anyone with this link can see the selected reports. Revoke if leaked."
   }
@@ -361,10 +368,10 @@ No bearer. Rate limited.
     "expires_at": "2026-09-30T18:30:00.000Z",
     "snapshot": {
       "gstin": "29ABCDE1234F1Z5",
-      "net_revenue": 450000.00,
-      "output_gst": 54000.00,
-      "input_credit": 25200.00,
-      "net_gst": 28800.00
+      "net_revenue": 450000.0,
+      "output_gst": 54000.0,
+      "input_credit": 25200.0,
+      "net_gst": 28800.0
     },
     "reports": [
       {
@@ -507,22 +514,22 @@ Then history snapshot remains 450,000; CA frozen tables remain the packed snapsh
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Leaked link | Owner revokes; 404 public; default 30-day expiry still would have ended it. |
-| Token brute force | Rate limit; 404 indistinguishable. |
-| Create while 2B stale | Pack still builds from local books; GSTR JSON may contain `two_b_stale` metadata if books includes it — not a secret. |
-| Prepare fails | `pack_status=failed`, `pack_error` human message; Owner retries by new share; banner in console. |
-| Secret guard trip | Fail pack; do not store zip; alert engineering; Owner sees failed. |
-| Advisor deactivated | Existing shares still valid; cannot select for new share. |
-| Report slug unknown | `422 UNKNOWN_REPORT_SLUG` |
-| Expires 0 or 91 days | `422` |
-| Concurrent revoke + download | Download may complete or 404; never 500 leak. |
-| HTTPS stripped | Redirect to HTTPS; do not serve token over HTTP. |
-| CA copies URL to others | Same capability; Owner revokes if unintended. |
-| Rx report slug | No prescriptions report exists; do not add Rx. |
-| Audit trail selected | Redacted events only (reports already redacts secrets). |
-| Zip bomb / huge Excel | Cap rows as reports module; fail pack if oversize with message. |
+| Case                         | Behaviour                                                                                                             |
+| ---------------------------- | --------------------------------------------------------------------------------------------------------------------- |
+| Leaked link                  | Owner revokes; 404 public; default 30-day expiry still would have ended it.                                           |
+| Token brute force            | Rate limit; 404 indistinguishable.                                                                                    |
+| Create while 2B stale        | Pack still builds from local books; GSTR JSON may contain `two_b_stale` metadata if books includes it — not a secret. |
+| Prepare fails                | `pack_status=failed`, `pack_error` human message; Owner retries by new share; banner in console.                      |
+| Secret guard trip            | Fail pack; do not store zip; alert engineering; Owner sees failed.                                                    |
+| Advisor deactivated          | Existing shares still valid; cannot select for new share.                                                             |
+| Report slug unknown          | `422 UNKNOWN_REPORT_SLUG`                                                                                             |
+| Expires 0 or 91 days         | `422`                                                                                                                 |
+| Concurrent revoke + download | Download may complete or 404; never 500 leak.                                                                         |
+| HTTPS stripped               | Redirect to HTTPS; do not serve token over HTTP.                                                                      |
+| CA copies URL to others      | Same capability; Owner revokes if unintended.                                                                         |
+| Rx report slug               | No prescriptions report exists; do not add Rx.                                                                        |
+| Audit trail selected         | Redacted events only (reports already redacts secrets).                                                               |
+| Zip bomb / huge Excel        | Cap rows as reports module; fail pack if oversize with message.                                                       |
 
 Error codes: `PLAN_REQUIRED`, `SHARE_EMPTY`, `UNKNOWN_REPORT_SLUG`, `SHARE_NOT_FOUND`, `PACK_NOT_READY`, `PACK_SECRET_GUARD`, `PACK_RX_GUARD`, `ADVISOR_EMAIL_TAKEN`, `ADVISOR_HAS_SHARES`, `VALIDATION`, `FORBIDDEN`.
 

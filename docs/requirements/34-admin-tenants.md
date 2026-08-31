@@ -48,20 +48,20 @@ This module is the first Platform Admin HQ surface. It owns the HQ app shell (si
 
 ## 3. Dependencies
 
-| Module | What this module needs |
-|---|---|
-| `tenancy` | Pharmacy / Location identity (`tenantId`, `locationId`, display name, phone). Create/read tenant records. |
-| `go-live-kyc` | KYC submission payload (GSTIN, drug licence, FSSAI, PAN, registered pharmacist, document refs, status `pending` / `approved` / `rejected`). Wizard stage completion / skip flags. This module **writes** status via its own approve/reject API against that record. |
-| `saas-billing` | `SaasSubscription`: plan, seats used/limit, status (`active` / `past_due` / `suspended` / `expired` / `free`), MRR contribution, past-due invoice flag. Suspend/reactivate APIs (this module calls them; `saas-billing` owns the subscription row). |
-| `plan-gating` | Plan enum (`free` / `starter` / `growth` / `pro`) and seat limits (2 / 2 / 5 / unlimited). Read-only. |
-| `admin-saas-crm` | At-risk account count and Account-360 deep-link target. MRR/ARR figures if CRM is the metric owner; otherwise this module reads MRR from `saas-billing` invoices (see §10). |
-| `statutory-registers` / `account-settings` | Licence expiry dates (drug licence, FSSAI, pharmacist registration). Read-only. |
-| `books-gst` | GSTN/IRN error flags per tenant (IRP down, IRN reject, 2B stale). Read-only. |
-| `auth` | HQ session JWT. HQ users are platform-scoped, not tenant-scoped. |
-| `admin-platform-settings` | `HqRole` and permission checks. Sidebar visibility. |
-| `audit` | Append-only `AuditEvent` for KYC decide, suspend/reactivate, notes. HQ/platform scope (no pharmacy tenant impersonation). |
-| `whatsapp` | Not called directly for KYC; reject does not auto-WhatsApp unless `go-live-kyc` already does (this module does not send). |
-| `master-catalogue` | Sidebar deep-link only. |
+| Module                                     | What this module needs                                                                                                                                                                                                                                              |
+| ------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `tenancy`                                  | Pharmacy / Location identity (`tenantId`, `locationId`, display name, phone). Create/read tenant records.                                                                                                                                                           |
+| `go-live-kyc`                              | KYC submission payload (GSTIN, drug licence, FSSAI, PAN, registered pharmacist, document refs, status `pending` / `approved` / `rejected`). Wizard stage completion / skip flags. This module **writes** status via its own approve/reject API against that record. |
+| `saas-billing`                             | `SaasSubscription`: plan, seats used/limit, status (`active` / `past_due` / `suspended` / `expired` / `free`), MRR contribution, past-due invoice flag. Suspend/reactivate APIs (this module calls them; `saas-billing` owns the subscription row).                 |
+| `plan-gating`                              | Plan enum (`free` / `starter` / `growth` / `pro`) and seat limits (2 / 2 / 5 / unlimited). Read-only.                                                                                                                                                               |
+| `admin-saas-crm`                           | At-risk account count and Account-360 deep-link target. MRR/ARR figures if CRM is the metric owner; otherwise this module reads MRR from `saas-billing` invoices (see §10).                                                                                         |
+| `statutory-registers` / `account-settings` | Licence expiry dates (drug licence, FSSAI, pharmacist registration). Read-only.                                                                                                                                                                                     |
+| `books-gst`                                | GSTN/IRN error flags per tenant (IRP down, IRN reject, 2B stale). Read-only.                                                                                                                                                                                        |
+| `auth`                                     | HQ session JWT. HQ users are platform-scoped, not tenant-scoped.                                                                                                                                                                                                    |
+| `admin-platform-settings`                  | `HqRole` and permission checks. Sidebar visibility.                                                                                                                                                                                                                 |
+| `audit`                                    | Append-only `AuditEvent` for KYC decide, suspend/reactivate, notes. HQ/platform scope (no pharmacy tenant impersonation).                                                                                                                                           |
+| `whatsapp`                                 | Not called directly for KYC; reject does not auto-WhatsApp unless `go-live-kyc` already does (this module does not send).                                                                                                                                           |
+| `master-catalogue`                         | Sidebar deep-link only.                                                                                                                                                                                                                                             |
 
 **External:** none beyond AWS Lambda + Postgres via `libs/db-services`. Cashfree is not used here.
 
@@ -133,28 +133,28 @@ This module owns HQ-shell and tenant-note records. It does **not** own Pharmacy,
 
 ### `HqTenantNote` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `noteId` | UUID PK | |
-| `tenantId` | UUID FK → `tenancy.Pharmacy` | |
-| `body` | text | HQ-only |
-| `updatedByHqUserId` | UUID | |
-| `updatedAt` | timestamptz | |
+| Field               | Type                         | Notes   |
+| ------------------- | ---------------------------- | ------- |
+| `noteId`            | UUID PK                      |         |
+| `tenantId`          | UUID FK → `tenancy.Pharmacy` |         |
+| `body`              | text                         | HQ-only |
+| `updatedByHqUserId` | UUID                         |         |
+| `updatedAt`         | timestamptz                  |         |
 
 One current note per tenant in v1 (overwrite). History is the `audit` log.
 
 ### `HqNotification` (owned)
 
-| Field | Type | Notes |
-|---|---|---|
-| `notificationId` | UUID PK | |
-| `hqUserId` | UUID nullable | null = broadcast to all HQ roles that can see the class |
-| `class` | enum | `kyc_pending` · `licence_expiry` · `gstn_irn_error` · `past_due` · `at_risk` |
-| `tenantId` | UUID | |
-| `title` | text | |
-| `body` | text | |
-| `readAt` | timestamptz nullable | |
-| `createdAt` | timestamptz | |
+| Field            | Type                 | Notes                                                                        |
+| ---------------- | -------------------- | ---------------------------------------------------------------------------- |
+| `notificationId` | UUID PK              |                                                                              |
+| `hqUserId`       | UUID nullable        | null = broadcast to all HQ roles that can see the class                      |
+| `class`          | enum                 | `kyc_pending` · `licence_expiry` · `gstn_irn_error` · `past_due` · `at_risk` |
+| `tenantId`       | UUID                 |                                                                              |
+| `title`          | text                 |                                                                              |
+| `body`           | text                 |                                                                              |
+| `readAt`         | timestamptz nullable |                                                                              |
+| `createdAt`      | timestamptz          |                                                                              |
 
 ### Referenced (not redefined)
 
@@ -380,7 +380,12 @@ Body: `{}`
   "success": true,
   "data": {
     "pharmacies": [
-      { "tenantId": "uuid", "shopName": "Sri Krishna Medicals", "gstin": "29ABCDE1234F1Z5", "href": "/admin/pharmacies/uuid" }
+      {
+        "tenantId": "uuid",
+        "shopName": "Sri Krishna Medicals",
+        "gstin": "29ABCDE1234F1Z5",
+        "href": "/admin/pharmacies/uuid"
+      }
     ]
   }
 }
@@ -394,23 +399,23 @@ Body: `{}`
 
 ### 7.5 Events emitted
 
-| Event | Payload |
-|---|---|
-| `admin.kyc.approved` | `{ tenantId, kycId, actorHqUserId, at }` |
-| `admin.kyc.rejected` | `{ tenantId, kycId, actorHqUserId, reason, at }` |
-| `admin.subscription.suspended` | `{ tenantId, actorHqUserId, reason, at }` |
+| Event                            | Payload                                            |
+| -------------------------------- | -------------------------------------------------- |
+| `admin.kyc.approved`             | `{ tenantId, kycId, actorHqUserId, at }`           |
+| `admin.kyc.rejected`             | `{ tenantId, kycId, actorHqUserId, reason, at }`   |
+| `admin.subscription.suspended`   | `{ tenantId, actorHqUserId, reason, at }`          |
 | `admin.subscription.reactivated` | `{ tenantId, actorHqUserId, resultingStatus, at }` |
-| `admin.tenant.note_updated` | `{ tenantId, actorHqUserId, at }` |
+| `admin.tenant.note_updated`      | `{ tenantId, actorHqUserId, at }`                  |
 
 Consumers: `go-live-kyc` (status), `saas-billing` (suspend/reactivate already applied before emit), `admin-saas-crm` (timeline), `audit`.
 
 ### 7.6 UI routes (React Admin HQ)
 
-| Route | Screen |
-|---|---|
-| `/admin/command-center` | Tiles, alerts strip, KYC queue |
-| `/admin/pharmacies` | Tenant table |
-| `/admin/pharmacies/:tenantId` | Tenant drawer/page |
+| Route                         | Screen                         |
+| ----------------------------- | ------------------------------ |
+| `/admin/command-center`       | Tiles, alerts strip, KYC queue |
+| `/admin/pharmacies`           | Tenant table                   |
+| `/admin/pharmacies/:tenantId` | Tenant drawer/page             |
 
 Shell: top bar search + bell; sidebar as FR-2.
 
@@ -461,19 +466,19 @@ As any HQ role, I want pending KYC and at-risk badges, so that I see work withou
 
 ## 9. Edge Cases & Error Handling
 
-| Case | Behaviour |
-|---|---|
-| Zero tenants | Tiles show 0; empty table with “No pharmacies yet”; KYC queue empty state. |
-| KYC double-submit from two HQ users | First writer wins; second gets `409 KYC_ALREADY_DECIDED`. |
-| Approve then wizard still incomplete | `goLiveReady` false; POS still blocked by `go-live-kyc`. |
+| Case                                     | Behaviour                                                                           |
+| ---------------------------------------- | ----------------------------------------------------------------------------------- |
+| Zero tenants                             | Tiles show 0; empty table with “No pharmacies yet”; KYC queue empty state.          |
+| KYC double-submit from two HQ users      | First writer wins; second gets `409 KYC_ALREADY_DECIDED`.                           |
+| Approve then wizard still incomplete     | `goLiveReady` false; POS still blocked by `go-live-kyc`.                            |
 | Suspend Free tenant with no paid history | Allowed; status `suspended` still revokes nothing extra; Reactivate returns `free`. |
-| `saas-billing` suspend fails | Return `502 UPSTREAM`; do not mark local UI success; no audit success row. |
-| Missing licence dates | Licence tile excludes that tenant; drawer shows “Not provided”. |
-| GSTN/IRN errors feed down | Tile 0; not an HQ error. |
-| Pharmacy JWT on `/admin/*` | `403 HQ_SURFACE_ONLY`. |
-| Search query < 2 chars | Return empty list, not a scan of all tenants. |
-| Note body > 8,000 chars | `400 VALIDATION`. |
-| Concurrent note edits | Last write wins; both audited. |
+| `saas-billing` suspend fails             | Return `502 UPSTREAM`; do not mark local UI success; no audit success row.          |
+| Missing licence dates                    | Licence tile excludes that tenant; drawer shows “Not provided”.                     |
+| GSTN/IRN errors feed down                | Tile 0; not an HQ error.                                                            |
+| Pharmacy JWT on `/admin/*`               | `403 HQ_SURFACE_ONLY`.                                                              |
+| Search query < 2 chars                   | Return empty list, not a scan of all tenants.                                       |
+| Note body > 8,000 chars                  | `400 VALIDATION`.                                                                   |
+| Concurrent note edits                    | Last write wins; both audited.                                                      |
 
 ---
 

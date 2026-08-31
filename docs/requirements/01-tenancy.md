@@ -21,7 +21,7 @@ The `tenancy` module is the identity root for a neighbourhood retail chemist on 
   - Plan, seats, SaasSubscription, Cashfree (`plan-gating`, `saas-billing`).
   - GSTIN, licences, e-invoicing flag, GSTN/IRP secret refs, go-live wizard (`go-live-kyc`, `account-settings`, `books-gst`).
   - KYC approve/reject, suspend/reactivate subscription (`admin-tenants`, `admin-saas-crm`, `saas-billing`).
-  - Stock, bills, customers, khata, registers, books (those records *belong to* the tenant; other modules own them).
+  - Stock, bills, customers, khata, registers, books (those records _belong to_ the tenant; other modules own them).
   - CA share link (not a console login; `ca-sharing`).
   - Kiosk mode chrome (`kiosk`).
   - Platform Admin HQ full Pharmacies command-center list UX (`admin-tenants` consumes this API).
@@ -56,7 +56,7 @@ The `tenancy` module is the identity root for a neighbourhood retail chemist on 
 - FR-15: The system shall allow HQ to list Pharmacies with pagination, returning each tenant’s `tenant_id`, `location_id`, and `display_name`.
 - FR-16: The system shall allow Owner (pharmacy console) to update Location `display_name` only; GSTIN/licences/plan are not writable here.
 - FR-17: The system shall not delete a Pharmacy or Location in v1 (no delete endpoint).
-- FR-18: The system shall treat Staff User records as tenant-scoped: this module does not create Users but exposes `assertUserTenant(tenant_id, user_id)` is *not* owned here — instead it exposes `getLocationForTenant(tenant_id)` so `auth` can bind the User to the sole Location.
+- FR-18: The system shall treat Staff User records as tenant-scoped: this module does not create Users but exposes `assertUserTenant(tenant_id, user_id)` is _not_ owned here — instead it exposes `getLocationForTenant(tenant_id)` so `auth` can bind the User to the sole Location.
 - FR-19: The system shall include `location_id` in every successful pharmacy JSON response body for this module (not header-only).
 - FR-20: The system shall reject pharmacy console API calls that omit `location_id` with HTTP 400 and code `LOCATION_ID_REQUIRED`.
 
@@ -305,17 +305,17 @@ As an **Owner** I correct the board name used on WhatsApp and the console badge.
 
 Error catalogue:
 
-| Code | HTTP | When |
-|---|---|---|
-| `VALIDATION_FAILED` | 400 | Body/query fails schema |
-| `LOCATION_ID_REQUIRED` | 400 | Pharmacy query missing `location_id` |
-| `PHARMACY_NOT_FOUND` | 404 | Unknown `tenant_id` |
-| `LOCATION_NOT_FOUND` | 404 | Unknown `location_id` |
-| `LOCATION_TENANT_MISMATCH` | 403 | Pairing invalid |
-| `LOCATION_LIMIT_V1` | 409 | Second Location |
-| `FORBIDDEN_ROLE` | 403 | Non-Owner patch |
-| `HQ_ONLY` | 403 | Pharmacy User hit HQ create/list |
-| `PHARMACY_SESSION_REQUIRED` | 403 | HQ principal hit `/tenancy/current` |
+| Code                        | HTTP | When                                 |
+| --------------------------- | ---- | ------------------------------------ |
+| `VALIDATION_FAILED`         | 400  | Body/query fails schema              |
+| `LOCATION_ID_REQUIRED`      | 400  | Pharmacy query missing `location_id` |
+| `PHARMACY_NOT_FOUND`        | 404  | Unknown `tenant_id`                  |
+| `LOCATION_NOT_FOUND`        | 404  | Unknown `location_id`                |
+| `LOCATION_TENANT_MISMATCH`  | 403  | Pairing invalid                      |
+| `LOCATION_LIMIT_V1`         | 409  | Second Location                      |
+| `FORBIDDEN_ROLE`            | 403  | Non-Owner patch                      |
+| `HQ_ONLY`                   | 403  | Pharmacy User hit HQ create/list     |
+| `PHARMACY_SESSION_REQUIRED` | 403  | HQ principal hit `/tenancy/current`  |
 
 ## 10. Open Questions / Assumptions
 
@@ -329,4 +329,5 @@ Error catalogue:
 - Assumption: address, GSTIN, PAN, licences, logo, and bank details are not columns on Pharmacy/Location here.
 - Vague in source (“do not block branches”): v1 API returns 409 on a second Location rather than inserting a dormant row. Revisit if a later release sells branches; `location_id` on every query remains the extension point.
 - Out of v1 (never implement here): extra branches as a product, extra GSTIN, stock-transfer, chain HQ, hospital/IPD, wholesale, Jan Aushadhi.
+
 ---
