@@ -33,8 +33,6 @@ jobs:
         with:
           fetch-depth: 0
       - uses: pnpm/action-setup@v4
-        with:
-          version: 10
       - uses: actions/setup-node@v4
         with:
           node-version-file: .nvmrc
@@ -48,6 +46,11 @@ jobs:
         env:
           BASE_SHA: ${{ github.event.pull_request.base.sha || github.event.before }}
         run: |
+          ZERO=0000000000000000000000000000000000000000
           BASE="${BASE_SHA:-HEAD~1}"
-          AFFECTED="$(pnpm exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
+          if [ "$BASE" = "$ZERO" ] || ! git cat-file -e "$BASE^{commit}" 2>/dev/null; then
+            AFFECTED="$(pnpm exec nx show projects --json)"
+          else
+            AFFECTED="$(pnpm exec nx show projects --affected --base="$BASE" --head=HEAD --json)"
+          fi
           node .github/change-detection/emit-matrix.mjs "$AFFECTED"
