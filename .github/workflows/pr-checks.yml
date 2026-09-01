@@ -88,6 +88,8 @@ jobs:
             plan-gating-api,
             manage-users-ui,
             manage-users-api,
+            employees-ui,
+            employees-api,
           ]
         shard: [1]
     uses: ./.github/workflows/_reusable-playwright.yml
@@ -111,6 +113,7 @@ jobs:
             master-catalogue-ui,
             plan-gating-ui,
             manage-users-ui,
+            employees-ui,
           ]
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:

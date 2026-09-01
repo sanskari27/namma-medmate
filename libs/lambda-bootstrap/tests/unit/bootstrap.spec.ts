@@ -107,6 +107,28 @@ describe('lambda-bootstrap', () => {
     expect(response.body).toEqual({ id: '1' });
   });
 
+  it('sends raw bodies when responseType is raw', async () => {
+    const boot = createExpressApp({
+      serviceName: 'employees-api',
+      logger: { debug: vi.fn(), info: vi.fn(), warn: vi.fn(), error: vi.fn(), child: vi.fn() },
+    });
+    boot.attachRoute(
+      { method: 'get', path: '/export.csv', operationId: 'exportCsv', responseType: 'raw' },
+      () => ({
+        body: '\uFEFFname\n',
+        contentType: 'text/csv; charset=utf-8',
+        filename: 'staff.csv',
+      }),
+      (input) => input,
+      (input) => input,
+    );
+    const response = await request(boot.complete()).get('/export.csv');
+    expect(response.status).toBe(200);
+    expect(response.headers['content-type']).toMatch(/text\/csv/);
+    expect(response.headers['content-disposition']).toContain('staff.csv');
+    expect(response.text.startsWith('\uFEFF')).toBe(true);
+  });
+
   it('forwards handler errors to the error mapper', async () => {
     const boot = createExpressApp({
       serviceName: 'auth-api',

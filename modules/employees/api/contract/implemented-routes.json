@@ -1,0 +1,44 @@
+[
+  { "method": "get", "path": "/employees/summary", "operationId": "getEmployeesSummary" },
+  { "method": "get", "path": "/employees", "operationId": "listEmployees" },
+  { "method": "post", "path": "/employees", "operationId": "createEmployee" },
+  {
+    "method": "get",
+    "path": "/employees/pharmacist-eligible",
+    "operationId": "listPharmacistEligible"
+  },
+  { "method": "get", "path": "/employees/export.csv", "operationId": "exportEmployeesCsv" },
+  { "method": "get", "path": "/employees/{employee_id}", "operationId": "getEmployee" },
+  { "method": "patch", "path": "/employees/{employee_id}", "operationId": "patchEmployee" },
+  { "method": "delete", "path": "/employees/{employee_id}", "operationId": "deleteEmployee" },
+  {
+    "method": "post",
+    "path": "/employees/{employee_id}/photo/upload-url",
+    "operationId": "createEmployeePhotoUploadUrl"
+  },
+  {
+    "method": "put",
+    "path": "/employees/{employee_id}/photo",
+    "operationId": "confirmEmployeePhoto"
+  },
+  {
+    "method": "post",
+    "path": "/employees/{employee_id}/documents/upload-url",
+    "operationId": "createEmployeeDocumentUploadUrl"
+  },
+  {
+    "method": "post",
+    "path": "/employees/{employee_id}/documents",
+    "operationId": "createEmployeeDocument"
+  },
+  {
+    "method": "delete",
+    "path": "/employees/{employee_id}/documents/{document_id}",
+    "operationId": "deleteEmployeeDocument"
+  },
+  {
+    "method": "get",
+    "path": "/employees/{employee_id}/id-card.pdf",
+    "operationId": "getEmployeeIdCardPdf"
+  }
+]

@@ -7,6 +7,13 @@ export interface EndpointDefinition {
   path: string;
   operationId: string;
   successStatus?: number;
+  responseType?: 'json' | 'raw';
+}
+
+export interface RawHttpBody {
+  body: Buffer | string;
+  contentType: string;
+  filename?: string;
 }
 
 export type Parser<TInput> = (req: Request) => TInput | Promise<TInput>;
@@ -48,6 +55,15 @@ export function createRouteAttacher(app: Express) {
           res.status(endpoint.successStatus ?? 200);
           if (responseMetadataCustomization) {
             responseMetadataCustomization(res, output);
+          }
+          if (endpoint.responseType === 'raw') {
+            const raw = output as RawHttpBody;
+            res.setHeader('content-type', raw.contentType);
+            if (raw.filename) {
+              res.setHeader('content-disposition', `attachment; filename="${raw.filename}"`);
+            }
+            res.send(raw.body);
+            return;
           }
           res.json(output);
         } catch (error) {
