@@ -13,7 +13,7 @@ import {
 } from '../../src/index.ts';
 import { resetSession } from '../../src/store/slices/session-slice.ts';
 import { authApi } from '../../src/store/api/auth-api.ts';
-import { errorCopyKey, readAuthError } from '../../src/lib/auth-error.ts';
+import { errorCopyKey, readAuthError, readMutationFailure } from '../../src/lib/auth-error.ts';
 
 const sessionPayload = {
   session_id: 'sess-1',
@@ -393,6 +393,13 @@ describe('auth-ui chemist login', () => {
       }).resendAvailableAt,
     ).toBe('t');
     expect(readAuthError(400, { error: { code: 1, message: 2 } }).code).toBeUndefined();
+    expect(readMutationFailure({ data: { ok: true } })).toBeUndefined();
+    expect(readMutationFailure({ error: 'offline' })).toMatchObject({ status: 500 });
+    expect(
+      readMutationFailure({
+        error: { status: 401, data: { error: { code: 'INVALID_CREDENTIALS' } } },
+      })?.code,
+    ).toBe('INVALID_CREDENTIALS');
     const onOtpVerify = vi.fn();
     render(
       <LoginPage

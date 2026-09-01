@@ -167,7 +167,9 @@ export const authApi = createApi({
         const extra = api.extra as AuthApiContext;
         const result = await queryEnvelope(async () => {
           const client = createApiClient(extra);
-          return client.POST('/auth/logout', {});
+          return client.POST('/auth/logout', {
+            params: { header: { authorization: 'Bearer session' } },
+          });
         });
         extra.clearSession?.();
         extra.navigate?.(extra.getDeviceToken?.() ? '/login/pin' : '/login');

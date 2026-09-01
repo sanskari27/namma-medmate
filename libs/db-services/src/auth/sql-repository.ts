@@ -1,4 +1,4 @@
-import type { Pool, QueryResult } from 'pg';
+import type { Pool } from 'pg';
 import { createId } from '@namma-medmate/id-generator';
 import type {
   AuthRepository,
@@ -174,7 +174,7 @@ function mapPin(row: PinRow): PinVerificationRecord {
   };
 }
 
-function first<T>(result: QueryResult<T>): T | undefined {
+function first<T>(result: { rows: T[] }): T | undefined {
   return result.rows[0];
 }
 

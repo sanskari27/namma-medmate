@@ -24,6 +24,17 @@ export function readAuthError(status: number, data: unknown): AuthUiError {
   };
 }
 
+export function readMutationFailure(result: object): AuthUiError | undefined {
+  if (!('error' in result)) {
+    return undefined;
+  }
+  const record = asRecord(result.error);
+  return readAuthError(
+    typeof record?.status === 'number' ? record.status : 500,
+    record && 'data' in record ? record.data : result.error,
+  );
+}
+
 export function errorCopyKey(code: string | undefined): string {
   switch (code) {
     case 'INVALID_CREDENTIALS':

@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { LoginPage } from './login-page.tsx';
-import { readAuthError } from '../lib/auth-error.ts';
+import { readMutationFailure } from '../lib/auth-error.ts';
 import {
   useLoginWithPasswordMutation,
   useRequestOtpMutation,
@@ -18,10 +18,14 @@ export function ChemistLoginPage() {
   const [resendDisabled, setResendDisabled] = useState(false);
   const submitting = passwordState.isLoading || requestState.isLoading || verifyState.isLoading;
 
-  function applyError(status: number, data: unknown): void {
-    const parsed = readAuthError(status, data);
+  function applyError(result: object): boolean {
+    const parsed = readMutationFailure(result);
+    if (!parsed) {
+      return false;
+    }
     setErrorCode(parsed.code ?? 'UNAVAILABLE');
     setLockedUntil(parsed.lockedUntil);
+    return true;
   }
 
   return (
@@ -38,21 +42,20 @@ export function ChemistLoginPage() {
           password,
           rememberDevice,
         });
-        if ('error' in result) {
-          applyError(result.error.status, result.error.data);
-        }
+        applyError(result);
       }}
       onOtpRequest={async (nextLoginId) => {
         setLoginId(nextLoginId);
         const result = await requestOtp({ loginId: nextLoginId });
-        if ('error' in result) {
-          applyError(result.error.status, result.error.data);
+        const data = 'data' in result ? result.data : undefined;
+        if (data) {
+          setErrorCode(undefined);
+          setChallengeId(data.challenge_id);
+          setResendDisabled(true);
+          globalThis.setTimeout(() => setResendDisabled(false), 30_000);
           return;
         }
-        setErrorCode(undefined);
-        setChallengeId(result.data.challenge_id);
-        setResendDisabled(true);
-        globalThis.setTimeout(() => setResendDisabled(false), 30_000);
+        applyError(result);
       }}
       onOtpVerify={async (otp, rememberDevice) => {
         const result = await verifyOtp({
@@ -61,19 +64,18 @@ export function ChemistLoginPage() {
           otp,
           rememberDevice,
         });
-        if ('error' in result) {
-          applyError(result.error.status, result.error.data);
-        }
+        applyError(result);
       }}
       onOtpResend={async () => {
         const result = await requestOtp({ loginId });
-        if ('error' in result) {
-          applyError(result.error.status, result.error.data);
+        const data = 'data' in result ? result.data : undefined;
+        if (data) {
+          setChallengeId(data.challenge_id);
+          setResendDisabled(true);
+          globalThis.setTimeout(() => setResendDisabled(false), 30_000);
           return;
         }
-        setChallengeId(result.data.challenge_id);
-        setResendDisabled(true);
-        globalThis.setTimeout(() => setResendDisabled(false), 30_000);
+        applyError(result);
       }}
     />
   );
