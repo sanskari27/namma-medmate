@@ -72,7 +72,7 @@ export function EmployeeDrawer({
         bank_upi_id: String(form.get('bank_upi_id') || '') || null,
         emergency_name: String(form.get('emergency_name') || '') || null,
         emergency_phone: String(form.get('emergency_phone') || '') || null,
-        user_id: String(form.get('user_id') || '') || null,
+        user_id: employee?.user_id ?? null,
       },
     });
     if (!('error' in result)) {
@@ -207,7 +207,6 @@ export function EmployeeDrawer({
               <p className="text-sm text-muted-foreground">{t('employees.drawer.noDocuments')}</p>
             )}
           </div>
-          <input type="hidden" name="user_id" value={employee?.user_id ?? ''} />
           <SheetFooter className="flex-col sm:flex-row">
             <Button type="button" variant="outline" onClick={() => void handleIdCard()}>
               {t('employees.drawer.idCard')}

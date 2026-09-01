@@ -129,7 +129,16 @@ function stubDownload(): {
 } {
   const createObjectURL = vi.fn(() => 'blob:employees');
   const revokeObjectURL = vi.fn();
-  vi.stubGlobal('URL', { createObjectURL, revokeObjectURL, canParse: URL.canParse });
+  Object.defineProperty(URL, 'createObjectURL', {
+    configurable: true,
+    writable: true,
+    value: createObjectURL,
+  });
+  Object.defineProperty(URL, 'revokeObjectURL', {
+    configurable: true,
+    writable: true,
+    value: revokeObjectURL,
+  });
   const click = vi.fn();
   HTMLAnchorElement.prototype.click = click;
   return { createObjectURL, click };
@@ -236,6 +245,7 @@ describe('employees-ui screens', () => {
     expect(screen.queryByRole('button', { name: 'Open Ravi Kumar' })).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Position'), 'cashier');
     expect(screen.queryByRole('button', { name: 'Open Anita Sharma' })).not.toBeInTheDocument();
+    await user.clear(screen.getByLabelText('Search name, phone, or code'));
     await user.selectOptions(screen.getByLabelText('Position'), '');
     await user.selectOptions(screen.getByLabelText('Status'), 'separated');
     expect(screen.getByRole('button', { name: 'Open Neha Singh' })).toBeInTheDocument();
@@ -260,8 +270,11 @@ describe('employees-ui screens', () => {
     renderWithStore(<EmployeesPage skipQuery summary={summaryFixture} items={[pharmacist]} />);
     await user.click(screen.getByRole('button', { name: 'Open Anita Sharma' }));
     expect(screen.getByRole('heading', { name: 'Employee' })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Save' }));
-    expect(screen.queryByRole('heading', { name: 'Employee' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Save' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    await waitFor(() => {
+      expect(screen.queryByRole('heading', { name: 'Employee' })).not.toBeInTheDocument();
+    });
   });
 
   it('loads employees from the API', async () => {
@@ -418,6 +431,14 @@ describe('employee drawer', () => {
     await user.click(screen.getByRole('button', { name: 'Generate ID card' }));
     await user.clear(screen.getByLabelText('Full name'));
     await user.type(screen.getByLabelText('Full name'), 'Anita S');
+    await user.clear(screen.getByLabelText('Email'));
+    await user.clear(screen.getByLabelText('PAN'));
+    await user.clear(screen.getByLabelText('Aadhaar'));
+    await user.clear(screen.getByLabelText('Account holder'));
+    await user.clear(screen.getByLabelText('IFSC'));
+    await user.clear(screen.getByLabelText('UPI ID'));
+    await user.clear(screen.getByLabelText('Name'));
+    await user.clear(screen.getAllByLabelText('Phone')[1]!);
     await user.click(screen.getByRole('button', { name: 'Save' }));
     await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });
@@ -438,6 +459,7 @@ describe('employee drawer', () => {
   });
 
   it('shows a live employee load error', async () => {
+    const user = userEvent.setup();
     renderWithStore(
       <EmployeeDrawer open employeeId={pharmacist.employee_id} />,
       employeesFetch({
@@ -445,10 +467,75 @@ describe('employee drawer', () => {
       }),
     );
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not update this employee.');
+    await user.type(screen.getByLabelText('Full name'), 'Temp');
+    await user.type(screen.getAllByLabelText('Phone')[0]!, '+919800000001');
+    await user.click(screen.getByRole('button', { name: 'Save' }));
   });
 
   it('renders a seeded drawer error', () => {
     renderWithStore(<EmployeeDrawer open skipQuery error employee={pharmacist} />);
     expect(screen.getByRole('alert')).toBeInTheDocument();
+  });
+
+  it('falls back to unmasked Aadhaar in skipQuery', () => {
+    renderWithStore(
+      <EmployeeDrawer
+        open
+        skipQuery
+        employee={{ ...pharmacist, aadhaar_masked: null, aadhaar: '123412341234' }}
+      />,
+    );
+    expect(screen.getByLabelText('Aadhaar')).toHaveValue('123412341234');
+  });
+});
+
+describe('employees store fallbacks', () => {
+  afterEach(() => {
+    cleanup();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('uses global fetch and session token when extras are omitted', async () => {
+    const user = userEvent.setup();
+    stubDownload();
+    const fetchImpl = employeesFetch();
+    vi.stubGlobal('fetch', fetchImpl);
+    const store = createEmployeesStore({ baseUrl: 'http://localhost:3008' });
+    render(
+      <Provider store={store}>
+        <EmployeesPage locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809" />
+      </Provider>,
+    );
+    expect(await screen.findByRole('button', { name: 'Open Anita Sharma' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Export CSV' }));
+    await user.click(screen.getByRole('button', { name: 'Open Anita Sharma' }));
+    expect(await screen.findByLabelText('Full name')).toHaveValue('Anita Sharma');
+    await user.click(screen.getByRole('button', { name: 'Generate ID card' }));
+  });
+
+  it('seeds a matching employee into the open drawer', () => {
+    renderWithStore(
+      <EmployeesPage
+        skipQuery
+        items={[pharmacist]}
+        selectedEmployeeId={pharmacist.employee_id}
+        selectedEmployee={pharmacist}
+      />,
+    );
+    expect(screen.getByLabelText('Full name')).toHaveValue('Anita Sharma');
+  });
+
+  it('ignores a seeded employee that does not match the drawer id', () => {
+    renderWithStore(
+      <EmployeesPage
+        skipQuery
+        items={[pharmacist]}
+        selectedEmployeeId="other-id"
+        selectedEmployee={pharmacist}
+      />,
+    );
+    expect(screen.getByRole('heading', { name: 'Employee' })).toBeInTheDocument();
+    expect(screen.getByText('No documents uploaded.')).toBeInTheDocument();
   });
 });

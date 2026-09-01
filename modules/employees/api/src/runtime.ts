@@ -20,3 +20,10 @@ export interface EmployeesRuntime {
   storageBucket: string;
   now: () => Date;
 }
+
+export function logEmployeeChanged(
+  logger: Logger,
+  payload: { tenant_id: string; location_id: string; employee_id: string; fields?: string[] },
+): void {
+  logger.info('employees.employee.changed', payload);
+}

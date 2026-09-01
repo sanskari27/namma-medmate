@@ -666,6 +666,8 @@ paths:
           $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
   /employees/{employee_id}/documents:
     parameters:
       - $ref: '#/components/parameters/EmployeeId'

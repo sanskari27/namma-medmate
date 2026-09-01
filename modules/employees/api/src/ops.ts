@@ -22,7 +22,7 @@ import { csvEscape, decryptOptional, maskAadhaar, toDetail, toListItem } from '.
 import { parseUuid, readBody } from './http/validate.ts';
 import type { AuthedRequest } from './http/parse-auth.ts';
 import { buildIdCardPdf } from './id-card.ts';
-import type { EmployeesRuntime } from './runtime.ts';
+import { logEmployeeChanged, type EmployeesRuntime } from './runtime.ts';
 
 const PHOTO_TYPES = new Set(['image/jpeg', 'image/png', 'image/webp']);
 const DOC_TYPES = new Set(['application/pdf', 'image/jpeg', 'image/png']);
@@ -396,7 +396,7 @@ export async function createEmployee(runtime: EmployeesRuntime, input: AuthedReq
     after: { employee_code: created.employeeCode, position: created.position },
     idempotencyKey: `employee.created:${created.employeeId}`,
   });
-  runtime.logger.info('employees.employee.created', {
+  logEmployeeChanged(runtime.logger, {
     tenant_id: pharmacy.tenantId,
     location_id: pharmacy.locationId,
     employee_id: created.employeeId,
@@ -524,7 +524,7 @@ export async function patchEmployee(runtime: EmployeesRuntime, input: AuthedRequ
       idempotencyKey: `employee.user:${updated.employeeId}:${runtime.now().toISOString()}`,
     });
   }
-  runtime.logger.info('employees.employee.updated', {
+  logEmployeeChanged(runtime.logger, {
     tenant_id: pharmacy.tenantId,
     location_id: pharmacy.locationId,
     employee_id: updated.employeeId,
@@ -643,13 +643,18 @@ export async function createPhotoUploadUrl(runtime: EmployeesRuntime, input: Aut
     throw EmployeesErrors.validationError('photo must be jpeg/png/webp up to 5 MB');
   }
   const objectKey = `tenants/${pharmacy.tenantId}/employees/${employee.employeeId}/photo`;
-  return runtime.storage.presignPut({
+  const issued = await runtime.storage.presignPut({
     bucket: runtime.storageBucket,
     key: objectKey,
     contentType,
     expiresInSeconds: 600,
     tenantId: pharmacy.tenantId,
   });
+  return {
+    upload_url: issued.uploadUrl,
+    object_key: issued.objectKey,
+    expires_in_seconds: issued.expiresInSeconds,
+  };
 }
 
 export async function confirmPhoto(runtime: EmployeesRuntime, input: AuthedRequest) {
@@ -720,13 +725,18 @@ export async function createDocumentUploadUrl(runtime: EmployeesRuntime, input: 
     throw EmployeesErrors.documentLimit();
   }
   const objectKey = `tenants/${pharmacy.tenantId}/employees/${employee.employeeId}/documents/${crypto.randomUUID()}`;
-  return runtime.storage.presignPut({
+  const issued = await runtime.storage.presignPut({
     bucket: runtime.storageBucket,
     key: objectKey,
     contentType,
     expiresInSeconds: 600,
     tenantId: pharmacy.tenantId,
   });
+  return {
+    upload_url: issued.uploadUrl,
+    object_key: issued.objectKey,
+    expires_in_seconds: issued.expiresInSeconds,
+  };
 }
 
 export async function createDocument(runtime: EmployeesRuntime, input: AuthedRequest) {

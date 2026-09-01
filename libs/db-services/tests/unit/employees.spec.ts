@@ -99,6 +99,7 @@ describe('memory employees repository', () => {
       employeeId: created.employeeId,
     });
     expect(await repo.findByCode(TENANT, 'EMP-0001')).toMatchObject({ fullName: 'Anita Sharma' });
+    expect(await repo.getById(created.employeeId)).toMatchObject({ fullName: 'Anita Sharma' });
     expect(await repo.getById('missing')).toBeUndefined();
     expect(await repo.updateEmployee('missing', { status: 'separated' })).toBeUndefined();
     await repo.updateEmployee(created.employeeId, { status: 'separated', userId: null });
@@ -141,6 +142,13 @@ describe('memory employees repository', () => {
       phone: '+919812345678',
     });
     expect(named.employeeCode).toBe('EMP-0001');
+    const { status: _status, ...withoutStatus } = baseInput();
+    const defaulted = await repo.createEmployee({
+      ...withoutStatus,
+      fullName: 'Default Status',
+      employeeCode: 'DEF-1',
+    });
+    expect(defaulted.status).toBe('active');
     await repo.createEmployee({
       ...baseInput(),
       tenantId: otherTenant,
@@ -178,7 +186,7 @@ describe('memory employees repository', () => {
         page: 1,
         pageSize: 20,
       }),
-    ).toMatchObject({ total: 3 });
+    ).toMatchObject({ total: 4 });
     expect(
       await repo.listEmployees({
         tenantId: TENANT,
@@ -457,6 +465,8 @@ describe('sql employees repository', () => {
     expect(await repo.getDocument('e', 'd')).toBeUndefined();
     expect(await repo.deleteDocument('e', 'd')).toBe(false);
     expect(await repo.getIdempotency(TENANT, 'none')).toBeUndefined();
+    expect(await repo.findByUserId(TENANT, 'none')).toBeUndefined();
+    expect(await repo.findByCode(TENANT, 'none')).toBeUndefined();
   });
 
   it('maps unique errors without a named constraint and optional list filters', async () => {
@@ -485,7 +495,10 @@ describe('sql employees repository', () => {
           };
         }
         if (sql.startsWith('select count(*)::text as count from employee_documents')) {
-          return { rows: [] };
+          return { rows: [{}] };
+        }
+        if (sql.startsWith('delete from employee_documents')) {
+          return {};
         }
         if (sql.includes('from employees where employee_id')) {
           return { rows: [sqlRow] };
@@ -498,7 +511,17 @@ describe('sql employees repository', () => {
     };
     const repo = createSqlEmployeesRepository(pool as never);
     await expect(
-      repo.createEmployee({ ...baseInput(), employeeCode: 'EMP-0002' }),
+      repo.createEmployee(
+        (() => {
+          const {
+            status: _status,
+            pharmacistRegistrationNo: _reg,
+            pharmacistRegistrationExpiry: _exp,
+            ...rest
+          } = baseInput();
+          return { ...rest, employeeCode: 'EMP-0002' };
+        })(),
+      ),
     ).rejects.toMatchObject({
       code: ErrorCode.EMPLOYEE_CODE_TAKEN,
     });
@@ -542,6 +565,7 @@ describe('sql employees repository', () => {
       composition: [{ position: 'pharmacist', count: 2 }],
     });
     expect(await repo.countDocuments(sqlRow.employee_id)).toBe(0);
+    expect(await repo.deleteDocument(sqlRow.employee_id, 'missing')).toBe(false);
     expect(await repo.updateEmployee(sqlRow.employee_id, { fullName: 'Gone' })).toBeUndefined();
     const updateUnique = {
       query: vi.fn(async (sql: string) => {

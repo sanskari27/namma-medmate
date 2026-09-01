@@ -130,10 +130,10 @@ export const employeesApi = createApi({
       },
       providesTags: ['Employees'],
     }),
-    listEmployees: build.query<EmployeePageData, ListEmployeesArgs | void>({
+    listEmployees: build.query<EmployeePageData, ListEmployeesArgs>({
       async queryFn(arg, api) {
         const extra = api.extra as EmployeesApiContext;
-        const filters = arg ?? {};
+        const filters = arg;
         return load<EmployeePageData>(async () => {
           const client = createApiClient(extra);
           return client.GET('/employees', {
@@ -223,22 +223,21 @@ export const employeesApi = createApi({
       },
       invalidatesTags: ['Employees', 'Employee'],
     }),
-    exportCsv: build.mutation<string, ListEmployeesArgs | void>({
+    exportCsv: build.mutation<string, ListEmployeesArgs>({
       async queryFn(arg, api) {
         const extra = api.extra as EmployeesApiContext;
         const token = (await extra.getAccessToken?.()) ?? 'session';
         const locationId = extra.getLocationId?.() ?? '';
         const fetchImpl = extra.fetchImpl ?? fetch;
-        const filters = arg ?? {};
         const params = new URLSearchParams({ location_id: locationId });
-        if (filters.q) {
-          params.set('q', filters.q);
+        if (arg.q) {
+          params.set('q', arg.q);
         }
-        if (filters.position) {
-          params.set('position', filters.position);
+        if (arg.position) {
+          params.set('position', arg.position);
         }
-        if (filters.status) {
-          params.set('status', filters.status);
+        if (arg.status) {
+          params.set('status', arg.status);
         }
         const response = await fetchImpl(`${extra.baseUrl}/employees/export.csv?${params}`, {
           headers: { authorization: `Bearer ${token}` },
