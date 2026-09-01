@@ -197,15 +197,9 @@ export interface paths {
     };
     "/manage-users/users/{user_id}": {
         parameters: {
-            query?: {
-                location_id?: components["parameters"]["LocationIdQuery"];
-            };
-            header: {
-                authorization: components["parameters"]["AuthorizationHeader"];
-            };
-            path: {
-                user_id: components["parameters"]["UserId"];
-            };
+            query?: never;
+            header?: never;
+            path?: never;
             cookie?: never;
         };
         /** Get a user */

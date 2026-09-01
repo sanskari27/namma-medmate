@@ -106,15 +106,15 @@ paths:
         '422':
           $ref: '#/components/responses/Error'
   /manage-users/users/{user_id}:
-    parameters:
-      - $ref: '#/components/parameters/AuthorizationHeader'
-      - $ref: '#/components/parameters/LocationIdQuery'
-      - $ref: '#/components/parameters/UserId'
     get:
       operationId: getManageUser
       summary: Get a user
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
       responses:
         '200':
           description: User
@@ -135,6 +135,10 @@ paths:
       summary: Patch a user
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
       requestBody:
         required: true
         content:
@@ -163,6 +167,10 @@ paths:
       summary: Remove a login
       security:
         - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
       responses:
         '204':
           description: Removed
