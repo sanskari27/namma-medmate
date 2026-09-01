@@ -10,11 +10,13 @@ export class HomePage extends BasePage {
     this.locators = homeLocators(page);
   }
 
-  async expectReady(): Promise<void> {
-    await expect(this.locators.sessionHeading).toBeVisible();
+  async persistSessionToken(): Promise<void> {
+    await this.page.addInitScript(() => {
+      sessionStorage.setItem('namma.accessToken', 'nm_sess_e2e');
+    });
   }
 
-  async expectWidgetHeading(): Promise<void> {
-    await expect(this.locators.widgetHeading).toBeVisible();
+  async expectReady(): Promise<void> {
+    await expect(this.locators.sessionHeading).toBeVisible();
   }
 }

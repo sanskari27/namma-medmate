@@ -79,14 +79,14 @@ describe('mappers', () => {
   });
 });
 
-describe('auth-api chemist login', () => {
+describe('auth-api chemist login', { timeout: 30_000 }, () => {
   let passwordHash = '';
   let pinHash = '';
 
   beforeAll(async () => {
     passwordHash = await hashSecret(SEED_PASSWORD);
     pinHash = await hashSecret(SEED_PIN);
-  });
+  }, 30_000);
 
   afterEach(() => {
     resetLoginRateLimit();

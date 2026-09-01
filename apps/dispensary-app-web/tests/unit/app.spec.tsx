@@ -95,7 +95,7 @@ describe('dispensary app', () => {
     expect(screen.getByRole('button', { name: 'WhatsApp OTP' })).toBeInTheDocument();
   });
 
-  it('opens PIN unlock when a device token is stored', () => {
+  it('opens PIN unlock when a device token is stored', async () => {
     persistChemistSession({
       session_token: 'nm_sess_x',
       location_id: 'loc',
@@ -108,19 +108,19 @@ describe('dispensary app', () => {
         <AppRoutes pathname="/login/pin" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Unlock this device' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Unlock this device' })).toBeInTheDocument();
   });
 
-  it('hides PIN unlock when device storage is cleared', () => {
+  it('hides PIN unlock when device storage is cleared', async () => {
     render(
       <AppProviders>
         <AppRoutes pathname="/login/pin" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Sign in' })).toBeInTheDocument();
   });
 
-  it('renders chemist login on /login and PIN unlock when only a device is stored', () => {
+  it('renders chemist login on /login and PIN unlock when only a device is stored', async () => {
     render(
       <AppProviders>
         <AppRoutes pathname="/login" />
@@ -140,10 +140,10 @@ describe('dispensary app', () => {
         <AppRoutes pathname="/" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Unlock this device' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Unlock this device' })).toBeInTheDocument();
   });
 
-  it('clears the saved device when PIN unlock switches to password', () => {
+  it('clears the saved device when PIN unlock switches to password', async () => {
     persistChemistSession({
       session_token: 'nm_sess_x',
       location_id: 'loc',
@@ -158,86 +158,86 @@ describe('dispensary app', () => {
         <AppRoutes pathname="/login/pin" />
       </AppProviders>,
     );
-    fireEvent.click(screen.getByRole('button', { name: 'Use password or OTP instead' }));
+    fireEvent.click(await screen.findByRole('button', { name: 'Use password or OTP instead' }));
     expect(getDeviceToken()).toBeUndefined();
     expect(getStoredLoginId()).toBeUndefined();
     expect(assign).toHaveBeenCalledWith('/login');
     vi.unstubAllGlobals();
   });
 
-  it('renders home from the default route when signed in', () => {
+  it('renders home from the default route when signed in', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Session' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Session' })).toBeInTheDocument();
   });
 
-  it('renders the WhatsApp inbox on /whatsapp', () => {
+  it('renders the WhatsApp inbox on /whatsapp', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/whatsapp" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
   });
 
-  it('renders Free orders without a paywall', () => {
+  it('renders Free orders without a paywall', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/orders" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Orders' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Orders' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'View plans' })).not.toBeInTheDocument();
   });
 
-  it('renders the Kiosk paywall on Free', () => {
+  it('renders the Kiosk paywall on Free', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/kiosk" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Unlock Pro' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Unlock Pro' })).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'View plans' })).toHaveAttribute(
       'href',
       '/subscription',
     );
   });
 
-  it('renders inventory without a paywall', () => {
+  it('renders inventory without a paywall', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/inventory" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Inventory' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Inventory' })).toBeInTheDocument();
   });
 
-  it('renders reports paywall on Free', () => {
+  it('renders reports paywall on Free', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/reports" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Unlock Growth' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Unlock Growth' })).toBeInTheDocument();
   });
 
-  it('renders the subscription stub', () => {
+  it('renders the subscription stub', async () => {
     setAccessToken('token');
     render(
       <AppProviders>
         <AppRoutes pathname="/subscription" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Subscription' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Subscription' })).toBeInTheDocument();
   });
 
   it('renders the HQ master catalogue without the shop badge', async () => {
