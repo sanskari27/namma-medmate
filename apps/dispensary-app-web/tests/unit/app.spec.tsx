@@ -66,13 +66,13 @@ describe('dispensary app', () => {
     expect(screen.getByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
   });
 
-  it('renders the HQ master catalogue without the shop badge', () => {
+  it('renders the HQ master catalogue without the shop badge', async () => {
     render(
       <AppProviders>
         <AppRoutes pathname="/hq/master-catalogue" />
       </AppProviders>,
     );
-    expect(screen.getByRole('heading', { name: 'Master catalogue' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Master catalogue' })).toBeInTheDocument();
     expect(screen.getAllByText('Platform HQ').length).toBeGreaterThan(0);
     expect(screen.queryByText('Dispensary')).not.toBeInTheDocument();
   });

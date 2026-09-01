@@ -1,10 +1,9 @@
-import { Provider } from 'react-redux';
+import { lazy, Suspense } from 'react';
 import { HomePage } from '../../pages/home-page.tsx';
-import { MasterCataloguePage } from '../../pages/master-catalogue-page.tsx';
 import { WhatsAppPage } from '../../pages/whatsapp-page.tsx';
 import { AppLayout } from '../layouts/app-layout.tsx';
-import { HqLayout } from '../layouts/hq-layout.tsx';
-import { masterCatalogueStore } from '../../store/master-catalogue.ts';
+
+const HqMasterCatalogueRoute = lazy(() => import('./hq-master-catalogue-route.tsx'));
 
 export function AppRoutes({ pathname = globalThis.location.pathname }: { pathname?: string } = {}) {
   if (pathname === '/whatsapp') {
@@ -16,11 +15,9 @@ export function AppRoutes({ pathname = globalThis.location.pathname }: { pathnam
   }
   if (pathname === '/hq/master-catalogue') {
     return (
-      <HqLayout>
-        <Provider store={masterCatalogueStore}>
-          <MasterCataloguePage />
-        </Provider>
-      </HqLayout>
+      <Suspense fallback={null}>
+        <HqMasterCatalogueRoute />
+      </Suspense>
     );
   }
   return <HomePage />;
