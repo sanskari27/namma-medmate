@@ -1,0 +1,35 @@
+name: Release
+
+on:
+  push:
+    branches: [main]
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.version.outputs.tag }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - id: version
+        run: |
+          git fetch --tags
+          LATEST=$(git tag -l 'v[0-9]*' | sort -t'v' -k2 -n | tail -1)
+          N=${LATEST#v}
+          NEXT="v$(( ${N:-0} + 1 ))"
+          echo "tag=$NEXT" >> "$GITHUB_OUTPUT"
+      - env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh release create "${{ steps.version.outputs.tag }}" --generate-notes
+
+  deploy:
+    needs: release
+    uses: ./.github/workflows/build-deploy.yml
+    with:
+      tag: ${{ needs.release.outputs.tag }}
+    secrets: inherit

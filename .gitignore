@@ -1,0 +1,45 @@
+.DS_Store
+.env
+.env.*
+!.env.example
+!.env.prod.example
+scripts/clone-prod-db.env
+
+# Java / Maven
+server/target/
+*.class
+*.jar
+!server/.mvn/wrapper/maven-wrapper.jar
+
+# Node
+node_modules/
+dist/
+*.tsbuildinfo
+coverage/
+.npm
+.eslintcache
+
+# IDE
+.idea/
+*.iml
+.vscode/settings.json
+
+# Terraform
+**/.terraform/
+*.tfstate
+*.tfstate.*
+*.tfvars
+!*.tfvars.example
+crash.log
+override.tf
+
+# DB clone cache
+*.dump
+.docker/postgres-data/
+
+# Logs
+logs/
+*.log
+
+# OS
+Thumbs.db

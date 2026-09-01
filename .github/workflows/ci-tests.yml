@@ -1,0 +1,74 @@
+name: CI Tests
+
+on:
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-tests-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+  pull-requests: read
+
+jobs:
+  detect-changes:
+    runs-on: ubuntu-latest
+    outputs:
+      server: ${{ steps.filter.outputs.server }}
+      dispensary: ${{ steps.filter.outputs.dispensary }}
+      admin: ${{ steps.filter.outputs.admin }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            server:
+              - 'server/**'
+            dispensary:
+              - 'dispensary/**'
+            admin:
+              - 'admin/**'
+
+  server-tests:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.server == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: temurin
+      - run: chmod +x server/mvnw && ./mvnw -B test
+        working-directory: server
+
+  dispensary-checks:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.dispensary == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: dispensary/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: dispensary
+
+  admin-checks:
+    needs: detect-changes
+    if: needs.detect-changes.outputs.admin == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: admin/package-lock.json
+      - run: npm ci && npm run build
+        working-directory: admin

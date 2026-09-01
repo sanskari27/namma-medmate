@@ -1,0 +1,29 @@
+name: Build and Deploy
+
+on:
+  workflow_call:
+    inputs:
+      tag:
+        required: true
+        type: string
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Git tag to deploy (e.g. v3 or feature)'
+        required: true
+        type: string
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: [self-hosted, deploy-prod]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ inputs.tag }}
+          clean: false
+      - name: Build and restart
+        run: docker compose -f compose.prod.yaml up -d --build server dispensary admin

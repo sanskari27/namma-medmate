@@ -1,0 +1,27 @@
+name: Clone Prod DB to S3
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  dump:
+    runs-on: [self-hosted, deploy-prod]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          clean: false
+      - name: pg_dump to S3
+        env:
+          DATABASE_URL: ${{ secrets.PROD_DATABASE_URL }}
+          PGPASSWORD: ${{ secrets.PROD_PG_PASSWORD }}
+        run: |
+          set -euo pipefail
+          STAMP=$(date +%Y%m%d-%H%M%S)
+          FILE="namma-medmate-prod-${STAMP}.dump"
+          pg_dump "$DATABASE_URL" --format=custom --no-owner --no-acl -f "/tmp/${FILE}"
+          aws s3 cp "/tmp/${FILE}" "s3://${S3_DUMP_BUCKET:-namma-medmate-db-dumps}/${FILE}"
+          rm -f "/tmp/${FILE}"
