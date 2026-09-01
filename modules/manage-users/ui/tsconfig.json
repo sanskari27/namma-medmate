@@ -1,0 +1,18 @@
+{
+  "extends": "../../../tools/tsconfig-base/tsconfig.web.json",
+  "compilerOptions": {
+    "outDir": "dist"
+  },
+  "include": [
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "tests/unit/**/*.ts",
+    "tests/unit/**/*.tsx",
+    "tests/e2e/**/*.ts",
+    "tests/setup.ts",
+    ".storybook/**/*.ts",
+    ".storybook/**/*.tsx",
+    "playwright.config.ts",
+    "playwright.visual.config.ts"
+  ]
+}

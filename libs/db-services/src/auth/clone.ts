@@ -10,8 +10,10 @@ import type {
 export function cloneUser(row: UserRecord): UserRecord {
   return {
     ...row,
+    permissions: { ...row.permissions },
     lockedUntil: row.lockedUntil ? new Date(row.lockedUntil) : null,
     otpResendAvailableAt: row.otpResendAvailableAt ? new Date(row.otpResendAvailableAt) : null,
+    removedAt: row.removedAt ? new Date(row.removedAt) : null,
     createdAt: new Date(row.createdAt),
     updatedAt: new Date(row.updatedAt),
   };

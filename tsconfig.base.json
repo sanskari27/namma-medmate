@@ -31,6 +31,7 @@
       "@namma-medmate/audit-ui/e2e": ["modules/audit/ui/tests/e2e/index.ts"],
       "@namma-medmate/master-catalogue-ui/e2e": ["modules/master-catalogue/ui/tests/e2e/index.ts"],
       "@namma-medmate/plan-gating-ui/e2e": ["modules/plan-gating/ui/tests/e2e/index.ts"],
+      "@namma-medmate/manage-users-ui/e2e": ["modules/manage-users/ui/tests/e2e/index.ts"],
       "@namma-medmate/cache": ["libs/cache/src/index.ts"],
       "@namma-medmate/constants": ["libs/constants/src/index.ts"],
       "@namma-medmate/context-propagation": ["libs/context-propagation/src/index.ts"],

@@ -14,6 +14,10 @@ const WhatsAppPage = lazy(async () => {
   const { WhatsAppPage: Page } = await import('../../pages/whatsapp-page.tsx');
   return { default: Page };
 });
+const ManageUsersRoute = lazy(async () => {
+  const { ManageUsersRoute: Route } = await import('../../pages/manage-users-page.tsx');
+  return { default: Route };
+});
 const GatedStubPage = lazy(async () => {
   const { GatedStubPage: Page } = await import('../../pages/gated-stub-page.tsx');
   return { default: Page };
@@ -76,6 +80,13 @@ export function AppRoutes({ pathname = globalThis.location.pathname }: { pathnam
     return (
       <AuthenticatedLayout>
         <WhatsAppPage />
+      </AuthenticatedLayout>
+    );
+  }
+  if (pathname === '/account/users') {
+    return (
+      <AuthenticatedLayout>
+        <ManageUsersRoute />
       </AuthenticatedLayout>
     );
   }

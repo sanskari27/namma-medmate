@@ -14,6 +14,7 @@
     "@namma-medmate/whatsapp-ui": "workspace:*",
     "@namma-medmate/master-catalogue-ui": "workspace:*",
     "@namma-medmate/plan-gating-ui": "workspace:*",
+    "@namma-medmate/manage-users-ui": "workspace:*",
     "@namma-medmate/api-client": "workspace:*",
     "@namma-medmate/error-handling": "workspace:*",
     "@namma-medmate/event-bus": "workspace:*",

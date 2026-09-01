@@ -28,6 +28,11 @@ interface UserRow {
   otp_resend_available_at: Date | null;
   role: StaffRole;
   active: boolean;
+  permissions: Record<string, boolean> | null;
+  employee_id: string | null;
+  temp_password_pending: boolean;
+  temp_password_ciphertext: string | null;
+  removed_at: Date | null;
   created_at: Date;
   updated_at: Date;
 }
@@ -83,7 +88,13 @@ interface PinRow {
 
 const USER_SELECT = `select user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
   otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at, role,
-  active, created_at, updated_at from users`;
+  active, permissions, employee_id, temp_password_pending, temp_password_ciphertext, removed_at,
+  created_at, updated_at from users`;
+
+const USER_RETURNING = `user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
+  otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at, role,
+  active, permissions, employee_id, temp_password_pending, temp_password_ciphertext, removed_at,
+  created_at, updated_at`;
 
 const OTP_SELECT = `select challenge_id, user_id, otp_hash, expires_at, attempts, consumed_at, created_at
   from otp_challenges`;
@@ -110,6 +121,11 @@ function mapUser(row: UserRow): UserRecord {
     otpResendAvailableAt: row.otp_resend_available_at,
     role: row.role,
     active: row.active,
+    permissions: row.permissions ?? {},
+    employeeId: row.employee_id,
+    tempPasswordPending: row.temp_password_pending,
+    tempPasswordCiphertext: row.temp_password_ciphertext,
+    removedAt: row.removed_at,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -184,11 +200,10 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
       const userId = input.userId ?? createId();
       const result = await pool.query<UserRow>(
         `insert into users (user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
-          otp_enabled, otp_mobile, pin_hash, failed_attempts, role, active)
-         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,$11)
-         returning user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
-          otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at,
-          role, active, created_at, updated_at`,
+          otp_enabled, otp_mobile, pin_hash, failed_attempts, role, active, permissions, employee_id,
+          temp_password_pending, temp_password_ciphertext)
+         values ($1,$2,$3,$4,$5,$6,$7,$8,$9,0,$10,$11,$12::jsonb,$13,$14,$15)
+         returning ${USER_RETURNING}`,
         [
           userId,
           input.tenantId,
@@ -201,6 +216,10 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
           input.pinHash ?? null,
           input.role,
           input.active ?? true,
+          JSON.stringify(input.permissions ?? {}),
+          input.employeeId ?? null,
+          input.tempPasswordPending ?? false,
+          input.tempPasswordCiphertext ?? null,
         ],
       );
       const row = first(result);
@@ -211,7 +230,10 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
     },
 
     async findUserByLoginId(loginId) {
-      const result = await pool.query<UserRow>(`${USER_SELECT} where login_id = $1`, [loginId]);
+      const result = await pool.query<UserRow>(
+        `${USER_SELECT} where lower(login_id) = lower($1) and removed_at is null`,
+        [loginId],
+      );
       const row = first(result);
       return row ? mapUser(row) : undefined;
     },
@@ -226,9 +248,7 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
       const result = await pool.query<UserRow>(
         `update users set failed_attempts = $2, locked_until = $3, updated_at = now()
          where user_id = $1
-         returning user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
-          otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at,
-          role, active, created_at, updated_at`,
+         returning ${USER_RETURNING}`,
         [userId, failedAttempts, lockedUntil],
       );
       const row = first(result);
@@ -239,9 +259,7 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
       const result = await pool.query<UserRow>(
         `update users set otp_resend_available_at = $2, updated_at = now()
          where user_id = $1
-         returning user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
-          otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at,
-          role, active, created_at, updated_at`,
+         returning ${USER_RETURNING}`,
         [userId, at],
       );
       const row = first(result);
@@ -252,13 +270,204 @@ export function createSqlAuthRepository(pool: Pool): AuthRepository {
       const result = await pool.query<UserRow>(
         `update users set failed_attempts = 0, locked_until = null, updated_at = now()
          where user_id = $1
-         returning user_id, tenant_id, location_id, login_id, password_hash, password_enabled,
-          otp_enabled, otp_mobile, pin_hash, failed_attempts, locked_until, otp_resend_available_at,
-          role, active, created_at, updated_at`,
+         returning ${USER_RETURNING}`,
         [userId],
       );
       const row = first(result);
       return row ? mapUser(row) : undefined;
+    },
+
+    async listUsers(input) {
+      const filters = ['tenant_id = $1', 'location_id = $2', 'removed_at is null'];
+      const params: unknown[] = [input.tenantId, input.locationId];
+      if (input.active !== undefined) {
+        params.push(input.active);
+        filters.push(`active = $${params.length}`);
+      }
+      if (input.role !== undefined) {
+        params.push(input.role);
+        filters.push(`role = $${params.length}`);
+      }
+      const where = filters.join(' and ');
+      const count = await pool.query<{ total: string }>(
+        `select count(*)::text as total from users where ${where}`,
+        params,
+      );
+      const pageSize = Math.max(1, input.pageSize);
+      const offset = (Math.max(1, input.page) - 1) * pageSize;
+      params.push(pageSize, offset);
+      const result = await pool.query<UserRow>(
+        `${USER_SELECT} where ${where} order by created_at asc limit $${params.length - 1} offset $${params.length}`,
+        params,
+      );
+      return {
+        items: result.rows.map((row) => mapUser(row)),
+        total: Number(count.rows[0]?.total ?? 0),
+      };
+    },
+
+    async countActiveUsers(tenantId, locationId) {
+      const result = await pool.query<{ total: string }>(
+        `select count(*)::text as total from users
+         where tenant_id = $1 and location_id = $2 and active = true and removed_at is null`,
+        [tenantId, locationId],
+      );
+      return Number(result.rows[0]?.total ?? 0);
+    },
+
+    async findLiveOwner(tenantId, locationId) {
+      const result = await pool.query<UserRow>(
+        `${USER_SELECT} where tenant_id = $1 and location_id = $2 and role = 'owner' and removed_at is null`,
+        [tenantId, locationId],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async findUserByEmployeeId(tenantId, locationId, employeeId) {
+      const result = await pool.query<UserRow>(
+        `${USER_SELECT} where tenant_id = $1 and location_id = $2 and employee_id = $3 and removed_at is null`,
+        [tenantId, locationId, employeeId],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async updateUserProfile(userId, patch) {
+      const result = await pool.query<UserRow>(
+        `update users set
+           login_id = coalesce($2, login_id),
+           role = coalesce($3, role),
+           employee_id = case when $4::boolean then $5 else employee_id end,
+           otp_mobile = case when $6::boolean then $7 else otp_mobile end,
+           active = coalesce($8, active),
+           updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [
+          userId,
+          patch.loginId ?? null,
+          patch.role ?? null,
+          patch.employeeId !== undefined,
+          patch.employeeId ?? null,
+          patch.otpMobile !== undefined,
+          patch.otpMobile ?? null,
+          patch.active ?? null,
+        ],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async setPermissions(userId, permissions) {
+      const result = await pool.query<UserRow>(
+        `update users set permissions = $2::jsonb, updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [userId, JSON.stringify(permissions)],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async setMethods(userId, input) {
+      const result = await pool.query<UserRow>(
+        `update users set password_enabled = $2, otp_enabled = $3, otp_mobile = $4, updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [userId, input.passwordEnabled, input.otpEnabled, input.otpMobile],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async setPasswordCredentials(userId, input) {
+      const result = await pool.query<UserRow>(
+        `update users set password_hash = $2, temp_password_ciphertext = $3,
+           temp_password_pending = $4, updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [userId, input.passwordHash, input.tempPasswordCiphertext, input.tempPasswordPending],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async consumeTempPassword(userId) {
+      const result = await pool.query<UserRow>(
+        `update users set temp_password_pending = false, temp_password_ciphertext = null, updated_at = now()
+         where user_id = $1
+         returning ${USER_RETURNING}`,
+        [userId],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async setPinHash(userId, pinHash) {
+      const result = await pool.query<UserRow>(
+        `update users set pin_hash = $2, updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [userId, pinHash],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async softDeleteUser(userId, removedAt) {
+      const result = await pool.query<UserRow>(
+        `update users set removed_at = $2, employee_id = null, active = false, updated_at = now()
+         where user_id = $1 and removed_at is null
+         returning ${USER_RETURNING}`,
+        [userId, removedAt],
+      );
+      const row = first(result);
+      return row ? mapUser(row) : undefined;
+    },
+
+    async revokeSavedDevice(deviceId) {
+      const result = await pool.query(`delete from saved_devices where device_id = $1`, [deviceId]);
+      return (result.rowCount ?? 0) > 0;
+    },
+
+    async revokeSessionsForUser(userId, revokedAt) {
+      const result = await pool.query(
+        `update sessions set revoked_at = $2 where user_id = $1 and revoked_at is null`,
+        [userId, revokedAt],
+      );
+      return result.rowCount ?? 0;
+    },
+
+    async getIdempotency(tenantId, key) {
+      const result = await pool.query<{
+        tenant_id: string;
+        idempotency_key: string;
+        body_hash: string;
+        user_id: string;
+      }>(
+        `select tenant_id, idempotency_key, body_hash, user_id from manage_users_idempotency
+         where tenant_id = $1 and idempotency_key = $2`,
+        [tenantId, key],
+      );
+      const row = first(result);
+      return row
+        ? {
+            tenantId: row.tenant_id,
+            idempotencyKey: row.idempotency_key,
+            bodyHash: row.body_hash,
+            userId: row.user_id,
+          }
+        : undefined;
+    },
+
+    async putIdempotency(record) {
+      await pool.query(
+        `insert into manage_users_idempotency (tenant_id, idempotency_key, body_hash, user_id)
+         values ($1,$2,$3,$4)
+         on conflict (tenant_id, idempotency_key) do nothing`,
+        [record.tenantId, record.idempotencyKey, record.bodyHash, record.userId],
+      );
     },
 
     async createOtpChallenge(input) {

@@ -6,7 +6,8 @@
     "whatsapp-ui",
     "audit-ui",
     "master-catalogue-ui",
-    "plan-gating-ui"
+    "plan-gating-ui",
+    "manage-users-ui"
   ],
   "moduleApis": [
     "auth-api",
@@ -14,7 +15,8 @@
     "whatsapp-api",
     "audit-api",
     "master-catalogue-api",
-    "plan-gating-api"
+    "plan-gating-api",
+    "manage-users-api"
   ],
   "libs": [
     "api-client",

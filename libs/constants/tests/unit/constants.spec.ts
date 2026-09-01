@@ -25,6 +25,10 @@ describe('ErrorCode', () => {
     expect(ErrorCode.INVALID_CREDENTIALS).toBe('INVALID_CREDENTIALS');
     expect(ErrorCode.ACCOUNT_LOCKED).toBe('ACCOUNT_LOCKED');
     expect(ErrorCode.UNAUTHENTICATED).toBe('UNAUTHENTICATED');
+    expect(ErrorCode.LOCATION_REQUIRED).toBe('LOCATION_REQUIRED');
+    expect(ErrorCode.SEAT_CAP_REACHED).toBe('SEAT_CAP_REACHED');
+    expect(ErrorCode.AUTH_METHOD_REQUIRED).toBe('AUTH_METHOD_REQUIRED');
+    expect(ErrorCode.OWNER_ACCESS_IMMUTABLE).toBe('OWNER_ACCESS_IMMUTABLE');
     expect(HttpStatus.PRECONDITION_FAILED).toBe(412);
     expect(HttpStatus.LOCKED).toBe(423);
   });

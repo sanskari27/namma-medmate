@@ -1,0 +1,58 @@
+[
+  { "method": "get", "path": "/manage-users/seats", "operationId": "getManageUsersSeats" },
+  { "method": "get", "path": "/manage-users/users", "operationId": "listManageUsers" },
+  { "method": "post", "path": "/manage-users/users", "operationId": "createManageUser" },
+  { "method": "get", "path": "/manage-users/users/{user_id}", "operationId": "getManageUser" },
+  { "method": "patch", "path": "/manage-users/users/{user_id}", "operationId": "patchManageUser" },
+  {
+    "method": "put",
+    "path": "/manage-users/users/{user_id}/permissions",
+    "operationId": "putManageUserPermissions"
+  },
+  {
+    "method": "put",
+    "path": "/manage-users/users/{user_id}/methods",
+    "operationId": "putManageUserMethods"
+  },
+  {
+    "method": "post",
+    "path": "/manage-users/users/{user_id}/password/reset",
+    "operationId": "resetManageUserPassword"
+  },
+  {
+    "method": "post",
+    "path": "/manage-users/users/{user_id}/password/copy",
+    "operationId": "copyManageUserPassword"
+  },
+  {
+    "method": "put",
+    "path": "/manage-users/users/{user_id}/pin",
+    "operationId": "putManageUserPin"
+  },
+  {
+    "method": "delete",
+    "path": "/manage-users/users/{user_id}/pin",
+    "operationId": "deleteManageUserPin"
+  },
+  {
+    "method": "get",
+    "path": "/manage-users/users/{user_id}/devices",
+    "operationId": "listManageUserDevices"
+  },
+  {
+    "method": "delete",
+    "path": "/manage-users/users/{user_id}/devices/{device_id}",
+    "operationId": "revokeManageUserDevice"
+  },
+  {
+    "method": "delete",
+    "path": "/manage-users/users/{user_id}/devices",
+    "operationId": "revokeAllManageUserDevices"
+  },
+  {
+    "method": "post",
+    "path": "/manage-users/users/{user_id}/share-link",
+    "operationId": "createManageUserShareLink"
+  },
+  { "method": "delete", "path": "/manage-users/users/{user_id}", "operationId": "deleteManageUser" }
+]
