@@ -5,7 +5,7 @@ export const manageUsersEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   MANAGE_USERS_API_PORT: z.coerce.number().int().min(1).default(3007),
-  MANAGE_USERS_TEMP_PASSWORD_KEY: z.string().min(8).default('local-manage-users-temp-key'),
+  MANAGE_USERS_TEMP_PASSWORD_KEY: z.string().min(8),
   OIDC_ISSUER: z.string().url(),
   OIDC_AUDIENCE: z.string().min(1),
   OIDC_JWKS_URI: z.string().url(),

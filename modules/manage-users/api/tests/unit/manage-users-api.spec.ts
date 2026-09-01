@@ -42,6 +42,7 @@ describe('manage-users env', () => {
       OIDC_ISSUER: 'http://localhost:8081',
       OIDC_AUDIENCE: 'namma-medmate-dispensary',
       OIDC_JWKS_URI: 'http://localhost:8081/jwks.json',
+      MANAGE_USERS_TEMP_PASSWORD_KEY: 'unit-manage-users-temp-key',
     });
     expect(env.MANAGE_USERS_API_PORT).toBe(3007);
   });
@@ -52,6 +53,7 @@ describe('manage-users env', () => {
       OIDC_AUDIENCE: 'namma-medmate-dispensary',
       OIDC_JWKS_URI: 'http://localhost:8081/jwks.json',
       MANAGE_USERS_API_PORT: '4011',
+      MANAGE_USERS_TEMP_PASSWORD_KEY: 'unit-manage-users-temp-key',
     });
     expect(env.MANAGE_USERS_API_PORT).toBe(4011);
   });
@@ -207,6 +209,7 @@ describe('clients', () => {
           OIDC_ISSUER: 'http://localhost:8081',
           OIDC_AUDIENCE: 'namma-medmate-dispensary',
           OIDC_JWKS_URI: 'http://localhost:8081/jwks.json',
+          MANAGE_USERS_TEMP_PASSWORD_KEY: TEMP_KEY,
           PLAN_GATING_API_BASE_URL: 'http://plan.local',
           AUDIT_API_BASE_URL: 'http://audit.local',
           AUDIT_SERVICE_TOKEN: 'svc',

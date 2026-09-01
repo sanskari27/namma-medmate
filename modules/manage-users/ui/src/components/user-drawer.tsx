@@ -225,8 +225,8 @@ export function UserDrawer({
         {user ? (
           <div className="grid gap-5 px-4">
             <div className="grid gap-2">
-              <Label>{t('manageUsers.drawer.role')}</Label>
-              <Input value={t(`manageUsers.roles.${user.role}`)} disabled readOnly />
+              <Label htmlFor="user-role">{t('manageUsers.drawer.role')}</Label>
+              <Input id="user-role" value={t(`manageUsers.roles.${user.role}`)} disabled readOnly />
             </div>
             <div className="flex items-center gap-3 text-sm">
               <Switch

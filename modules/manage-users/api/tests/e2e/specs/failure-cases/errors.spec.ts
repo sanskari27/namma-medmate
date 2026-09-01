@@ -22,6 +22,36 @@ test('HQ cannot read pharmacy seats', async ({ request }) => {
   expect(response.status()).toBe(403);
 });
 
+test('turning both auth methods off is AUTH_METHOD_REQUIRED', async ({ request }) => {
+  const { pharmacy } = e2eTokens();
+  const headers = { authorization: `Bearer ${pharmacy}` };
+  const created = await request.post(`/manage-users/users?location_id=${locationId}`, {
+    headers,
+    data: {
+      login_id: `otp.check.${Date.now()}`,
+      role: 'cashier',
+      password_enabled: true,
+      otp_enabled: false,
+    },
+  });
+  if (created.status() === 201) {
+    const userId = ((await created.json()) as { data: { user_id: string } }).data.user_id;
+    const blocked = await request.put(
+      `/manage-users/users/${userId}/methods?location_id=${locationId}`,
+      { headers, data: { password_enabled: false, otp_enabled: false } },
+    );
+    expect(blocked.status()).toBe(422);
+    expect(((await blocked.json()) as { error: { code: string } }).error.code).toBe(
+      'AUTH_METHOD_REQUIRED',
+    );
+    await request.delete(`/manage-users/users/${userId}?location_id=${locationId}`, { headers });
+  } else {
+    expect(((await created.json()) as { error: { code: string } }).error.code).toBe(
+      'SEAT_CAP_REACHED',
+    );
+  }
+});
+
 test('Add user at the Free cap returns SEAT_CAP_REACHED', async ({ request }) => {
   const { pharmacy } = e2eTokens();
   const headers = { authorization: `Bearer ${pharmacy}` };

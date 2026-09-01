@@ -21,7 +21,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/SeatsSuccess'
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -61,7 +61,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/UserListSuccess'
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -94,7 +94,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/UserCreateSuccess'
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -121,7 +121,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/UserDetailSuccess'
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -151,7 +151,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Success'
+                $ref: '#/components/schemas/UserPatchSuccess'
         '400':
           $ref: '#/components/responses/Error'
         '401':
@@ -242,6 +242,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
         '401':
           $ref: '#/components/responses/Error'
         '403':
@@ -484,6 +486,162 @@ components:
           type: boolean
           enum: [true]
         data: {}
+    SeatsData:
+      type: object
+      additionalProperties: false
+      required: [plan, seat_limit, active_count, unlimited]
+      properties:
+        plan:
+          type: string
+          enum: [free, starter, growth, pro]
+        seat_limit:
+          type: integer
+          nullable: true
+        active_count:
+          type: integer
+        unlimited:
+          type: boolean
+    SeatsSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SeatsData'
+    UserListItem:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          user_id,
+          login_id,
+          role,
+          active,
+          employee_id,
+          otp_mobile,
+          password_enabled,
+          otp_enabled,
+          pin_set,
+          temp_password_pending,
+          saved_device_count,
+          created_at,
+          updated_at,
+        ]
+      properties:
+        user_id:
+          type: string
+          format: uuid
+        login_id:
+          type: string
+        role:
+          type: string
+          enum: [owner, manager, pharmacist, cashier]
+        permissions:
+          type: object
+          additionalProperties:
+            type: boolean
+        active:
+          type: boolean
+        employee_id:
+          type: string
+          nullable: true
+        otp_mobile:
+          type: string
+          nullable: true
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        pin_set:
+          type: boolean
+        temp_password_pending:
+          type: boolean
+        saved_device_count:
+          type: integer
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+        temp_password:
+          type: string
+        saved_devices:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedDevice'
+    SavedDevice:
+      type: object
+      additionalProperties: false
+      required: [device_id, label, last_seen_at, created_at]
+      properties:
+        device_id:
+          type: string
+          format: uuid
+        label:
+          type: string
+        last_seen_at:
+          type: string
+          format: date-time
+        created_at:
+          type: string
+          format: date-time
+    UserListSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [items, page, page_size, total]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/UserListItem'
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total:
+              type: integer
+    UserDetailSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/UserListItem'
+    UserCreateSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/UserListItem'
+    UserPatchSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/UserListItem'
     CreateUserRequest:
       type: object
       additionalProperties: false

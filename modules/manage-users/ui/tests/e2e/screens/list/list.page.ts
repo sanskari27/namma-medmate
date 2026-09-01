@@ -1,6 +1,6 @@
 import { BasePage, expect, type Page } from '@namma-medmate/e2e-kit';
 import { manageUsersListLocators } from './list.locators.ts';
-import type { ListStory } from '../../data/stories.ts';
+import type { PageStory } from '../../data/stories.ts';
 
 export class ManageUsersPage extends BasePage {
   readonly path = '/iframe.html?id=manageuserspage--free-with-seat';
@@ -11,7 +11,7 @@ export class ManageUsersPage extends BasePage {
     this.locators = manageUsersListLocators(page);
   }
 
-  async gotoStory(story: ListStory): Promise<void> {
+  async gotoStory(story: PageStory): Promise<void> {
     await this.page.goto(`/iframe.html?id=manageuserspage--${story}`);
   }
 

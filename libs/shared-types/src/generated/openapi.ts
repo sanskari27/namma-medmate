@@ -962,14 +962,13 @@ export interface components {
             data: components["schemas"]["LogoutResult"];
         };
         SavedDevice: {
+            /** Format: uuid */
             device_id: string;
+            label: string;
+            /** Format: date-time */
+            last_seen_at: string;
             /** Format: date-time */
             created_at: string;
-            /** Format: date-time */
-            expires_at: string;
-            /** Format: date-time */
-            last_used_at: string;
-            user_agent: string | null;
         };
         Devices: {
             items: components["schemas"]["SavedDevice"][];
@@ -991,6 +990,67 @@ export interface components {
             /** @enum {boolean} */
             success: true;
             data: unknown;
+        };
+        SeatsData: {
+            /** @enum {string} */
+            plan: "free" | "starter" | "growth" | "pro";
+            seat_limit: number | null;
+            active_count: number;
+            unlimited: boolean;
+        };
+        SeatsSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["SeatsData"];
+        };
+        UserListItem: {
+            /** Format: uuid */
+            user_id: string;
+            login_id: string;
+            /** @enum {string} */
+            role: "owner" | "manager" | "pharmacist" | "cashier";
+            permissions?: {
+                [key: string]: boolean;
+            };
+            active: boolean;
+            employee_id: string | null;
+            otp_mobile: string | null;
+            password_enabled: boolean;
+            otp_enabled: boolean;
+            pin_set: boolean;
+            temp_password_pending: boolean;
+            saved_device_count: number;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            updated_at: string;
+            temp_password?: string;
+            saved_devices?: components["schemas"]["SavedDevice"][];
+        };
+        UserListSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                items: components["schemas"]["UserListItem"][];
+                page: number;
+                page_size: number;
+                total: number;
+            };
+        };
+        UserDetailSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["UserListItem"];
+        };
+        UserCreateSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["UserListItem"];
+        };
+        UserPatchSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["UserListItem"];
         };
         CreateUserRequest: {
             login_id: string;
@@ -1849,7 +1909,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["SeatsSuccess"];
                 };
             };
             400: components["responses"]["Error"];
@@ -1881,7 +1941,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["UserListSuccess"];
                 };
             };
             400: components["responses"]["Error"];
@@ -1914,7 +1974,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["UserCreateSuccess"];
                 };
             };
             400: components["responses"]["Error"];
@@ -1945,7 +2005,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["UserDetailSuccess"];
                 };
             };
             400: components["responses"]["Error"];
@@ -2009,7 +2069,7 @@ export interface operations {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["Success"];
+                    "application/json": components["schemas"]["UserPatchSuccess"];
                 };
             };
             400: components["responses"]["Error"];
@@ -2082,6 +2142,7 @@ export interface operations {
                     "application/json": components["schemas"]["Success"];
                 };
             };
+            400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];

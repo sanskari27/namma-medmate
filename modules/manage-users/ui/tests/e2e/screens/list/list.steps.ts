@@ -1,9 +1,9 @@
 import type { ManageUsersPage } from './list.page.ts';
-import type { ListStory } from '../../data/stories.ts';
+import type { PageStory } from '../../data/stories.ts';
 
 export async function openListStory(
   { listPage }: { listPage: ManageUsersPage },
-  story: ListStory,
+  story: PageStory,
 ): Promise<void> {
   await listPage.gotoStory(story);
 }
