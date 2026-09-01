@@ -10,7 +10,7 @@ export default defineConfig(
     webServer: {
       command: 'pnpm exec tsx src/local.ts',
       url: `http://127.0.0.1:${port}/health`,
-      reuseExistingServer: !process.env.CI,
+      reuseExistingServer: false,
       env: {
         ...process.env,
         AUTH_API_PORT: port,
