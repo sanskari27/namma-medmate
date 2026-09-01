@@ -7,13 +7,13 @@ import {
   createMemoryGoLiveKycRepository,
   createMemoryTenancyRepository,
 } from '@namma-medmate/db-services';
-import { MemoryStorageClient } from '@namma-medmate/storage-client';
+import { sha256 } from '@namma-medmate/encryption-utils';
 import { createHttpAccountSettingsClient } from '../../src/account-settings/client.ts';
 import { createApp, resolveApiSpecPath, type GoLiveKycDeps } from '../../src/app.ts';
 import { MemoryAuditClient } from '../../src/audit/client.ts';
 import { createHttpAuditClient } from '../../src/audit/http-client.ts';
 import { recordAudit } from '../../src/audit/record.ts';
-import { createHttpBooksGstClient } from '../../src/books/client.ts';
+import { createHttpBooksGstClient, MemoryBooksGstClient } from '../../src/books/client.ts';
 import { loadGoLiveKycEnv } from '../../src/config/env.ts';
 import { GoLiveKycErrors } from '../../src/errors.ts';
 import { principalFromSession } from '../../src/auth/principal.ts';
@@ -32,8 +32,8 @@ import {
 } from '../../src/manage-users/client.ts';
 import { MemoryPlanGatingClient } from '../../src/plan-gating/client.ts';
 import { createHttpPlanGatingClient } from '../../src/plan-gating/http-client.ts';
-import { MemoryBooksGstClient } from '../../src/books/client.ts';
 import { MemoryAccountSettingsClient } from '../../src/account-settings/client.ts';
+import { approveKyc, getAdminPharmacy, listAdminQueue, putKyc, rejectKyc } from '../../src/ops.ts';
 
 const CASHIER_ID = 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb';
 const PII_KEY = 'unit-go-live-kyc-pii-key';
@@ -131,215 +131,278 @@ describe('helpers', () => {
 
 describe('http clients', () => {
   it('maps plan-gating, inventory, books, settings, users, and audit', async () => {
-    const ok = new Response(JSON.stringify({ data: { effective_plan: 'starter', modules: {} } }), {
-      status: 200,
-    });
-    const ingest = new Response(JSON.stringify({ data: { ingest_id: 'i1' } }), { status: 200 });
-    const journals = new Response(JSON.stringify({ data: { journal_ids: ['j'] } }), {
-      status: 200,
-    });
-    const empty = new Response(JSON.stringify({ data: {} }), { status: 200 });
-    const created = new Response(JSON.stringify({ data: { user_id: 'u1' } }), { status: 200 });
-    const conflict = new Response('{}', { status: 409 });
-    const fail = new Response('nope', { status: 500 });
-    const noPlan = new Response(JSON.stringify({ data: {} }), { status: 200 });
+    const json = (body: unknown, status = 200) => new Response(JSON.stringify(body), { status });
     vi.stubGlobal(
       'fetch',
-      vi.fn(async (url: string, init?: RequestInit) => {
+      vi.fn(async (url: RequestInfo | URL, init?: RequestInit) => {
         const u = String(url);
-        if (u.includes('plan-gating') && u.includes('starter-token')) {
-          return noPlan;
+        const auth = JSON.stringify(init?.headers ?? '');
+        if (u.includes('plan-gating') && auth.includes('starter-token')) {
+          return json({ data: {} });
         }
         if (u.includes('plan-gating')) {
-          return ok;
+          return json({ data: { effective_plan: 'starter', modules: {} } });
         }
-        if (u.includes('inventory') && init?.method === 'POST' && u.includes('fail')) {
-          return fail;
+        if (u.includes('inventory') && u.includes('fail')) {
+          return json({}, 500);
+        }
+        if (u.includes('inventory') && u.includes('pending')) {
+          return json({ data: {} });
         }
         if (u.includes('inventory')) {
-          return ingest;
+          return json({ data: { ingest_id: 'i1' } });
         }
         if (u.includes('books-gst') && u.includes('posted')) {
-          return conflict;
+          return json({}, 409);
         }
         if (u.includes('books-gst') && u.includes('fail')) {
-          return fail;
+          return json({}, 500);
+        }
+        if (u.includes('books-gst') && u.includes('empty')) {
+          return json({ data: {} });
         }
         if (u.includes('books-gst')) {
-          return journals;
+          return json({ data: { journal_ids: ['j'] } });
         }
         if (u.includes('account-settings') && u.includes('fail')) {
-          return fail;
+          return json({}, 500);
         }
         if (u.includes('account-settings')) {
-          return empty;
+          return json({ data: {} });
         }
         if (u.includes('/pin') && u.includes('fail')) {
-          return fail;
+          return json({}, 500);
         }
         if (u.includes('/pin')) {
-          return empty;
+          return json({ data: {} });
         }
         if (u.includes('manage-users/users') && u.includes('cap')) {
-          return conflict;
+          return json({}, 409);
         }
         if (u.includes('manage-users/users') && u.includes('fail')) {
-          return fail;
+          return json({}, 500);
+        }
+        if (u.includes('manage-users/users') && u.includes('empty')) {
+          return json({ data: {} });
         }
         if (u.includes('manage-users/users')) {
-          return created;
+          return json({ data: { user_id: 'u1' } });
         }
         if (u.includes('audit')) {
-          return empty;
+          return json({ data: {} });
         }
-        return fail;
+        return json({}, 500);
       }),
     );
-    await expect(
-      createHttpPlanGatingClient('http://plan.local').getEntitlements(
-        'tok',
-        LOCAL_SEED_LOCATION_ID,
-      ),
-    ).resolves.toEqual({ plan: 'starter', modules: {} });
-    await expect(
-      createHttpPlanGatingClient('http://plan.local').getEntitlements(
-        'starter-token',
-        LOCAL_SEED_LOCATION_ID,
-      ),
-    ).resolves.toEqual({ plan: 'free', modules: {} });
-    await expect(
-      createHttpInventoryClient('http://inv.local').ingestOpeningStock({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        zeroStock: true,
-      }),
-    ).resolves.toEqual({ ingest_id: 'i1' });
-    await expect(
-      createHttpInventoryClient('http://fail.local').ingestOpeningStock({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-      }),
-    ).rejects.toThrow();
-    await expect(
-      createHttpBooksGstClient('http://books.local').postOpenings({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        startAtZero: true,
-        cashInTillPaise: 0,
-        openingKhata: [],
-        openingAp: [],
-      }),
-    ).resolves.toEqual({ journal_ids: ['j'] });
-    await expect(
-      createHttpBooksGstClient('http://posted.local').postOpenings({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        startAtZero: false,
-        cashInTillPaise: 1,
-        openingKhata: [],
-        openingAp: [],
-      }),
-    ).rejects.toMatchObject({ code: 'OPENING_BOOKS_ALREADY_POSTED' });
-    await expect(
-      createHttpBooksGstClient('http://fail.local').postOpenings({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        startAtZero: true,
-        cashInTillPaise: 0,
-        openingKhata: [],
-        openingAp: [],
-      }),
-    ).rejects.toThrow();
-    await expect(
-      createHttpAccountSettingsClient('http://settings.local').saveInvoicePrefix({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        invoicePrefix: 'INV',
-      }),
-    ).resolves.toBeUndefined();
-    await expect(
-      createHttpAccountSettingsClient('http://fail.local').saveInvoicePrefix({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        invoicePrefix: 'INV',
-      }),
-    ).rejects.toThrow();
-    const users = createHttpManageUsersClient('http://users.local');
-    await users.setPin({
-      accessToken: 't',
-      locationId: LOCAL_SEED_LOCATION_ID,
-      userId: LOCAL_SEED_OWNER_ID,
-      pin: '1234',
-    });
-    await expect(
-      users.createUser({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        user: {
-          login_id: 'c1',
-          role: 'cashier',
-          password_enabled: true,
-          otp_enabled: false,
-        },
-      }),
-    ).resolves.toEqual({ user_id: 'u1' });
-    await expect(
-      createHttpManageUsersClient('http://cap.local').createUser({
-        accessToken: 't',
-        locationId: LOCAL_SEED_LOCATION_ID,
-        user: {
-          login_id: 'c1',
-          role: 'cashier',
-          password_enabled: true,
-          otp_enabled: false,
-        },
-      }),
-    ).rejects.toMatchObject({ code: 'SEAT_CAP_REACHED' });
-    await expect(
-      createHttpManageUsersClient('http://fail.local').setPin({
+    try {
+      await expect(
+        createHttpPlanGatingClient('http://plan.local').getEntitlements(
+          'tok',
+          LOCAL_SEED_LOCATION_ID,
+        ),
+      ).resolves.toEqual({ plan: 'starter', modules: {} });
+      await expect(
+        createHttpPlanGatingClient('http://plan.local').getEntitlements(
+          'starter-token',
+          LOCAL_SEED_LOCATION_ID,
+        ),
+      ).resolves.toEqual({ plan: 'free', modules: {} });
+      await expect(
+        createHttpInventoryClient('http://inv.local').ingestOpeningStock({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          zeroStock: true,
+        }),
+      ).resolves.toEqual({ ingest_id: 'i1' });
+      await expect(
+        createHttpInventoryClient('http://fail.local').ingestOpeningStock({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+        }),
+      ).rejects.toThrow();
+      await expect(
+        createHttpInventoryClient('http://pending.local').ingestOpeningStock({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+        }),
+      ).resolves.toEqual({ ingest_id: 'ingest_pending' });
+      await expect(
+        createHttpBooksGstClient('http://books.local').postOpenings({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          startAtZero: true,
+          cashInTillPaise: 0,
+          openingKhata: [],
+          openingAp: [],
+        }),
+      ).resolves.toEqual({ journal_ids: ['j'] });
+      await expect(
+        createHttpBooksGstClient('http://posted.local').postOpenings({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          startAtZero: false,
+          cashInTillPaise: 1,
+          openingKhata: [],
+          openingAp: [],
+        }),
+      ).rejects.toMatchObject({ code: 'OPENING_BOOKS_ALREADY_POSTED' });
+      await expect(
+        createHttpBooksGstClient('http://fail.local').postOpenings({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          startAtZero: true,
+          cashInTillPaise: 0,
+          openingKhata: [],
+          openingAp: [],
+        }),
+      ).rejects.toThrow();
+      await expect(
+        createHttpBooksGstClient('http://empty.local').postOpenings({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          startAtZero: false,
+          cashInTillPaise: 1,
+          openingKhata: [],
+          openingAp: [],
+        }),
+      ).resolves.toEqual({ journal_ids: [] });
+      await expect(
+        createHttpAccountSettingsClient('http://settings.local').saveInvoicePrefix({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          invoicePrefix: 'INV',
+        }),
+      ).resolves.toBeUndefined();
+      await expect(
+        createHttpAccountSettingsClient('http://fail.local').saveInvoicePrefix({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          invoicePrefix: 'INV',
+        }),
+      ).rejects.toThrow();
+      const users = createHttpManageUsersClient('http://users.local');
+      await users.setPin({
         accessToken: 't',
         locationId: LOCAL_SEED_LOCATION_ID,
         userId: LOCAL_SEED_OWNER_ID,
         pin: '1234',
-      }),
-    ).rejects.toThrow();
-    await expect(
-      createHttpManageUsersClient('http://fail.local').createUser({
+      });
+      await expect(
+        users.createUser({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          user: {
+            login_id: 'c1',
+            role: 'cashier',
+            password_enabled: true,
+            otp_enabled: false,
+          },
+        }),
+      ).resolves.toEqual({ user_id: 'u1' });
+      await expect(
+        createHttpManageUsersClient('http://cap.local').createUser({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          user: {
+            login_id: 'c1',
+            role: 'cashier',
+            password_enabled: true,
+            otp_enabled: false,
+          },
+        }),
+      ).rejects.toMatchObject({ code: 'SEAT_CAP_REACHED' });
+      await expect(
+        createHttpManageUsersClient('http://fail.local').setPin({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          userId: LOCAL_SEED_OWNER_ID,
+          pin: '1234',
+        }),
+      ).rejects.toThrow();
+      await expect(
+        createHttpManageUsersClient('http://fail.local').createUser({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          user: {
+            login_id: 'c1',
+            role: 'cashier',
+            password_enabled: true,
+            otp_enabled: false,
+          },
+        }),
+      ).rejects.toThrow();
+      await expect(
+        createHttpManageUsersClient('http://empty.local').createUser({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          user: {
+            login_id: 'c1',
+            role: 'cashier',
+            password_enabled: true,
+            otp_enabled: false,
+          },
+        }),
+      ).resolves.toEqual({ user_id: 'user_created' });
+      const memoryBooks = new MemoryBooksGstClient();
+      await memoryBooks.postOpenings({
         accessToken: 't',
         locationId: LOCAL_SEED_LOCATION_ID,
-        user: {
-          login_id: 'c1',
-          role: 'cashier',
-          password_enabled: true,
-          otp_enabled: false,
-        },
-      }),
-    ).rejects.toThrow();
-    await createHttpAuditClient('http://audit.local', 'svc').ingest({
-      action: 'go-live-kyc.kyc.submitted',
-      tenantId: LOCAL_SEED_TENANT_ID,
-      locationId: LOCAL_SEED_LOCATION_ID,
-      actorUserId: LOCAL_SEED_OWNER_ID,
-      actorRole: 'owner',
-      actorSurface: 'pharmacy',
-      targetId: LOCAL_SEED_TENANT_ID,
-      idempotencyKey: 'k',
-    });
-    const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() };
-    const audit = new MemoryAuditClient();
-    audit.fail = true;
-    await recordAudit(audit, logger as never, {
-      action: 'go-live-kyc.kyc.submitted',
-      tenantId: LOCAL_SEED_TENANT_ID,
-      locationId: LOCAL_SEED_LOCATION_ID,
-      actorUserId: LOCAL_SEED_OWNER_ID,
-      actorRole: 'owner',
-      actorSurface: 'pharmacy',
-      targetId: LOCAL_SEED_TENANT_ID,
-      idempotencyKey: 'k',
-    });
-    expect(logger.warn).toHaveBeenCalled();
-    vi.unstubAllGlobals();
+        startAtZero: true,
+        cashInTillPaise: 0,
+        openingKhata: [],
+        openingAp: [],
+      });
+      await expect(
+        memoryBooks.postOpenings({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          startAtZero: false,
+          cashInTillPaise: 1,
+          openingKhata: [],
+          openingAp: [],
+        }),
+      ).rejects.toMatchObject({ code: 'OPENING_BOOKS_ALREADY_POSTED' });
+      const memoryUsers = new MemoryManageUsersClient();
+      memoryUsers.fail = true;
+      await expect(
+        memoryUsers.createUser({
+          accessToken: 't',
+          locationId: LOCAL_SEED_LOCATION_ID,
+          user: {
+            login_id: 'c1',
+            role: 'cashier',
+            password_enabled: true,
+            otp_enabled: false,
+          },
+        }),
+      ).rejects.toThrow('manage-users unavailable');
+      await createHttpAuditClient('http://audit.local', 'svc').ingest({
+        action: 'go-live-kyc.kyc.submitted',
+        tenantId: LOCAL_SEED_TENANT_ID,
+        locationId: LOCAL_SEED_LOCATION_ID,
+        actorUserId: LOCAL_SEED_OWNER_ID,
+        actorRole: 'owner',
+        actorSurface: 'pharmacy',
+        targetId: LOCAL_SEED_TENANT_ID,
+        idempotencyKey: 'k',
+      });
+      const logger = { warn: vi.fn(), info: vi.fn(), error: vi.fn(), debug: vi.fn() };
+      const audit = new MemoryAuditClient();
+      audit.fail = true;
+      await recordAudit(audit, logger as never, {
+        action: 'go-live-kyc.kyc.submitted',
+        tenantId: LOCAL_SEED_TENANT_ID,
+        locationId: LOCAL_SEED_LOCATION_ID,
+        actorUserId: LOCAL_SEED_OWNER_ID,
+        actorRole: 'owner',
+        actorSurface: 'pharmacy',
+        targetId: LOCAL_SEED_TENANT_ID,
+        idempotencyKey: 'k',
+      });
+      expect(logger.warn).toHaveBeenCalled();
+    } finally {
+      vi.unstubAllGlobals();
+    }
   });
 
   it('wires HTTP clients from env', () => {
@@ -457,7 +520,6 @@ describe('go-live-kyc-api', () => {
       auth,
       tenancy: deps.tenancy ?? createMemoryTenancyRepository(localSeedPharmacy()),
       kyc: deps.kyc ?? createMemoryGoLiveKycRepository(),
-      storage: deps.storage ?? new MemoryStorageClient(),
       audit: deps.audit ?? new MemoryAuditClient(),
       planGating: deps.planGating ?? new MemoryPlanGatingClient(),
       inventory: deps.inventory ?? new MemoryInventoryClient(),
@@ -600,14 +662,12 @@ describe('go-live-kyc-api', () => {
     const settings = new MemoryAccountSettingsClient();
     const users = new MemoryManageUsersClient();
     const plan = new MemoryPlanGatingClient();
-    const storage = new MemoryStorageClient();
     const express = await app({
       inventory,
       books,
       accountSettings: settings,
       manageUsers: users,
       planGating: plan,
-      storage,
     });
     const headers = await ownerHeaders();
     const loc = `location_id=${LOCAL_SEED_LOCATION_ID}`;
@@ -635,24 +695,38 @@ describe('go-live-kyc-api', () => {
       .set(headers)
       .send({ ...kycBody, gstin: 'bad' });
     expect(invalidGstin.body.error.code).toBe('VALIDATION_ERROR');
+    const invalidPan = await request(express)
+      .put(`/go-live-kyc/kyc?${loc}`)
+      .set(headers)
+      .send({ ...kycBody, pan: 'bad' });
+    expect(invalidPan.body.error.code).toBe('VALIDATION_ERROR');
+    const invalidDate = await request(express)
+      .put(`/go-live-kyc/kyc?${loc}`)
+      .set(headers)
+      .send({ ...kycBody, drug_licence_expiry: 'nope' });
+    expect(invalidDate.body.error.code).toBe('VALIDATION_ERROR');
     const fssai = await request(express)
       .put(`/go-live-kyc/kyc?${loc}`)
       .set(headers)
       .send({ ...kycBody, fssai_no: '1' });
     expect(fssai.body.error.code).toBe('KYC_FIELDS_INCOMPLETE');
     plan.fail = true;
-    await request(express)
+    const firstKeyed = await request(express)
       .put(`/go-live-kyc/kyc?${loc}`)
-      .set({ ...headers, 'idempotency-key': 'same' })
+      .set(headers)
+      .set('idempotency-key', 'same')
       .send(kycBody);
+    expect(firstKeyed.status).toBe(200);
     const replay = await request(express)
       .put(`/go-live-kyc/kyc?${loc}`)
-      .set({ ...headers, 'idempotency-key': 'same' })
+      .set(headers)
+      .set('idempotency-key', 'same')
       .send(kycBody);
     expect(replay.status).toBe(200);
     const conflict = await request(express)
       .put(`/go-live-kyc/kyc?${loc}`)
-      .set({ ...headers, 'idempotency-key': 'same' })
+      .set(headers)
+      .set('idempotency-key', 'same')
       .send({ ...kycBody, pan: 'ABCDE1234G' });
     expect(conflict.body.error.code).toBe('IDEMPOTENCY_CONFLICT');
     const print = await request(express)
@@ -716,6 +790,11 @@ describe('go-live-kyc-api', () => {
       .send({ cash_in_till_paise: 1 });
     expect(booksFail.body.error.code).toBe('OPENING_BOOKS_FAILED');
     books.fail = false;
+    const negativeCash = await request(express)
+      .put(`/go-live-kyc/wizard/steps/3?${loc}`)
+      .set(headers)
+      .send({ cash_in_till_paise: -1 });
+    expect(negativeCash.body.error.code).toBe('VALIDATION_ERROR');
     const booksOk = await request(express)
       .put(`/go-live-kyc/wizard/steps/3?${loc}`)
       .set(headers)
@@ -759,6 +838,17 @@ describe('go-live-kyc-api', () => {
       .send({ owner_only: true, owner_pin: '1234' });
     expect(pinFail.status).toBe(400);
     users.fail = false;
+    users.createFail = true;
+    const staffFail = await request(express)
+      .put(`/go-live-kyc/wizard/steps/5?${loc}`)
+      .set(headers)
+      .send({
+        owner_only: false,
+        owner_pin: '1234',
+        user: { login_id: 'c2', role: 'cashier', password_enabled: true, otp_enabled: false },
+      });
+    expect(staffFail.status).toBe(400);
+    users.createFail = false;
     const addUser = await request(express)
       .put(`/go-live-kyc/wizard/steps/5?${loc}`)
       .set(headers)
@@ -794,6 +884,11 @@ describe('go-live-kyc-api', () => {
       .set(headers);
     expect(wrongLoc.status).toBe(404);
     const hqHeaders = { authorization: `Bearer ${hq}` };
+    const rejected = await request(express)
+      .post(`/go-live-kyc/admin/pharmacies/${LOCAL_SEED_TENANT_ID}/kyc/reject?${loc}`)
+      .set(hqHeaders)
+      .send({ reason: 'docs incomplete' });
+    expect(rejected.body.data.kyc_status).toBe('rejected');
     const notPending = await request(express)
       .post(`/go-live-kyc/admin/pharmacies/${LOCAL_SEED_TENANT_ID}/kyc/approve?${loc}`)
       .set(hqHeaders);
@@ -827,5 +922,257 @@ describe('go-live-kyc-api', () => {
     await request(express).get('/go-live-kyc/admin/queue?status=nope&page=0').set(hqHeaders);
     const emptyBody = await request(express).put(`/go-live-kyc/kyc?${loc}`).set(headers).send('x');
     expect(emptyBody.status).toBeGreaterThanOrEqual(400);
+    const locMismatchToken = await token({
+      sub: LOCAL_SEED_OWNER_ID,
+      principal_type: 'pharmacy',
+      tenant_id: LOCAL_SEED_TENANT_ID,
+      location_id: OTHER_LOCATION,
+      role: 'owner',
+    });
+    const locMismatch = await request(express)
+      .get(`/go-live-kyc/gate?location_id=${OTHER_LOCATION}`)
+      .set({ authorization: `Bearer ${locMismatchToken}` });
+    expect(locMismatch.status).toBe(404);
+    const missingRow = await request(await app())
+      .get(`/go-live-kyc/admin/pharmacies/${LOCAL_SEED_TENANT_ID}?${loc}`)
+      .set(hqHeaders);
+    expect(missingRow.status).toBe(404);
+    const hqRejectInput = {
+      principal: { kind: 'hq' as const, sub: 'ops-1' },
+      session: {} as never,
+      accessToken: 't',
+      req: {
+        params: { tenant_id: LOCAL_SEED_TENANT_ID },
+        query: { location_id: LOCAL_SEED_LOCATION_ID },
+        body: {},
+      },
+    };
+    await expect(
+      rejectKyc(
+        {
+          tenancy: createMemoryTenancyRepository(localSeedPharmacy()),
+        } as never,
+        hqRejectInput as never,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      rejectKyc(
+        {
+          tenancy: createMemoryTenancyRepository(localSeedPharmacy()),
+        } as never,
+        {
+          ...hqRejectInput,
+          req: { ...hqRejectInput.req, body: { reason: 'x'.repeat(501) } },
+        } as never,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+    await expect(
+      putKyc(
+        {
+          tenancy: createMemoryTenancyRepository(localSeedPharmacy()),
+          kyc: createMemoryGoLiveKycRepository(),
+        } as never,
+        {
+          principal: {
+            kind: 'pharmacy',
+            sub: LOCAL_SEED_OWNER_ID,
+            tenantId: LOCAL_SEED_TENANT_ID,
+            locationId: LOCAL_SEED_LOCATION_ID,
+            role: 'owner',
+          },
+          accessToken: 't',
+          session: {},
+          req: {
+            query: { location_id: LOCAL_SEED_LOCATION_ID },
+            body: { ...kycBody, e_invoicing_enabled: 'yes' },
+            header: () => undefined,
+          },
+        } as never,
+      ),
+    ).rejects.toMatchObject({ code: 'VALIDATION_ERROR' });
+  });
+
+  it('maps opening-books already-posted from the books client', async () => {
+    const express = await app({
+      books: {
+        alreadyPosted: false,
+        async postOpenings() {
+          throw Object.assign(new Error('already posted'), {
+            code: 'OPENING_BOOKS_ALREADY_POSTED',
+          });
+        },
+      },
+    });
+    const headers = await ownerHeaders();
+    const loc = `location_id=${LOCAL_SEED_LOCATION_ID}`;
+    const posted = await request(express)
+      .put(`/go-live-kyc/wizard/steps/3?${loc}`)
+      .set(headers)
+      .send({ cash_in_till_paise: 1 });
+    expect(posted.body.error.code).toBe('OPENING_BOOKS_ALREADY_POSTED');
+  });
+
+  it('completes zero stock when inventory is down', async () => {
+    const inventory = new MemoryInventoryClient();
+    inventory.fail = true;
+    const express = await app({ inventory });
+    const headers = await ownerHeaders();
+    const zero = await request(express)
+      .post(`/go-live-kyc/wizard/steps/2?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set(headers)
+      .send({ zero_stock: true });
+    expect(zero.body.data.status).toBe('completed');
+    expect(zero.body.data.ingest_id).toBeNull();
+  });
+
+  it('covers remaining ops branches', async () => {
+    const tenancy = createMemoryTenancyRepository(localSeedPharmacy());
+    const originalGet = tenancy.getLocationForTenant.bind(tenancy);
+    let locCalls = 0;
+    tenancy.getLocationForTenant = async (tenantId: string) => {
+      locCalls += 1;
+      const found = await originalGet(tenantId);
+      return locCalls === 1 ? found : undefined;
+    };
+    const nameless = await app({ tenancy });
+    const headers = await ownerHeaders();
+    const loc = `location_id=${LOCAL_SEED_LOCATION_ID}`;
+    expect((await request(nameless).get(`/go-live-kyc/gate?${loc}`).set(headers)).status).toBe(200);
+
+    const kycRepo = createMemoryGoLiveKycRepository();
+    await kycRepo.ensure(LOCAL_SEED_TENANT_ID, LOCAL_SEED_LOCATION_ID, 'Sri Krishna Medicals');
+    await kycRepo.putIdempotency({
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+      idempotencyKey: 'replay-null',
+      bodyHash: sha256(JSON.stringify(kycBody)),
+    });
+    const ownerReq = {
+      principal: {
+        kind: 'pharmacy' as const,
+        sub: LOCAL_SEED_OWNER_ID,
+        tenantId: LOCAL_SEED_TENANT_ID,
+        locationId: LOCAL_SEED_LOCATION_ID,
+        role: 'owner' as const,
+      },
+      accessToken: 't',
+      session: {},
+      req: {
+        query: { location_id: LOCAL_SEED_LOCATION_ID },
+        body: kycBody,
+        header: (name: string) => (name === 'idempotency-key' ? 'replay-null' : undefined),
+      },
+    };
+    await expect(
+      putKyc(
+        {
+          tenancy: createMemoryTenancyRepository(localSeedPharmacy()),
+          kyc: kycRepo,
+          now: () => new Date(),
+        } as never,
+        ownerReq as never,
+      ),
+    ).resolves.toMatchObject({ kyc_status: 'not_submitted' });
+
+    const hq = await token({ sub: 'ops-1', principal_type: 'hq' });
+    const hqHeaders = { authorization: `Bearer ${hq}` };
+    const queueKyc = createMemoryGoLiveKycRepository();
+    await queueKyc.save({
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+      pharmacyName: 'Sri Krishna Medicals',
+      kycStatus: 'pending',
+      kycSubmittedAt: null,
+    });
+    const queuedExpress = await app({ kyc: queueKyc });
+    const queued = await request(queuedExpress).get('/go-live-kyc/admin/queue').set(hqHeaders);
+    expect(queued.body.data.items[0]?.submitted_at).toBeNull();
+    await listAdminQueue(
+      { kyc: queueKyc } as never,
+      {
+        principal: { kind: 'hq', sub: 'ops-1' },
+        session: {},
+        accessToken: 't',
+        req: { query: { status: 'nope' } },
+      } as never,
+    );
+    await listAdminQueue(
+      { kyc: queueKyc } as never,
+      {
+        principal: { kind: 'hq', sub: 'ops-1' },
+        session: {},
+        accessToken: 't',
+        req: { query: {} },
+      } as never,
+    );
+    await listAdminQueue(
+      { kyc: queueKyc } as never,
+      {
+        principal: { kind: 'hq', sub: 'ops-1' },
+        session: {},
+        accessToken: 't',
+        req: { query: { page: 0, page_size: 0 } },
+      } as never,
+    );
+
+    const missingTenant = {
+      principal: { kind: 'hq' as const, sub: 'ops-1' },
+      session: {},
+      accessToken: 't',
+      req: { params: {}, query: { location_id: LOCAL_SEED_LOCATION_ID }, body: {} },
+    };
+    const hqRuntime = { tenancy: createMemoryTenancyRepository(localSeedPharmacy()) };
+    await expect(getAdminPharmacy(hqRuntime as never, missingTenant as never)).rejects.toThrow();
+    await expect(approveKyc(hqRuntime as never, missingTenant as never)).rejects.toThrow();
+    await expect(rejectKyc(hqRuntime as never, missingTenant as never)).rejects.toThrow();
+
+    const { drug_licence_issue: _issue, ...noIssue } = kycBody;
+    const express = await app();
+    await request(express).put(`/go-live-kyc/kyc?${loc}`).set(headers).send(noIssue);
+    await request(express)
+      .post(`/go-live-kyc/admin/pharmacies/${LOCAL_SEED_TENANT_ID}/kyc/approve?${loc}`)
+      .set(hqHeaders);
+    const sameIdentity = await request(express)
+      .put(`/go-live-kyc/wizard/steps/1?${loc}`)
+      .set(headers)
+      .send({
+        ...step1Body,
+        fssai_no: '11223344556677',
+        fssai_expiry: '2026-12-31',
+      });
+    expect(sameIdentity.status).toBe(200);
+    const dlChange = await request(express)
+      .put(`/go-live-kyc/wizard/steps/1?${loc}`)
+      .set(headers)
+      .send({ ...step1Body, drug_licence_no: 'KA-20-999999' });
+    expect(dlChange.status).toBe(200);
+    await request(express).put(`/go-live-kyc/kyc?${loc}`).set(headers).send(kycBody);
+    await request(express)
+      .post(`/go-live-kyc/admin/pharmacies/${LOCAL_SEED_TENANT_ID}/kyc/approve?${loc}`)
+      .set(hqHeaders);
+    await request(express)
+      .post(`/go-live-kyc/wizard/steps/2?${loc}`)
+      .set(headers)
+      .send({ zero_stock: true });
+    await request(express).put(`/go-live-kyc/wizard/steps/3?${loc}`).set(headers).send({});
+    await request(express)
+      .put(`/go-live-kyc/wizard/steps/3?${loc}`)
+      .set(headers)
+      .send({ start_at_zero: true });
+    await request(express)
+      .put(`/go-live-kyc/wizard/steps/4?${loc}`)
+      .set(headers)
+      .send({ invoice_prefix: 'INV', print_sample_confirmed: true });
+    await request(express)
+      .put(`/go-live-kyc/wizard/steps/5?${loc}`)
+      .set(headers)
+      .send({ owner_only: true, owner_pin: '4455' });
+    await request(express).post(`/go-live-kyc/wizard/complete?${loc}`).set(headers);
+    const { drug_licence_issue: _issueDate, ...step1NoIssue } = step1Body;
+    const afterComplete = await request(express)
+      .put(`/go-live-kyc/wizard/steps/1?${loc}`)
+      .set(headers)
+      .send(step1NoIssue);
+    expect(afterComplete.status).toBe(200);
   });
 });

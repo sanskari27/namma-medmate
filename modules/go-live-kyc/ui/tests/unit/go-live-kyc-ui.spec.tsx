@@ -12,7 +12,12 @@ import {
 } from '../../src/index.ts';
 import { interpolate, t } from '../../src/lib/copy.ts';
 import { useGoLiveKycEvents } from '../../src/hooks/use-go-live-kyc-events.ts';
-import { goLiveKycApi } from '../../src/store/api/go-live-kyc-api.ts';
+import {
+  useGetGateQuery,
+  useGetStatusQuery,
+  useGetWizardQuery,
+  useListQueueQuery,
+} from '../../src/store/api/go-live-kyc-api.ts';
 import {
   completedStatus,
   pendingItem,
@@ -315,6 +320,14 @@ describe('hq kyc queue', () => {
   });
 });
 
+function QueryProbe() {
+  useGetGateQuery();
+  useGetWizardQuery();
+  useGetStatusQuery();
+  useListQueueQuery();
+  return <p>probed</p>;
+}
+
 describe('go-live-kyc store', () => {
   afterEach(() => {
     cleanup();
@@ -327,10 +340,14 @@ describe('go-live-kyc store', () => {
       baseUrl: 'http://localhost:3009',
       fetchImpl,
     });
-    await store.dispatch(goLiveKycApi.endpoints.getGate.initiate());
-    await store.dispatch(goLiveKycApi.endpoints.getWizard.initiate());
-    await store.dispatch(goLiveKycApi.endpoints.getStatus.initiate());
-    await store.dispatch(goLiveKycApi.endpoints.listQueue.initiate());
-    expect(fetchImpl).toHaveBeenCalled();
+    render(
+      <Provider store={store}>
+        <QueryProbe />
+      </Provider>,
+    );
+    expect(await screen.findByText('probed')).toBeInTheDocument();
+    await waitFor(() => {
+      expect(fetchImpl).toHaveBeenCalled();
+    });
   });
 });

@@ -12,6 +12,8 @@ import type { InventoryClient } from './inventory/client.ts';
 import type { ManageUsersClient } from './manage-users/client.ts';
 import type { PlanGatingClient } from './plan-gating/client.ts';
 
+export const GO_LIVE_KYC_SERVICE_NAME = 'go-live-kyc-api';
+
 export interface GoLiveKycRuntime {
   kyc: GoLiveKycRepository;
   auth: AuthRepository;

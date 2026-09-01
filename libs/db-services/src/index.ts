@@ -104,7 +104,12 @@ export type {
 } from './employees/types.ts';
 export { createMemoryGoLiveKycRepository } from './go-live-kyc/memory-repository.ts';
 export { createSqlGoLiveKycRepository } from './go-live-kyc/sql-repository.ts';
-export { defaultWizardProgress, KYC_STATUSES, WIZARD_STATUSES } from './go-live-kyc/types.ts';
+export {
+  defaultWizardProgress,
+  KYC_STATUSES,
+  WIZARD_STATUSES,
+  WIZARD_STEP_KEYS,
+} from './go-live-kyc/types.ts';
 export type {
   GoLiveKycIdempotencyRecord,
   GoLiveKycRecord,
@@ -115,4 +120,6 @@ export type {
   UpsertGoLiveKycInput,
   WizardProgress,
   WizardStatus,
+  WizardStepKey,
+  WizardStepState,
 } from './go-live-kyc/types.ts';

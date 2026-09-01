@@ -56,7 +56,7 @@ import {
 } from './manage-users/client.ts';
 import { MemoryPlanGatingClient, type PlanGatingClient } from './plan-gating/client.ts';
 import { createHttpPlanGatingClient } from './plan-gating/http-client.ts';
-import type { GoLiveKycRuntime } from './runtime.ts';
+import { GO_LIVE_KYC_SERVICE_NAME, type GoLiveKycRuntime } from './runtime.ts';
 
 export const getGateEndpoint = {
   method: 'get' as const,
@@ -179,7 +179,7 @@ export interface GoLiveKycDeps {
 
 export function createApp(env: GoLiveKycEnv = loadGoLiveKycEnv(), deps: GoLiveKycDeps = {}) {
   const boot = createExpressApp({
-    serviceName: 'go-live-kyc-api',
+    serviceName: GO_LIVE_KYC_SERVICE_NAME,
     logLevel: env.LOG_LEVEL,
     apiSpecPath: resolveApiSpecPath(),
   });

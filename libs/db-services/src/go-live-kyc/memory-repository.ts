@@ -12,6 +12,10 @@ function keyOf(tenantId: string, locationId: string): string {
   return `${tenantId}:${locationId}`;
 }
 
+function submittedMs(row: GoLiveKycRecord): number {
+  return row.kycSubmittedAt?.getTime() ?? 0;
+}
+
 export function createMemoryGoLiveKycRepository(
   now: () => Date = () => new Date(),
 ): GoLiveKycRepository {
@@ -103,11 +107,7 @@ export function createMemoryGoLiveKycRepository(
     async listQueue(input: ListKycQueueInput): Promise<ListKycQueueResult> {
       const filtered = [...rows.values()]
         .filter((row) => input.status === 'all' || row.kycStatus === input.status)
-        .sort((a, b) => {
-          const aTime = a.kycSubmittedAt?.getTime() ?? 0;
-          const bTime = b.kycSubmittedAt?.getTime() ?? 0;
-          return bTime - aTime;
-        });
+        .sort((a, b) => submittedMs(b) - submittedMs(a));
       const start = (input.page - 1) * input.pageSize;
       return {
         items: filtered.slice(start, start + input.pageSize).map(cloneRecord),

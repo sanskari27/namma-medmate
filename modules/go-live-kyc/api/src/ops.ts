@@ -1,6 +1,5 @@
 import { sealSecret, sha256 } from '@namma-medmate/encryption-utils';
 import {
-  defaultWizardProgress,
   type GoLiveKycRecord,
   type KycStatus,
   type WizardProgress,
@@ -15,7 +14,7 @@ import {
   requirePharmacyLocation,
 } from './http/scope.ts';
 import { decryptOptional, maskBank, toGate } from './http/mappers.ts';
-import { parseUuid, readBody, readLocationId } from './http/validate.ts';
+import { parseUuid, readBody } from './http/validate.ts';
 import { requireHq } from './auth/principal.ts';
 import type { AuthedRequest } from './http/parse-auth.ts';
 import type { GoLiveKycRuntime } from './runtime.ts';
@@ -191,9 +190,6 @@ export async function putKyc(runtime: GoLiveKycRuntime, input: AuthedRequest) {
   const fssaiExpiry = fssaiNo
     ? isoDate(body.fssai_expiry, 'fssai_expiry')
     : optionalString(body.fssai_expiry);
-  if (fssaiNo && !fssaiExpiry) {
-    throw GoLiveKycErrors.kycFieldsIncomplete();
-  }
   const pharmacistName = requiredString(body.pharmacist_name, 'pharmacist_name');
   const pharmacistReg = requiredString(
     body.pharmacist_registration_no,

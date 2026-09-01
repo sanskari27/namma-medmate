@@ -3169,6 +3169,7 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     getGoLiveKycStatus: {
@@ -3228,6 +3229,7 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
     getGoLiveKycWizard: {
@@ -3255,6 +3257,7 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     putGoLiveKycWizardStep1: {
@@ -3348,6 +3351,7 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
     putGoLiveKycWizardStep3: {

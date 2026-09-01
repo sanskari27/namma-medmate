@@ -773,6 +773,8 @@ paths:
           $ref: '#/components/responses/Error'
         '403':
           $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
   /go-live-kyc/status:
     get:
       operationId: getGoLiveKycStatus
@@ -828,6 +830,8 @@ paths:
           $ref: '#/components/responses/Error'
         '403':
           $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
   /go-live-kyc/wizard:
     get:
       operationId: getGoLiveKycWizard
@@ -849,6 +853,8 @@ paths:
         '401':
           $ref: '#/components/responses/Error'
         '403':
+          $ref: '#/components/responses/Error'
+        '404':
           $ref: '#/components/responses/Error'
   /go-live-kyc/wizard/steps/1:
     put:
@@ -933,6 +939,8 @@ paths:
         '401':
           $ref: '#/components/responses/Error'
         '403':
+          $ref: '#/components/responses/Error'
+        '409':
           $ref: '#/components/responses/Error'
   /go-live-kyc/wizard/steps/3:
     put:

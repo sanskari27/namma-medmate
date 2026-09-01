@@ -23,6 +23,7 @@ export interface ManageUsersClient {
 export class MemoryManageUsersClient implements ManageUsersClient {
   seatCapReached = false;
   fail = false;
+  createFail = false;
   pins = new Map<string, string>();
   created: StaffUserInput[] = [];
 
@@ -46,7 +47,7 @@ export class MemoryManageUsersClient implements ManageUsersClient {
     if (this.seatCapReached) {
       throw Object.assign(new Error('seat cap'), { code: 'SEAT_CAP_REACHED' });
     }
-    if (this.fail) {
+    if (this.fail || this.createFail) {
       throw new Error('manage-users unavailable');
     }
     this.created.push(input.user);
