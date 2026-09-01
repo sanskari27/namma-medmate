@@ -7,8 +7,9 @@ import { test } from '../../fixtures/e2e-test.ts';
 for (const story of planGateStories) {
   test(
     taggedTitle(`visual for plan gate ${story}`, e2eTags.visual),
-    async ({ paywallPage, visual }) => {
+    async ({ paywallPage, planGatePage, visual }) => {
       await openPlanGateStory({ paywallPage }, story);
+      await planGatePage.expectReady();
       await visual.screenshot(`plan-gate-${story}.png`);
     },
   );

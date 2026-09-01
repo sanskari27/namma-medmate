@@ -21,12 +21,11 @@ export function createPostEvaluateController(deps: {
   return async function postEvaluate(input: AuthedRequest) {
     const body = input.req.body as Record<string, unknown>;
     const pharmacy = await requirePharmacyLocation(input, deps.tenancy, body.location_id);
-    const bodyTenantId = parseUuid(
-      typeof body.tenant_id === 'string' ? body.tenant_id : '',
-      'tenant_id',
-    );
-    if (bodyTenantId !== pharmacy.tenantId) {
-      throw PlanGatingErrors.locationTenantMismatch();
+    if (typeof body.tenant_id === 'string' && body.tenant_id.length > 0) {
+      const bodyTenantId = parseUuid(body.tenant_id, 'tenant_id');
+      if (bodyTenantId !== pharmacy.tenantId) {
+        throw PlanGatingErrors.locationTenantMismatch();
+      }
     }
     if (typeof body.module_key !== 'string' || !isModuleKey(body.module_key)) {
       throw PlanGatingErrors.unknownModule();

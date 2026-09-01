@@ -16,6 +16,11 @@ export class PlanGatePage extends BasePage {
   }
 
   async expectReady(): Promise<void> {
-    await expect(this.page.getByText('Orders board').or(this.locators.paywallTitle)).toBeVisible();
+    await expect(
+      this.page
+        .getByRole('heading', { name: /Unlock / })
+        .or(this.page.getByText('Orders board'))
+        .or(this.page.getByText('Inventory list')),
+    ).toBeVisible();
   }
 }

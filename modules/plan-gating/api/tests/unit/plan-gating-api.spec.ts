@@ -494,23 +494,23 @@ describe('plan-gating-api', () => {
     expect(res.body.error.code).toBe('UNKNOWN_MODULE');
   });
 
-  it('rejects invalid location uuid and missing tenant on evaluate', async () => {
+  it('rejects invalid location uuid and uses session tenant on evaluate', async () => {
     const badLocation = await request(app())
       .get('/plan-gating/entitlements?location_id=not-a-uuid')
       .set('authorization', `Bearer ${await pharmacyToken()}`);
     expect(badLocation.status).toBe(400);
     expect(badLocation.body.error.code).toBe('VALIDATION_FAILED');
 
-    const missingTenant = await request(app())
+    const sessionTenant = await request(app())
       .post('/plan-gating/evaluate')
       .set('authorization', `Bearer ${await pharmacyToken()}`)
       .send({
         location_id: LOCAL_SEED_LOCATION_ID,
-        module_key: 'crm',
+        module_key: 'inventory',
         role: 'Owner',
       });
-    expect(missingTenant.status).toBe(400);
-    expect(missingTenant.body.error.code).toBe('VALIDATION_FAILED');
+    expect(sessionTenant.status).toBe(200);
+    expect(sessionTenant.body.data).toEqual({ allowed: true, reason: 'ok' });
 
     const badRole = await request(app())
       .post('/plan-gating/evaluate')

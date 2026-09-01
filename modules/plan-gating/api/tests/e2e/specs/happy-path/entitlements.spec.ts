@@ -62,3 +62,25 @@ test('paywall for kiosk names Pro at 2999', async ({ request }) => {
   expect(body.data.required_plan).toBe('pro');
   expect(body.data.monthly_inr).toBe(2999);
 });
+
+test('role-defaults Owner unlocks every packaging key', async ({ request }) => {
+  const { hq } = e2eTokens();
+  const response = await request.get('/plan-gating/role-defaults', {
+    headers: { authorization: `Bearer ${hq}` },
+  });
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as { data: { Owner: Record<string, boolean> } };
+  expect(body.data.Owner.kiosk).toBe(true);
+  expect(body.data.Owner['pos-billing']).toBe(true);
+});
+
+test('evaluate uses session tenant when body omits tenant_id', async ({ request }) => {
+  const { pharmacy } = e2eTokens();
+  const response = await request.post('/plan-gating/evaluate', {
+    headers: { authorization: `Bearer ${pharmacy}` },
+    data: { location_id: locationId, module_key: 'inventory', role: 'Owner' },
+  });
+  expect(response.ok()).toBeTruthy();
+  const body = (await response.json()) as { data: { allowed: boolean; reason: string } };
+  expect(body.data).toEqual({ allowed: true, reason: 'ok' });
+});

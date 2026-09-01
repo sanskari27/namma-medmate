@@ -5,10 +5,14 @@ import { openLockedNavIcon } from '../../screens/nav-lock-icon/nav-lock-icon.ste
 import { test } from '../../fixtures/e2e-test.ts';
 
 for (const story of planGateStories) {
-  test(taggedTitle(`a11y for plan gate ${story}`, e2eTags.a11y), async ({ paywallPage, a11y }) => {
-    await openPlanGateStory({ paywallPage }, story);
-    await a11y.scan();
-  });
+  test(
+    taggedTitle(`a11y for plan gate ${story}`, e2eTags.a11y),
+    async ({ paywallPage, planGatePage, a11y }) => {
+      await openPlanGateStory({ paywallPage }, story);
+      await planGatePage.expectReady();
+      await a11y.scan();
+    },
+  );
 }
 
 for (const story of paywallStories) {
