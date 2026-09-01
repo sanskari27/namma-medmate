@@ -55,13 +55,17 @@ export type {
 export type {
   AuthRepository,
   CreateUserInput,
+  IdempotencyRecord,
   KioskPinAttemptRecord,
+  ListUsersInput,
+  ListUsersResult,
   OtpChallengeRecord,
   PinPurpose,
   PinVerificationRecord,
   SavedDeviceRecord,
   SessionRecord,
   StaffRole,
+  UpdateUserProfileInput,
   UserRecord,
 } from './auth/types.ts';
 export type {

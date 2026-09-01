@@ -39,6 +39,11 @@ const userRow = {
   otp_resend_available_at: null,
   role: 'cashier',
   active: true,
+  permissions: {},
+  employee_id: null,
+  temp_password_pending: false,
+  temp_password_ciphertext: null,
+  removed_at: null,
   created_at: NOW,
   updated_at: NOW,
 };
@@ -194,6 +199,106 @@ describe('memory auth repository', () => {
     await repo.touchSavedDevice('missing', NOW);
   });
 
+  it('lists, updates, and soft-deletes staff users for manage-users', async () => {
+    const repo = createMemoryAuthRepository(() => NOW);
+    const owner = await repo.createUser({
+      ...userInput('priya.owner'),
+      role: 'owner',
+      permissions: { 'manage-users': true },
+    });
+    const cashier = await repo.createUser({
+      ...userInput('ravi.cashier'),
+      role: 'cashier',
+      employeeId: 'e_01',
+    });
+    expect(await repo.countActiveUsers(TENANT, LOCATION)).toBe(2);
+    expect((await repo.findLiveOwner(TENANT, LOCATION))?.userId).toBe(owner.userId);
+    const listed = await repo.listUsers({
+      tenantId: TENANT,
+      locationId: LOCATION,
+      page: 1,
+      pageSize: 20,
+    });
+    expect(listed.total).toBe(2);
+    await repo.updateUserProfile(cashier.userId, {
+      loginId: 'ravi.till',
+      active: false,
+      employeeId: null,
+      otpMobile: '+919111111111',
+    });
+    expect(await repo.countActiveUsers(TENANT, LOCATION)).toBe(1);
+    await expect(repo.findUserByLoginId('ravi.cashier')).resolves.toBeUndefined();
+    await expect(repo.findUserByLoginId('RAVI.TILL')).resolves.toMatchObject({
+      loginId: 'ravi.till',
+    });
+    await repo.setPermissions(cashier.userId, { 'pos-billing': true });
+    await repo.setMethods(cashier.userId, {
+      passwordEnabled: true,
+      otpEnabled: false,
+      otpMobile: null,
+    });
+    await repo.setPasswordCredentials(cashier.userId, {
+      passwordHash: 'new-hash',
+      tempPasswordCiphertext: 'sealed',
+      tempPasswordPending: true,
+    });
+    await repo.consumeTempPassword(cashier.userId);
+    await repo.setPinHash(cashier.userId, 'pin');
+    await repo.setPinHash(cashier.userId, null);
+    const device = await repo.createSavedDevice({
+      userId: cashier.userId,
+      tenantId: TENANT,
+      locationId: LOCATION,
+      tokenHash: 'dev-x',
+      expiresAt: NOW,
+    });
+    await repo.createSession({
+      userId: cashier.userId,
+      tenantId: TENANT,
+      locationId: LOCATION,
+      tokenHash: 'sess-x',
+    });
+    expect(await repo.revokeSavedDevice(device.deviceId)).toBe(true);
+    expect(await repo.revokeSavedDevice('missing')).toBe(false);
+    expect(await repo.revokeSessionsForUser(cashier.userId, NOW)).toBe(1);
+    await repo.putIdempotency({
+      tenantId: TENANT,
+      idempotencyKey: 'k1',
+      bodyHash: 'h1',
+      userId: cashier.userId,
+    });
+    await expect(repo.getIdempotency(TENANT, 'k1')).resolves.toMatchObject({ bodyHash: 'h1' });
+    await expect(repo.getIdempotency(TENANT, 'missing')).resolves.toBeUndefined();
+    await repo.softDeleteUser(cashier.userId, NOW);
+    await expect(repo.findUserByLoginId('ravi.till')).resolves.toBeUndefined();
+    await expect(repo.findUserByEmployeeId(TENANT, LOCATION, 'e_01')).resolves.toBeUndefined();
+    await expect(repo.updateUserProfile('missing', { active: false })).resolves.toBeUndefined();
+    await expect(repo.setPermissions('missing', {})).resolves.toBeUndefined();
+    await expect(
+      repo.setMethods('missing', { passwordEnabled: true, otpEnabled: false, otpMobile: null }),
+    ).resolves.toBeUndefined();
+    await expect(
+      repo.setPasswordCredentials('missing', {
+        passwordHash: 'x',
+        tempPasswordCiphertext: null,
+        tempPasswordPending: false,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(repo.consumeTempPassword('missing')).resolves.toBeUndefined();
+    await expect(repo.setPinHash('missing', null)).resolves.toBeUndefined();
+    await expect(repo.softDeleteUser('missing', NOW)).resolves.toBeUndefined();
+    await expect(repo.findLiveOwner(TENANT, 'other')).resolves.toBeUndefined();
+    const cashiers = await repo.listUsers({
+      tenantId: TENANT,
+      locationId: LOCATION,
+      role: 'cashier',
+      active: true,
+      page: 1,
+      pageSize: 10,
+    });
+    expect(cashiers.total).toBe(0);
+  });
+
   it('creates and consumes pin verifications once', async () => {
     const repo = createMemoryAuthRepository(() => NOW);
     const user = await repo.createUser(userInput());
@@ -303,6 +408,21 @@ describe('sql auth repository', () => {
       created_at: NOW,
     };
     const query = vi.fn(async (sql: string) => {
+      if (sql.includes('count(*)')) {
+        return { rows: [{ total: '2' }] };
+      }
+      if (sql.includes('manage_users_idempotency')) {
+        return {
+          rows: [
+            {
+              tenant_id: TENANT,
+              idempotency_key: 'k1',
+              body_hash: 'h1',
+              user_id: userRow.user_id,
+            },
+          ],
+        };
+      }
       if (
         sql.startsWith('insert into users') ||
         sql.includes('from users') ||
@@ -425,6 +545,52 @@ describe('sql auth repository', () => {
       purpose: 'fefo_override',
     });
     await expect(repo.consumePinVerification('pinver-1', NOW)).resolves.toBe(true);
+    await expect(
+      repo.listUsers({ tenantId: TENANT, locationId: LOCATION, page: 1, pageSize: 20 }),
+    ).resolves.toMatchObject({ total: 2 });
+    await expect(repo.countActiveUsers(TENANT, LOCATION)).resolves.toBe(2);
+    await expect(repo.findLiveOwner(TENANT, LOCATION)).resolves.toMatchObject({ role: 'cashier' });
+    await expect(repo.findUserByEmployeeId(TENANT, LOCATION, 'e_01')).resolves.toMatchObject({
+      userId: userRow.user_id,
+    });
+    await expect(
+      repo.updateUserProfile(userRow.user_id, { loginId: 'x', active: false, employeeId: null }),
+    ).resolves.toMatchObject({ userId: userRow.user_id });
+    await expect(repo.setPermissions(userRow.user_id, { crm: true })).resolves.toMatchObject({
+      userId: userRow.user_id,
+    });
+    await expect(
+      repo.setMethods(userRow.user_id, {
+        passwordEnabled: true,
+        otpEnabled: false,
+        otpMobile: null,
+      }),
+    ).resolves.toMatchObject({ userId: userRow.user_id });
+    await expect(
+      repo.setPasswordCredentials(userRow.user_id, {
+        passwordHash: 'h',
+        tempPasswordCiphertext: 'c',
+        tempPasswordPending: true,
+      }),
+    ).resolves.toMatchObject({ userId: userRow.user_id });
+    await expect(repo.consumeTempPassword(userRow.user_id)).resolves.toMatchObject({
+      userId: userRow.user_id,
+    });
+    await expect(repo.setPinHash(userRow.user_id, null)).resolves.toMatchObject({
+      userId: userRow.user_id,
+    });
+    await expect(repo.softDeleteUser(userRow.user_id, NOW)).resolves.toMatchObject({
+      userId: userRow.user_id,
+    });
+    await expect(repo.revokeSavedDevice('dev-1')).resolves.toBe(true);
+    await expect(repo.revokeSessionsForUser(userRow.user_id, NOW)).resolves.toBe(2);
+    await repo.putIdempotency({
+      tenantId: TENANT,
+      idempotencyKey: 'k1',
+      bodyHash: 'h1',
+      userId: userRow.user_id,
+    });
+    await expect(repo.getIdempotency(TENANT, 'k1')).resolves.toMatchObject({ bodyHash: 'h1' });
   });
 
   it('returns undefined and throws when SQL writes persist nothing', async () => {
@@ -481,6 +647,36 @@ describe('sql auth repository', () => {
     ).rejects.toThrow('Pin verification insert did not persist');
     await expect(empty.findPinVerification('x')).resolves.toBeUndefined();
     await expect(empty.consumePinVerification('x', NOW)).resolves.toBe(false);
+    await expect(
+      empty.listUsers({ tenantId: TENANT, locationId: LOCATION, page: 1, pageSize: 20 }),
+    ).resolves.toEqual({ items: [], total: 0 });
+    await expect(empty.countActiveUsers(TENANT, LOCATION)).resolves.toBe(0);
+    await expect(empty.findLiveOwner(TENANT, LOCATION)).resolves.toBeUndefined();
+    await expect(empty.findUserByEmployeeId(TENANT, LOCATION, 'e')).resolves.toBeUndefined();
+    await expect(empty.updateUserProfile('x', { active: false })).resolves.toBeUndefined();
+    await expect(empty.setPermissions('x', {})).resolves.toBeUndefined();
+    await expect(
+      empty.setMethods('x', { passwordEnabled: true, otpEnabled: false, otpMobile: null }),
+    ).resolves.toBeUndefined();
+    await expect(
+      empty.setPasswordCredentials('x', {
+        passwordHash: 'h',
+        tempPasswordCiphertext: null,
+        tempPasswordPending: false,
+      }),
+    ).resolves.toBeUndefined();
+    await expect(empty.consumeTempPassword('x')).resolves.toBeUndefined();
+    await expect(empty.setPinHash('x', null)).resolves.toBeUndefined();
+    await expect(empty.softDeleteUser('x', NOW)).resolves.toBeUndefined();
+    await expect(empty.revokeSavedDevice('x')).resolves.toBe(false);
+    await expect(empty.revokeSessionsForUser('x', NOW)).resolves.toBe(0);
+    await expect(empty.getIdempotency(TENANT, 'k')).resolves.toBeUndefined();
+    await empty.putIdempotency({
+      tenantId: TENANT,
+      idempotencyKey: 'k',
+      bodyHash: 'h',
+      userId: 'x',
+    });
   });
 
   it('treats a missing rowCount as zero', async () => {
@@ -488,5 +684,7 @@ describe('sql auth repository', () => {
     await expect(repo.consumeOtpChallenge('x', NOW)).resolves.toBe(false);
     await expect(repo.revokeAllSavedDevices('x')).resolves.toBe(0);
     await expect(repo.consumePinVerification('x', NOW)).resolves.toBe(false);
+    await expect(repo.revokeSavedDevice('x')).resolves.toBe(false);
+    await expect(repo.revokeSessionsForUser('x', NOW)).resolves.toBe(0);
   });
 });

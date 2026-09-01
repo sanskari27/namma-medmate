@@ -33,6 +33,7 @@ export function createLoginPasswordController(runtime: AuthRuntime) {
     if (!user.passwordHash || !(await verifySecret(user.passwordHash, password))) {
       return recordSharedFailure(runtime, user, 'login_failed');
     }
+    await runtime.auth.consumeTempPassword(user.userId);
     return buildSuccess(await issueLoginSession(runtime, user, rememberDevice, userAgentOf(req)));
   };
 }

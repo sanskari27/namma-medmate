@@ -1,0 +1,565 @@
+openapi: 3.0.3
+info:
+  title: Namma MedMate Manage Users API
+  version: 0.1.0
+  description: Staff User (login) records, seat cap, permissions, and credential controls.
+servers:
+  - url: /
+paths:
+  /manage-users/seats:
+    get:
+      operationId: getManageUsersSeats
+      summary: Seat summary for the location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Seat snapshot
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /manage-users/users:
+    get:
+      operationId: listManageUsers
+      summary: List users
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: active
+          in: query
+          schema:
+            type: boolean
+        - name: role
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: User page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createManageUser
+      summary: Create a staff user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: Idempotency-Key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateUserRequest'
+      responses:
+        '201':
+          description: Created user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}:
+    parameters:
+      - $ref: '#/components/parameters/AuthorizationHeader'
+      - $ref: '#/components/parameters/LocationIdQuery'
+      - $ref: '#/components/parameters/UserId'
+    get:
+      operationId: getManageUser
+      summary: Get a user
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: User
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patchManageUser
+      summary: Patch a user
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchUserRequest'
+      responses:
+        '200':
+          description: Updated user
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteManageUser
+      summary: Remove a login
+      security:
+        - bearerAuth: []
+      responses:
+        '204':
+          description: Removed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/permissions:
+    put:
+      operationId: putManageUserPermissions
+      summary: Update permission map
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PermissionsRequest'
+      responses:
+        '200':
+          description: Permissions
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/methods:
+    put:
+      operationId: putManageUserMethods
+      summary: Update login methods
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/MethodsRequest'
+      responses:
+        '200':
+          description: Methods
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/password/reset:
+    post:
+      operationId: resetManageUserPassword
+      summary: Rotate temporary password
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Temp password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/password/copy:
+    post:
+      operationId: copyManageUserPassword
+      summary: Copy pending temp password
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Temp password
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/pin:
+    put:
+      operationId: putManageUserPin
+      summary: Set counter PIN
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinRequest'
+      responses:
+        '200':
+          description: PIN set
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteManageUserPin
+      summary: Clear counter PIN
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: PIN cleared
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/devices:
+    get:
+      operationId: listManageUserDevices
+      summary: List saved devices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: revokeAllManageUserDevices
+      summary: Revoke all saved devices
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/devices/{device_id}:
+    delete:
+      operationId: revokeManageUserDevice
+      summary: Revoke one saved device
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+        - name: device_id
+          in: path
+          required: true
+          schema:
+            type: string
+            format: uuid
+      responses:
+        '200':
+          description: Revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /manage-users/users/{user_id}/share-link:
+    post:
+      operationId: createManageUserShareLink
+      summary: Build WhatsApp share URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/UserId'
+      responses:
+        '200':
+          description: Share URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Success'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AuthorizationHeader:
+      name: authorization
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^Bearer\s+\S+$
+    LocationIdQuery:
+      name: location_id
+      in: query
+      required: false
+      schema:
+        type: string
+    UserId:
+      name: user_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Success:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data: {}
+    CreateUserRequest:
+      type: object
+      additionalProperties: false
+      required: [login_id, role]
+      properties:
+        login_id:
+          type: string
+        role:
+          type: string
+        employee_id:
+          type: string
+          nullable: true
+        otp_mobile:
+          type: string
+          nullable: true
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        pin:
+          type: string
+        permissions:
+          nullable: true
+          additionalProperties:
+            type: boolean
+    PatchUserRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        login_id:
+          type: string
+        role:
+          type: string
+        employee_id:
+          type: string
+          nullable: true
+        otp_mobile:
+          type: string
+          nullable: true
+        active:
+          type: boolean
+    PermissionsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        permissions:
+          additionalProperties:
+            type: boolean
+        mode:
+          type: string
+          enum: [merge, replace, select_all, reset_defaults]
+    MethodsRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        otp_mobile:
+          type: string
+          nullable: true
+    PinRequest:
+      type: object
+      additionalProperties: false
+      required: [pin]
+      properties:
+        pin:
+          type: string
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            i18n_key:
+              type: string
+            details:
+              type: object
+              additionalProperties: true

@@ -4,6 +4,7 @@ export { auditEvents } from './audit-events.ts';
 export { platformMasterSkuSubstitutes, platformMasterSkus } from './platform-master-skus.ts';
 export {
   kioskPinAttempts,
+  manageUsersIdempotency,
   otpChallenges,
   pinVerifications,
   savedDevices,

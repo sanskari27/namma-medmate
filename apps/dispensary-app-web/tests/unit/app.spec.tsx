@@ -185,6 +185,20 @@ describe('dispensary app', () => {
     expect(await screen.findByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
   });
 
+  it('renders Manage users on /account/users', async () => {
+    setAccessToken('token');
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/account/users" />
+      </AppProviders>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Manage users' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Manage users' })).toHaveAttribute(
+      'href',
+      '/account/users',
+    );
+  });
+
   it('renders Free orders without a paywall', async () => {
     setAccessToken('token');
     render(

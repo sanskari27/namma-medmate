@@ -1,0 +1,40 @@
+{
+  "name": "manage-users-api",
+  "$schema": "../../../node_modules/nx/schemas/project-schema.json",
+  "sourceRoot": "modules/manage-users/api/src",
+  "projectType": "application",
+  "tags": ["type:module-api", "domain:manage-users"],
+  "targets": {
+    "lint": {
+      "executor": "nx:run-commands",
+      "options": { "command": "eslint .", "cwd": "{projectRoot}" }
+    },
+    "typecheck": {
+      "executor": "nx:run-commands",
+      "options": { "command": "tsc --noEmit -p tsconfig.json", "cwd": "{projectRoot}" }
+    },
+    "test": {
+      "executor": "nx:run-commands",
+      "options": { "command": "vitest run --coverage", "cwd": "{projectRoot}" }
+    },
+    "serve": {
+      "executor": "nx:run-commands",
+      "options": {
+        "command": "tsx --env-file=../../../.env.example src/local.ts",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "build": {
+      "executor": "nx:run-commands",
+      "outputs": ["{projectRoot}/dist"],
+      "options": {
+        "command": "node ../../../tools/build-scripts/bundle-lambda.mjs src/handler.ts dist/handler.cjs && cp contract/swagger.yaml dist/swagger.yaml && cd dist && zip -q handler.zip handler.cjs handler.cjs.map swagger.yaml",
+        "cwd": "{projectRoot}"
+      }
+    },
+    "e2e": {
+      "executor": "nx:run-commands",
+      "options": { "command": "playwright test", "cwd": "{projectRoot}" }
+    }
+  }
+}

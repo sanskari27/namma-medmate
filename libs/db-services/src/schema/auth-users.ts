@@ -1,6 +1,7 @@
 import {
   boolean,
   integer,
+  jsonb,
   pgTable,
   primaryKey,
   text,
@@ -18,7 +19,7 @@ export const users = pgTable('users', {
   locationId: uuid('location_id')
     .notNull()
     .references(() => locations.locationId),
-  loginId: varchar('login_id', { length: 64 }).notNull().unique(),
+  loginId: varchar('login_id', { length: 64 }).notNull(),
   passwordHash: text('password_hash'),
   passwordEnabled: boolean('password_enabled').notNull(),
   otpEnabled: boolean('otp_enabled').notNull(),
@@ -29,9 +30,26 @@ export const users = pgTable('users', {
   otpResendAvailableAt: timestamp('otp_resend_available_at', { withTimezone: true, mode: 'date' }),
   role: text('role').notNull(),
   active: boolean('active').notNull(),
+  permissions: jsonb('permissions').$type<Record<string, boolean>>().notNull(),
+  employeeId: uuid('employee_id'),
+  tempPasswordPending: boolean('temp_password_pending').notNull(),
+  tempPasswordCiphertext: text('temp_password_ciphertext'),
+  removedAt: timestamp('removed_at', { withTimezone: true, mode: 'date' }),
   createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true, mode: 'date' }).notNull(),
 });
+
+export const manageUsersIdempotency = pgTable(
+  'manage_users_idempotency',
+  {
+    tenantId: uuid('tenant_id').notNull(),
+    idempotencyKey: varchar('idempotency_key', { length: 128 }).notNull(),
+    bodyHash: text('body_hash').notNull(),
+    userId: uuid('user_id').notNull(),
+    createdAt: timestamp('created_at', { withTimezone: true, mode: 'date' }).notNull(),
+  },
+  (table) => [primaryKey({ columns: [table.tenantId, table.idempotencyKey] })],
+);
 
 export const otpChallenges = pgTable('otp_challenges', {
   challengeId: uuid('challenge_id').primaryKey(),

@@ -160,6 +160,204 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/manage-users/seats": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Seat summary for the location */
+        get: operations["getManageUsersSeats"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List users */
+        get: operations["listManageUsers"];
+        put?: never;
+        /** Create a staff user */
+        post: operations["createManageUser"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}": {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        /** Get a user */
+        get: operations["getManageUser"];
+        put?: never;
+        post?: never;
+        /** Remove a login */
+        delete: operations["deleteManageUser"];
+        options?: never;
+        head?: never;
+        /** Patch a user */
+        patch: operations["patchManageUser"];
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/permissions": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update permission map */
+        put: operations["putManageUserPermissions"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/methods": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Update login methods */
+        put: operations["putManageUserMethods"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/password/reset": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Rotate temporary password */
+        post: operations["resetManageUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/password/copy": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Copy pending temp password */
+        post: operations["copyManageUserPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/pin": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set counter PIN */
+        put: operations["putManageUserPin"];
+        post?: never;
+        /** Clear counter PIN */
+        delete: operations["deleteManageUserPin"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved devices */
+        get: operations["listManageUserDevices"];
+        put?: never;
+        post?: never;
+        /** Revoke all saved devices */
+        delete: operations["revokeAllManageUserDevices"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/devices/{device_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Revoke one saved device */
+        delete: operations["revokeManageUserDevice"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/manage-users/users/{user_id}/share-link": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Build WhatsApp share URL */
+        post: operations["createManageUserShareLink"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/master-catalogue/skus": {
         parameters: {
             query?: never;
@@ -795,6 +993,45 @@ export interface components {
             success: true;
             data: components["schemas"]["RevokeDevices"];
         };
+        Success: {
+            /** @enum {boolean} */
+            success: true;
+            data: unknown;
+        };
+        CreateUserRequest: {
+            login_id: string;
+            role: string;
+            employee_id?: string | null;
+            otp_mobile?: string | null;
+            password_enabled?: boolean;
+            otp_enabled?: boolean;
+            pin?: string;
+            permissions?: {
+                [key: string]: boolean;
+            } | null;
+        };
+        PatchUserRequest: {
+            login_id?: string;
+            role?: string;
+            employee_id?: string | null;
+            otp_mobile?: string | null;
+            active?: boolean;
+        };
+        PermissionsRequest: {
+            permissions?: {
+                [key: string]: boolean;
+            };
+            /** @enum {string} */
+            mode?: "merge" | "replace" | "select_all" | "reset_defaults";
+        };
+        MethodsRequest: {
+            password_enabled?: boolean;
+            otp_enabled?: boolean;
+            otp_mobile?: string | null;
+        };
+        PinRequest: {
+            pin: string;
+        };
         /** @description OTC, H, H1, or X */
         Schedule: string;
         /** @description Regular GST slab percent. Allowed values 0, 5, 12, 18, 28. */
@@ -1264,6 +1501,7 @@ export interface components {
     parameters: {
         AuthorizationHeader: string;
         LocationIdQuery: string;
+        UserId: string;
         PlatformMasterSkuId: string;
         TenantId: string;
         LocationIdPath: string;
@@ -1596,6 +1834,497 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+        };
+    };
+    getManageUsersSeats: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Seat snapshot */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listManageUsers: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                active?: boolean;
+                role?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createManageUser: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+                "Idempotency-Key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Created user */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    getManageUser: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description User */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    deleteManageUser: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Removed */
+            204: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    patchManageUser: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchUserRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated user */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    putManageUserPermissions: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PermissionsRequest"];
+            };
+        };
+        responses: {
+            /** @description Permissions */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    putManageUserMethods: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["MethodsRequest"];
+            };
+        };
+        responses: {
+            /** @description Methods */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    resetManageUserPassword: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Temp password */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    copyManageUserPassword: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Temp password */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    putManageUserPin: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinRequest"];
+            };
+        };
+        responses: {
+            /** @description PIN set */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    deleteManageUserPin: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PIN cleared */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listManageUserDevices: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    revokeAllManageUserDevices: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    revokeManageUserDevice: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+                device_id: string;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createManageUserShareLink: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                user_id: components["parameters"]["UserId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Share URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Success"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     listMasterSkus: {

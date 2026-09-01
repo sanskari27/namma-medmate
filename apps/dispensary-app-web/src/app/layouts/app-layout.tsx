@@ -3,6 +3,7 @@ import { Provider } from 'react-redux';
 import { TenantShell } from '@namma-medmate/tenancy-ui';
 import { MandatoryWhatsAppBanner } from '@namma-medmate/whatsapp-ui';
 import { PlanGatingNav } from '@namma-medmate/plan-gating-ui';
+import { ManageUsersNavLink } from '@namma-medmate/manage-users-ui';
 import { tenancyStore } from '../../store/tenancy.ts';
 import { whatsappStore } from '../../store/whatsapp.ts';
 import { planGatingStore } from '../../store/plan-gating.ts';
@@ -25,6 +26,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         <Provider store={planGatingStore}>
           <PlanGatingNav skipQuery={skipTenancyQuery} />
         </Provider>
+        <ManageUsersNavLink />
       </header>
       <Provider store={whatsappStore}>
         <MandatoryWhatsAppBanner skipQuery={skipTenancyQuery} locationId={getLocationId()} />

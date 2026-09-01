@@ -218,8 +218,22 @@ describe('auth-api chemist login', { timeout: 30_000 }, () => {
       tenant_id: TENANT,
       location_id: LOCATION,
       role: 'Cashier',
-      permissions_owner_frozen: false,
     });
+  });
+
+  it('clears temp_password_pending after a successful password login', async () => {
+    const auth = await seed();
+    const cashier = await auth.findUserByLoginId('priya.cashier');
+    await auth.setPasswordCredentials(cashier!.userId, {
+      passwordHash,
+      tempPasswordCiphertext: 'sealed',
+      tempPasswordPending: true,
+    });
+    const app = createApp(env(), { auth });
+    await login(app);
+    const after = await auth.findUserByLoginId('priya.cashier');
+    expect(after?.tempPasswordPending).toBe(false);
+    expect(after?.tempPasswordCiphertext).toBeNull();
   });
 
   it('freezes Owner claims and allows two concurrent sessions', async () => {

@@ -25,6 +25,11 @@ export interface UserRecord {
   otpResendAvailableAt: Date | null;
   role: StaffRole;
   active: boolean;
+  permissions: Record<string, boolean>;
+  employeeId: string | null;
+  tempPasswordPending: boolean;
+  tempPasswordCiphertext: string | null;
+  removedAt: Date | null;
   createdAt: Date;
   updatedAt: Date;
 }
@@ -41,6 +46,39 @@ export interface CreateUserInput {
   pinHash?: string | null;
   role: StaffRole;
   active?: boolean;
+  permissions?: Record<string, boolean>;
+  employeeId?: string | null;
+  tempPasswordPending?: boolean;
+  tempPasswordCiphertext?: string | null;
+}
+
+export interface UpdateUserProfileInput {
+  loginId?: string;
+  role?: StaffRole;
+  employeeId?: string | null;
+  otpMobile?: string | null;
+  active?: boolean;
+}
+
+export interface ListUsersInput {
+  tenantId: string;
+  locationId: string;
+  active?: boolean;
+  role?: StaffRole;
+  page: number;
+  pageSize: number;
+}
+
+export interface ListUsersResult {
+  items: UserRecord[];
+  total: number;
+}
+
+export interface IdempotencyRecord {
+  tenantId: string;
+  idempotencyKey: string;
+  bodyHash: string;
+  userId: string;
 }
 
 export interface OtpChallengeRecord {
@@ -96,6 +134,38 @@ export interface AuthRepository {
   createUser(input: CreateUserInput): Promise<UserRecord>;
   findUserByLoginId(loginId: string): Promise<UserRecord | undefined>;
   findUserById(userId: string): Promise<UserRecord | undefined>;
+  listUsers(input: ListUsersInput): Promise<ListUsersResult>;
+  countActiveUsers(tenantId: string, locationId: string): Promise<number>;
+  findLiveOwner(tenantId: string, locationId: string): Promise<UserRecord | undefined>;
+  findUserByEmployeeId(
+    tenantId: string,
+    locationId: string,
+    employeeId: string,
+  ): Promise<UserRecord | undefined>;
+  updateUserProfile(userId: string, patch: UpdateUserProfileInput): Promise<UserRecord | undefined>;
+  setPermissions(
+    userId: string,
+    permissions: Record<string, boolean>,
+  ): Promise<UserRecord | undefined>;
+  setMethods(
+    userId: string,
+    input: { passwordEnabled: boolean; otpEnabled: boolean; otpMobile: string | null },
+  ): Promise<UserRecord | undefined>;
+  setPasswordCredentials(
+    userId: string,
+    input: {
+      passwordHash: string;
+      tempPasswordCiphertext: string | null;
+      tempPasswordPending: boolean;
+    },
+  ): Promise<UserRecord | undefined>;
+  consumeTempPassword(userId: string): Promise<UserRecord | undefined>;
+  setPinHash(userId: string, pinHash: string | null): Promise<UserRecord | undefined>;
+  softDeleteUser(userId: string, removedAt: Date): Promise<UserRecord | undefined>;
+  revokeSavedDevice(deviceId: string): Promise<boolean>;
+  revokeSessionsForUser(userId: string, revokedAt: Date): Promise<number>;
+  getIdempotency(tenantId: string, key: string): Promise<IdempotencyRecord | undefined>;
+  putIdempotency(record: IdempotencyRecord): Promise<void>;
   updateUserLock(
     userId: string,
     failedAttempts: number,
