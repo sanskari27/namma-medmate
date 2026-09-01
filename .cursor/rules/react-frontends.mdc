@@ -1,0 +1,21 @@
+---
+description: React conventions for independent dispensary and admin applications
+globs: dispensary/**/*.{ts,tsx,css,json},admin/**/*.{ts,tsx,css,json}
+alwaysApply: false
+---
+
+# React frontends
+
+- React 19 function components and hooks with strict TypeScript; do not use
+  `any`, unsafe double assertions, or class components.
+- Redux Toolkit owns authenticated/server-derived shared state; temporary
+  presentation state remains local.
+- API calls use the target app's configured axios service and
+  `VITE_API_BASE_URL`. Never import server source or the other SPA.
+- Server authorization, tenant, branch, plan, totals, and prices are
+  authoritative; UI guards only improve UX.
+- Each screen handles loading, empty, validation, denied, conflict, failure,
+  and success with semantic labels, keyboard operation, visible focus, and
+  focus restoration.
+- Test user interactions and state transitions. The first UI story must install
+  a test runner because neither app currently has one.

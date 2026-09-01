@@ -1,69 +1,49 @@
-# Namma MedMate — Claude Project Brief
+# Namma MedMate project brief
 
-## What This Is
+Namma MedMate is a multi-tenant Indian pharmacy ERP and platform SaaS.
 
-B2B **pharmacy ERP** (dispensary app) + **platform CRM / SaaS** (admin app) for Namma MedMate. Multi-tenant: every pharmacy is a tenant with one or more locations.
+- `server/`: Java 17, Spring Boot 3.4.4, Maven, PostgreSQL/Flyway, Redis.
+- `dispensary/`: React 19 + TypeScript + Vite + Redux Toolkit for pharmacy staff.
+- `admin/`: the same independent frontend stack for MASTER/platform staff.
+- Local orchestration uses Docker Compose; production uses EC2, RDS,
+  ElastiCache, and Terraform.
 
-## Tech Stack
+The applications use their own committed build files and dependency managers.
+Follow [`docs/architecture/README.md`](docs/architecture/README.md).
 
-| Layer | Technology |
-|-------|------------|
-| Backend | Spring Boot 3.4, Java 17, Maven |
-| Frontend | React 19, TypeScript, Vite 6, Redux Toolkit |
-| Database | PostgreSQL 16 + Flyway |
-| Cache | Redis 7 |
-| Auth | JWT |
-| Deploy | Docker Compose, EC2, Terraform (RDS + ElastiCache) |
+## Product and implementation sources
 
-## Repository Structure
+- Product intent: [`docs/product/`](docs/product/).
+- Module epics and vertical stories: [`docs/requirements/`](docs/requirements/).
+- Only status source:
+  [`docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`](docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md).
+- Unresolved product choices:
+  [`docs/requirements/DECISIONS.md`](docs/requirements/DECISIONS.md).
 
-```
-namma-medmate/
-├── compose.yaml / compose.prod.yaml
-├── server/                 ← Spring Boot API
-│   └── src/main/java/com/nammamedmate/server/
-│       ├── feature/        ← REST controllers
-│       ├── application/    ← services
-│       ├── domain/         ← entities
-│       ├── persistence/    ← repositories
-│       ├── infrastructure/ ← security, config
-│       └── shared/         ← ApiResponse, exceptions
-├── dispensary/             ← pharmacy ERP SPA
-├── admin/                  ← HQ CRM SPA
-├── docs/requirements/      ← feature specs + implementation docs
-└── infra/terraform/        ← prod only
-```
+Implement one dependency-ready story across every app named in its frontmatter.
+Write failing tests first. Never implement a blocked/deferred story, silently
+answer an open decision, or mark `done` without independent verification.
 
-## Backend Layering (strict)
+## Invariants
 
-```
-feature/ → application/ → persistence/ + domain/
-              ↑ supported by infrastructure/ + shared/
-```
+- Backend flow is `feature → application → persistence + domain`.
+- Controllers never call repositories; writes are transactional.
+- Every pharmacy query includes `tenant_id`; branch-owned data also includes
+  `branch_id`.
+- APIs use `/api/v1` and `ApiResponse<T>`.
+- Money is integer paise; persisted time is UTC and displayed in IST.
+- Add a new immutable Flyway migration for schema changes.
+- Frontends use their configured axios service; server authorization remains
+  authoritative.
 
-**Tenant isolation:** every query must scope by `tenant_id` (and `location_id` where applicable). Never bypass.
+## Commands
 
-## Local Development
-
-```bash
-make deps && make backend   # API :8080
-cd dispensary && npm run dev  # :5173
-cd admin && npm run dev       # :5174
+```text
+/implement-next-story
+/implement-story M1-S01
+/verify-story M1-S01
+/requirements-status
 ```
 
-## API Conventions
-
-- Base path: `/api/v1`
-- Envelope: `ApiResponse<T>` with `success`, `data`, `message`, `code`
-- Currency: INR (paise in DB where needed)
-- Timezone: IST display, UTC storage
-
-## Flyway
-
-Schema changes only via new `V{n}__description.sql`. Never edit existing migrations.
-
-## Agent Pipeline
-
-`/orchestrate-features` — see `.cursor/skills/orchestrate-features/SKILL.md`
-
-Default scope: **server/** backend only unless user asks for dispensary/admin UI.
+Local stack: `make up` (API 8080, dispensary 5173, admin 5174). Never point the
+local Spring profile at RDS.

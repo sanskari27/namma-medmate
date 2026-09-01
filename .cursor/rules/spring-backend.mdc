@@ -1,0 +1,21 @@
+---
+description: Spring backend layering, security, persistence, and isolation
+globs: server/**/*
+alwaysApply: false
+---
+
+# Spring backend
+
+- Java 17, Spring Boot 3.4.x, Maven, root package `com.nammamedmate.server`.
+- Flow is `feature → application → persistence + domain`; controllers never
+  call repositories. External adapters and security live in `infrastructure`.
+- Use constructor injection, record DTOs, `ApiResponse<T>`, `ApiException`,
+  and `@Transactional` application write methods.
+- Every pharmacy-owned query includes `tenant_id`; branch-owned queries also
+  include `branch_id`, including counts, exports, existence checks, jobs, and
+  notification recipients.
+- Add the next immutable Flyway migration; never edit an applied migration.
+- Persist money as integer paise and timestamps in UTC.
+- Validate authorization, retries, idempotency, concurrency, and rollback.
+- Test HTTP validation, business branches, persistence, cross-tenant and
+  cross-branch denial, and retry/concurrency behavior.

@@ -1,0 +1,19 @@
+---
+description: Required validation for stories and repository metadata
+alwaysApply: true
+---
+
+# Quality gates
+
+Run only relevant targets, but never omit a target listed by the story:
+
+- Server: `cd server && ./mvnw spotless:check test`.
+- Dispensary: `cd dispensary && npm run lint && npm run test -- --run && npm run build`.
+- Admin: `cd admin && npm run lint && npm run test -- --run && npm run build`.
+- Compose/deployment: `make compose-config`.
+- Requirements metadata: `node --test scripts/validate-requirements.test.mjs`
+  then `node scripts/validate-requirements.mjs`.
+
+If a required command is missing, adding it and its tests is implementation
+work; missing tooling is not permission to skip a gate. Do not mark `done`
+while a target gate is red. Record exact commands and results in tracker evidence.

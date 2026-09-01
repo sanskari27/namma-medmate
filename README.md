@@ -6,7 +6,7 @@
 |-----|----------|---------|
 | [`server/`](server/) | API | Multi-tenant Spring Boot backend |
 | [`dispensary/`](dispensary/) | Pharmacy staff | POS, inventory, procurement, invoices, Rx |
-| [`admin/`](admin/) | HQ operators | KYC, subscriptions, leads, support |
+| [`admin/`](admin/) | Platform operators | KYC, subscriptions, tenant administration |
 
 ## Quick start (local)
 
@@ -49,11 +49,20 @@ Host Nginx TLS: [`deploy/HOST_NGINX.md`](deploy/HOST_NGINX.md).
 ## Requirements pipeline
 
 ```text
-/orchestrate-features          # verify + implement from docs/requirements/
-/feature-verifier tenancy      # single feature
+/implement-next-story          # next dependency-ready story
+/implement-story M1-S01        # one named story
+/verify-story M1-S01           # independent verification
+/requirements-status           # roadmap summary
 ```
 
-See [`context-data/README.md`](context-data/README.md) and [`CLAUDE.md`](CLAUDE.md).
+See [`docs/requirements/README.md`](docs/requirements/README.md),
+[`docs/architecture/README.md`](docs/architecture/README.md), and
+[`CLAUDE.md`](CLAUDE.md).
+
+The backlog mirrors product Modules 1–12. Status lives only in
+[`docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`](docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md);
+open product choices remain blocked in
+[`docs/requirements/DECISIONS.md`](docs/requirements/DECISIONS.md).
 
 ## Environments
 

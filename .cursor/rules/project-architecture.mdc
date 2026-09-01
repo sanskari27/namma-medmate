@@ -1,0 +1,18 @@
+---
+description: Live repository architecture and source precedence
+alwaysApply: true
+---
+
+# Project architecture
+
+- Runtime/build truth wins: `server/pom.xml`, application source,
+  `dispensary/package.json`, `admin/package.json`, Compose, Makefile, and CI.
+- This is a three-project repository: Spring Boot Maven `server/` plus
+  independent npm/Vite `dispensary/` and `admin/` apps.
+- Do not introduce build systems, package workspaces, shared packages, or
+  generated clients that are absent from the runtime/build source of truth.
+- Read `docs/architecture/README.md` and the selected requirement story before
+  implementation.
+- Product behavior comes only from `docs/requirements/`; unresolved behavior
+  stays in `DECISIONS.md`.
+- Frontends call the server only over HTTP through `VITE_API_BASE_URL`.
