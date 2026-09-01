@@ -1,0 +1,15 @@
+[
+  {
+    "method": "get",
+    "path": "/plan-gating/entitlements",
+    "operationId": "getPlanGatingEntitlements"
+  },
+  { "method": "get", "path": "/plan-gating/plans", "operationId": "listPlanGatingPlans" },
+  { "method": "get", "path": "/plan-gating/paywall", "operationId": "getPlanGatingPaywall" },
+  {
+    "method": "get",
+    "path": "/plan-gating/role-defaults",
+    "operationId": "getPlanGatingRoleDefaults"
+  },
+  { "method": "post", "path": "/plan-gating/evaluate", "operationId": "evaluatePlanGatingAccess" }
+]

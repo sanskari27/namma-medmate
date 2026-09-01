@@ -12,10 +12,10 @@ Exceptions (from `README.md`): implement `29-books-gst` period-lock + `postJourn
 
 | Status      | Count |
 | ----------- | ----: |
-| pending     |    36 |
+| pending     |    35 |
 | in_progress |     1 |
 | blocked     |     0 |
-| done        |     4 |
+| done        |     5 |
 
 ## Modules
 
@@ -25,7 +25,7 @@ Exceptions (from `README.md`): implement `29-books-gst` period-lock + `postJourn
 | 02  | `whatsapp`                | [02-whatsapp.md](./02-whatsapp.md)                               | `tenancy`                                                                                                                                                | done        | 2026-09-01 | Inbox, mandatory banner, share deeplink, Meta send/webhook. No chemist WABA or SMS.     |
 | 03  | `audit`                   | [03-audit.md](./03-audit.md)                                     | `tenancy`                                                                                                                                                | done        | 2026-09-01 | Append-only ingest + query + presentational tables. Reports/HQ chrome later.            |
 | 04  | `master-catalogue`        | [04-master-catalogue.md](./04-master-catalogue.md)               | —                                                                                                                                                        | done        | 2026-09-01 | Platform SKUs, DPCO ceilings, substitutes, bans. Inventory unmap stub.                  |
-| 05  | `plan-gating`             | [05-plan-gating.md](./05-plan-gating.md)                         | `tenancy`                                                                                                                                                | pending     |            |                                                                                         |
+| 05  | `plan-gating`             | [05-plan-gating.md](./05-plan-gating.md)                         | `tenancy`                                                                                                                                                | done        | 2026-09-01 | Read-only entitlements, paywall, PlanGate. Catalogue in code. Billing writes later.     |
 | 06  | `auth`                    | [06-auth.md](./06-auth.md)                                       | `tenancy`, `whatsapp`, `audit`                                                                                                                           | in_progress |            | OIDC session scaffold only; chemist login FRs not done. Spec supersedes current widget. |
 | 07  | `manage-users`            | [07-manage-users.md](./07-manage-users.md)                       | `auth`, `plan-gating`, `whatsapp`                                                                                                                        | pending     |            |                                                                                         |
 | 08  | `employees`               | [08-employees.md](./08-employees.md)                             | `tenancy`, `plan-gating`                                                                                                                                 | pending     |            |                                                                                         |

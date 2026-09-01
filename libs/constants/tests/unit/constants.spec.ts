@@ -21,6 +21,7 @@ describe('ErrorCode', () => {
     expect(ErrorCode.MONEY_OR_STOCK_REQUIRED).toBe('MONEY_OR_STOCK_REQUIRED');
     expect(ErrorCode.INVALID_CEILING).toBe('INVALID_CEILING');
     expect(ErrorCode.INVALID_GST_SLAB).toBe('INVALID_GST_SLAB');
+    expect(ErrorCode.UNKNOWN_MODULE).toBe('UNKNOWN_MODULE');
   });
 });
 

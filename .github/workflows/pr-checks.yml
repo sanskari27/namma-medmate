@@ -84,6 +84,8 @@ jobs:
             audit-api,
             master-catalogue-ui,
             master-catalogue-api,
+            plan-gating-ui,
+            plan-gating-api,
           ]
         shard: [1]
     uses: ./.github/workflows/_reusable-playwright.yml
@@ -98,7 +100,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        project: [auth-ui, tenancy-ui, whatsapp-ui, audit-ui, master-catalogue-ui]
+        project: [auth-ui, tenancy-ui, whatsapp-ui, audit-ui, master-catalogue-ui, plan-gating-ui]
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:
       project: ${{ matrix.project }}

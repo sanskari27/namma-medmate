@@ -2,6 +2,7 @@
 @import 'tailwindcss';
 @source '../../../libs/shared-ui/src/**/*.{ts,tsx}';
 @source '../../../modules/tenancy/ui/src/**/*.{ts,tsx}';
+@source '../../../modules/plan-gating/ui/src/**/*.{ts,tsx}';
 
 body {
   margin: 0;

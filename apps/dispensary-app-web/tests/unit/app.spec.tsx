@@ -66,6 +66,56 @@ describe('dispensary app', () => {
     expect(screen.getByRole('heading', { name: 'WhatsApp' })).toBeInTheDocument();
   });
 
+  it('renders Free orders without a paywall', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/orders" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'Orders' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'View plans' })).not.toBeInTheDocument();
+  });
+
+  it('renders the Kiosk paywall on Free', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/kiosk" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'Unlock Pro' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'View plans' })).toHaveAttribute(
+      'href',
+      '/subscription',
+    );
+  });
+
+  it('renders inventory without a paywall', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/inventory" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'Inventory' })).toBeInTheDocument();
+  });
+
+  it('renders reports paywall on Free', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/reports" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'Unlock Growth' })).toBeInTheDocument();
+  });
+
+  it('renders the subscription stub', () => {
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/subscription" />
+      </AppProviders>,
+    );
+    expect(screen.getByRole('heading', { name: 'Subscription' })).toBeInTheDocument();
+  });
+
   it('renders the HQ master catalogue without the shop badge', async () => {
     render(
       <AppProviders>
