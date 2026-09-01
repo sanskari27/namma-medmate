@@ -102,3 +102,17 @@ export type {
   ListEmployeesResult,
   UpdateEmployeeInput,
 } from './employees/types.ts';
+export { createMemoryGoLiveKycRepository } from './go-live-kyc/memory-repository.ts';
+export { createSqlGoLiveKycRepository } from './go-live-kyc/sql-repository.ts';
+export { defaultWizardProgress, KYC_STATUSES, WIZARD_STATUSES } from './go-live-kyc/types.ts';
+export type {
+  GoLiveKycIdempotencyRecord,
+  GoLiveKycRecord,
+  GoLiveKycRepository,
+  KycStatus,
+  ListKycQueueInput,
+  ListKycQueueResult,
+  UpsertGoLiveKycInput,
+  WizardProgress,
+  WizardStatus,
+} from './go-live-kyc/types.ts';

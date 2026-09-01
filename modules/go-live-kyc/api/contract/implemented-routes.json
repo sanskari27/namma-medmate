@@ -1,0 +1,62 @@
+[
+  { "method": "get", "path": "/go-live-kyc/gate", "operationId": "getGoLiveKycGate" },
+  { "method": "get", "path": "/go-live-kyc/status", "operationId": "getGoLiveKycStatus" },
+  { "method": "put", "path": "/go-live-kyc/kyc", "operationId": "putGoLiveKyc" },
+  { "method": "get", "path": "/go-live-kyc/wizard", "operationId": "getGoLiveKycWizard" },
+  {
+    "method": "put",
+    "path": "/go-live-kyc/wizard/steps/1",
+    "operationId": "putGoLiveKycWizardStep1"
+  },
+  {
+    "method": "post",
+    "path": "/go-live-kyc/wizard/steps/2/upload-url",
+    "operationId": "createGoLiveKycOpeningStockUploadUrl"
+  },
+  {
+    "method": "post",
+    "path": "/go-live-kyc/wizard/steps/2",
+    "operationId": "postGoLiveKycWizardStep2"
+  },
+  {
+    "method": "put",
+    "path": "/go-live-kyc/wizard/steps/3",
+    "operationId": "putGoLiveKycWizardStep3"
+  },
+  {
+    "method": "put",
+    "path": "/go-live-kyc/wizard/steps/4",
+    "operationId": "putGoLiveKycWizardStep4"
+  },
+  {
+    "method": "put",
+    "path": "/go-live-kyc/wizard/steps/5",
+    "operationId": "putGoLiveKycWizardStep5"
+  },
+  {
+    "method": "post",
+    "path": "/go-live-kyc/wizard/complete",
+    "operationId": "completeGoLiveKycWizard"
+  },
+  { "method": "post", "path": "/go-live-kyc/wizard/rerun", "operationId": "rerunGoLiveKycWizard" },
+  {
+    "method": "get",
+    "path": "/go-live-kyc/admin/queue",
+    "operationId": "listGoLiveKycAdminQueue"
+  },
+  {
+    "method": "get",
+    "path": "/go-live-kyc/admin/pharmacies/:tenant_id",
+    "operationId": "getGoLiveKycAdminPharmacy"
+  },
+  {
+    "method": "post",
+    "path": "/go-live-kyc/admin/pharmacies/:tenant_id/kyc/approve",
+    "operationId": "approveGoLiveKyc"
+  },
+  {
+    "method": "post",
+    "path": "/go-live-kyc/admin/pharmacies/:tenant_id/kyc/reject",
+    "operationId": "rejectGoLiveKyc"
+  }
+]

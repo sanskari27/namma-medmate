@@ -35,6 +35,13 @@ describe('ErrorCode', () => {
     expect(ErrorCode.UPLOAD_KEY_INVALID).toBe('UPLOAD_KEY_INVALID');
     expect(ErrorCode.DOCUMENT_LIMIT).toBe('DOCUMENT_LIMIT');
     expect(ErrorCode.PHARMACIST_REG_INCOMPLETE).toBe('PHARMACIST_REG_INCOMPLETE');
+    expect(ErrorCode.OWNER_ONLY).toBe('OWNER_ONLY');
+    expect(ErrorCode.KYC_NOT_PENDING).toBe('KYC_NOT_PENDING');
+    expect(ErrorCode.KYC_FIELDS_INCOMPLETE).toBe('KYC_FIELDS_INCOMPLETE');
+    expect(ErrorCode.PRINT_SAMPLE_REQUIRED).toBe('PRINT_SAMPLE_REQUIRED');
+    expect(ErrorCode.OPENING_STOCK_FAILED).toBe('OPENING_STOCK_FAILED');
+    expect(ErrorCode.OPENING_BOOKS_FAILED).toBe('OPENING_BOOKS_FAILED');
+    expect(ErrorCode.OPENING_BOOKS_ALREADY_POSTED).toBe('OPENING_BOOKS_ALREADY_POSTED');
     expect(HttpStatus.METHOD_NOT_ALLOWED).toBe(405);
     expect(HttpStatus.PRECONDITION_FAILED).toBe(412);
     expect(HttpStatus.LOCKED).toBe(423);

@@ -30,7 +30,12 @@ const AppLayout = lazy(async () => {
   const { AppLayout: Layout } = await import('../layouts/app-layout.tsx');
   return { default: Layout };
 });
+const GoLiveKycRoute = lazy(async () => {
+  const { GoLiveKycRoute: Route } = await import('../../pages/go-live-kyc-page.tsx');
+  return { default: Route };
+});
 const HqMasterCatalogueRoute = lazy(() => import('./hq-master-catalogue-route.tsx'));
+const HqGoLiveKycRoute = lazy(() => import('./hq-go-live-kyc-route.tsx'));
 
 const gated = {
   '/orders': { moduleKey: 'orders', titleKey: 'planGating.stub.orders', moduleLabel: 'Orders' },
@@ -99,6 +104,20 @@ export function AppRoutes({ pathname = globalThis.location.pathname }: { pathnam
       <AuthenticatedLayout>
         <EmployeesRoute />
       </AuthenticatedLayout>
+    );
+  }
+  if (pathname === '/account/go-live') {
+    return (
+      <AuthenticatedLayout>
+        <GoLiveKycRoute />
+      </AuthenticatedLayout>
+    );
+  }
+  if (pathname === '/hq/go-live-kyc') {
+    return (
+      <Suspend>
+        <HqGoLiveKycRoute />
+      </Suspend>
     );
   }
   if (pathname === '/hq/master-catalogue') {

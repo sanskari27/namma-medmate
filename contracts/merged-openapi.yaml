@@ -751,6 +751,443 @@ paths:
           $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
+  /go-live-kyc/gate:
+    get:
+      operationId: getGoLiveKycGate
+      summary: Go-live gate for POS
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Gate
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GateSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/status:
+    get:
+      operationId: getGoLiveKycStatus
+      summary: Owner KYC status with masked bank
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Status
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StatusSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/kyc:
+    put:
+      operationId: putGoLiveKyc
+      summary: Submit or resubmit KYC
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: idempotency-key
+          in: header
+          required: false
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/KycSubmit'
+      responses:
+        '200':
+          description: Submitted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/KycSubmitSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard:
+    get:
+      operationId: getGoLiveKycWizard
+      summary: Wizard progress
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Wizard
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WizardSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/1:
+    put:
+      operationId: putGoLiveKycWizardStep1
+      summary: Pharmacy profile step
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Step1Body'
+      responses:
+        '200':
+          description: Step 1
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepStatusSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/2/upload-url:
+    post:
+      operationId: createGoLiveKycOpeningStockUploadUrl
+      summary: Presign opening-stock CSV
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/2:
+    post:
+      operationId: postGoLiveKycWizardStep2
+      summary: Opening stock CSV or zero stock
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Step2Body'
+      responses:
+        '200':
+          description: Step 2
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Step2Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/3:
+    put:
+      operationId: putGoLiveKycWizardStep3
+      summary: Opening books
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Step3Body'
+      responses:
+        '200':
+          description: Step 3
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Step3Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/4:
+    put:
+      operationId: putGoLiveKycWizardStep4
+      summary: Invoice prefix and print sample
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Step4Body'
+      responses:
+        '200':
+          description: Step 4
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StepStatusSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/steps/5:
+    put:
+      operationId: putGoLiveKycWizardStep5
+      summary: First user and counter PIN
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Step5Body'
+      responses:
+        '200':
+          description: Step 5
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Step5Success'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/complete:
+    post:
+      operationId: completeGoLiveKycWizard
+      summary: Complete wizard when FR-14 is satisfied
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Completed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WizardCompleteSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/wizard/rerun:
+    post:
+      operationId: rerunGoLiveKycWizard
+      summary: Re-run wizard without changing KYC
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Rerun
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WizardCompleteSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/admin/queue:
+    get:
+      operationId: listGoLiveKycAdminQueue
+      summary: HQ KYC queue
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum:
+              - pending
+              - approved
+              - rejected
+              - all
+            default: pending
+        - name: page
+          in: query
+          schema:
+            type: integer
+            default: 1
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+            default: 20
+      responses:
+        '200':
+          description: Queue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QueueSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/admin/pharmacies/{tenant_id}:
+    get:
+      operationId: getGoLiveKycAdminPharmacy
+      summary: HQ pharmacy KYC detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AdminPharmacySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/admin/pharmacies/{tenant_id}/kyc/approve:
+    post:
+      operationId: approveGoLiveKyc
+      summary: HQ approve pending KYC
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApproveSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /go-live-kyc/admin/pharmacies/{tenant_id}/kyc/reject:
+    post:
+      operationId: rejectGoLiveKyc
+      summary: HQ reject pending KYC
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/TenantId'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RejectBody'
+      responses:
+        '200':
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RejectSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
   /manage-users/seats:
     get:
       operationId: getManageUsersSeats
@@ -2928,9 +3365,12 @@ components:
       type: object
       additionalProperties: false
       required:
+        - file_name
         - content_type
         - byte_size
       properties:
+        file_name:
+          type: string
         content_type:
           type: string
         byte_size:
@@ -3031,6 +3471,492 @@ components:
           properties:
             deleted:
               type: boolean
+    Gate:
+      type: object
+      additionalProperties: false
+      required:
+        - allowed
+        - kyc_status
+        - wizard_status
+        - blockers
+      properties:
+        allowed:
+          type: boolean
+        kyc_status:
+          type: string
+        wizard_status:
+          type: string
+        blockers:
+          type: array
+          items:
+            type: string
+        reject_reason:
+          type: string
+    GateSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Gate'
+    StatusSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - kyc_status
+            - wizard_status
+            - wizard_progress
+            - gate
+            - bank_account_number_masked
+          properties:
+            kyc_status:
+              type: string
+            wizard_status:
+              type: string
+            kyc_reject_reason:
+              type: string
+              nullable: true
+            gstin:
+              type: string
+              nullable: true
+            pan:
+              type: string
+              nullable: true
+            bank_account_number_masked:
+              type: string
+              nullable: true
+            wizard_progress:
+              type: object
+              additionalProperties: true
+            gate:
+              $ref: '#/components/schemas/Gate'
+    KycSubmit:
+      type: object
+      additionalProperties: false
+      required:
+        - gstin
+        - pan
+        - drug_licence_no
+        - drug_licence_expiry
+        - pharmacist_name
+        - pharmacist_registration_no
+        - pharmacist_registration_expiry
+        - e_invoicing_enabled
+        - bank_account_holder
+        - bank_account_number
+        - bank_ifsc
+      properties:
+        gstin:
+          type: string
+        pan:
+          type: string
+        drug_licence_no:
+          type: string
+        drug_licence_issue:
+          type: string
+        drug_licence_expiry:
+          type: string
+        fssai_no:
+          type: string
+        fssai_expiry:
+          type: string
+        pharmacist_name:
+          type: string
+        pharmacist_registration_no:
+          type: string
+        pharmacist_registration_expiry:
+          type: string
+        e_invoicing_enabled:
+          type: boolean
+        bank_account_holder:
+          type: string
+        bank_account_number:
+          type: string
+        bank_ifsc:
+          type: string
+    KycSubmitSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - kyc_status
+            - submitted_at
+          properties:
+            kyc_status:
+              type: string
+            submitted_at:
+              type: string
+              format: date-time
+    WizardSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - wizard_status
+            - steps
+            - gate
+          properties:
+            wizard_status:
+              type: string
+            steps:
+              type: object
+              additionalProperties: true
+            gate:
+              $ref: '#/components/schemas/Gate'
+    Step1Body:
+      type: object
+      additionalProperties: false
+      required:
+        - gstin
+        - drug_licence_no
+        - drug_licence_expiry
+        - pharmacist_name
+        - pharmacist_registration_no
+        - pharmacist_registration_expiry
+        - e_invoicing_enabled
+      properties:
+        gstin:
+          type: string
+        drug_licence_no:
+          type: string
+        drug_licence_issue:
+          type: string
+        drug_licence_expiry:
+          type: string
+        fssai_no:
+          type: string
+        fssai_expiry:
+          type: string
+        pharmacist_name:
+          type: string
+        pharmacist_registration_no:
+          type: string
+        pharmacist_registration_expiry:
+          type: string
+        e_invoicing_enabled:
+          type: boolean
+    StepStatusSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+          properties:
+            status:
+              type: string
+    Step2Body:
+      type: object
+      additionalProperties: false
+      properties:
+        object_key:
+          type: string
+        zero_stock:
+          type: boolean
+    Step2Success:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - zero_stock
+          properties:
+            status:
+              type: string
+            zero_stock:
+              type: boolean
+            ingest_id:
+              type: string
+              nullable: true
+            ingest_pending:
+              type: boolean
+    Step3Body:
+      type: object
+      additionalProperties: false
+      properties:
+        start_at_zero:
+          type: boolean
+        skip_if_posted:
+          type: boolean
+        cash_in_till_paise:
+          type: integer
+        opening_khata:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+        opening_ap:
+          type: array
+          items:
+            type: object
+            additionalProperties: true
+    Step3Success:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - start_at_zero
+          properties:
+            status:
+              type: string
+            start_at_zero:
+              type: boolean
+    Step4Body:
+      type: object
+      additionalProperties: false
+      required:
+        - invoice_prefix
+        - print_sample_confirmed
+      properties:
+        invoice_prefix:
+          type: string
+        print_sample_confirmed:
+          type: boolean
+    Step5Body:
+      type: object
+      additionalProperties: false
+      required:
+        - owner_only
+        - owner_pin
+      properties:
+        owner_only:
+          type: boolean
+        owner_pin:
+          type: string
+        user:
+          type: object
+          additionalProperties: true
+    Step5Success:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - status
+            - created_user_id
+          properties:
+            status:
+              type: string
+            created_user_id:
+              type: string
+              nullable: true
+    WizardCompleteSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - wizard_status
+          properties:
+            wizard_status:
+              type: string
+    QueueSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - items
+            - page
+            - page_size
+            - total
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  - tenant_id
+                  - location_id
+                  - pharmacy_name
+                  - gstin
+                  - kyc_status
+                  - submitted_at
+                  - plan
+                properties:
+                  tenant_id:
+                    type: string
+                  location_id:
+                    type: string
+                  pharmacy_name:
+                    type: string
+                  gstin:
+                    type: string
+                    nullable: true
+                  kyc_status:
+                    type: string
+                  submitted_at:
+                    type: string
+                    nullable: true
+                  plan:
+                    type: string
+                    nullable: true
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total:
+              type: integer
+    AdminPharmacySuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: true
+    ApproveSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - kyc_status
+          properties:
+            kyc_status:
+              type: string
+    RejectBody:
+      type: object
+      additionalProperties: false
+      required:
+        - reason
+      properties:
+        reason:
+          type: string
+          minLength: 1
+          maxLength: 500
+    RejectSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          type: object
+          additionalProperties: false
+          required:
+            - kyc_status
+            - reason
+          properties:
+            kyc_status:
+              type: string
+            reason:
+              type: string
     Success:
       type: object
       additionalProperties: false
@@ -4548,6 +5474,12 @@ components:
       schema:
         type: string
         format: uuid
+    TenantId:
+      name: tenant_id
+      in: path
+      required: true
+      schema:
+        type: string
     UserId:
       name: user_id
       in: path
@@ -4562,12 +5494,6 @@ components:
       schema:
         type: string
         format: uuid
-    TenantId:
-      name: tenant_id
-      in: path
-      required: true
-      schema:
-        type: string
     LocationIdPath:
       name: location_id
       in: path

@@ -350,6 +350,278 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/go-live-kyc/gate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Go-live gate for POS */
+        get: operations["getGoLiveKycGate"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/status": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Owner KYC status with masked bank */
+        get: operations["getGoLiveKycStatus"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/kyc": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Submit or resubmit KYC */
+        put: operations["putGoLiveKyc"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Wizard progress */
+        get: operations["getGoLiveKycWizard"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/1": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Pharmacy profile step */
+        put: operations["putGoLiveKycWizardStep1"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/2/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presign opening-stock CSV */
+        post: operations["createGoLiveKycOpeningStockUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/2": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Opening stock CSV or zero stock */
+        post: operations["postGoLiveKycWizardStep2"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/3": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Opening books */
+        put: operations["putGoLiveKycWizardStep3"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/4": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Invoice prefix and print sample */
+        put: operations["putGoLiveKycWizardStep4"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/steps/5": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** First user and counter PIN */
+        put: operations["putGoLiveKycWizardStep5"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/complete": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Complete wizard when FR-14 is satisfied */
+        post: operations["completeGoLiveKycWizard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/wizard/rerun": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Re-run wizard without changing KYC */
+        post: operations["rerunGoLiveKycWizard"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/admin/queue": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** HQ KYC queue */
+        get: operations["listGoLiveKycAdminQueue"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/admin/pharmacies/{tenant_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** HQ pharmacy KYC detail */
+        get: operations["getGoLiveKycAdminPharmacy"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/admin/pharmacies/{tenant_id}/kyc/approve": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** HQ approve pending KYC */
+        post: operations["approveGoLiveKyc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/go-live-kyc/admin/pharmacies/{tenant_id}/kyc/reject": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** HQ reject pending KYC */
+        post: operations["rejectGoLiveKyc"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/manage-users/seats": {
         parameters: {
             query?: never;
@@ -1305,6 +1577,7 @@ export interface components {
             emergency_relation?: string | null;
         };
         UploadUrlRequest: {
+            file_name: string;
             content_type: string;
             byte_size: number;
         };
@@ -1341,6 +1614,191 @@ export interface components {
             success: true;
             data: {
                 deleted: boolean;
+            };
+        };
+        Gate: {
+            allowed: boolean;
+            kyc_status: string;
+            wizard_status: string;
+            blockers: string[];
+            reject_reason?: string;
+        };
+        GateSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Gate"];
+        };
+        StatusSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                kyc_status: string;
+                wizard_status: string;
+                kyc_reject_reason?: string | null;
+                gstin?: string | null;
+                pan?: string | null;
+                bank_account_number_masked: string | null;
+                wizard_progress: {
+                    [key: string]: unknown;
+                };
+                gate: components["schemas"]["Gate"];
+            };
+        };
+        KycSubmit: {
+            gstin: string;
+            pan: string;
+            drug_licence_no: string;
+            drug_licence_issue?: string;
+            drug_licence_expiry: string;
+            fssai_no?: string;
+            fssai_expiry?: string;
+            pharmacist_name: string;
+            pharmacist_registration_no: string;
+            pharmacist_registration_expiry: string;
+            e_invoicing_enabled: boolean;
+            bank_account_holder: string;
+            bank_account_number: string;
+            bank_ifsc: string;
+        };
+        KycSubmitSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                kyc_status: string;
+                /** Format: date-time */
+                submitted_at: string;
+            };
+        };
+        WizardSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                wizard_status: string;
+                steps: {
+                    [key: string]: unknown;
+                };
+                gate: components["schemas"]["Gate"];
+            };
+        };
+        Step1Body: {
+            gstin: string;
+            drug_licence_no: string;
+            drug_licence_issue?: string;
+            drug_licence_expiry: string;
+            fssai_no?: string;
+            fssai_expiry?: string;
+            pharmacist_name: string;
+            pharmacist_registration_no: string;
+            pharmacist_registration_expiry: string;
+            e_invoicing_enabled: boolean;
+        };
+        StepStatusSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                status: string;
+            };
+        };
+        Step2Body: {
+            object_key?: string;
+            zero_stock?: boolean;
+        };
+        Step2Success: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                status: string;
+                zero_stock: boolean;
+                ingest_id?: string | null;
+                ingest_pending?: boolean;
+            };
+        };
+        Step3Body: {
+            start_at_zero?: boolean;
+            skip_if_posted?: boolean;
+            cash_in_till_paise?: number;
+            opening_khata?: {
+                [key: string]: unknown;
+            }[];
+            opening_ap?: {
+                [key: string]: unknown;
+            }[];
+        };
+        Step3Success: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                status: string;
+                start_at_zero: boolean;
+            };
+        };
+        Step4Body: {
+            invoice_prefix: string;
+            print_sample_confirmed: boolean;
+        };
+        Step5Body: {
+            owner_only: boolean;
+            owner_pin: string;
+            user?: {
+                [key: string]: unknown;
+            };
+        };
+        Step5Success: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                status: string;
+                created_user_id: string | null;
+            };
+        };
+        WizardCompleteSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                wizard_status: string;
+            };
+        };
+        QueueSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                items: {
+                    tenant_id: string;
+                    location_id: string;
+                    pharmacy_name: string;
+                    gstin: string | null;
+                    kyc_status: string;
+                    submitted_at: string | null;
+                    plan: string | null;
+                }[];
+                page: number;
+                page_size: number;
+                total: number;
+            };
+        };
+        AdminPharmacySuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                [key: string]: unknown;
+            };
+        };
+        ApproveSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                kyc_status: string;
+            };
+        };
+        RejectBody: {
+            reason: string;
+        };
+        RejectSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                kyc_status: string;
+                reason: string;
             };
         };
         Success: {
@@ -1914,9 +2372,9 @@ export interface components {
         LocationIdQuery: string;
         EmployeeId: string;
         DocumentId: string;
+        TenantId: string;
         UserId: string;
         PlatformMasterSkuId: string;
-        TenantId: string;
         LocationIdPath: string;
     };
     requestBodies: never;
@@ -2684,6 +3142,484 @@ export interface operations {
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    getGoLiveKycGate: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Gate */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["GateSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getGoLiveKycStatus: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Status */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StatusSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    putGoLiveKyc: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+                "idempotency-key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["KycSubmit"];
+            };
+        };
+        responses: {
+            /** @description Submitted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["KycSubmitSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getGoLiveKycWizard: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Wizard */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WizardSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    putGoLiveKycWizardStep1: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Step1Body"];
+            };
+        };
+        responses: {
+            /** @description Step 1 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepStatusSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createGoLiveKycOpeningStockUploadUrl: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Upload URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadUrlSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    postGoLiveKycWizardStep2: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Step2Body"];
+            };
+        };
+        responses: {
+            /** @description Step 2 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Step2Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    putGoLiveKycWizardStep3: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Step3Body"];
+            };
+        };
+        responses: {
+            /** @description Step 3 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Step3Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    putGoLiveKycWizardStep4: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Step4Body"];
+            };
+        };
+        responses: {
+            /** @description Step 4 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StepStatusSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    putGoLiveKycWizardStep5: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["Step5Body"];
+            };
+        };
+        responses: {
+            /** @description Step 5 */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["Step5Success"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    completeGoLiveKycWizard: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Completed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WizardCompleteSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    rerunGoLiveKycWizard: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Rerun */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["WizardCompleteSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listGoLiveKycAdminQueue: {
+        parameters: {
+            query?: {
+                status?: "pending" | "approved" | "rejected" | "all";
+                page?: number;
+                page_size?: number;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Queue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["QueueSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getGoLiveKycAdminPharmacy: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AdminPharmacySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    approveGoLiveKyc: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Approved */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ApproveSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    rejectGoLiveKyc: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                tenant_id: components["parameters"]["TenantId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["RejectBody"];
+            };
+        };
+        responses: {
+            /** @description Rejected */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RejectSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
         };
     };
     getManageUsersSeats: {

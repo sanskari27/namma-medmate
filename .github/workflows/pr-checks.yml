@@ -90,6 +90,8 @@ jobs:
             manage-users-api,
             employees-ui,
             employees-api,
+            go-live-kyc-ui,
+            go-live-kyc-api,
           ]
         shard: [1]
     uses: ./.github/workflows/_reusable-playwright.yml
@@ -114,6 +116,7 @@ jobs:
             plan-gating-ui,
             manage-users-ui,
             employees-ui,
+            go-live-kyc-ui,
           ]
     uses: ./.github/workflows/_reusable-visual-regression.yml
     with:

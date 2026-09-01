@@ -197,7 +197,22 @@ describe('dispensary app', () => {
       'href',
       '/account/employees',
     );
+    expect(screen.getByRole('link', { name: 'Go-live setup' })).toHaveAttribute(
+      'href',
+      '/account/go-live',
+    );
     expect(screen.queryByRole('button', { name: 'Add employee' })).not.toBeInTheDocument();
+  });
+
+  it('renders the go-live wizard without a plan lock', async () => {
+    setAccessToken('token');
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/account/go-live" />
+      </AppProviders>,
+    );
+    expect(await screen.findByRole('heading', { name: 'Go-live wizard' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'View plans' })).not.toBeInTheDocument();
   });
 
   it('renders Manage users on /account/users', async () => {
@@ -277,6 +292,18 @@ describe('dispensary app', () => {
       </AppProviders>,
     );
     expect(await screen.findByRole('heading', { name: 'Master catalogue' })).toBeInTheDocument();
+    expect(screen.getAllByText('Platform HQ').length).toBeGreaterThan(0);
+    expect(screen.queryByText('Dispensary')).not.toBeInTheDocument();
+  });
+
+  it('renders the HQ KYC queue without the shop badge', async () => {
+    setAccessToken('token');
+    render(
+      <AppProviders>
+        <AppRoutes pathname="/hq/go-live-kyc" />
+      </AppProviders>,
+    );
+    expect(await screen.findByRole('heading', { name: 'KYC queue' })).toBeInTheDocument();
     expect(screen.getAllByText('Platform HQ').length).toBeGreaterThan(0);
     expect(screen.queryByText('Dispensary')).not.toBeInTheDocument();
   });

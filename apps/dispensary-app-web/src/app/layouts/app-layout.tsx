@@ -5,6 +5,7 @@ import { MandatoryWhatsAppBanner } from '@namma-medmate/whatsapp-ui';
 import { PlanGatingNav } from '@namma-medmate/plan-gating-ui';
 import { ManageUsersNavLink } from '@namma-medmate/manage-users-ui';
 import { EmployeesNavLink } from '@namma-medmate/employees-ui';
+import { GoLiveNavLink } from '@namma-medmate/go-live-kyc-ui';
 import { tenancyStore } from '../../store/tenancy.ts';
 import { whatsappStore } from '../../store/whatsapp.ts';
 import { planGatingStore } from '../../store/plan-gating.ts';
@@ -29,6 +30,7 @@ export function AppLayout({ children }: { children: ReactNode }) {
         </Provider>
         <ManageUsersNavLink />
         <EmployeesNavLink />
+        <GoLiveNavLink />
       </header>
       <Provider store={whatsappStore}>
         <MandatoryWhatsAppBanner skipQuery={skipTenancyQuery} locationId={getLocationId()} />
