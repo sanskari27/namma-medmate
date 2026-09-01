@@ -542,6 +542,120 @@ paths:
           $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
+  /plan-gating/entitlements:
+    get:
+      operationId: getPlanGatingEntitlements
+      summary: Compute pharmacy entitlements for the session location
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Entitlements
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EntitlementsSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /plan-gating/plans:
+    get:
+      operationId: listPlanGatingPlans
+      summary: Canonical plan catalogue for pharmacy and HQ
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Plan catalogue
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PlansSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /plan-gating/paywall:
+    get:
+      operationId: getPlanGatingPaywall
+      summary: Paywall metadata for a module key
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: module_key
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Paywall metadata
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaywallSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /plan-gating/role-defaults:
+    get:
+      operationId: getPlanGatingRoleDefaults
+      summary: Default role to module map
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Role defaults
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RoleDefaultsSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /plan-gating/evaluate:
+    post:
+      operationId: evaluatePlanGatingAccess
+      summary: Evaluate plan and role access for a module
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EvaluateRequest'
+      responses:
+        '200':
+          description: Access decision
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EvaluateSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
   /tenancy/pharmacies:
     post:
       operationId: createPharmacy
@@ -1626,6 +1740,232 @@ components:
             - true
         data:
           $ref: '#/components/schemas/AssertPriceResult'
+    PlanId:
+      type: string
+      enum:
+        - free
+        - starter
+        - growth
+        - pro
+    StaffRole:
+      type: string
+      enum:
+        - Owner
+        - Manager
+        - Pharmacist
+        - Cashier
+    ModuleFlags:
+      type: object
+      additionalProperties:
+        type: boolean
+    Entitlements:
+      type: object
+      additionalProperties: false
+      required:
+        - tenant_id
+        - location_id
+        - plan
+        - effective_plan
+        - status
+        - seatsLimit
+        - seatsUsed
+        - modules
+        - overrides
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        plan:
+          $ref: '#/components/schemas/PlanId'
+        effective_plan:
+          $ref: '#/components/schemas/PlanId'
+        status:
+          type: string
+          enum:
+            - active
+            - expired
+        seatsLimit:
+          type: integer
+          nullable: true
+        seatsUsed:
+          type: integer
+        seats_used_unknown:
+          type: boolean
+        modules:
+          $ref: '#/components/schemas/ModuleFlags'
+        overrides:
+          $ref: '#/components/schemas/ModuleFlags'
+    PlanCatalogueItem:
+      type: object
+      additionalProperties: false
+      required:
+        - plan
+        - monthly_inr
+        - annual_savings_copy
+        - seats_limit
+        - label_i18n
+      properties:
+        plan:
+          $ref: '#/components/schemas/PlanId'
+        monthly_inr:
+          type: integer
+        annual_savings_copy:
+          type: string
+          nullable: true
+        seats_limit:
+          type: integer
+          nullable: true
+        label_i18n:
+          type: string
+    Plans:
+      type: object
+      additionalProperties: false
+      required:
+        - gst_note
+        - i18n_key_gst
+        - items
+      properties:
+        gst_note:
+          type: string
+        i18n_key_gst:
+          type: string
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/PlanCatalogueItem'
+    Paywall:
+      type: object
+      additionalProperties: false
+      required:
+        - module_key
+        - unlocked
+        - required_plan
+        - required_plan_label_i18n
+        - monthly_inr
+        - gst_note
+        - title_i18n
+        - body_i18n
+      properties:
+        module_key:
+          type: string
+        unlocked:
+          type: boolean
+        required_plan:
+          $ref: '#/components/schemas/PlanId'
+        required_plan_label_i18n:
+          type: string
+        monthly_inr:
+          type: integer
+        gst_note:
+          type: string
+        title_i18n:
+          type: string
+        body_i18n:
+          type: string
+    RoleDefaults:
+      type: object
+      additionalProperties:
+        $ref: '#/components/schemas/ModuleFlags'
+    EvaluateRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - location_id
+        - module_key
+        - role
+      properties:
+        tenant_id:
+          type: string
+        location_id:
+          type: string
+        module_key:
+          type: string
+        role:
+          type: string
+        ticks: {}
+    EvaluateResult:
+      type: object
+      additionalProperties: false
+      required:
+        - allowed
+        - reason
+      properties:
+        allowed:
+          type: boolean
+        reason:
+          type: string
+          enum:
+            - ok
+            - plan_locked
+            - role_denied
+    EntitlementsSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Entitlements'
+    PlansSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Plans'
+    PaywallSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Paywall'
+    RoleDefaultsSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/RoleDefaults'
+    EvaluateSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/EvaluateResult'
     CreatePharmacyRequest:
       type: object
       additionalProperties: false
@@ -2172,6 +2512,12 @@ components:
       schema:
         type: string
         format: uuid
+    LocationIdQuery:
+      name: location_id
+      in: query
+      required: false
+      schema:
+        type: string
     TenantId:
       name: tenant_id
       in: path
@@ -2182,12 +2528,6 @@ components:
       name: location_id
       in: path
       required: true
-      schema:
-        type: string
-    LocationIdQuery:
-      name: location_id
-      in: query
-      required: false
       schema:
         type: string
   responses:

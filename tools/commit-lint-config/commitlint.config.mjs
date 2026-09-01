@@ -10,6 +10,8 @@ export default {
         'auth-api',
         'tenancy-ui',
         'tenancy-api',
+        'plan-gating-ui',
+        'plan-gating-api',
         'libs',
         'contracts',
         'infra',

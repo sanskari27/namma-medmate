@@ -196,6 +196,91 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/plan-gating/entitlements": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Compute pharmacy entitlements for the session location */
+        get: operations["getPlanGatingEntitlements"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan-gating/plans": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Canonical plan catalogue for pharmacy and HQ */
+        get: operations["listPlanGatingPlans"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan-gating/paywall": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Paywall metadata for a module key */
+        get: operations["getPlanGatingPaywall"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan-gating/role-defaults": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Default role to module map */
+        get: operations["getPlanGatingRoleDefaults"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/plan-gating/evaluate": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Evaluate plan and role access for a module */
+        post: operations["evaluatePlanGatingAccess"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tenancy/pharmacies": {
         parameters: {
             query?: never;
@@ -666,6 +751,90 @@ export interface components {
             success: true;
             data: components["schemas"]["AssertPriceResult"];
         };
+        /** @enum {string} */
+        PlanId: "free" | "starter" | "growth" | "pro";
+        /** @enum {string} */
+        StaffRole: "Owner" | "Manager" | "Pharmacist" | "Cashier";
+        ModuleFlags: {
+            [key: string]: boolean;
+        };
+        Entitlements: {
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            location_id: string;
+            plan: components["schemas"]["PlanId"];
+            effective_plan: components["schemas"]["PlanId"];
+            /** @enum {string} */
+            status: "active" | "expired";
+            seatsLimit: number | null;
+            seatsUsed: number;
+            seats_used_unknown?: boolean;
+            modules: components["schemas"]["ModuleFlags"];
+            overrides: components["schemas"]["ModuleFlags"];
+        };
+        PlanCatalogueItem: {
+            plan: components["schemas"]["PlanId"];
+            monthly_inr: number;
+            annual_savings_copy: string | null;
+            seats_limit: number | null;
+            label_i18n: string;
+        };
+        Plans: {
+            gst_note: string;
+            i18n_key_gst: string;
+            items: components["schemas"]["PlanCatalogueItem"][];
+        };
+        Paywall: {
+            module_key: string;
+            unlocked: boolean;
+            required_plan: components["schemas"]["PlanId"];
+            required_plan_label_i18n: string;
+            monthly_inr: number;
+            gst_note: string;
+            title_i18n: string;
+            body_i18n: string;
+        };
+        RoleDefaults: {
+            [key: string]: components["schemas"]["ModuleFlags"];
+        };
+        EvaluateRequest: {
+            tenant_id?: string;
+            location_id: string;
+            module_key: string;
+            role: string;
+            ticks?: unknown;
+        };
+        EvaluateResult: {
+            allowed: boolean;
+            /** @enum {string} */
+            reason: "ok" | "plan_locked" | "role_denied";
+        };
+        EntitlementsSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Entitlements"];
+        };
+        PlansSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Plans"];
+        };
+        PaywallSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Paywall"];
+        };
+        RoleDefaultsSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["RoleDefaults"];
+        };
+        EvaluateSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["EvaluateResult"];
+        };
         CreatePharmacyRequest: {
             display_name?: string;
             gst_dealer_type?: string;
@@ -873,9 +1042,9 @@ export interface components {
     parameters: {
         AuthorizationHeader: string;
         PlatformMasterSkuId: string;
+        LocationIdQuery: string;
         TenantId: string;
         LocationIdPath: string;
-        LocationIdQuery: string;
     };
     requestBodies: never;
     headers: never;
@@ -1372,6 +1541,138 @@ export interface operations {
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
             404: components["responses"]["Error"];
+        };
+    };
+    getPlanGatingEntitlements: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Entitlements */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EntitlementsSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    listPlanGatingPlans: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Plan catalogue */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PlansSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getPlanGatingPaywall: {
+        parameters: {
+            query: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                module_key: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Paywall metadata */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PaywallSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getPlanGatingRoleDefaults: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Role defaults */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RoleDefaultsSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    evaluatePlanGatingAccess: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EvaluateRequest"];
+            };
+        };
+        responses: {
+            /** @description Access decision */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EvaluateSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
         };
     };
     listPharmacies: {
