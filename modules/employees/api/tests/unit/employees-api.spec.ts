@@ -912,7 +912,7 @@ describe('employees-api', () => {
       tenantId: LOCAL_SEED_TENANT_ID,
       locationId: LOCAL_SEED_LOCATION_ID,
       loginId: 'second.user',
-      role: 'helper',
+      role: 'cashier',
       passwordEnabled: true,
       otpEnabled: false,
       permissions: {},
@@ -922,7 +922,7 @@ describe('employees-api', () => {
       tenantId: LOCAL_SEED_TENANT_ID,
       locationId: LOCAL_SEED_LOCATION_ID,
       loginId: 'prelinked.user',
-      role: 'helper',
+      role: 'cashier',
       passwordEnabled: true,
       otpEnabled: false,
       permissions: {},
@@ -1243,7 +1243,7 @@ describe('employees-api', () => {
           body,
           header: () => undefined,
         },
-      }) as AuthedRequest;
+      }) as unknown as AuthedRequest;
     await expect(getEmployee(runtime, authed({}))).rejects.toMatchObject({
       code: 'VALIDATION_ERROR',
     });
