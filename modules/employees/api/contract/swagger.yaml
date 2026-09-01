@@ -1,0 +1,910 @@
+openapi: 3.0.3
+info:
+  title: Namma MedMate Employees API
+  version: 0.1.0
+  description: Pharmacy HR directory for one Location. Not payroll.
+servers:
+  - url: /
+paths:
+  /employees/summary:
+    get:
+      operationId: getEmployeesSummary
+      summary: Headcount and role composition
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Summary
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SummarySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees:
+    get:
+      operationId: listEmployees
+      summary: List employees
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: position
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: page_size
+          in: query
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Employee page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeListSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createEmployee
+      summary: Create an employee
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: idempotency-key
+          in: header
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeWrite'
+      responses:
+        '201':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetailSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+  /employees/pharmacist-eligible:
+    get:
+      operationId: listPharmacistEligible
+      summary: Pharmacist-eligible employees for duty clock-in
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+      responses:
+        '200':
+          description: Eligible pharmacists
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PharmacistEligibleSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees/export.csv:
+    get:
+      operationId: exportEmployeesCsv
+      summary: CSV export of the current filter
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: position
+          in: query
+          schema:
+            type: string
+        - name: status
+          in: query
+          schema:
+            type: string
+        - name: q
+          in: query
+          schema:
+            type: string
+      responses:
+        '200':
+          description: CSV
+          content:
+            text/csv:
+              schema:
+                type: string
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}:
+    get:
+      operationId: getEmployee
+      summary: Employee detail
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '200':
+          description: Detail
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetailSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patchEmployee
+      summary: Partial update
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/EmployeeWrite'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetailSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+        '422':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: deleteEmployee
+      summary: Hard delete is not allowed in v1
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '405':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/photo/upload-url:
+    post:
+      operationId: createEmployeePhotoUploadUrl
+      summary: Presigned photo upload URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UploadUrlRequest'
+      responses:
+        '200':
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/photo:
+    put:
+      operationId: confirmEmployeePhoto
+      summary: Confirm photo object key
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmObjectKey'
+      responses:
+        '200':
+          description: Photo confirmed
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EmployeeDetailSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/documents/upload-url:
+    post:
+      operationId: createEmployeeDocumentUploadUrl
+      summary: Presigned document upload URL
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DocumentUploadUrlRequest'
+      responses:
+        '200':
+          description: Upload URL
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadUrlSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/documents:
+    post:
+      operationId: createEmployeeDocument
+      summary: Confirm a document after upload
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ConfirmDocument'
+      responses:
+        '201':
+          description: Document created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DocumentSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+        '409':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/documents/{document_id}:
+    delete:
+      operationId: deleteEmployeeDocument
+      summary: Remove a document
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+        - $ref: '#/components/parameters/DocumentId'
+      responses:
+        '200':
+          description: Deleted
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DeletedSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /employees/{employee_id}/id-card.pdf:
+    get:
+      operationId: getEmployeeIdCardPdf
+      summary: ID card PDF
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+      responses:
+        '200':
+          description: PDF
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+  parameters:
+    AuthorizationHeader:
+      name: authorization
+      in: header
+      required: true
+      schema:
+        type: string
+        pattern: ^Bearer\s+\S+$
+    LocationIdQuery:
+      name: location_id
+      in: query
+      required: false
+      schema:
+        type: string
+    EmployeeId:
+      name: employee_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+    DocumentId:
+      name: document_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            i18n_key:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
+    SummarySuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [headcount, composition]
+          properties:
+            headcount:
+              type: object
+              additionalProperties: false
+              required: [total, active, inactive, separated]
+              properties:
+                total:
+                  type: integer
+                active:
+                  type: integer
+                inactive:
+                  type: integer
+                separated:
+                  type: integer
+            composition:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required: [position, count]
+                properties:
+                  position:
+                    type: string
+                  count:
+                    type: integer
+    EmployeeListItem:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          employee_id,
+          employee_code,
+          full_name,
+          phone,
+          position,
+          status,
+          pharmacist_eligible,
+          aadhaar_masked,
+        ]
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_code:
+          type: string
+        full_name:
+          type: string
+        phone:
+          type: string
+        position:
+          type: string
+        position_label:
+          type: string
+          nullable: true
+        status:
+          type: string
+        join_date:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        pharmacist_eligible:
+          type: boolean
+        photo_url:
+          type: string
+          nullable: true
+        aadhaar_masked:
+          type: string
+          nullable: true
+    EmployeeListSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [items, page, page_size, total]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: '#/components/schemas/EmployeeListItem'
+            page:
+              type: integer
+            page_size:
+              type: integer
+            total:
+              type: integer
+    EmployeeDocument:
+      type: object
+      additionalProperties: false
+      required: [document_id, type, object_key, file_name, uploaded_at]
+      properties:
+        document_id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        object_key:
+          type: string
+        file_name:
+          type: string
+        uploaded_at:
+          type: string
+          format: date-time
+        download_url:
+          type: string
+          nullable: true
+    EmployeeDetail:
+      type: object
+      additionalProperties: false
+      required:
+        [
+          employee_id,
+          employee_code,
+          full_name,
+          phone,
+          position,
+          status,
+          pharmacist_eligible,
+          aadhaar_masked,
+          documents,
+        ]
+      properties:
+        employee_id:
+          type: string
+          format: uuid
+        employee_code:
+          type: string
+        full_name:
+          type: string
+        phone:
+          type: string
+        position:
+          type: string
+        position_label:
+          type: string
+          nullable: true
+        status:
+          type: string
+        join_date:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        pharmacist_eligible:
+          type: boolean
+        photo_url:
+          type: string
+          nullable: true
+        aadhaar_masked:
+          type: string
+          nullable: true
+        email:
+          type: string
+          nullable: true
+        date_of_birth:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        pan:
+          type: string
+          nullable: true
+        aadhaar:
+          type: string
+          nullable: true
+        pharmacist_registration_no:
+          type: string
+          nullable: true
+        pharmacist_registration_expiry:
+          type: string
+          nullable: true
+        bank_account_holder:
+          type: string
+          nullable: true
+        bank_account_number:
+          type: string
+          nullable: true
+        bank_ifsc:
+          type: string
+          nullable: true
+        bank_upi_id:
+          type: string
+          nullable: true
+        emergency_name:
+          type: string
+          nullable: true
+        emergency_phone:
+          type: string
+          nullable: true
+        emergency_relation:
+          type: string
+          nullable: true
+        documents:
+          type: array
+          items:
+            $ref: '#/components/schemas/EmployeeDocument'
+        created_at:
+          type: string
+          format: date-time
+        updated_at:
+          type: string
+          format: date-time
+    EmployeeDetailSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/EmployeeDetail'
+    PharmacistEligibleSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                type: object
+                additionalProperties: false
+                required:
+                  [
+                    employee_id,
+                    full_name,
+                    pharmacist_registration_no,
+                    pharmacist_registration_expiry,
+                  ]
+                properties:
+                  employee_id:
+                    type: string
+                  full_name:
+                    type: string
+                  pharmacist_registration_no:
+                    type: string
+                  pharmacist_registration_expiry:
+                    type: string
+                    nullable: true
+    EmployeeWrite:
+      type: object
+      additionalProperties: false
+      properties:
+        full_name:
+          type: string
+        phone:
+          type: string
+        email:
+          type: string
+          nullable: true
+        date_of_birth:
+          type: string
+          nullable: true
+        gender:
+          type: string
+          nullable: true
+        address:
+          type: string
+          nullable: true
+        position:
+          type: string
+        position_label:
+          type: string
+          nullable: true
+        status:
+          type: string
+        join_date:
+          type: string
+          nullable: true
+        employee_code:
+          type: string
+          nullable: true
+        user_id:
+          type: string
+          nullable: true
+        pan:
+          type: string
+          nullable: true
+        aadhaar:
+          type: string
+          nullable: true
+        pharmacist_registration_no:
+          type: string
+          nullable: true
+        pharmacist_registration_expiry:
+          type: string
+          nullable: true
+        bank_account_holder:
+          type: string
+          nullable: true
+        bank_account_number:
+          type: string
+          nullable: true
+        bank_ifsc:
+          type: string
+          nullable: true
+        bank_upi_id:
+          type: string
+          nullable: true
+        emergency_name:
+          type: string
+          nullable: true
+        emergency_phone:
+          type: string
+          nullable: true
+        emergency_relation:
+          type: string
+          nullable: true
+    UploadUrlRequest:
+      type: object
+      additionalProperties: false
+      required: [content_type, byte_size]
+      properties:
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+    DocumentUploadUrlRequest:
+      type: object
+      additionalProperties: false
+      required: [content_type, byte_size, type, file_name]
+      properties:
+        content_type:
+          type: string
+        byte_size:
+          type: integer
+        type:
+          type: string
+        file_name:
+          type: string
+    ConfirmObjectKey:
+      type: object
+      additionalProperties: false
+      required: [object_key]
+      properties:
+        object_key:
+          type: string
+    ConfirmDocument:
+      type: object
+      additionalProperties: false
+      required: [object_key, type, file_name]
+      properties:
+        object_key:
+          type: string
+        type:
+          type: string
+        file_name:
+          type: string
+    UploadUrlSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [upload_url, object_key, expires_in_seconds]
+          properties:
+            upload_url:
+              type: string
+            object_key:
+              type: string
+            expires_in_seconds:
+              type: integer
+    DocumentSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/EmployeeDocument'
+    DeletedSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          type: object
+          additionalProperties: false
+          required: [deleted]
+          properties:
+            deleted:
+              type: boolean

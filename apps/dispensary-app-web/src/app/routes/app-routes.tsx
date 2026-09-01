@@ -18,6 +18,10 @@ const ManageUsersRoute = lazy(async () => {
   const { ManageUsersRoute: Route } = await import('../../pages/manage-users-page.tsx');
   return { default: Route };
 });
+const EmployeesRoute = lazy(async () => {
+  const { EmployeesRoute: Route } = await import('../../pages/employees-page.tsx');
+  return { default: Route };
+});
 const GatedStubPage = lazy(async () => {
   const { GatedStubPage: Page } = await import('../../pages/gated-stub-page.tsx');
   return { default: Page };
@@ -87,6 +91,13 @@ export function AppRoutes({ pathname = globalThis.location.pathname }: { pathnam
     return (
       <AuthenticatedLayout>
         <ManageUsersRoute />
+      </AuthenticatedLayout>
+    );
+  }
+  if (pathname === '/account/employees') {
+    return (
+      <AuthenticatedLayout>
+        <EmployeesRoute />
       </AuthenticatedLayout>
     );
   }

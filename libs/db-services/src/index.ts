@@ -79,3 +79,26 @@ export type {
   SubstituteRecord,
   UpdatePlatformMasterSkuInput,
 } from './master-catalogue/types.ts';
+export { createMemoryEmployeesRepository } from './employees/memory-repository.ts';
+export { createSqlEmployeesRepository } from './employees/sql-repository.ts';
+export {
+  EMPLOYEE_DOCUMENT_TYPES,
+  EMPLOYEE_GENDERS,
+  EMPLOYEE_POSITIONS,
+  EMPLOYEE_STATUSES,
+} from './employees/types.ts';
+export type {
+  CreateEmployeeInput,
+  EmployeeDocumentRecord,
+  EmployeeDocumentType,
+  EmployeeGender,
+  EmployeePosition,
+  EmployeeRecord,
+  EmployeeStatus,
+  EmployeeSummary,
+  EmployeesIdempotencyRecord,
+  EmployeesRepository,
+  ListEmployeesInput,
+  ListEmployeesResult,
+  UpdateEmployeeInput,
+} from './employees/types.ts';

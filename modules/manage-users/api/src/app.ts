@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import {
   createMemoryAuthRepository,
+  createMemoryEmployeesRepository,
   createMemoryTenancyRepository,
   type AuthRepository,
   type TenancyRepository,
@@ -29,7 +30,7 @@ import { createResetPasswordController } from './controllers/reset-password.cont
 import { createRevokeAllDevicesController } from './controllers/revoke-all-devices.controller.ts';
 import { createRevokeDeviceController } from './controllers/revoke-device.controller.ts';
 import { createShareLinkController } from './controllers/share-link.controller.ts';
-import { MemoryEmployeesLookup, type EmployeesLookup } from './employees/lookup.ts';
+import { employeesLookupFromRepo, type EmployeesLookup } from './employees/lookup.ts';
 import { createAuthParser } from './http/parse-auth.ts';
 import { localSeedPharmacy } from './local-seed.ts';
 import { MemoryPlanGatingClient, type PlanGatingClient } from './plan-gating/client.ts';
@@ -167,7 +168,7 @@ export function createApp(env: ManageUsersEnv = loadManageUsersEnv(), deps: Mana
       (env.PLAN_GATING_API_BASE_URL
         ? createHttpPlanGatingClient(env.PLAN_GATING_API_BASE_URL)
         : new MemoryPlanGatingClient()),
-    employees: deps.employees ?? new MemoryEmployeesLookup(),
+    employees: deps.employees ?? employeesLookupFromRepo(createMemoryEmployeesRepository()),
     audit:
       deps.audit ??
       (env.AUDIT_API_BASE_URL && env.AUDIT_SERVICE_TOKEN

@@ -1,0 +1,10 @@
+export { EmployeesPage } from './components/employees-page.tsx';
+export type { EmployeesPageProps } from './components/employees-page.tsx';
+export { EmployeeDrawer } from './components/employee-drawer.tsx';
+export type { EmployeeDrawerProps } from './components/employee-drawer.tsx';
+export { AddEmployeeDialog } from './components/add-employee-dialog.tsx';
+export type { AddEmployeeDialogProps } from './components/add-employee-dialog.tsx';
+export { EmployeesNavLink } from './components/employees-nav-link.tsx';
+export { createEmployeesStore } from './store/index.ts';
+export type { EmployeesStore, EmployeesRootState } from './store/index.ts';
+import './events/events.contract.ts';

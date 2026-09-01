@@ -11,3 +11,4 @@ export {
   sessions,
   users,
 } from './auth-users.ts';
+export { employeeDocuments, employees, employeesIdempotency } from './employees.ts';

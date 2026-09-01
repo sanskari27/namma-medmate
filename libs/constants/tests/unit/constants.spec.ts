@@ -29,6 +29,13 @@ describe('ErrorCode', () => {
     expect(ErrorCode.SEAT_CAP_REACHED).toBe('SEAT_CAP_REACHED');
     expect(ErrorCode.AUTH_METHOD_REQUIRED).toBe('AUTH_METHOD_REQUIRED');
     expect(ErrorCode.OWNER_ACCESS_IMMUTABLE).toBe('OWNER_ACCESS_IMMUTABLE');
+    expect(ErrorCode.PLAN_REQUIRED).toBe('PLAN_REQUIRED');
+    expect(ErrorCode.EMPLOYEE_CODE_TAKEN).toBe('EMPLOYEE_CODE_TAKEN');
+    expect(ErrorCode.USER_ALREADY_LINKED).toBe('USER_ALREADY_LINKED');
+    expect(ErrorCode.UPLOAD_KEY_INVALID).toBe('UPLOAD_KEY_INVALID');
+    expect(ErrorCode.DOCUMENT_LIMIT).toBe('DOCUMENT_LIMIT');
+    expect(ErrorCode.PHARMACIST_REG_INCOMPLETE).toBe('PHARMACIST_REG_INCOMPLETE');
+    expect(HttpStatus.METHOD_NOT_ALLOWED).toBe(405);
     expect(HttpStatus.PRECONDITION_FAILED).toBe(412);
     expect(HttpStatus.LOCKED).toBe(423);
   });

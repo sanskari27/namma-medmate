@@ -4,6 +4,7 @@ import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
 import request from 'supertest';
 import {
   createMemoryAuthRepository,
+  createMemoryEmployeesRepository,
   createMemoryTenancyRepository,
   type AuthRepository,
 } from '@namma-medmate/db-services';
@@ -12,7 +13,7 @@ import { MemoryAuditClient } from '../../src/audit/client.ts';
 import { createHttpAuditClient } from '../../src/audit/http-client.ts';
 import { recordAudit } from '../../src/audit/record.ts';
 import { loadManageUsersEnv } from '../../src/config/env.ts';
-import { MemoryEmployeesLookup } from '../../src/employees/lookup.ts';
+import { MemoryEmployeesLookup, employeesLookupFromRepo } from '../../src/employees/lookup.ts';
 import {
   LOCAL_SEED_LOCATION_ID,
   LOCAL_SEED_OWNER_ID,
@@ -79,6 +80,23 @@ describe('resolveApiSpecPath', () => {
 });
 
 describe('helpers', () => {
+  it('looks up employees from db-services', async () => {
+    const repo = createMemoryEmployeesRepository();
+    const created = await repo.createEmployee({
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+      fullName: 'Anita',
+      phone: '+919800000000',
+      position: 'pharmacist',
+      status: 'active',
+    });
+    const lookup = employeesLookupFromRepo(repo);
+    await expect(lookup.getById(created.employeeId)).resolves.toMatchObject({
+      tenantId: LOCAL_SEED_TENANT_ID,
+    });
+    await expect(lookup.getById('missing')).resolves.toBeUndefined();
+  });
+
   it('requires a complete pharmacy claim set', () => {
     expect(
       principalFromSession({

@@ -11,6 +11,7 @@ export type {
   EndpointDefinition,
   HttpMethod,
   Parser,
+  RawHttpBody,
   ResponseMetadataCustomization,
   Validator,
 } from './route-attacher.ts';

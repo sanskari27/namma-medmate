@@ -160,6 +160,196 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/employees/summary": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Headcount and role composition */
+        get: operations["getEmployeesSummary"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List employees */
+        get: operations["listEmployees"];
+        put?: never;
+        /** Create an employee */
+        post: operations["createEmployee"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/pharmacist-eligible": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pharmacist-eligible employees for duty clock-in */
+        get: operations["listPharmacistEligible"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/export.csv": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** CSV export of the current filter */
+        get: operations["exportEmployeesCsv"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Employee detail */
+        get: operations["getEmployee"];
+        put?: never;
+        post?: never;
+        /** Hard delete is not allowed in v1 */
+        delete: operations["deleteEmployee"];
+        options?: never;
+        head?: never;
+        /** Partial update */
+        patch: operations["patchEmployee"];
+        trace?: never;
+    };
+    "/employees/{employee_id}/photo/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presigned photo upload URL */
+        post: operations["createEmployeePhotoUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}/photo": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Confirm photo object key */
+        put: operations["confirmEmployeePhoto"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}/documents/upload-url": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Presigned document upload URL */
+        post: operations["createEmployeeDocumentUploadUrl"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}/documents": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Confirm a document after upload */
+        post: operations["createEmployeeDocument"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}/documents/{document_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        post?: never;
+        /** Remove a document */
+        delete: operations["deleteEmployeeDocument"];
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/employees/{employee_id}/id-card.pdf": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** ID card PDF */
+        get: operations["getEmployeeIdCardPdf"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/manage-users/seats": {
         parameters: {
             query?: never;
@@ -986,6 +1176,173 @@ export interface components {
             success: true;
             data: components["schemas"]["RevokeDevices"];
         };
+        SummarySuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                headcount: {
+                    total: number;
+                    active: number;
+                    inactive: number;
+                    separated: number;
+                };
+                composition: {
+                    position: string;
+                    count: number;
+                }[];
+            };
+        };
+        EmployeeListItem: {
+            /** Format: uuid */
+            employee_id: string;
+            employee_code: string;
+            full_name: string;
+            phone: string;
+            position: string;
+            position_label?: string | null;
+            status: string;
+            join_date?: string | null;
+            user_id?: string | null;
+            pharmacist_eligible: boolean;
+            photo_url?: string | null;
+            aadhaar_masked: string | null;
+        };
+        EmployeeListSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                items: components["schemas"]["EmployeeListItem"][];
+                page: number;
+                page_size: number;
+                total: number;
+            };
+        };
+        EmployeeDocument: {
+            /** Format: uuid */
+            document_id: string;
+            type: string;
+            object_key: string;
+            file_name: string;
+            /** Format: date-time */
+            uploaded_at: string;
+            download_url?: string | null;
+        };
+        EmployeeDetail: {
+            /** Format: uuid */
+            employee_id: string;
+            employee_code: string;
+            full_name: string;
+            phone: string;
+            position: string;
+            position_label?: string | null;
+            status: string;
+            join_date?: string | null;
+            user_id?: string | null;
+            pharmacist_eligible: boolean;
+            photo_url?: string | null;
+            aadhaar_masked: string | null;
+            email?: string | null;
+            date_of_birth?: string | null;
+            gender?: string | null;
+            address?: string | null;
+            pan?: string | null;
+            aadhaar?: string | null;
+            pharmacist_registration_no?: string | null;
+            pharmacist_registration_expiry?: string | null;
+            bank_account_holder?: string | null;
+            bank_account_number?: string | null;
+            bank_ifsc?: string | null;
+            bank_upi_id?: string | null;
+            emergency_name?: string | null;
+            emergency_phone?: string | null;
+            emergency_relation?: string | null;
+            documents: components["schemas"]["EmployeeDocument"][];
+            /** Format: date-time */
+            created_at?: string;
+            /** Format: date-time */
+            updated_at?: string;
+        };
+        EmployeeDetailSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["EmployeeDetail"];
+        };
+        PharmacistEligibleSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                items: {
+                    employee_id: string;
+                    full_name: string;
+                    pharmacist_registration_no: string;
+                    pharmacist_registration_expiry: string | null;
+                }[];
+            };
+        };
+        EmployeeWrite: {
+            full_name?: string;
+            phone?: string;
+            email?: string | null;
+            date_of_birth?: string | null;
+            gender?: string | null;
+            address?: string | null;
+            position?: string;
+            position_label?: string | null;
+            status?: string;
+            join_date?: string | null;
+            employee_code?: string | null;
+            user_id?: string | null;
+            pan?: string | null;
+            aadhaar?: string | null;
+            pharmacist_registration_no?: string | null;
+            pharmacist_registration_expiry?: string | null;
+            bank_account_holder?: string | null;
+            bank_account_number?: string | null;
+            bank_ifsc?: string | null;
+            bank_upi_id?: string | null;
+            emergency_name?: string | null;
+            emergency_phone?: string | null;
+            emergency_relation?: string | null;
+        };
+        UploadUrlRequest: {
+            content_type: string;
+            byte_size: number;
+        };
+        DocumentUploadUrlRequest: {
+            content_type: string;
+            byte_size: number;
+            type: string;
+            file_name: string;
+        };
+        ConfirmObjectKey: {
+            object_key: string;
+        };
+        ConfirmDocument: {
+            object_key: string;
+            type: string;
+            file_name: string;
+        };
+        UploadUrlSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                upload_url: string;
+                object_key: string;
+                expires_in_seconds: number;
+            };
+        };
+        DocumentSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["EmployeeDocument"];
+        };
+        DeletedSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: {
+                deleted: boolean;
+            };
+        };
         Success: {
             /** @enum {boolean} */
             success: true;
@@ -1555,6 +1912,8 @@ export interface components {
     parameters: {
         AuthorizationHeader: string;
         LocationIdQuery: string;
+        EmployeeId: string;
+        DocumentId: string;
         UserId: string;
         PlatformMasterSkuId: string;
         TenantId: string;
@@ -1888,6 +2247,443 @@ export interface operations {
             400: components["responses"]["Error"];
             401: components["responses"]["Error"];
             403: components["responses"]["Error"];
+        };
+    };
+    getEmployeesSummary: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Summary */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SummarySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listEmployees: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                position?: string;
+                status?: string;
+                q?: string;
+                page?: number;
+                page_size?: number;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Employee page */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeListSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createEmployee: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+                "idempotency-key"?: string;
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeWrite"];
+            };
+        };
+        responses: {
+            /** @description Created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetailSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    listPharmacistEligible: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Eligible pharmacists */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PharmacistEligibleSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    exportEmployeesCsv: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                position?: string;
+                status?: string;
+                q?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description CSV */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "text/csv": string;
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getEmployee: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Detail */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetailSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    deleteEmployee: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            405: components["responses"]["Error"];
+        };
+    };
+    patchEmployee: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["EmployeeWrite"];
+            };
+        };
+        responses: {
+            /** @description Updated */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetailSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+            422: components["responses"]["Error"];
+        };
+    };
+    createEmployeePhotoUploadUrl: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["UploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Upload URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadUrlSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    confirmEmployeePhoto: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmObjectKey"];
+            };
+        };
+        responses: {
+            /** @description Photo confirmed */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["EmployeeDetailSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    createEmployeeDocumentUploadUrl: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["DocumentUploadUrlRequest"];
+            };
+        };
+        responses: {
+            /** @description Upload URL */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UploadUrlSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    createEmployeeDocument: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["ConfirmDocument"];
+            };
+        };
+        responses: {
+            /** @description Document created */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DocumentSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+            409: components["responses"]["Error"];
+        };
+    };
+    deleteEmployeeDocument: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+                document_id: components["parameters"]["DocumentId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Deleted */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["DeletedSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getEmployeeIdCardPdf: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                employee_id: components["parameters"]["EmployeeId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description PDF */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/pdf": string;
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     getManageUsersSeats: {

@@ -12,10 +12,10 @@ Exceptions (from `README.md`): implement `29-books-gst` period-lock + `postJourn
 
 | Status      | Count |
 | ----------- | ----: |
-| pending     |    33 |
+| pending     |    32 |
 | in_progress |     0 |
 | blocked     |     0 |
-| done        |     7 |
+| done        |     8 |
 
 ## Modules
 
@@ -28,7 +28,7 @@ Exceptions (from `README.md`): implement `29-books-gst` period-lock + `postJourn
 | 05  | `plan-gating`             | [05-plan-gating.md](./05-plan-gating.md)                         | `tenancy`                                                                                                                                                | done    | 2026-09-01 | Read-only entitlements, paywall, PlanGate. Catalogue in code. Billing writes later. |
 | 06  | `auth`                    | [06-auth.md](./06-auth.md)                                       | `tenancy`, `whatsapp`, `audit`                                                                                                                           | done    | 2026-09-01 | Chemist password/OTP/PIN; OIDC retained for HQ parsers only.                        |
 | 07  | `manage-users`            | [07-manage-users.md](./07-manage-users.md)                       | `auth`, `plan-gating`, `whatsapp`                                                                                                                        | done    | 2026-09-01 | Staff logins, seats, permissions, credential controls. `/account/users`.            |
-| 08  | `employees`               | [08-employees.md](./08-employees.md)                             | `tenancy`, `plan-gating`                                                                                                                                 | pending |            |                                                                                     |
+| 08  | `employees`               | [08-employees.md](./08-employees.md)                             | `tenancy`, `plan-gating`                                                                                                                                 | done    | 2026-09-01 | Pharmacy HR directory; Starter-gated `/account/employees`.                          |
 | 09  | `go-live-kyc`             | [09-go-live-kyc.md](./09-go-live-kyc.md)                         | `tenancy`, `plan-gating`, `audit`                                                                                                                        | pending |            |                                                                                     |
 | 10  | `account-settings`        | [10-account-settings.md](./10-account-settings.md)               | `tenancy`, `go-live-kyc`, `plan-gating`                                                                                                                  | pending |            |                                                                                     |
 | 11  | `saas-billing`            | [11-saas-billing.md](./11-saas-billing.md)                       | `tenancy`, `plan-gating`, `whatsapp`                                                                                                                     | pending |            |                                                                                     |
