@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import { createExpressApp } from '@namma-medmate/lambda-bootstrap';
 import {
   createMemoryAuditRepository,
@@ -57,6 +58,7 @@ function identity<T>(input: T): T {
 export interface AuditAppDeps {
   tenancy?: TenancyRepository;
   events?: AuditRepository;
+  lookupPharmacySession?: PharmacySessionLookup;
 }
 
 export function createApp(env = loadAuditEnv(), deps: AuditAppDeps = {}) {
@@ -67,7 +69,7 @@ export function createApp(env = loadAuditEnv(), deps: AuditAppDeps = {}) {
   });
   const tenancy = deps.tenancy ?? createMemoryTenancyRepository();
   const events = deps.events ?? createMemoryAuditRepository();
-  const parseAuth = createAuthParser(env);
+  const parseAuth = createAuthParser(env, deps.lookupPharmacySession);
 
   boot.attachRoute(
     ingestEventEndpoint,

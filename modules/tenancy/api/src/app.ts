@@ -3,6 +3,7 @@ import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createExpressApp } from '@namma-medmate/lambda-bootstrap';
 import { createMemoryTenancyRepository, type TenancyRepository } from '@namma-medmate/db-services';
+import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import { loadTenancyEnv } from './config/env.ts';
 import { createAuthParser } from './http/parse-auth.ts';
 import { createCreatePharmacyController } from './controllers/create-pharmacy.controller.ts';
@@ -80,13 +81,14 @@ function identity<T>(input: T): T {
 export function createApp(
   env = loadTenancyEnv(),
   repository: TenancyRepository = createMemoryTenancyRepository(),
+  lookupPharmacySession?: PharmacySessionLookup,
 ) {
   const boot = createExpressApp({
     serviceName: 'tenancy-api',
     logLevel: env.LOG_LEVEL,
     apiSpecPath: resolveApiSpecPath(),
   });
-  const parseAuth = createAuthParser(env);
+  const parseAuth = createAuthParser(env, lookupPharmacySession);
 
   boot.attachRoute(
     createPharmacyEndpoint,

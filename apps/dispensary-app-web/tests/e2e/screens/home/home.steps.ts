@@ -7,11 +7,3 @@ export async function openHome({ homePage }: { homePage: HomePage }): Promise<vo
 export async function expectHomeSession({ homePage }: { homePage: HomePage }): Promise<void> {
   await homePage.expectReady();
 }
-
-export async function expectHomeUnauthenticatedWidget({
-  homePage,
-}: {
-  homePage: HomePage;
-}): Promise<void> {
-  await homePage.expectWidgetHeading();
-}

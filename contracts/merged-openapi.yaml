@@ -144,60 +144,199 @@ paths:
           $ref: '#/components/responses/Error'
         '404':
           $ref: '#/components/responses/Error'
+  /auth/login/password:
+    post:
+      operationId: loginWithPassword
+      summary: Authenticate with login_id and password
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PasswordLoginRequest'
+      responses:
+        '200':
+          description: Session issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+  /auth/login/otp/request:
+    post:
+      operationId: requestLoginOtp
+      summary: Send a 4-digit WhatsApp OTP challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpRequest'
+      responses:
+        '200':
+          description: Challenge issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OtpChallengeSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+        '503':
+          $ref: '#/components/responses/Error'
+  /auth/login/otp/verify:
+    post:
+      operationId: verifyLoginOtp
+      summary: Verify a WhatsApp OTP challenge
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OtpVerifyRequest'
+      responses:
+        '200':
+          description: Session issued
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/LoginSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
+        '429':
+          $ref: '#/components/responses/Error'
+  /auth/pin/verify:
+    post:
+      operationId: verifyPin
+      summary: Verify counter PIN or unlock a saved device
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PinVerifyRequest'
+      responses:
+        '200':
+          description: PIN verified
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PinVerifySuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '412':
+          $ref: '#/components/responses/Error'
+        '423':
+          $ref: '#/components/responses/Error'
   /auth/session:
     get:
       operationId: getAuthSession
-      summary: Return the authenticated session identity
+      summary: Return the pharmacy session
       security:
         - bearerAuth: []
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
       responses:
         '200':
-          description: Authenticated session
+          description: Pharmacy session
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/SessionSuccess'
-              examples:
-                authenticated:
-                  value:
-                    success: true
-                    data:
-                      authenticated: true
-                      sub: user-1
-        '400':
-          description: Malformed request
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                malformed:
-                  value:
-                    success: false
-                    error:
-                      code: VALIDATION_ERROR
-                      message: Must be a Bearer token
         '401':
-          description: Missing or invalid access token
+          $ref: '#/components/responses/Error'
+  /auth/logout:
+    post:
+      operationId: logoutSession
+      summary: Revoke the current session
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      responses:
+        '200':
+          description: Session revoked
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ErrorEnvelope'
-              examples:
-                missing:
-                  value:
-                    success: false
-                    error:
-                      code: UNAUTHORIZED
-                      message: Missing Authorization header
-                invalid:
-                  value:
-                    success: false
-                    error:
-                      code: UNAUTHORIZED
-                      message: Invalid access token
+                $ref: '#/components/schemas/LogoutSuccess'
+        '401':
+          $ref: '#/components/responses/Error'
+  /auth/devices:
+    get:
+      operationId: listAuthDevices
+      summary: List saved devices for the caller or an Owner-scoped user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Saved devices
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DevicesSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    delete:
+      operationId: revokeAuthDevices
+      summary: Revoke all saved devices for a user
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/LocationIdQuery'
+        - name: user_id
+          in: query
+          required: false
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Devices revoked
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/RevokeDevicesSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
   /master-catalogue/skus:
     get:
       operationId: listMasterSkus
@@ -1232,6 +1371,247 @@ components:
             details:
               type: object
               additionalProperties: true
+    StaffRole:
+      type: string
+      enum:
+        - Owner
+        - Manager
+        - Pharmacist
+        - Cashier
+    PinPurpose:
+      type: string
+      enum:
+        - kiosk_exit
+        - fefo_override
+        - below_cost
+        - credit_limit
+        - saved_device_unlock
+    PasswordLoginRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - login_id
+        - password
+      properties:
+        login_id:
+          type: string
+        password:
+          type: string
+        remember_device:
+          type: boolean
+    OtpRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - login_id
+      properties:
+        login_id:
+          type: string
+    OtpVerifyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - login_id
+        - challenge_id
+        - otp
+      properties:
+        login_id:
+          type: string
+        challenge_id:
+          type: string
+        otp:
+          type: string
+        remember_device:
+          type: boolean
+    PinVerifyRequest:
+      type: object
+      additionalProperties: false
+      required:
+        - purpose
+        - pin
+      properties:
+        purpose:
+          $ref: '#/components/schemas/PinPurpose'
+        pin:
+          type: string
+        device_token:
+          type: string
+          nullable: true
+        kiosk_session_id:
+          type: string
+          nullable: true
+        login_id:
+          type: string
+    LoginSession:
+      type: object
+      additionalProperties: false
+      required:
+        - session_token
+        - session_id
+        - user_id
+        - tenant_id
+        - location_id
+        - role
+        - password_enabled
+        - otp_enabled
+        - device_token
+      properties:
+        session_token:
+          type: string
+        session_id:
+          type: string
+        user_id:
+          type: string
+        tenant_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/StaffRole'
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        device_token:
+          type: string
+          nullable: true
+    LoginSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/LoginSession'
+    OtpChallenge:
+      type: object
+      additionalProperties: false
+      required:
+        - challenge_id
+        - expires_at
+        - resend_available_at
+        - otp_length
+      properties:
+        challenge_id:
+          type: string
+        expires_at:
+          type: string
+          format: date-time
+        resend_available_at:
+          type: string
+          format: date-time
+        otp_length:
+          type: integer
+          enum:
+            - 4
+    OtpChallengeSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/OtpChallenge'
+    PinVerifyResult:
+      type: object
+      additionalProperties: false
+      required:
+        - verified
+        - verification_id
+        - purpose
+        - session_token
+      properties:
+        verified:
+          type: boolean
+        verification_id:
+          type: string
+          nullable: true
+        purpose:
+          $ref: '#/components/schemas/PinPurpose'
+        session_token:
+          type: string
+          nullable: true
+        session_id:
+          type: string
+        user_id:
+          type: string
+        tenant_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/StaffRole'
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        device_token:
+          type: string
+          nullable: true
+    PinVerifySuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/PinVerifyResult'
+    PharmacySession:
+      type: object
+      additionalProperties: false
+      required:
+        - session_id
+        - user_id
+        - login_id
+        - role
+        - tenant_id
+        - location_id
+        - password_enabled
+        - otp_enabled
+        - has_pin
+        - permissions_owner_frozen
+      properties:
+        session_id:
+          type: string
+        user_id:
+          type: string
+        login_id:
+          type: string
+        role:
+          $ref: '#/components/schemas/StaffRole'
+        tenant_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        password_enabled:
+          type: boolean
+        otp_enabled:
+          type: boolean
+        has_pin:
+          type: boolean
+        permissions_owner_frozen:
+          type: boolean
     SessionSuccess:
       type: object
       additionalProperties: false
@@ -1244,21 +1624,96 @@ components:
           enum:
             - true
         data:
-          $ref: '#/components/schemas/SessionIdentity'
-    SessionIdentity:
+          $ref: '#/components/schemas/PharmacySession'
+    LogoutResult:
       type: object
       additionalProperties: false
       required:
-        - authenticated
-        - sub
+        - revoked
       properties:
-        authenticated:
+        revoked:
+          type: boolean
+    LogoutSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
           type: boolean
           enum:
             - true
-        sub:
+        data:
+          $ref: '#/components/schemas/LogoutResult'
+    SavedDevice:
+      type: object
+      additionalProperties: false
+      required:
+        - device_id
+        - created_at
+        - expires_at
+        - last_used_at
+        - user_agent
+      properties:
+        device_id:
           type: string
-          minLength: 1
+        created_at:
+          type: string
+          format: date-time
+        expires_at:
+          type: string
+          format: date-time
+        last_used_at:
+          type: string
+          format: date-time
+        user_agent:
+          type: string
+          nullable: true
+    Devices:
+      type: object
+      additionalProperties: false
+      required:
+        - items
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SavedDevice'
+    DevicesSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/Devices'
+    RevokeDevices:
+      type: object
+      additionalProperties: false
+      required:
+        - revoked_count
+      properties:
+        revoked_count:
+          type: integer
+    RevokeDevicesSuccess:
+      type: object
+      additionalProperties: false
+      required:
+        - success
+        - data
+      properties:
+        success:
+          type: boolean
+          enum:
+            - true
+        data:
+          $ref: '#/components/schemas/RevokeDevices'
     Schedule:
       type: string
       description: OTC, H, H1, or X
@@ -1747,13 +2202,6 @@ components:
         - starter
         - growth
         - pro
-    StaffRole:
-      type: string
-      enum:
-        - Owner
-        - Manager
-        - Pharmacist
-        - Cashier
     ModuleFlags:
       type: object
       additionalProperties:
@@ -2505,6 +2953,12 @@ components:
       schema:
         type: string
         pattern: ^Bearer\s+\S+$
+    LocationIdQuery:
+      name: location_id
+      in: query
+      required: false
+      schema:
+        type: string
     PlatformMasterSkuId:
       name: platform_master_sku_id
       in: path
@@ -2512,12 +2966,6 @@ components:
       schema:
         type: string
         format: uuid
-    LocationIdQuery:
-      name: location_id
-      in: query
-      required: false
-      schema:
-        type: string
     TenantId:
       name: tenant_id
       in: path

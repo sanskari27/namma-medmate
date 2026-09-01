@@ -50,6 +50,11 @@ import {
   SelectTrigger,
   SelectValue,
   Switch,
+  Checkbox,
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
   cn,
 } from '../../src/index.ts';
 
@@ -321,5 +326,37 @@ describe('shared-ui', () => {
       'data-size',
       'sm',
     );
+  });
+
+  it('renders checkbox and input OTP public variants at 44px', () => {
+    render(
+      <div>
+        <Checkbox aria-label="Remember this device" />
+        <Checkbox defaultChecked aria-label="Remembered" />
+      </div>,
+    );
+    const unchecked = screen.getByRole('checkbox', { name: 'Remember this device' });
+    expect(unchecked).not.toBeChecked();
+    expect(unchecked.className).toContain('size-11');
+    expect(screen.getByRole('checkbox', { name: 'Remembered' })).toBeChecked();
+    cleanup();
+    render(
+      <InputOTP maxLength={4} value="12" onChange={() => undefined} aria-label="Login OTP">
+        <InputOTPGroup>
+          <InputOTPSlot index={0} />
+          <InputOTPSlot index={1} />
+          <InputOTPSlot index={2} />
+          <InputOTPSlot index={3} />
+        </InputOTPGroup>
+        <InputOTPSeparator />
+      </InputOTP>,
+    );
+    expect(document.querySelector('[data-slot="input-otp"]')).toBeInTheDocument();
+    expect(document.querySelectorAll('[data-slot="input-otp-slot"]').length).toBe(4);
+    expect(document.querySelector('[data-slot="input-otp-slot"]')?.className).toContain('size-11');
+    expect(screen.getByRole('separator')).toBeInTheDocument();
+    cleanup();
+    render(<InputOTPSlot index={0} />);
+    expect(document.querySelector('[data-slot="input-otp-slot"]')).toBeInTheDocument();
   });
 });

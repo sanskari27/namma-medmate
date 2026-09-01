@@ -1,9 +1,27 @@
-import { lazy, Suspense } from 'react';
-import { HomePage } from '../../pages/home-page.tsx';
-import { WhatsAppPage } from '../../pages/whatsapp-page.tsx';
-import { GatedStubPage } from '../../pages/gated-stub-page.tsx';
-import { AppLayout } from '../layouts/app-layout.tsx';
+import { lazy, Suspense, type ReactNode } from 'react';
+import { LoginPage } from '../../pages/login-page.tsx';
+import { getAccessToken, getDeviceToken } from '../../services/api/token.ts';
 
+const PinUnlockRoute = lazy(async () => {
+  const { PinUnlockRoute: Route } = await import('../../pages/pin-unlock-page.tsx');
+  return { default: Route };
+});
+const HomePage = lazy(async () => {
+  const { HomePage: Page } = await import('../../pages/home-page.tsx');
+  return { default: Page };
+});
+const WhatsAppPage = lazy(async () => {
+  const { WhatsAppPage: Page } = await import('../../pages/whatsapp-page.tsx');
+  return { default: Page };
+});
+const GatedStubPage = lazy(async () => {
+  const { GatedStubPage: Page } = await import('../../pages/gated-stub-page.tsx');
+  return { default: Page };
+});
+const AppLayout = lazy(async () => {
+  const { AppLayout: Layout } = await import('../layouts/app-layout.tsx');
+  return { default: Layout };
+});
 const HqMasterCatalogueRoute = lazy(() => import('./hq-master-catalogue-route.tsx'));
 
 const gated = {
@@ -22,32 +40,67 @@ const gated = {
   },
 } as const;
 
+function Suspend({ children }: { children: ReactNode }) {
+  return <Suspense fallback={null}>{children}</Suspense>;
+}
+
+function AuthenticatedLayout({ children }: { children: ReactNode }) {
+  return (
+    <Suspend>
+      <AppLayout>{children}</AppLayout>
+    </Suspend>
+  );
+}
+
 export function AppRoutes({ pathname = globalThis.location.pathname }: { pathname?: string } = {}) {
+  if (pathname === '/login') {
+    return <LoginPage />;
+  }
+  if (pathname === '/login/pin') {
+    return (
+      <Suspend>
+        <PinUnlockRoute />
+      </Suspend>
+    );
+  }
+  if (!getAccessToken()) {
+    return getDeviceToken() ? (
+      <Suspend>
+        <PinUnlockRoute />
+      </Suspend>
+    ) : (
+      <LoginPage />
+    );
+  }
   if (pathname === '/whatsapp') {
     return (
-      <AppLayout>
+      <AuthenticatedLayout>
         <WhatsAppPage />
-      </AppLayout>
+      </AuthenticatedLayout>
     );
   }
   if (pathname === '/hq/master-catalogue') {
     return (
-      <Suspense fallback={null}>
+      <Suspend>
         <HqMasterCatalogueRoute />
-      </Suspense>
+      </Suspend>
     );
   }
   const gate = gated[pathname as keyof typeof gated];
   if (gate) {
     return (
-      <AppLayout>
+      <AuthenticatedLayout>
         <GatedStubPage
           moduleKey={gate.moduleKey}
           titleKey={gate.titleKey}
           moduleLabel={gate.moduleLabel}
         />
-      </AppLayout>
+      </AuthenticatedLayout>
     );
   }
-  return <HomePage />;
+  return (
+    <Suspend>
+      <HomePage />
+    </Suspend>
+  );
 }

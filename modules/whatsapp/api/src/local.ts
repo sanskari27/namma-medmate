@@ -3,7 +3,9 @@ import {
   applySqlMigrations,
   createMemoryTenancyRepository,
   createMemoryWhatsAppRepository,
+  createPharmacySessionLookup,
   createPool,
+  createSqlAuthRepository,
   createSqlTenancyRepository,
   createSqlWhatsAppRepository,
 } from '@namma-medmate/db-services';
@@ -31,6 +33,7 @@ if (env.WHATSAPP_PERSISTENCE === 'postgres' && env.DATABASE_URL) {
       tenancy: createSqlTenancyRepository(pool),
       messages: createSqlWhatsAppRepository(pool),
       meta,
+      lookupPharmacySession: createPharmacySessionLookup(createSqlAuthRepository(pool)),
     }),
     env.WHATSAPP_API_PORT,
     'whatsapp-api',

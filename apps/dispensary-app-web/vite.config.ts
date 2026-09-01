@@ -12,5 +12,7 @@ export default defineConfig({
   },
   build: {
     sourcemap: true,
+    // Login is first paint; do not preload authenticated chrome chunks.
+    modulePreload: false,
   },
 });

@@ -1,7 +1,10 @@
 [
-  {
-    "method": "get",
-    "path": "/auth/session",
-    "operationId": "getAuthSession"
-  }
+  { "method": "post", "path": "/auth/login/password", "operationId": "loginWithPassword" },
+  { "method": "post", "path": "/auth/login/otp/request", "operationId": "requestLoginOtp" },
+  { "method": "post", "path": "/auth/login/otp/verify", "operationId": "verifyLoginOtp" },
+  { "method": "post", "path": "/auth/pin/verify", "operationId": "verifyPin" },
+  { "method": "get", "path": "/auth/session", "operationId": "getAuthSession" },
+  { "method": "post", "path": "/auth/logout", "operationId": "logoutSession" },
+  { "method": "get", "path": "/auth/devices", "operationId": "listAuthDevices" },
+  { "method": "delete", "path": "/auth/devices", "operationId": "revokeAuthDevices" }
 ]

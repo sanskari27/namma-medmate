@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import { createExpressApp } from '@namma-medmate/lambda-bootstrap';
 import { createMemoryTenancyRepository, type TenancyRepository } from '@namma-medmate/db-services';
 import type { Logger } from '@namma-medmate/logger';
@@ -73,6 +74,7 @@ export interface PlanGatingDeps {
   overrides: OverrideReader;
   seats: SeatsReader;
   logger?: Logger;
+  lookupPharmacySession?: PharmacySessionLookup;
 }
 
 export function createDefaultDeps(): PlanGatingDeps {
@@ -90,7 +92,7 @@ export function createApp(env = loadPlanGatingEnv(), deps: PlanGatingDeps = crea
     logLevel: env.LOG_LEVEL,
     apiSpecPath: resolveApiSpecPath(),
   });
-  const parseAuth = createAuthParser(env);
+  const parseAuth = createAuthParser(env, deps.lookupPharmacySession);
   const logger = deps.logger ?? boot.logger;
   const wired = { ...deps, logger };
 

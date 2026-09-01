@@ -1,5 +1,6 @@
 import { e2eTags, taggedTitle } from '@namma-medmate/e2e-kit';
 import { reachAuthenticatedWidget } from '../../flows/reach-authenticated-widget.flow.ts';
+import { reachLoginMethods } from '../../flows/reach-login-methods.flow.ts';
 import { test } from '../../fixtures/e2e-test.ts';
 
 test(
@@ -8,3 +9,7 @@ test(
     await reachAuthenticatedWidget({ authWidgetPage });
   },
 );
+
+test(taggedTitle('login methods are reachable', e2eTags.smoke), async ({ loginPage }) => {
+  await reachLoginMethods({ loginPage });
+});

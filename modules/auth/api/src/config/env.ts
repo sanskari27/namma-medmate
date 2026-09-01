@@ -5,9 +5,16 @@ export const authEnvSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   LOG_LEVEL: z.enum(['debug', 'info', 'warn', 'error']).default('info'),
   AUTH_API_PORT: z.coerce.number().int().min(1).default(3001),
-  OIDC_ISSUER: z.string().url(),
-  OIDC_AUDIENCE: z.string().min(1),
-  OIDC_JWKS_URI: z.string().url(),
+  AUTH_PERSISTENCE: z.enum(['memory', 'postgres']).default('memory'),
+  DATABASE_URL: z.string().optional(),
+  WHATSAPP_API_BASE_URL: z.string().url().optional(),
+  WHATSAPP_SERVICE_TOKEN: z.string().min(1).optional(),
+  AUDIT_API_BASE_URL: z.string().url().optional(),
+  AUDIT_SERVICE_TOKEN: z.string().min(1).optional(),
+  AUTH_FIXED_OTP: z
+    .string()
+    .regex(/^\d{4}$/)
+    .optional(),
 });
 
 export type AuthEnv = z.infer<typeof authEnvSchema>;

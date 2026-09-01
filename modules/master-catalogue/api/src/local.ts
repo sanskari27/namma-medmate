@@ -3,7 +3,9 @@ import {
   applySqlMigrations,
   createMemoryMasterCatalogueRepository,
   createMemoryTenancyRepository,
+  createPharmacySessionLookup,
   createPool,
+  createSqlAuthRepository,
   createSqlMasterCatalogueRepository,
   createSqlTenancyRepository,
 } from '@namma-medmate/db-services';
@@ -28,6 +30,7 @@ if (env.MASTER_CATALOGUE_PERSISTENCE === 'postgres' && env.DATABASE_URL) {
     createApp(env, {
       tenancy: createSqlTenancyRepository(pool),
       catalogue: createSqlMasterCatalogueRepository(pool),
+      lookupPharmacySession: createPharmacySessionLookup(createSqlAuthRepository(pool)),
     }),
     env.MASTER_CATALOGUE_API_PORT,
     'master-catalogue-api',

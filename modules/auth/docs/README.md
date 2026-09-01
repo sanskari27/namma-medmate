@@ -1,6 +1,6 @@
 # Auth module
 
-Auth is the first domain module. It validates a caller’s OIDC access token and surfaces a minimal session identity in the dispensary app.
+Pharmacy Partner Console chemist login: password and/or WhatsApp OTP, counter PIN, opaque sessions, and saved devices. HQ IdP stays out of this module.
 
 ## Projects
 
@@ -8,4 +8,4 @@ Auth is the first domain module. It validates a caller’s OIDC access token and
 - API: `@namma-medmate/auth-api`
 - Docs: this folder
 
-UI and API never import each other. The UI talks to the API only through `@namma-medmate/api-client`.
+UI talks to the API only through `@namma-medmate/api-client`. Persistence lives in `@namma-medmate/db-services`.

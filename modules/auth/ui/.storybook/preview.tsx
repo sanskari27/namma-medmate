@@ -1,6 +1,7 @@
 import type { Preview } from '@storybook/react';
 import { Provider } from 'react-redux';
 import { createAuthStore } from '../src/store/index.ts';
+import './preview.css';
 
 const preview: Preview = {
   decorators: [

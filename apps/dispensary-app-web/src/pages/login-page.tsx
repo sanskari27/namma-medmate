@@ -1,0 +1,9 @@
+import { ChemistLoginPage } from '@namma-medmate/auth-ui';
+
+export function LoginPage() {
+  return (
+    <main className="flex min-h-screen items-center justify-center bg-background px-6 py-10">
+      <ChemistLoginPage />
+    </main>
+  );
+}

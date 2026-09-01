@@ -1,5 +1,12 @@
 export { AuthWidget } from './components/auth-widget.tsx';
+export { LoginPage } from './components/login-page.tsx';
+export { OtpChallengeForm } from './components/otp-challenge-form.tsx';
+export { PinUnlockPage } from './components/pin-unlock-page.tsx';
+export { LockoutBanner } from './components/lockout-banner.tsx';
+export { ChemistLoginPage } from './components/chemist-login-page.tsx';
+export { ChemistPinUnlockPage } from './components/chemist-pin-unlock-page.tsx';
 export { createAuthStore } from './store/index.ts';
 export type { AuthStore, AuthRootState } from './store/index.ts';
 export type { AuthWidgetProps } from './types/auth-widget.ts';
+export type { AuthApiContext, AuthSessionPersist } from './store/api/auth-api.ts';
 import './events/events.contract.ts';

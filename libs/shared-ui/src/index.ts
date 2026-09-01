@@ -67,4 +67,13 @@ export {
   SelectValue,
 } from './components/select.tsx';
 export { Switch } from './components/switch.tsx';
+export { Checkbox } from './components/checkbox.tsx';
+export type { CheckboxProps } from './components/checkbox.tsx';
+export {
+  InputOTP,
+  InputOTPGroup,
+  InputOTPSlot,
+  InputOTPSeparator,
+} from './components/input-otp.tsx';
+export type { InputOTPProps } from './components/input-otp.tsx';
 export { cn } from './lib/utils.ts';
