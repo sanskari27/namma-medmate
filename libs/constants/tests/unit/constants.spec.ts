@@ -22,6 +22,11 @@ describe('ErrorCode', () => {
     expect(ErrorCode.INVALID_CEILING).toBe('INVALID_CEILING');
     expect(ErrorCode.INVALID_GST_SLAB).toBe('INVALID_GST_SLAB');
     expect(ErrorCode.UNKNOWN_MODULE).toBe('UNKNOWN_MODULE');
+    expect(ErrorCode.INVALID_CREDENTIALS).toBe('INVALID_CREDENTIALS');
+    expect(ErrorCode.ACCOUNT_LOCKED).toBe('ACCOUNT_LOCKED');
+    expect(ErrorCode.UNAUTHENTICATED).toBe('UNAUTHENTICATED');
+    expect(HttpStatus.PRECONDITION_FAILED).toBe(412);
+    expect(HttpStatus.LOCKED).toBe(423);
   });
 });
 

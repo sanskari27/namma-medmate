@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import { createExpressApp } from '@namma-medmate/lambda-bootstrap';
 import {
   createMemoryTenancyRepository,
@@ -94,6 +95,7 @@ export interface WhatsAppAppDeps {
   messages?: WhatsAppRepository;
   meta?: MetaClient;
   scheduler?: RetryScheduler;
+  lookupPharmacySession?: PharmacySessionLookup;
 }
 
 export function createApp(env = loadWhatsAppEnv(), deps: WhatsAppAppDeps = {}) {
@@ -113,7 +115,7 @@ export function createApp(env = loadWhatsAppEnv(), deps: WhatsAppAppDeps = {}) {
     scheduler,
     logger: boot.logger,
   });
-  const parseAuth = createAuthParser(env);
+  const parseAuth = createAuthParser(env, deps.lookupPharmacySession);
 
   boot.attachRoute(
     sendMessageEndpoint,

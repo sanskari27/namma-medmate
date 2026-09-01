@@ -3,8 +3,10 @@ import {
   applySqlMigrations,
   createMemoryAuditRepository,
   createMemoryTenancyRepository,
+  createPharmacySessionLookup,
   createPool,
   createSqlAuditRepository,
+  createSqlAuthRepository,
   createSqlTenancyRepository,
 } from '@namma-medmate/db-services';
 import { dirname, join } from 'node:path';
@@ -28,6 +30,7 @@ if (env.AUDIT_PERSISTENCE === 'postgres' && env.DATABASE_URL) {
     createApp(env, {
       tenancy: createSqlTenancyRepository(pool),
       events: createSqlAuditRepository(pool),
+      lookupPharmacySession: createPharmacySessionLookup(createSqlAuthRepository(pool)),
     }),
     env.AUDIT_API_PORT,
     'audit-api',

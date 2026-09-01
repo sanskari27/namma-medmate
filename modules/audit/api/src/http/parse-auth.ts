@@ -2,7 +2,8 @@ import { timingSafeEqual } from 'node:crypto';
 import type { Request } from 'express';
 import {
   extractBearerToken,
-  verifyAccessToken,
+  verifyBearer,
+  type PharmacySessionLookup,
   type VerifiedSession,
 } from '@namma-medmate/auth-utils';
 import {
@@ -24,7 +25,7 @@ function tokensMatch(provided: string, expected: string): boolean {
   return left.length === right.length && timingSafeEqual(left, right);
 }
 
-export function createAuthParser(env: AuditEnv) {
+export function createAuthParser(env: AuditEnv, lookupPharmacySession?: PharmacySessionLookup) {
   return async function parseAuth(req: Request): Promise<AuthedRequest> {
     const headers = parseAuthorizationHeader(req);
     validateAuthorizationHeader(headers);
@@ -32,10 +33,13 @@ export function createAuthParser(env: AuditEnv) {
     if (tokensMatch(token, env.AUDIT_SERVICE_TOKEN)) {
       return { principal: { kind: 'service', sub: 'audit-service' }, req };
     }
-    const session = await verifyAccessToken(token, {
-      issuer: env.OIDC_ISSUER,
-      audience: env.OIDC_AUDIENCE,
-      jwksUri: env.OIDC_JWKS_URI,
+    const session = await verifyBearer(token, {
+      oidc: {
+        issuer: env.OIDC_ISSUER,
+        audience: env.OIDC_AUDIENCE,
+        jwksUri: env.OIDC_JWKS_URI,
+      },
+      lookupPharmacySession,
     });
     return { principal: principalFromSession(session), session, req };
   };

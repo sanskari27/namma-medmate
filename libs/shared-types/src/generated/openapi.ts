@@ -40,6 +40,74 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/auth/login/password": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Authenticate with login_id and password */
+        post: operations["loginWithPassword"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login/otp/request": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Send a 4-digit WhatsApp OTP challenge */
+        post: operations["requestLoginOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/login/otp/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify a WhatsApp OTP challenge */
+        post: operations["verifyLoginOtp"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/pin/verify": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Verify counter PIN or unlock a saved device */
+        post: operations["verifyPin"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/auth/session": {
         parameters: {
             query?: never;
@@ -47,11 +115,46 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Return the authenticated session identity */
+        /** Return the pharmacy session */
         get: operations["getAuthSession"];
         put?: never;
         post?: never;
         delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/logout": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Revoke the current session */
+        post: operations["logoutSession"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/auth/devices": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List saved devices for the caller or an Owner-scoped user */
+        get: operations["listAuthDevices"];
+        put?: never;
+        post?: never;
+        /** Revoke all saved devices for a user */
+        delete: operations["revokeAuthDevices"];
         options?: never;
         head?: never;
         patch?: never;
@@ -561,15 +664,136 @@ export interface components {
                 };
             };
         };
+        /** @enum {string} */
+        StaffRole: "Owner" | "Manager" | "Pharmacist" | "Cashier";
+        /** @enum {string} */
+        PinPurpose: "kiosk_exit" | "fefo_override" | "below_cost" | "credit_limit" | "saved_device_unlock";
+        PasswordLoginRequest: {
+            login_id: string;
+            password: string;
+            remember_device?: boolean;
+        };
+        OtpRequest: {
+            login_id: string;
+        };
+        OtpVerifyRequest: {
+            login_id: string;
+            challenge_id: string;
+            otp: string;
+            remember_device?: boolean;
+        };
+        PinVerifyRequest: {
+            purpose: components["schemas"]["PinPurpose"];
+            pin: string;
+            device_token?: string | null;
+            kiosk_session_id?: string | null;
+            login_id?: string;
+        };
+        LoginSession: {
+            session_token: string;
+            session_id: string;
+            user_id: string;
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            location_id: string;
+            role: components["schemas"]["StaffRole"];
+            password_enabled: boolean;
+            otp_enabled: boolean;
+            device_token: string | null;
+        };
+        LoginSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["LoginSession"];
+        };
+        OtpChallenge: {
+            challenge_id: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            resend_available_at: string;
+            /** @enum {integer} */
+            otp_length: 4;
+        };
+        OtpChallengeSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["OtpChallenge"];
+        };
+        PinVerifyResult: {
+            verified: boolean;
+            verification_id: string | null;
+            purpose: components["schemas"]["PinPurpose"];
+            session_token: string | null;
+            session_id?: string;
+            user_id?: string;
+            /** Format: uuid */
+            tenant_id?: string;
+            /** Format: uuid */
+            location_id?: string;
+            role?: components["schemas"]["StaffRole"];
+            password_enabled?: boolean;
+            otp_enabled?: boolean;
+            device_token?: string | null;
+        };
+        PinVerifySuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["PinVerifyResult"];
+        };
+        PharmacySession: {
+            session_id: string;
+            user_id: string;
+            login_id: string;
+            role: components["schemas"]["StaffRole"];
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            location_id: string;
+            password_enabled: boolean;
+            otp_enabled: boolean;
+            has_pin: boolean;
+            permissions_owner_frozen: boolean;
+        };
         SessionSuccess: {
             /** @enum {boolean} */
             success: true;
-            data: components["schemas"]["SessionIdentity"];
+            data: components["schemas"]["PharmacySession"];
         };
-        SessionIdentity: {
+        LogoutResult: {
+            revoked: boolean;
+        };
+        LogoutSuccess: {
             /** @enum {boolean} */
-            authenticated: true;
-            sub: string;
+            success: true;
+            data: components["schemas"]["LogoutResult"];
+        };
+        SavedDevice: {
+            device_id: string;
+            /** Format: date-time */
+            created_at: string;
+            /** Format: date-time */
+            expires_at: string;
+            /** Format: date-time */
+            last_used_at: string;
+            user_agent: string | null;
+        };
+        Devices: {
+            items: components["schemas"]["SavedDevice"][];
+        };
+        DevicesSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["Devices"];
+        };
+        RevokeDevices: {
+            revoked_count: number;
+        };
+        RevokeDevicesSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["RevokeDevices"];
         };
         /** @description OTC, H, H1, or X */
         Schedule: string;
@@ -753,8 +977,6 @@ export interface components {
         };
         /** @enum {string} */
         PlanId: "free" | "starter" | "growth" | "pro";
-        /** @enum {string} */
-        StaffRole: "Owner" | "Manager" | "Pharmacist" | "Cashier";
         ModuleFlags: {
             [key: string]: boolean;
         };
@@ -1041,8 +1263,8 @@ export interface components {
     };
     parameters: {
         AuthorizationHeader: string;
-        PlatformMasterSkuId: string;
         LocationIdQuery: string;
+        PlatformMasterSkuId: string;
         TenantId: string;
         LocationIdPath: string;
     };
@@ -1159,6 +1381,121 @@ export interface operations {
             404: components["responses"]["Error"];
         };
     };
+    loginWithPassword: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PasswordLoginRequest"];
+            };
+        };
+        responses: {
+            /** @description Session issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            423: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    requestLoginOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpRequest"];
+            };
+        };
+        responses: {
+            /** @description Challenge issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["OtpChallengeSuccess"];
+                };
+            };
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            423: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+            503: components["responses"]["Error"];
+        };
+    };
+    verifyLoginOtp: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["OtpVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description Session issued */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["LoginSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            423: components["responses"]["Error"];
+            429: components["responses"]["Error"];
+        };
+    };
+    verifyPin: {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PinVerifyRequest"];
+            };
+        };
+        responses: {
+            /** @description PIN verified */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["PinVerifySuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            412: components["responses"]["Error"];
+            423: components["responses"]["Error"];
+        };
+    };
     getAuthSession: {
         parameters: {
             query?: never;
@@ -1170,7 +1507,7 @@ export interface operations {
         };
         requestBody?: never;
         responses: {
-            /** @description Authenticated session */
+            /** @description Pharmacy session */
             200: {
                 headers: {
                     [name: string]: unknown;
@@ -1179,24 +1516,86 @@ export interface operations {
                     "application/json": components["schemas"]["SessionSuccess"];
                 };
             };
-            /** @description Malformed request */
-            400: {
+            401: components["responses"]["Error"];
+        };
+    };
+    logoutSession: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Session revoked */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["LogoutSuccess"];
                 };
             };
-            /** @description Missing or invalid access token */
-            401: {
+            401: components["responses"]["Error"];
+        };
+    };
+    listAuthDevices: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                user_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Saved devices */
+            200: {
                 headers: {
                     [name: string]: unknown;
                 };
                 content: {
-                    "application/json": components["schemas"]["ErrorEnvelope"];
+                    "application/json": components["schemas"]["DevicesSuccess"];
                 };
             };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    revokeAuthDevices: {
+        parameters: {
+            query?: {
+                location_id?: components["parameters"]["LocationIdQuery"];
+                user_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Devices revoked */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["RevokeDevicesSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
         };
     };
     listMasterSkus: {

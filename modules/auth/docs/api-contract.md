@@ -2,8 +2,6 @@
 
 Source of truth: `modules/auth/api/contract/swagger.yaml`.
 
-- `GET /auth/session`
-- Bearer JWT required
-- Success: `{ success: true, data: { authenticated: true, sub } }`
-- Errors use the shared error envelope
-- `/health` is auto-mounted by `libs/lambda-bootstrap` and is not part of the generated client
+Public: `POST /auth/login/password`, `POST /auth/login/otp/request`, `POST /auth/login/otp/verify`. PIN saved-device unlock may omit Bearer. Authenticated: `GET /auth/session`, `POST /auth/logout`, `GET|DELETE /auth/devices`.
+
+Envelope `{ data }` / `{ error: { code, message, i18n_key } }`. `/health` is auto-mounted by `libs/lambda-bootstrap` and is not part of the generated client.

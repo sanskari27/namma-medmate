@@ -7,4 +7,6 @@ export const appConfig = {
   planGatingApiBaseUrl: import.meta.env.VITE_PLAN_GATING_API_BASE_URL ?? 'http://localhost:3006',
   tokenStorageKey: 'namma.accessToken',
   locationStorageKey: 'namma.locationId',
+  deviceStorageKey: 'namma.deviceToken',
+  loginIdStorageKey: 'namma.loginId',
 };

@@ -1,12 +1,14 @@
 # Auth architecture
 
 ```text
-dispensary-app-web
-  └── auth-ui (Redux Toolkit + RTK Query)
+dispensary-app-web  (/login, /login/pin, session chip)
+  └── auth-ui (RTK Query)
         └── @namma-medmate/api-client
-              └── GET /auth/session
-                    └── auth-api Lambda
-                          └── libs/auth-utils (RS256 JWKS)
+              └── auth-api Lambda
+                    ├── db-services users/otp/sessions/devices
+                    ├── encryption-utils (bcrypt secrets, SHA-256 OTP/tokens)
+                    ├── HTTP whatsapp login_otp
+                    └── HTTP audit ingest
 ```
 
-Auth does not own user, role, or permission tables. Those concerns are deferred.
+Downstream pharmacy APIs accept `nm_sess_` tokens via `verifyBearer` session lookup, then OIDC JWT for HQ.

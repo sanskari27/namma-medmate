@@ -1,6 +1,7 @@
 import { existsSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import type { PharmacySessionLookup } from '@namma-medmate/auth-utils';
 import { createExpressApp } from '@namma-medmate/lambda-bootstrap';
 import {
   createMemoryMasterCatalogueRepository,
@@ -118,6 +119,7 @@ export interface MasterCatalogueAppDeps {
   tenancy?: TenancyRepository;
   inventory?: InventoryMappingsClient;
   audit?: AuditIngestClient;
+  lookupPharmacySession?: PharmacySessionLookup;
 }
 
 export function createApp(env = loadMasterCatalogueEnv(), deps: MasterCatalogueAppDeps = {}) {
@@ -134,7 +136,7 @@ export function createApp(env = loadMasterCatalogueEnv(), deps: MasterCatalogueA
     (env.AUDIT_API_BASE_URL && env.AUDIT_SERVICE_TOKEN
       ? createHttpAuditClient(env.AUDIT_API_BASE_URL, env.AUDIT_SERVICE_TOKEN, boot.logger)
       : new MemoryAuditClient());
-  const parseAuth = createAuthParser(env);
+  const parseAuth = createAuthParser(env, deps.lookupPharmacySession);
 
   boot.attachRoute(listSkusEndpoint, parseAuth, identity, createListSkusController(catalogue));
   boot.attachRoute(

@@ -22,6 +22,20 @@ export function useSessionEvents(): void {
               ? 'unauthenticated'
               : 'error',
       sub: session.sub,
+      user_id: session.userId,
+      login_id: session.loginId,
+      role: session.role,
+      tenant_id: session.tenantId,
+      location_id: session.locationId,
     });
-  }, [emit, session.status, session.sub]);
+  }, [
+    emit,
+    session.status,
+    session.sub,
+    session.userId,
+    session.loginId,
+    session.role,
+    session.tenantId,
+    session.locationId,
+  ]);
 }

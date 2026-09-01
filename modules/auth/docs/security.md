@@ -1,7 +1,8 @@
 # Auth security
 
-- Tokens are issued by a custom OIDC-compatible issuer (RS256 + remote JWKS).
-- `auth-api` verifies `iss`, `aud`, `exp`, `nbf`, and `sub`.
-- Issuer, audience, and JWKS URI come from validated environment/SSM configuration.
-- Roles and permissions are out of scope for this slice.
+- Chemist sessions are opaque `nm_sess_` tokens hashed SHA-256 at rest. Idle TTL 12 hours with sliding `last_seen_at`.
+- Passwords and PINs use bcrypt cost 12 (`hashSecret` / `verifySecret`). OTP hashes are SHA-256.
+- Login is rate-limited per `login_id|ip` in addition to the 5-fail / 15-minute lock.
+- WhatsApp OTP digits are never logged or written to audit snapshots.
+- HQ OIDC JWTs remain valid on pharmacy APIs that still parse Bearer tokens; chemist login does not require OIDC.
 - No secrets are committed. Staging/prod values flow GitHub Environments → SSM.

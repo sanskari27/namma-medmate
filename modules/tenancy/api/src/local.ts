@@ -2,7 +2,9 @@ import { listenLocal } from '@namma-medmate/lambda-bootstrap';
 import {
   applySqlMigrations,
   createMemoryTenancyRepository,
+  createPharmacySessionLookup,
   createPool,
+  createSqlAuthRepository,
   createSqlTenancyRepository,
 } from '@namma-medmate/db-services';
 import { dirname, join } from 'node:path';
@@ -20,8 +22,9 @@ if (env.TENANCY_PERSISTENCE === 'postgres' && env.DATABASE_URL) {
     '../../../../libs/db-services/src/migrations',
   );
   await applySqlMigrations(pool, directory);
+  const auth = createSqlAuthRepository(pool);
   listenLocal(
-    createApp(env, createSqlTenancyRepository(pool)),
+    createApp(env, createSqlTenancyRepository(pool), createPharmacySessionLookup(auth)),
     env.TENANCY_API_PORT,
     'tenancy-api',
   );

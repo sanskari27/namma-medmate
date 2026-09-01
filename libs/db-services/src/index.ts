@@ -15,6 +15,10 @@ export { ACTOR_SURFACES } from './audit/types.ts';
 export { createMemoryMasterCatalogueRepository } from './master-catalogue/memory-repository.ts';
 export { createSqlMasterCatalogueRepository } from './master-catalogue/sql-repository.ts';
 export { GST_SLABS, SCHEDULES } from './master-catalogue/types.ts';
+export { createMemoryAuthRepository } from './auth/memory-repository.ts';
+export { createSqlAuthRepository } from './auth/sql-repository.ts';
+export { createPharmacySessionLookup } from './auth/pharmacy-session-lookup.ts';
+export { PIN_PURPOSES, STAFF_ROLES } from './auth/types.ts';
 export { BUSINESS_TYPE_RETAIL, GST_DEALER_TYPE_REGULAR } from './tenancy/types.ts';
 export type {
   BusinessType,
@@ -48,6 +52,18 @@ export type {
   ListAuditEventsInput,
   ListAuditEventsResult,
 } from './audit/types.ts';
+export type {
+  AuthRepository,
+  CreateUserInput,
+  KioskPinAttemptRecord,
+  OtpChallengeRecord,
+  PinPurpose,
+  PinVerificationRecord,
+  SavedDeviceRecord,
+  SessionRecord,
+  StaffRole,
+  UserRecord,
+} from './auth/types.ts';
 export type {
   CreatePlatformMasterSkuInput,
   GstSlab,

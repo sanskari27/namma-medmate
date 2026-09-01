@@ -1,8 +1,11 @@
 import { lazy, Suspense } from 'react';
 import { HomePage } from '../../pages/home-page.tsx';
+import { LoginPage } from '../../pages/login-page.tsx';
+import { PinUnlockRoute } from '../../pages/pin-unlock-page.tsx';
 import { WhatsAppPage } from '../../pages/whatsapp-page.tsx';
 import { GatedStubPage } from '../../pages/gated-stub-page.tsx';
 import { AppLayout } from '../layouts/app-layout.tsx';
+import { getAccessToken, getDeviceToken } from '../../services/api/token.ts';
 
 const HqMasterCatalogueRoute = lazy(() => import('./hq-master-catalogue-route.tsx'));
 
@@ -23,6 +26,15 @@ const gated = {
 } as const;
 
 export function AppRoutes({ pathname = globalThis.location.pathname }: { pathname?: string } = {}) {
+  if (pathname === '/login') {
+    return <LoginPage />;
+  }
+  if (pathname === '/login/pin') {
+    return <PinUnlockRoute />;
+  }
+  if (!getAccessToken()) {
+    return getDeviceToken() ? <PinUnlockRoute /> : <LoginPage />;
+  }
   if (pathname === '/whatsapp') {
     return (
       <AppLayout>
