@@ -1,0 +1,49 @@
+[
+  { "method": "get", "path": "/master-catalogue/skus", "operationId": "listMasterSkus" },
+  { "method": "post", "path": "/master-catalogue/skus", "operationId": "createMasterSku" },
+  {
+    "method": "get",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}",
+    "operationId": "getMasterSku"
+  },
+  {
+    "method": "patch",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}",
+    "operationId": "patchMasterSku"
+  },
+  {
+    "method": "get",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/stocking-pharmacies",
+    "operationId": "listStockingPharmacies"
+  },
+  {
+    "method": "put",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/ceiling",
+    "operationId": "putMasterSkuCeiling"
+  },
+  {
+    "method": "post",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/ban",
+    "operationId": "banMasterSku"
+  },
+  {
+    "method": "post",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/unban",
+    "operationId": "unbanMasterSku"
+  },
+  {
+    "method": "put",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/substitutes",
+    "operationId": "putMasterSkuSubstitutes"
+  },
+  {
+    "method": "get",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/substitutes",
+    "operationId": "getMasterSkuSubstitutes"
+  },
+  {
+    "method": "post",
+    "path": "/master-catalogue/skus/{platform_master_sku_id}/assert-price",
+    "operationId": "assertMasterSkuPrice"
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "extends": "../../../tools/tsconfig-base/tsconfig.lib.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "types": ["node"]
+  },
+  "include": [
+    "src/**/*.ts",
+    "tests/unit/**/*.ts",
+    "tests/e2e/**/*.ts",
+    "esbuild.config.mjs",
+    "playwright.config.ts"
+  ]
+}

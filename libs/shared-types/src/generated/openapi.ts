@@ -57,6 +57,145 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/master-catalogue/skus": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List and filter platform master SKUs (HQ) */
+        get: operations["listMasterSkus"];
+        put?: never;
+        /** Add a platform master SKU (HQ) */
+        post: operations["createMasterSku"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Get a master SKU with substitutes */
+        get: operations["getMasterSku"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        /** Patch catalogue fields (HQ) */
+        patch: operations["patchMasterSku"];
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/stocking-pharmacies": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** Pharmacies currently mapped to this master (HQ) */
+        get: operations["listStockingPharmacies"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/ceiling": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        /** Set or clear DPCO ceiling (HQ) */
+        put: operations["putMasterSkuCeiling"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/ban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Ban a master SKU platform-wide (HQ) */
+        post: operations["banMasterSku"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/unban": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Un-ban a master SKU (HQ) */
+        post: operations["unbanMasterSku"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/substitutes": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /** List substitutes; for_pos=true omits banned */
+        get: operations["getMasterSkuSubstitutes"];
+        /** Replace ordered substitutes (HQ) */
+        put: operations["putMasterSkuSubstitutes"];
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/master-catalogue/skus/{platform_master_sku_id}/assert-price": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        get?: never;
+        put?: never;
+        /** Assert unit price against DPCO ceiling and banned flag */
+        post: operations["assertMasterSkuPrice"];
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/tenancy/pharmacies": {
         parameters: {
             query?: never;
@@ -347,6 +486,186 @@ export interface components {
             authenticated: true;
             sub: string;
         };
+        /** @description OTC, H, H1, or X */
+        Schedule: string;
+        /** @description Regular GST slab percent. Allowed values 0, 5, 12, 18, 28. */
+        GstSlab: number;
+        /** @example 20.00 */
+        Money: string;
+        Substitute: {
+            /** Format: uuid */
+            platform_master_sku_id: string;
+            name: string;
+            schedule: components["schemas"]["Schedule"];
+            banned: boolean;
+        };
+        MasterSkuListItem: {
+            /** Format: uuid */
+            platform_master_sku_id: string;
+            name: string;
+            composition: string;
+            category: string;
+            schedule: components["schemas"]["Schedule"];
+            rx_only: boolean;
+            gst_slab: components["schemas"]["GstSlab"];
+            /** @example 20.00 */
+            dpco_ceiling?: string | null;
+            banned: boolean;
+        };
+        MasterSku: {
+            /** Format: uuid */
+            platform_master_sku_id: string;
+            name: string;
+            composition: string;
+            manufacturer?: string | null;
+            brand?: string | null;
+            pack?: string | null;
+            form?: string | null;
+            category: string;
+            schedule: components["schemas"]["Schedule"];
+            rx_only: boolean;
+            hsn: string;
+            gst_slab: components["schemas"]["GstSlab"];
+            /** @example 20.00 */
+            dpco_ceiling?: string | null;
+            banned: boolean;
+        };
+        MasterSkuDetail: {
+            /** Format: uuid */
+            platform_master_sku_id: string;
+            name: string;
+            composition: string;
+            manufacturer?: string | null;
+            brand?: string | null;
+            pack?: string | null;
+            form?: string | null;
+            category: string;
+            schedule: components["schemas"]["Schedule"];
+            rx_only: boolean;
+            hsn: string;
+            gst_slab: components["schemas"]["GstSlab"];
+            /** @example 20.00 */
+            dpco_ceiling?: string | null;
+            banned: boolean;
+            substitutes: components["schemas"]["Substitute"][];
+        };
+        CreateMasterSkuRequest: {
+            name: string;
+            composition: string;
+            manufacturer?: string | null;
+            brand?: string | null;
+            pack?: string | null;
+            form?: string | null;
+            category: string;
+            schedule: components["schemas"]["Schedule"];
+            rx_only?: boolean;
+            hsn: string;
+            gst_slab: components["schemas"]["GstSlab"];
+            /** @example 20.00 */
+            dpco_ceiling?: string | null;
+        };
+        PatchMasterSkuRequest: {
+            name?: string;
+            composition?: string;
+            manufacturer?: string | null;
+            brand?: string | null;
+            pack?: string | null;
+            form?: string | null;
+            category?: string;
+            schedule?: components["schemas"]["Schedule"];
+            rx_only?: boolean;
+            hsn?: string;
+            gst_slab?: components["schemas"]["GstSlab"];
+        };
+        PutCeilingRequest: {
+            /** @example 20.00 */
+            dpco_ceiling: string | null;
+        };
+        BanRequest: {
+            reason?: string;
+        };
+        PutSubstitutesRequest: {
+            substitute_ids: string[];
+        };
+        AssertPriceRequest: {
+            unit_price: components["schemas"]["Money"];
+        };
+        StockingPharmacy: {
+            /** Format: uuid */
+            tenant_id: string;
+            /** Format: uuid */
+            location_id: string;
+            display_name: string;
+        };
+        BanResult: {
+            /** Format: uuid */
+            platform_master_sku_id: string;
+            /** @enum {boolean} */
+            banned: true;
+        };
+        UnbanResult: {
+            /** @enum {boolean} */
+            banned: false;
+        };
+        AssertPriceResult: {
+            allowed: boolean;
+            banned: boolean;
+            /** @example 20.00 */
+            dpco_ceiling?: string | null;
+            /** @enum {string|null} */
+            reason_code: "ABOVE_DPCO_CEILING" | "BANNED_SKU" | null;
+            i18n_key?: string | null;
+        };
+        MasterSkuPage: {
+            items: components["schemas"]["MasterSkuListItem"][];
+            next_cursor: string | null;
+        };
+        SubstitutesPage: {
+            items: components["schemas"]["Substitute"][];
+        };
+        StockingPharmacyPage: {
+            items: components["schemas"]["StockingPharmacy"][];
+        };
+        ListMasterSkusSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["MasterSkuPage"];
+        };
+        MasterSkuSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["MasterSku"];
+        };
+        MasterSkuDetailSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["MasterSkuDetail"];
+        };
+        StockingPharmaciesSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["StockingPharmacyPage"];
+        };
+        BanSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["BanResult"];
+        };
+        UnbanSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["UnbanResult"];
+        };
+        SubstitutesSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["SubstitutesPage"];
+        };
+        AssertPriceSuccess: {
+            /** @enum {boolean} */
+            success: true;
+            data: components["schemas"]["AssertPriceResult"];
+        };
         CreatePharmacyRequest: {
             display_name?: string;
             gst_dealer_type?: string;
@@ -553,6 +872,7 @@ export interface components {
     };
     parameters: {
         AuthorizationHeader: string;
+        PlatformMasterSkuId: string;
         TenantId: string;
         LocationIdPath: string;
         LocationIdQuery: string;
@@ -708,6 +1028,350 @@ export interface operations {
                     "application/json": components["schemas"]["ErrorEnvelope"];
                 };
             };
+        };
+    };
+    listMasterSkus: {
+        parameters: {
+            query?: {
+                category?: string;
+                schedule?: components["schemas"]["Schedule"];
+                gst_slab?: components["schemas"]["GstSlab"];
+                rx_only?: boolean;
+                banned?: boolean;
+                q?: string;
+                cursor?: string;
+                limit?: number;
+                /** @description Ignored. Resource is platform-scoped. */
+                location_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Page of master SKUs */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["ListMasterSkusSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    createMasterSku: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path?: never;
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["CreateMasterSkuRequest"];
+            };
+        };
+        responses: {
+            /** @description Created master SKU */
+            201: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterSkuSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+        };
+    };
+    getMasterSku: {
+        parameters: {
+            query?: {
+                /** @description Ignored. Resource is platform-scoped. */
+                location_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Master SKU */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterSkuDetailSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    patchMasterSku: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PatchMasterSkuRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated master SKU */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterSkuSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    listStockingPharmacies: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Stocking pharmacies */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["StockingPharmaciesSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    putMasterSkuCeiling: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutCeilingRequest"];
+            };
+        };
+        responses: {
+            /** @description Updated master SKU */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["MasterSkuSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    banMasterSku: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: {
+            content: {
+                "application/json": components["schemas"]["BanRequest"];
+            };
+        };
+        responses: {
+            /** @description Banned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["BanSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    unbanMasterSku: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Unbanned */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["UnbanSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    getMasterSkuSubstitutes: {
+        parameters: {
+            query?: {
+                for_pos?: boolean;
+                /** @description Ignored. Resource is platform-scoped. */
+                location_id?: string;
+            };
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Substitutes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubstitutesSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    putMasterSkuSubstitutes: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["PutSubstitutesRequest"];
+            };
+        };
+        responses: {
+            /** @description Ordered substitutes */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["SubstitutesSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
+        };
+    };
+    assertMasterSkuPrice: {
+        parameters: {
+            query?: never;
+            header: {
+                authorization: components["parameters"]["AuthorizationHeader"];
+            };
+            path: {
+                platform_master_sku_id: components["parameters"]["PlatformMasterSkuId"];
+            };
+            cookie?: never;
+        };
+        requestBody: {
+            content: {
+                "application/json": components["schemas"]["AssertPriceRequest"];
+            };
+        };
+        responses: {
+            /** @description Price assertion */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": components["schemas"]["AssertPriceSuccess"];
+                };
+            };
+            400: components["responses"]["Error"];
+            401: components["responses"]["Error"];
+            403: components["responses"]["Error"];
+            404: components["responses"]["Error"];
         };
     };
     listPharmacies: {

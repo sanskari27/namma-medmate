@@ -12,6 +12,9 @@ export { WHATSAPP_PURPOSES, WHATSAPP_STATUSES, WHATSAPP_TEMPLATE_KEYS } from './
 export { createMemoryAuditRepository } from './audit/memory-repository.ts';
 export { createSqlAuditRepository } from './audit/sql-repository.ts';
 export { ACTOR_SURFACES } from './audit/types.ts';
+export { createMemoryMasterCatalogueRepository } from './master-catalogue/memory-repository.ts';
+export { createSqlMasterCatalogueRepository } from './master-catalogue/sql-repository.ts';
+export { GST_SLABS, SCHEDULES } from './master-catalogue/types.ts';
 export { BUSINESS_TYPE_RETAIL, GST_DEALER_TYPE_REGULAR } from './tenancy/types.ts';
 export type {
   BusinessType,
@@ -45,3 +48,14 @@ export type {
   ListAuditEventsInput,
   ListAuditEventsResult,
 } from './audit/types.ts';
+export type {
+  CreatePlatformMasterSkuInput,
+  GstSlab,
+  ListPlatformMasterSkusInput,
+  ListPlatformMasterSkusResult,
+  MasterCatalogueRepository,
+  PlatformMasterSkuRecord,
+  Schedule,
+  SubstituteRecord,
+  UpdatePlatformMasterSkuInput,
+} from './master-catalogue/types.ts';

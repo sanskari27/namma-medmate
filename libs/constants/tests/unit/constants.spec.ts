@@ -19,6 +19,8 @@ describe('ErrorCode', () => {
     expect(ErrorCode.BEFORE_AFTER_REQUIRED).toBe('BEFORE_AFTER_REQUIRED');
     expect(ErrorCode.SECRET_KEY_FORBIDDEN).toBe('SECRET_KEY_FORBIDDEN');
     expect(ErrorCode.MONEY_OR_STOCK_REQUIRED).toBe('MONEY_OR_STOCK_REQUIRED');
+    expect(ErrorCode.INVALID_CEILING).toBe('INVALID_CEILING');
+    expect(ErrorCode.INVALID_GST_SLAB).toBe('INVALID_GST_SLAB');
   });
 });
 
