@@ -46,17 +46,17 @@
   },
   {
     "method": "get",
-    "path": "/go-live-kyc/admin/pharmacies/:tenant_id",
+    "path": "/go-live-kyc/admin/pharmacies/{tenant_id}",
     "operationId": "getGoLiveKycAdminPharmacy"
   },
   {
     "method": "post",
-    "path": "/go-live-kyc/admin/pharmacies/:tenant_id/kyc/approve",
+    "path": "/go-live-kyc/admin/pharmacies/{tenant_id}/kyc/approve",
     "operationId": "approveGoLiveKyc"
   },
   {
     "method": "post",
-    "path": "/go-live-kyc/admin/pharmacies/:tenant_id/kyc/reject",
+    "path": "/go-live-kyc/admin/pharmacies/{tenant_id}/kyc/reject",
     "operationId": "rejectGoLiveKyc"
   }
 ]
