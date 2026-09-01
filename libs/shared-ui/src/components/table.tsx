@@ -3,7 +3,7 @@ import { cn } from '../lib/utils.ts';
 
 export function Table({ className, ...props }: ComponentProps<'table'>) {
   return (
-    <div data-slot="table-container" className="relative w-full overflow-x-auto">
+    <div data-slot="table-container" className="relative w-full overflow-x-auto" tabIndex={0}>
       <table
         data-slot="table"
         className={cn('w-full caption-bottom text-sm', className)}

@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import { describe, expect, it } from 'vitest';
 import {
   Badge,
@@ -14,6 +14,41 @@ import {
   TableHead,
   TableHeader,
   TableRow,
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogMedia,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Sheet,
+  SheetClose,
+  SheetContent,
+  SheetDescription,
+  SheetFooter,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectLabel,
+  SelectSeparator,
+  SelectTrigger,
+  SelectValue,
+  Switch,
   cn,
 } from '../../src/index.ts';
 
@@ -96,9 +131,135 @@ describe('shared-ui', () => {
         </TableFooter>
       </Table>,
     );
+    expect(document.querySelector('[data-slot="table-container"]')).toHaveAttribute(
+      'tabindex',
+      '0',
+    );
     expect(screen.getByText('Inbox')).toBeInTheDocument();
     expect(screen.getByText('To')).toBeInTheDocument();
     expect(screen.getByText('+919876543210')).toBeInTheDocument();
     expect(screen.getByText('1 row')).toBeInTheDocument();
+  });
+
+  it('renders dialog, alert dialog, sheet, select, and switch variants', () => {
+    render(
+      <Dialog open>
+        <DialogTrigger>Open dialog</DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add medicine</DialogTitle>
+            <DialogDescription>Enter catalogue fields.</DialogDescription>
+          </DialogHeader>
+          <DialogFooter showCloseButton>
+            <DialogClose>Close me</DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>,
+    );
+    expect(screen.getByRole('dialog', { name: 'Add medicine' })).toBeInTheDocument();
+    cleanup();
+    render(
+      <Dialog open>
+        <DialogContent showCloseButton={false}>
+          <DialogTitle>Quiet</DialogTitle>
+          <DialogFooter>Done</DialogFooter>
+        </DialogContent>
+      </Dialog>,
+    );
+    expect(screen.getByText('Quiet')).toBeInTheDocument();
+    cleanup();
+    render(
+      <AlertDialog open>
+        <AlertDialogTrigger>Ban</AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogMedia>!</AlertDialogMedia>
+            <AlertDialogTitle>Confirm ban</AlertDialogTitle>
+            <AlertDialogDescription>Un-maps every pharmacy.</AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction>Continue</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+    expect(screen.getByText('Confirm ban')).toBeInTheDocument();
+    cleanup();
+    render(
+      <AlertDialog open>
+        <AlertDialogContent size="sm">
+          <AlertDialogTitle>Small</AlertDialogTitle>
+        </AlertDialogContent>
+      </AlertDialog>,
+    );
+    expect(screen.getByText('Small')).toBeInTheDocument();
+    cleanup();
+    for (const side of ['top', 'right', 'bottom', 'left'] as const) {
+      const view = render(
+        <Sheet open>
+          <SheetTrigger>Open sheet</SheetTrigger>
+          <SheetContent side={side}>
+            <SheetHeader>
+              <SheetTitle>Drawer</SheetTitle>
+              <SheetDescription>Details</SheetDescription>
+            </SheetHeader>
+            <SheetFooter>
+              <SheetClose>Dismiss</SheetClose>
+            </SheetFooter>
+          </SheetContent>
+        </Sheet>,
+      );
+      expect(screen.getByText('Drawer')).toBeInTheDocument();
+      view.unmount();
+    }
+    render(
+      <Sheet open>
+        <SheetContent showCloseButton={false}>
+          <SheetTitle>Plain</SheetTitle>
+        </SheetContent>
+      </Sheet>,
+    );
+    expect(screen.getByText('Plain')).toBeInTheDocument();
+    cleanup();
+    render(
+      <div>
+        <Switch aria-label="Rx-only" />
+        <Switch size="sm" defaultChecked aria-label="Banned" />
+      </div>,
+    );
+    expect(screen.getByRole('switch', { name: 'Rx-only' })).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Banned' })).toBeChecked();
+  });
+
+  it('opens select content including groups, items, and separators', () => {
+    render(
+      <Select defaultOpen modal={false} defaultValue="otc">
+        <SelectTrigger aria-label="Schedule">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent side="top" align="start">
+          <SelectGroup>
+            <SelectLabel>Schedule</SelectLabel>
+            <SelectItem value="otc">OTC</SelectItem>
+            <SelectItem value="h">H</SelectItem>
+          </SelectGroup>
+          <SelectSeparator />
+        </SelectContent>
+      </Select>,
+    );
+    expect(screen.getByRole('option', { name: 'OTC' })).toBeInTheDocument();
+    cleanup();
+    render(
+      <Select defaultValue="h" modal={false}>
+        <SelectTrigger size="sm" aria-label="Dense schedule">
+          <SelectValue />
+        </SelectTrigger>
+        <SelectContent>
+          <SelectItem value="h">H</SelectItem>
+        </SelectContent>
+      </Select>,
+    );
+    expect(screen.getByRole('combobox', { name: 'Dense schedule' })).toBeInTheDocument();
   });
 });

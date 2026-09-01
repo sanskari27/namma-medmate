@@ -28,6 +28,8 @@ export const ErrorCode = {
   PAYLOAD_TOO_LARGE: 'PAYLOAD_TOO_LARGE',
   INVALID_RANGE: 'INVALID_RANGE',
   MONEY_OR_STOCK_REQUIRED: 'MONEY_OR_STOCK_REQUIRED',
+  INVALID_CEILING: 'INVALID_CEILING',
+  INVALID_GST_SLAB: 'INVALID_GST_SLAB',
 } as const;
 
 export type ErrorCodeValue = (typeof ErrorCode)[keyof typeof ErrorCode];

@@ -1,0 +1,836 @@
+openapi: 3.0.3
+info:
+  title: Namma MedMate Master Catalogue API
+  version: 0.1.0
+  description: Platform-wide PlatformMasterSku catalogue. HQ writes; pharmacy/service reads.
+servers:
+  - url: /
+paths:
+  /master-catalogue/skus:
+    get:
+      operationId: listMasterSkus
+      summary: List and filter platform master SKUs (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - name: category
+          in: query
+          schema:
+            type: string
+        - name: schedule
+          in: query
+          schema:
+            $ref: '#/components/schemas/Schedule'
+        - name: gst_slab
+          in: query
+          schema:
+            $ref: '#/components/schemas/GstSlab'
+        - name: rx_only
+          in: query
+          schema:
+            type: boolean
+        - name: banned
+          in: query
+          schema:
+            type: boolean
+        - name: q
+          in: query
+          schema:
+            type: string
+        - name: cursor
+          in: query
+          schema:
+            type: string
+        - name: limit
+          in: query
+          schema:
+            type: integer
+            minimum: 1
+            default: 50
+        - name: location_id
+          in: query
+          description: Ignored. Resource is platform-scoped.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Page of master SKUs
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListMasterSkusSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+    post:
+      operationId: createMasterSku
+      summary: Add a platform master SKU (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateMasterSkuRequest'
+      responses:
+        '201':
+          description: Created master SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterSkuSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}:
+    get:
+      operationId: getMasterSku
+      summary: Get a master SKU with substitutes
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+        - name: location_id
+          in: query
+          description: Ignored. Resource is platform-scoped.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Master SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterSkuDetailSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    patch:
+      operationId: patchMasterSku
+      summary: Patch catalogue fields (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PatchMasterSkuRequest'
+      responses:
+        '200':
+          description: Updated master SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterSkuSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/stocking-pharmacies:
+    get:
+      operationId: listStockingPharmacies
+      summary: Pharmacies currently mapped to this master (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      responses:
+        '200':
+          description: Stocking pharmacies
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/StockingPharmaciesSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/ceiling:
+    put:
+      operationId: putMasterSkuCeiling
+      summary: Set or clear DPCO ceiling (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutCeilingRequest'
+      responses:
+        '200':
+          description: Updated master SKU
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MasterSkuSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/ban:
+    post:
+      operationId: banMasterSku
+      summary: Ban a master SKU platform-wide (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/BanRequest'
+      responses:
+        '200':
+          description: Banned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/BanSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/unban:
+    post:
+      operationId: unbanMasterSku
+      summary: Un-ban a master SKU (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      responses:
+        '200':
+          description: Unbanned
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UnbanSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/substitutes:
+    put:
+      operationId: putMasterSkuSubstitutes
+      summary: Replace ordered substitutes (HQ)
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PutSubstitutesRequest'
+      responses:
+        '200':
+          description: Ordered substitutes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubstitutesSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+    get:
+      operationId: getMasterSkuSubstitutes
+      summary: List substitutes; for_pos=true omits banned
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+        - name: for_pos
+          in: query
+          schema:
+            type: boolean
+        - name: location_id
+          in: query
+          description: Ignored. Resource is platform-scoped.
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Substitutes
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SubstitutesSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+  /master-catalogue/skus/{platform_master_sku_id}/assert-price:
+    post:
+      operationId: assertMasterSkuPrice
+      summary: Assert unit price against DPCO ceiling and banned flag
+      security:
+        - bearerAuth: []
+      parameters:
+        - $ref: '#/components/parameters/AuthorizationHeader'
+        - $ref: '#/components/parameters/PlatformMasterSkuId'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AssertPriceRequest'
+      responses:
+        '200':
+          description: Price assertion
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssertPriceSuccess'
+        '400':
+          $ref: '#/components/responses/Error'
+        '401':
+          $ref: '#/components/responses/Error'
+        '403':
+          $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+  parameters:
+    AuthorizationHeader:
+      name: authorization
+      in: header
+      required: true
+      schema:
+        type: string
+    PlatformMasterSkuId:
+      name: platform_master_sku_id
+      in: path
+      required: true
+      schema:
+        type: string
+        format: uuid
+  responses:
+    Error:
+      description: Error envelope
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ErrorEnvelope'
+  schemas:
+    Schedule:
+      type: string
+      description: OTC, H, H1, or X
+    GstSlab:
+      type: integer
+      description: Regular GST slab percent. Allowed values 0, 5, 12, 18, 28.
+    Money:
+      type: string
+      pattern: '^-?\d+(\.\d{1,2})?$'
+      example: '20.00'
+    Substitute:
+      type: object
+      additionalProperties: false
+      required: [platform_master_sku_id, name, schedule, banned]
+      properties:
+        platform_master_sku_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        banned:
+          type: boolean
+    MasterSkuListItem:
+      type: object
+      additionalProperties: false
+      required:
+        - platform_master_sku_id
+        - name
+        - composition
+        - category
+        - schedule
+        - rx_only
+        - gst_slab
+        - banned
+      properties:
+        platform_master_sku_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        composition:
+          type: string
+        category:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        rx_only:
+          type: boolean
+        gst_slab:
+          $ref: '#/components/schemas/GstSlab'
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+        banned:
+          type: boolean
+    MasterSku:
+      type: object
+      additionalProperties: false
+      required:
+        - platform_master_sku_id
+        - name
+        - composition
+        - category
+        - schedule
+        - rx_only
+        - hsn
+        - gst_slab
+        - banned
+      properties:
+        platform_master_sku_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        composition:
+          type: string
+        manufacturer:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        pack:
+          type: string
+          nullable: true
+        form:
+          type: string
+          nullable: true
+        category:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        rx_only:
+          type: boolean
+        hsn:
+          type: string
+        gst_slab:
+          $ref: '#/components/schemas/GstSlab'
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+        banned:
+          type: boolean
+    MasterSkuDetail:
+      type: object
+      additionalProperties: false
+      required:
+        - platform_master_sku_id
+        - name
+        - composition
+        - category
+        - schedule
+        - rx_only
+        - hsn
+        - gst_slab
+        - banned
+        - substitutes
+      properties:
+        platform_master_sku_id:
+          type: string
+          format: uuid
+        name:
+          type: string
+        composition:
+          type: string
+        manufacturer:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        pack:
+          type: string
+          nullable: true
+        form:
+          type: string
+          nullable: true
+        category:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        rx_only:
+          type: boolean
+        hsn:
+          type: string
+        gst_slab:
+          $ref: '#/components/schemas/GstSlab'
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+        banned:
+          type: boolean
+        substitutes:
+          type: array
+          items:
+            $ref: '#/components/schemas/Substitute'
+    CreateMasterSkuRequest:
+      type: object
+      additionalProperties: false
+      required: [name, composition, category, schedule, hsn, gst_slab]
+      properties:
+        name:
+          type: string
+        composition:
+          type: string
+        manufacturer:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        pack:
+          type: string
+          nullable: true
+        form:
+          type: string
+          nullable: true
+        category:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        rx_only:
+          type: boolean
+        hsn:
+          type: string
+        gst_slab:
+          $ref: '#/components/schemas/GstSlab'
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+    PatchMasterSkuRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        name:
+          type: string
+        composition:
+          type: string
+        manufacturer:
+          type: string
+          nullable: true
+        brand:
+          type: string
+          nullable: true
+        pack:
+          type: string
+          nullable: true
+        form:
+          type: string
+          nullable: true
+        category:
+          type: string
+        schedule:
+          $ref: '#/components/schemas/Schedule'
+        rx_only:
+          type: boolean
+        hsn:
+          type: string
+        gst_slab:
+          $ref: '#/components/schemas/GstSlab'
+    PutCeilingRequest:
+      type: object
+      additionalProperties: false
+      required: [dpco_ceiling]
+      properties:
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+    BanRequest:
+      type: object
+      additionalProperties: false
+      properties:
+        reason:
+          type: string
+    PutSubstitutesRequest:
+      type: object
+      additionalProperties: false
+      required: [substitute_ids]
+      properties:
+        substitute_ids:
+          type: array
+          items:
+            type: string
+            format: uuid
+    AssertPriceRequest:
+      type: object
+      additionalProperties: false
+      required: [unit_price]
+      properties:
+        unit_price:
+          $ref: '#/components/schemas/Money'
+    StockingPharmacy:
+      type: object
+      additionalProperties: false
+      required: [tenant_id, location_id, display_name]
+      properties:
+        tenant_id:
+          type: string
+          format: uuid
+        location_id:
+          type: string
+          format: uuid
+        display_name:
+          type: string
+    BanResult:
+      type: object
+      additionalProperties: false
+      required: [platform_master_sku_id, banned]
+      properties:
+        platform_master_sku_id:
+          type: string
+          format: uuid
+        banned:
+          type: boolean
+          enum: [true]
+    UnbanResult:
+      type: object
+      additionalProperties: false
+      required: [banned]
+      properties:
+        banned:
+          type: boolean
+          enum: [false]
+    AssertPriceResult:
+      type: object
+      additionalProperties: false
+      required: [allowed, banned, reason_code]
+      properties:
+        allowed:
+          type: boolean
+        banned:
+          type: boolean
+        dpco_ceiling:
+          type: string
+          nullable: true
+          pattern: '^-?\d+(\.\d{1,2})?$'
+          example: '20.00'
+        reason_code:
+          type: string
+          nullable: true
+          enum: [ABOVE_DPCO_CEILING, BANNED_SKU, null]
+        i18n_key:
+          type: string
+          nullable: true
+    MasterSkuPage:
+      type: object
+      additionalProperties: false
+      required: [items, next_cursor]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/MasterSkuListItem'
+        next_cursor:
+          type: string
+          nullable: true
+    SubstitutesPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/Substitute'
+    StockingPharmacyPage:
+      type: object
+      additionalProperties: false
+      required: [items]
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/StockingPharmacy'
+    ListMasterSkusSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MasterSkuPage'
+    MasterSkuSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MasterSku'
+    MasterSkuDetailSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/MasterSkuDetail'
+    StockingPharmaciesSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/StockingPharmacyPage'
+    BanSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/BanResult'
+    UnbanSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/UnbanResult'
+    SubstitutesSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/SubstitutesPage'
+    AssertPriceSuccess:
+      type: object
+      additionalProperties: false
+      required: [success, data]
+      properties:
+        success:
+          type: boolean
+          enum: [true]
+        data:
+          $ref: '#/components/schemas/AssertPriceResult'
+    ErrorEnvelope:
+      type: object
+      additionalProperties: false
+      required: [success, error]
+      properties:
+        success:
+          type: boolean
+          enum: [false]
+        error:
+          type: object
+          additionalProperties: false
+          required: [code, message]
+          properties:
+            code:
+              type: string
+              enum:
+                - VALIDATION_FAILED
+                - INVALID_CEILING
+                - INVALID_GST_SLAB
+                - NOT_FOUND
+                - HQ_ONLY
+                - UNAUTHORIZED
+                - FORBIDDEN
+              example: VALIDATION_FAILED
+            message:
+              type: string
+            i18n_key:
+              type: string
+            details:
+              type: object
+              additionalProperties: true
