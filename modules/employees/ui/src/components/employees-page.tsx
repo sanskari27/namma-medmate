@@ -156,7 +156,7 @@ export function EmployeesPage({
           </div>
         ))}
       </div>
-      <div className="space-y-2" aria-label={t('employees.list.composition')}>
+      <div className="space-y-2" role="group" aria-label={t('employees.list.composition')}>
         {summary.composition.map((row) => (
           <div key={row.position} className="space-y-1">
             <p className="text-sm text-muted-foreground">
