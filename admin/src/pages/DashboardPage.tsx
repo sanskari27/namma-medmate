@@ -1,4 +1,7 @@
 import { useEffect, useState } from 'react';
+import { AreaMetricChart } from '@/components/charts/AreaMetricChart';
+import { Reveal } from '@/components/Reveal';
+import { Card } from '@/components/ui/card';
 import { apiClient } from '@/services/axios';
 import { API } from '@/libs/constants/api.const';
 
@@ -18,23 +21,30 @@ export default function DashboardPage() {
   }, []);
 
   const cards = [
-    { title: 'Active pharmacies', value: '—' },
-    { title: 'KYC pending', value: '—' },
-    { title: 'Subscriptions due', value: '—' },
+    { title: 'Active pharmacies', value: '—', hint: 'KYC-approved tenants' },
+    { title: 'KYC pending', value: '—', hint: 'Verification queue' },
+    { title: 'Subscriptions due', value: '—', hint: 'Plan expiry window' },
   ];
 
   return (
-    <div className="space-y-6">
-      <h2 className="text-2xl font-semibold">HQ Dashboard</h2>
-      <p className="text-sm text-slate-400">API health: {apiStatus}</p>
-      <div className="grid gap-4 sm:grid-cols-3">
+    <Reveal className="space-y-6">
+      <div>
+        <h1 className="font-serif text-2xl font-semibold">Tenant pulse</h1>
+        <p className="mt-1 font-mono text-xs text-muted">API health: {apiStatus}</p>
+      </div>
+      <div className="grid gap-3 sm:grid-cols-3">
         {cards.map((c) => (
-          <div key={c.title} className="rounded-lg border border-slate-800 bg-slate-900 p-4">
-            <p className="text-sm text-slate-400">{c.title}</p>
-            <p className="mt-2 text-2xl font-bold">{c.value}</p>
-          </div>
+          <Card key={c.title}>
+            <p className="text-xs text-muted">{c.title}</p>
+            <p className="mt-2 font-mono text-2xl text-ink">{c.value}</p>
+            <p className="mt-1 text-xs text-muted">{c.hint}</p>
+          </Card>
         ))}
       </div>
-    </div>
+      <section>
+        <h2 className="mb-2 text-sm font-medium">Activations this month</h2>
+        <AreaMetricChart data={[]} emptyLabel="No tenant activations in this window." />
+      </section>
+    </Reveal>
   );
 }

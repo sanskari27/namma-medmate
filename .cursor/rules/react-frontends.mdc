@@ -7,7 +7,9 @@ alwaysApply: false
 # React frontends
 
 - Story slices: skill `react-story` (load `dispensary.md` or `admin.md`).
-  Verification: skill `verify-react`.
+  Verification: skill `verify-react`. Visual taste: rule `design-taste`.
+- Style with that app's `@theme` tokens in `src/index.css`. Do not use
+  `slate-*` / `emerald-*` / `sky-*` on new UI or share tokens across SPAs.
 - React 19 function components and hooks with strict TypeScript; do not use
   `any`, unsafe double assertions, or class components.
 - Redux Toolkit owns authenticated/server-derived shared state; temporary

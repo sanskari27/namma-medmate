@@ -23,11 +23,15 @@ or [admin.md](../react-story/admin.md).
 5. Redux Toolkit owns server/auth state; ephemeral UI is local.
 6. UI guards are not treated as authorization. Server remains authoritative.
 7. Apps are not interchangeable: copy, tokens, and layout match the target
-   persona. Copy-paste across SPAs is an automatic `FAIL`.
+   persona (`dispensary.md` / `admin.md`). Copy-paste across SPAs is an
+   automatic `FAIL`. New UI uses `@theme` tokens, not `slate-*` /
+   `emerald-600` / `sky-600`. Generic AI tells (ALL-CAPS eyebrows,
+   arrow-suffix CTAs, identical shadowed card grids) are a `FAIL`.
 8. Scaffold `dev-token` login is gone when the story requires real auth.
 9. First UI story in an app installed Vitest + Testing Library + `npm test`.
 10. Listed app gates passed (`lint`, `test -- --run`, `build`). Evidence
-    includes command output. Browser-check notes exist for the changed flow.
+    includes command output. Browser-check notes exist for the changed
+    flow, including a screenshot self-critique against `design-taste`.
 11. Diff has no unlisted app, no Spring layering work claimed as UI evidence.
 
 ## Verdict input

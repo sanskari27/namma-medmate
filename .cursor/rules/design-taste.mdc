@@ -1,0 +1,47 @@
+---
+description: Distinctive UI taste for dispensary and admin — anti-generic layouts, motion restraint, visual self-critique
+globs: dispensary/**/*.{ts,tsx,css,html},admin/**/*.{ts,tsx,css,html}
+alwaysApply: false
+---
+
+# Design taste
+
+Do not ship the default AI look: cream canvas + serif hero + terracotta,
+Inter/Plus Jakarta + `slate-*`/`blue-600`, equal rounded cards with soft
+shadows, ALL-CAPS eyebrows, middle-dot meta (`A · B · C`), or buttons
+ending in `→` / `Learn more →`.
+
+Each SPA already has a locked identity. Load it and obey it:
+
+- `dispensary` → `.cursor/skills/react-story/dispensary.md` (shop floor)
+- `admin` → `.cursor/skills/react-story/admin.md` (HQ / platform)
+
+Use `@theme` tokens (`bg-canvas`, `text-ink`, `bg-brand`, `border-line`).
+Never `slate-500`, `emerald-600`, `sky-600`, or `blue-600` on new UI.
+
+## Layout
+
+- Dispensary: dense tables and forms, tight type, left brand rail. Speed.
+- Admin: scan many tenants, hairline dark chrome, serif wordmark. Oversight.
+- Do not clone one app into the other with a theme swap.
+
+## Motion and charts
+
+- One deliberate reveal per route (auth panel or page header). No fade-up
+  on every card. Honor `prefers-reduced-motion`.
+- Micro-interactions: `motion/react` only. Do not add GSAP, Lenis, Rive, or
+  Lottie unless a story ships designer assets.
+- Charts: Recharts through that app's `AreaMetricChart` (or equivalent),
+  colored from tokens. Empty state before fake series.
+
+## Primitives
+
+Restyle Radix in `src/components/ui`. Do not paste stock shadcn New York
+chrome. Lucide only — no emoji icons. 21st.dev/Magic is for pattern
+reference; restyle to this app's tokens before commit.
+
+## Done means seen
+
+Screenshot the changed flow (browser tools or Playwright MCP). Critique
+hierarchy, contrast, density, and generic tells. Fix, then re-screenshot.
+A single pretty render is not done.

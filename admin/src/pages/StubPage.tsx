@@ -1,8 +1,10 @@
 export default function StubPage({ title }: { title: string }) {
   return (
-    <div className="rounded-lg border border-dashed border-slate-700 bg-slate-900 p-8 text-center">
-      <h2 className="text-xl font-semibold">{title}</h2>
-      <p className="mt-2 text-sm text-slate-400">Module shell — select its next ready requirement story</p>
+    <div className="border border-dashed border-line bg-elevated px-6 py-10">
+      <h1 className="font-serif text-xl font-semibold">{title}</h1>
+      <p className="mt-2 max-w-md text-sm text-muted">
+        Platform module shell. Open the next ready requirement story to build the HQ flow.
+      </p>
     </div>
   );
 }

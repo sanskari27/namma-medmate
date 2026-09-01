@@ -77,6 +77,10 @@ complete.
 - Every screen covers loading, empty, validation, denied, conflict, failure, and
   success states with semantic labels, keyboard access, visible focus, and focus
   restoration.
+- Each SPA owns its Tailwind `@theme` tokens, restyled Radix primitives, Lucide
+  icons, Motion micro-interactions, and Recharts helpers. Do not add a shared
+  UI package, GSAP, Lenis, or extra chart kits. Visual identity lives in
+  `.cursor/skills/react-story/dispensary.md` and `admin.md`.
 - Both apps currently have scaffolding and no test runner. The first UI story
   must add interaction testing before it can be completed.
 

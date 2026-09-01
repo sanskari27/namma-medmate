@@ -43,10 +43,14 @@ denied, conflict, failure, success.
 - Status is not color-only. No emoji-as-icons. No unlabeled placeholders.
 - When the story requires real auth, remove scaffold `dev-token` login.
 - Do not copy pages, tokens, or copy between dispensary and admin.
+- Use that app's `@theme` tokens, `src/components/ui` primitives, Lucide,
+  and `motion/react` (one reveal per route). Charts go through Recharts
+  helpers. Follow rule `design-taste`. No GSAP/Lenis/Rive/Lottie.
 
 ## Browser check
 
 Exercise the changed flow in the browser before claiming the UI slice done.
+Screenshot the result, critique generic tells, and fix before finishing.
 A single screenshot is not evidence.
 
 ## Gates
