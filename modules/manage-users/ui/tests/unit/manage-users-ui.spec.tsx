@@ -107,7 +107,7 @@ function usersFetch(overrides: Partial<Record<string, Response>> = {}) {
       return jsonResponse({ success: true, data: { ...cashierUser, active: false } });
     }
     if (method === 'DELETE') {
-      return jsonResponse({ success: true, data: {} }, 204);
+      return jsonResponse({ success: true, data: {} });
     }
     return jsonResponse({ success: true, data: cashierUser });
   });
@@ -208,6 +208,7 @@ describe('manage-users-ui screens', () => {
     );
     await user.click(screen.getByRole('button', { name: 'Add user' }));
     expect(screen.getByRole('dialog', { name: 'Add user' })).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Login ID'), 'skip.cashier');
     await user.click(screen.getByRole('button', { name: 'Create user' }));
     await waitFor(() => {
       expect(screen.queryByRole('dialog', { name: 'Add user' })).not.toBeInTheDocument();
@@ -220,12 +221,38 @@ describe('manage-users-ui screens', () => {
       <ManageUsersPage
         skipQuery
         seats={{ plan: 'free', seat_limit: 2, active_count: 2, unlimited: false }}
-        items={[ownerUser, cashierUser]}
+        items={[ownerUser, { ...cashierUser, permissions: undefined }]}
         selectedUser={cashierUser}
+        selectedUserId={cashierUser.user_id}
+      />,
+    );
+    expect(screen.getByRole('heading', { name: 'User' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
+    expect(screen.queryByRole('heading', { name: 'User' })).not.toBeInTheDocument();
+  });
+
+  it('opens a skipQuery drawer from a table row', async () => {
+    const user = userEvent.setup();
+    renderWithStore(
+      <ManageUsersPage
+        skipQuery
+        seats={{ plan: 'free', seat_limit: 2, active_count: 1, unlimited: false }}
+        items={[{ ...cashierUser, permissions: undefined, active: false }]}
       />,
     );
     await user.click(screen.getByRole('button', { name: 'Open ravi.cashier' }));
     expect(screen.getByRole('heading', { name: 'User' })).toBeInTheDocument();
+  });
+
+  it('opens a live drawer from the list', async () => {
+    const user = userEvent.setup();
+    renderWithStore(
+      <ManageUsersPage locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809" />,
+      usersFetch(),
+    );
+    await user.click(await screen.findByRole('button', { name: 'Open ravi.cashier' }));
+    expect(await screen.findByRole('heading', { name: 'User' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Close' }));
   });
 
   it('shows a load error banner', () => {
@@ -242,18 +269,56 @@ describe('manage-users-ui screens', () => {
     expect(screen.getByRole('button', { name: 'Open ravi.cashier' })).toBeInTheDocument();
   });
 
+  it('creates a user without a PIN', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderWithStore(
+      <AddUserDialog
+        open
+        locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809"
+        onOpenChange={onOpenChange}
+      />,
+      usersFetch(),
+    );
+    await user.type(screen.getByLabelText('Login ID'), 'no.pin');
+    await user.click(screen.getByRole('button', { name: 'Create user' }));
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
+  it('closes add dialog when create omits user_id', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderWithStore(
+      <AddUserDialog open locationId="loc" onOpenChange={onOpenChange} />,
+      usersFetch({ 'POST ': jsonResponse({ success: true, data: {} }, 201) }),
+    );
+    await user.type(screen.getByLabelText('Login ID'), 'no.id');
+    await user.click(screen.getByRole('button', { name: 'Create user' }));
+    await waitFor(() => {
+      expect(onOpenChange).toHaveBeenCalledWith(false);
+    });
+  });
+
   it('creates a user over the API', async () => {
     const user = userEvent.setup();
+    const onOpenChange = vi.fn();
     renderWithStore(
-      <AddUserDialog open locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809" />,
+      <AddUserDialog
+        open
+        locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809"
+        onOpenChange={onOpenChange}
+      />,
       usersFetch(),
     );
     await user.type(screen.getByLabelText('Login ID'), 'new.cashier');
     await user.click(screen.getByRole('switch', { name: 'WhatsApp OTP' }));
     await user.type(screen.getByLabelText('WhatsApp mobile'), '+919876543299');
+    await user.type(screen.getByLabelText('Counter PIN (optional)'), '4455');
     await user.click(screen.getByRole('button', { name: 'Create user' }));
     await waitFor(() => {
-      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(onOpenChange).toHaveBeenCalledWith(false);
     });
   });
 
@@ -266,6 +331,28 @@ describe('manage-users-ui screens', () => {
     await user.type(screen.getByLabelText('Login ID'), 'blocked');
     await user.click(screen.getByRole('button', { name: 'Create user' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not create the user.');
+  });
+
+  it('changes the add-user role and toggles OTP', async () => {
+    const user = userEvent.setup();
+    renderWithStore(<AddUserDialog open skipQuery />);
+    await user.selectOptions(screen.getByLabelText('Role'), 'manager');
+    expect(screen.getByLabelText('Role')).toHaveValue('manager');
+    await user.click(screen.getByRole('switch', { name: 'WhatsApp OTP' }));
+    expect(screen.getByLabelText('WhatsApp mobile')).toBeInTheDocument();
+    await user.click(screen.getByRole('switch', { name: 'Password login' }));
+    await user.selectOptions(screen.getByLabelText('Role'), 'pharmacist');
+    expect(screen.getByLabelText('Role')).toHaveValue('pharmacist');
+  });
+
+  it('shows a live list load error', async () => {
+    renderWithStore(
+      <ManageUsersPage locationId="1a2b3c4d-5e6f-7081-92a3-b4c5d6e7f809" />,
+      usersFetch({
+        'GET ': jsonResponse({ error: { code: 'FORBIDDEN' } }, 403),
+      }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not load users.');
   });
 
   it('renders add dialog with a seeded error', () => {
@@ -313,16 +400,28 @@ describe('user drawer', () => {
     await user.click(screen.getByRole('button', { name: 'Revoke' }));
     await user.click(screen.getByRole('button', { name: 'Revoke all devices' }));
     await user.click(screen.getByRole('button', { name: 'Remove login' }));
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(
+      screen.getByRole('alertdialog').querySelector('[data-slot="alert-dialog-action"]')!,
+    );
   });
 
   it('covers skipQuery drawer actions', async () => {
     const user = userEvent.setup();
-    renderWithStore(<UserDrawer open skipQuery user={cashierUser} userId={cashierUser.user_id} />);
+    const onOpenChange = vi.fn();
+    renderWithStore(
+      <UserDrawer
+        open
+        skipQuery
+        user={cashierUser}
+        userId={cashierUser.user_id}
+        onOpenChange={onOpenChange}
+      />,
+    );
     await user.click(screen.getByRole('button', { name: 'Copy password' }));
     expect(screen.getByText('Temporary password copied.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reset password' }));
     await user.click(screen.getByRole('switch', { name: 'Active' }));
+    await user.click(screen.getByRole('switch', { name: 'Password login' }));
     await user.click(screen.getByRole('button', { name: 'Share via WhatsApp' }));
     await user.click(screen.getByRole('button', { name: 'Set PIN' }));
     await user.click(screen.getByRole('button', { name: 'Clear PIN' }));
@@ -330,12 +429,34 @@ describe('user drawer', () => {
     await user.click(screen.getByRole('button', { name: 'Revoke all devices' }));
     await user.click(screen.getByRole('button', { name: 'Select all' }));
     await user.click(screen.getByRole('button', { name: 'Remove login' }));
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(
+      screen.getByRole('alertdialog').querySelector('[data-slot="alert-dialog-action"]')!,
+    );
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
+  });
+
+  it('renders an empty skipQuery drawer', () => {
+    renderWithStore(<UserDrawer open skipQuery />);
+    expect(screen.getByRole('heading', { name: 'User' })).toBeInTheDocument();
+  });
+
+  it('renders a user with no saved devices', () => {
+    renderWithStore(
+      <UserDrawer
+        open
+        skipQuery
+        user={{ ...cashierUser, saved_devices: undefined, pin_set: true }}
+      />,
+    );
+    expect(screen.getByText('PIN is set')).toBeInTheDocument();
   });
 
   it('locks Owner permissions and hides remove', () => {
     renderWithStore(<UserDrawer open skipQuery user={ownerUser} userId={ownerUser.user_id} />);
-    expect(screen.getByRole('checkbox', { name: 'manage-users' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'manage-users' })).toHaveAttribute(
+      'aria-disabled',
+      'true',
+    );
     expect(screen.queryByRole('button', { name: 'Remove login' })).not.toBeInTheDocument();
   });
 
@@ -359,9 +480,60 @@ describe('user drawer', () => {
     expect(await screen.findByRole('alert')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reset password' }));
     await user.click(screen.getByRole('switch', { name: 'Active' }));
+    await user.click(screen.getByRole('switch', { name: 'Password login' }));
+    await user.click(screen.getByRole('button', { name: 'Set PIN' }));
     await user.click(screen.getByRole('button', { name: 'Select all' }));
     await user.click(screen.getByRole('button', { name: 'Remove login' }));
-    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    fireEvent.click(
+      screen.getByRole('alertdialog').querySelector('[data-slot="alert-dialog-action"]')!,
+    );
+  });
+
+  it('shows a live user load error', async () => {
+    renderWithStore(
+      <UserDrawer open userId={cashierUser.user_id} />,
+      usersFetch({
+        'GET ': jsonResponse({ error: { code: 'NOT_FOUND' } }, 404),
+      }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not update this user.');
+  });
+
+  it('treats copy and share payloads without secrets as errors', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    vi.stubGlobal('open', open);
+    renderWithStore(
+      <UserDrawer open userId={cashierUser.user_id} />,
+      usersFetch({
+        'password/copy': jsonResponse({ success: true, data: {} }),
+        'password/reset': jsonResponse({ success: true, data: { temp_password_pending: true } }),
+        'share-link': jsonResponse({ success: true, data: { sent: false, body: 'x' } }),
+      }),
+    );
+    expect(await screen.findByRole('button', { name: 'Copy password' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Copy password' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Reset password' }));
+    await user.click(screen.getByRole('button', { name: 'Share via WhatsApp' }));
+    expect(open).not.toHaveBeenCalled();
+  });
+
+  it('treats a 204 delete as success', async () => {
+    const user = userEvent.setup();
+    const onOpenChange = vi.fn();
+    renderWithStore(
+      <UserDrawer open userId={cashierUser.user_id} onOpenChange={onOpenChange} />,
+      usersFetch({
+        'DELETE ': new Response(null, { status: 204 }),
+      }),
+    );
+    expect(await screen.findByRole('button', { name: 'Remove login' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remove login' }));
+    fireEvent.click(
+      screen.getByRole('alertdialog').querySelector('[data-slot="alert-dialog-action"]')!,
+    );
+    await waitFor(() => expect(onOpenChange).toHaveBeenCalledWith(false));
   });
 
   it('renders a seeded drawer error', () => {

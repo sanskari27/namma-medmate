@@ -34,8 +34,7 @@ const TEMP_PASSWORD_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghijkmnopqrstuvwxyz23
 export function randomTempPassword(length = 8): string {
   const bytes = randomBytes(length);
   let out = '';
-  for (let i = 0; i < length; i += 1) {
-    const byte = bytes[i] ?? 0;
+  for (const byte of bytes) {
     out += TEMP_PASSWORD_CHARS[byte % TEMP_PASSWORD_CHARS.length];
   }
   return out;

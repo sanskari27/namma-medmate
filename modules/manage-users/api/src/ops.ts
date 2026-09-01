@@ -24,11 +24,11 @@ const OTP_MOBILE = /^\+91[6-9]\d{9}$/;
 const PIN = /^\d{4,6}$/;
 
 function readBody(req: AuthedRequest): Record<string, unknown> {
-  return (req.req.body ?? {}) as Record<string, unknown>;
+  return req.req.body as Record<string, unknown>;
 }
 
 function readUserId(req: AuthedRequest): string {
-  return parseUuid(String(req.req.params.user_id ?? ''), 'user_id');
+  return parseUuid(String(req.req.params.user_id), 'user_id');
 }
 
 export async function loadActor(runtime: ManageUsersRuntime, input: AuthedRequest) {
@@ -59,10 +59,7 @@ async function loadTarget(
 }
 
 function parseLoginId(raw: unknown): string {
-  if (typeof raw !== 'string') {
-    throw ManageUsersErrors.validationError('login_id is required');
-  }
-  const loginId = raw.trim();
+  const loginId = String(raw).trim();
   if (loginId.length < 3 || loginId.length > 64 || !LOGIN_ID.test(loginId)) {
     throw ManageUsersErrors.validationError('login_id must be 3–64 characters [a-zA-Z0-9._@+-]');
   }
@@ -93,7 +90,7 @@ function parsePin(raw: unknown): string {
 }
 
 function parsePage(raw: unknown, fallback: number): number {
-  const value = typeof raw === 'string' ? Number(raw) : fallback;
+  const value = Number(raw);
   if (!Number.isInteger(value) || value < 1) {
     return fallback;
   }
@@ -122,12 +119,9 @@ async function linkedEmployee(
   runtime: ManageUsersRuntime,
   tenantId: string,
   locationId: string,
-  employeeId: string | null,
+  employeeId: string,
   exceptUserId?: string,
-): Promise<string | null> {
-  if (!employeeId) {
-    return null;
-  }
+): Promise<string> {
   const employee = await runtime.employees.getById(employeeId);
   if (!employee || employee.tenantId !== tenantId || employee.locationId !== locationId) {
     throw ManageUsersErrors.validationError('employee_id is not valid for this location');
@@ -164,7 +158,7 @@ export async function listUsers(runtime: ManageUsersRuntime, input: AuthedReques
           })()
       : undefined;
   const activeRaw = input.req.query.active;
-  const active = activeRaw === 'true' ? true : activeRaw === 'false' ? false : undefined;
+  const active = typeof activeRaw === 'boolean' ? activeRaw : undefined;
   const page = parsePage(input.req.query.page, 1);
   const pageSize = parsePage(input.req.query.page_size, 20);
   const listed = await runtime.auth.listUsers({
@@ -230,11 +224,11 @@ export async function createUser(runtime: ManageUsersRuntime, input: AuthedReque
   if (taken) {
     throw ManageUsersErrors.loginIdTaken();
   }
-  await requireSeat(runtime, input.accessToken, pharmacy.tenantId, pharmacy.locationId);
   const employeeId =
-    typeof body.employee_id === 'string'
+    typeof body.employee_id === 'string' && body.employee_id.length > 0
       ? await linkedEmployee(runtime, pharmacy.tenantId, pharmacy.locationId, body.employee_id)
       : null;
+  await requireSeat(runtime, input.accessToken, pharmacy.tenantId, pharmacy.locationId);
   const pin = typeof body.pin === 'string' ? parsePin(body.pin) : undefined;
   const permissions =
     body.permissions && typeof body.permissions === 'object'
@@ -345,7 +339,7 @@ export async function patchUser(runtime: ManageUsersRuntime, input: AuthedReques
   const employeeId =
     body.employee_id === undefined
       ? undefined
-      : body.employee_id === null
+      : body.employee_id === null || body.employee_id === ''
         ? null
         : await linkedEmployee(
             runtime,
@@ -579,7 +573,7 @@ export async function revokeDevice(runtime: ManageUsersRuntime, input: AuthedReq
   const { pharmacy, actor } = await loadActor(runtime, input);
   requireManageUsersPermission(actor);
   const user = await loadTarget(runtime, input, pharmacy.tenantId, pharmacy.locationId);
-  const deviceId = parseUuid(String(input.req.params.device_id ?? ''), 'device_id');
+  const deviceId = parseUuid(String(input.req.params.device_id), 'device_id');
   const devices = await runtime.auth.listSavedDevices(user.userId);
   if (!devices.some((item) => item.deviceId === deviceId)) {
     throw ManageUsersErrors.notFound();

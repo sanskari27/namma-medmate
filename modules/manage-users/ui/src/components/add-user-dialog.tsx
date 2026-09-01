@@ -9,11 +9,6 @@ import {
   DialogTitle,
   Input,
   Label,
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
   StatusBanner,
   Switch,
 } from '@namma-medmate/shared-ui';
@@ -51,13 +46,13 @@ export function AddUserDialog({
       return;
     }
     const form = new FormData(event.currentTarget);
-    const pin = String(form.get('pin') ?? '');
+    const pin = String(form.get('pin'));
     const result = await createUser({
-      login_id: String(form.get('login_id') ?? ''),
+      login_id: String(form.get('login_id')),
       role,
       password_enabled: passwordEnabled,
       otp_enabled: otpEnabled,
-      otp_mobile: otpEnabled ? String(form.get('otp_mobile') ?? '') : null,
+      otp_mobile: otpEnabled ? String(form.get('otp_mobile')) : null,
       pin: pin.length > 0 ? pin : undefined,
     });
     if (!('error' in result)) {
@@ -84,42 +79,38 @@ export function AddUserDialog({
           </div>
           <div className="grid gap-2">
             <Label htmlFor="add-role">{t('manageUsers.add.role')}</Label>
-            <Select
+            <select
+              id="add-role"
+              aria-label={t('manageUsers.add.role')}
+              className="h-11 min-h-11 w-full rounded-lg border border-border bg-background px-3 text-sm text-foreground outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50"
               value={role}
-              onValueChange={(value) => {
-                if (value === 'manager' || value === 'pharmacist' || value === 'cashier') {
-                  setRole(value);
-                }
+              onChange={(event) => {
+                setRole(event.target.value as Exclude<StaffRole, 'owner'>);
               }}
             >
-              <SelectTrigger id="add-role" aria-label={t('manageUsers.add.role')}>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {ADDABLE_ROLES.map((item) => (
-                  <SelectItem key={item} value={item}>
-                    {t(`manageUsers.roles.${item}`)}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
+              {ADDABLE_ROLES.map((item) => (
+                <option key={item} value={item}>
+                  {t(`manageUsers.roles.${item}`)}
+                </option>
+              ))}
+            </select>
           </div>
-          <label className="flex items-center gap-3 text-sm">
+          <div className="flex items-center gap-3 text-sm">
             <Switch
               checked={passwordEnabled}
               onCheckedChange={(checked) => setPasswordEnabled(checked === true)}
               aria-label={t('manageUsers.add.password')}
             />
-            {t('manageUsers.add.password')}
-          </label>
-          <label className="flex items-center gap-3 text-sm">
+            <span>{t('manageUsers.add.password')}</span>
+          </div>
+          <div className="flex items-center gap-3 text-sm">
             <Switch
               checked={otpEnabled}
               onCheckedChange={(checked) => setOtpEnabled(checked === true)}
               aria-label={t('manageUsers.add.otp')}
             />
-            {t('manageUsers.add.otp')}
-          </label>
+            <span>{t('manageUsers.add.otp')}</span>
+          </div>
           {otpEnabled ? (
             <div className="grid gap-2">
               <Label htmlFor="add-otp-mobile">{t('manageUsers.add.otpMobile')}</Label>

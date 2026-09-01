@@ -19,11 +19,17 @@ import {
   LOCAL_SEED_TENANT_ID,
   localSeedPharmacy,
 } from '../../src/local-seed.ts';
-import { allPermissionsTrue, roleDefaultPermissions } from '../../src/permissions.ts';
+import {
+  allPermissionsTrue,
+  PERMISSION_KEYS,
+  roleDefaultPermissions,
+} from '../../src/permissions.ts';
 import { MemoryPlanGatingClient } from '../../src/plan-gating/client.ts';
 import { createHttpPlanGatingClient } from '../../src/plan-gating/http-client.ts';
 import { principalFromSession } from '../../src/auth/principal.ts';
 import { buildShareLink } from '../../src/share-link.ts';
+import { issueTempPassword } from '../../src/credentials.ts';
+import { requiredPlanForLimit, toSavedDevice } from '../../src/http/mappers.ts';
 import type { ManageUsersDeps } from '../../src/app.ts';
 
 const OTHER_LOCATION = '9b8a7c6d-5e4f-3210-9a8b-7c6d5e4f3210';
@@ -112,6 +118,23 @@ describe('helpers', () => {
     expect(cashier.inventory).toBe(false);
     expect(cashier['manage-users']).toBe(false);
     expect(allPermissionsTrue().whatsapp).toBe(true);
+    expect(roleDefaultPermissions('owner').dashboard).toBe(true);
+    expect(roleDefaultPermissions('manager').reports).toBe(true);
+    expect(requiredPlanForLimit(5)).toBe('pro');
+    expect(requiredPlanForLimit(2)).toBe('growth');
+    expect(
+      toSavedDevice({
+        deviceId: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+        userId: CASHIER_ID,
+        tenantId: LOCAL_SEED_TENANT_ID,
+        locationId: LOCAL_SEED_LOCATION_ID,
+        tokenHash: 'h',
+        expiresAt: new Date('2026-10-01T00:00:00.000Z'),
+        createdAt: new Date('2026-08-01T00:00:00.000Z'),
+        lastUsedAt: new Date('2026-08-20T00:00:00.000Z'),
+        userAgent: null,
+      }).label,
+    ).toBe('Saved device');
   });
 });
 
@@ -175,6 +198,28 @@ describe('clients', () => {
       idempotencyKey: 'k',
     });
     expect(logger.warn).toHaveBeenCalled();
+  });
+
+  it('wires HTTP plan-gating and audit clients from env', () => {
+    expect(
+      createApp(
+        loadManageUsersEnv({
+          OIDC_ISSUER: 'http://localhost:8081',
+          OIDC_AUDIENCE: 'namma-medmate-dispensary',
+          OIDC_JWKS_URI: 'http://localhost:8081/jwks.json',
+          PLAN_GATING_API_BASE_URL: 'http://plan.local',
+          AUDIT_API_BASE_URL: 'http://audit.local',
+          AUDIT_SERVICE_TOKEN: 'svc',
+        }),
+      ),
+    ).toBeTruthy();
+  });
+
+  it('fails closed when the user disappears during password issue', async () => {
+    const auth = createMemoryAuthRepository();
+    await expect(issueTempPassword(auth, CASHIER_ID, TEMP_KEY, () => 'K7mP2xQ9')).rejects.toThrow(
+      'User missing during password issue',
+    );
   });
 });
 
@@ -384,6 +429,16 @@ describe('manage-users-api', () => {
       .send({ role: 'manager' });
     expect(ownerRole.status).toBe(409);
     expect(ownerRole.body.error.code).toBe('OWNER_ACCESS_IMMUTABLE');
+    const ownerOff = await request(app)
+      .patch(`/manage-users/users/${LOCAL_SEED_OWNER_ID}?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`)
+      .send({ active: false });
+    expect(ownerOff.body.error.code).toBe('OWNER_ACCESS_IMMUTABLE');
+    const ownerKeep = await request(app)
+      .patch(`/manage-users/users/${LOCAL_SEED_OWNER_ID}?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`)
+      .send({ login_id: 'priya.owner' });
+    expect(ownerKeep.status).toBe(200);
   });
 
   it('US-2 reset to role defaults matches the Pharmacist FR-8 column', async () => {
@@ -769,5 +824,318 @@ describe('manage-users-api', () => {
       .get(`/manage-users/seats?location_id=${LOCAL_SEED_LOCATION_ID}`)
       .set('authorization', `Bearer ${ghost}`);
     expect(missing.status).toBe(403);
+  });
+
+  it('uses in-memory clients when plan-gating and audit URLs are omitted', () => {
+    expect(createApp(env())).toBeTruthy();
+  });
+
+  it('covers remaining branch paths for users, permissions, and isolation', async () => {
+    const planGating = new MemoryPlanGatingClient();
+    planGating.seatLimit = 20;
+    const employees = new MemoryEmployeesLookup();
+    employees.employees.set('e_03', {
+      employeeId: 'e_03',
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+    });
+    const { app, auth } = await wired({ planGating, employees });
+    const bearer = await ownerToken();
+    const loc = LOCAL_SEED_LOCATION_ID;
+    const users = `/manage-users/users`;
+    const badRole = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ login_id: 'intern.one', role: 'intern', password_enabled: true, otp_enabled: false });
+    expect(badRole.body.error.code).toBe('VALIDATION_ERROR');
+    const badLogin = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ login_id: 'ab', role: 'cashier', password_enabled: true, otp_enabled: false });
+    expect(badLogin.body.error.code).toBe('VALIDATION_ERROR');
+    const noLogin = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ role: 'cashier', password_enabled: true, otp_enabled: false });
+    expect(noLogin.body.error.code).toBe('VALIDATION_ERROR');
+    const badEmp = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        login_id: 'emp.missing',
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+        employee_id: 'missing',
+      });
+    expect(badEmp.body.error.code).toBe('VALIDATION_ERROR');
+    const otpOnly = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        login_id: 'otp.only',
+        role: 'pharmacist',
+        password_enabled: false,
+        otp_enabled: true,
+        otp_mobile: '+919876543210',
+      });
+    expect(otpOnly.status).toBe(201);
+    expect(otpOnly.body.data.temp_password).toBeUndefined();
+    const customPerms = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        login_id: 'perm.map',
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+        permissions: Object.fromEntries(PERMISSION_KEYS.map((key) => [key, key === 'crm'])),
+      });
+    expect(customPerms.status).toBe(201);
+    expect(customPerms.body.data.permissions.crm).toBe(true);
+    const ownerGet = await request(app)
+      .get(`${users}/${LOCAL_SEED_OWNER_ID}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(ownerGet.body.data.permissions.whatsapp).toBe(true);
+    const badId = await request(app)
+      .get(`${users}/not-a-uuid?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(badId.body.error.code).toBe('VALIDATION_ERROR');
+    const badLoc = await request(app)
+      .get(`/manage-users/seats?location_id=nope`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(badLoc.body.error.code).toBe('VALIDATION_ERROR');
+    const badListRole = await request(app)
+      .get(`${users}?location_id=${loc}&role=intern`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(badListRole.body.error.code).toBe('VALIDATION_ERROR');
+    const paged = await request(app)
+      .get(`${users}?location_id=${loc}&page=2&page_size=1&active=false`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(paged.status).toBe(200);
+    const pageZero = await request(app)
+      .get(`${users}?location_id=${loc}&page=0`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(pageZero.status).toBe(200);
+    const created = await request(app)
+      .post(`${users}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        login_id: 'patch.me',
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+        otp_mobile: '+919800000000',
+      });
+    const userId = created.body.data.user_id as string;
+    const patched = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        role: 'manager',
+        login_id: 'patch.mgr',
+        otp_mobile: '+919811111111',
+        employee_id: null,
+      });
+    expect(patched.body.data.role).toBe('manager');
+    const linked = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ employee_id: 'e_03' });
+    expect(linked.status).toBe(200);
+    const clearedEmployee = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ employee_id: '' });
+    expect(clearedEmployee.status).toBe(200);
+    const deactivated = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ active: false });
+    expect(deactivated.status).toBe(200);
+    const reactivated = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ active: true });
+    expect(reactivated.status).toBe(200);
+    const ownerRole = await request(app)
+      .patch(`${users}/${LOCAL_SEED_OWNER_ID}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ role: 'manager' });
+    expect(ownerRole.body.error.code).toBe('OWNER_ACCESS_IMMUTABLE');
+    const toOwner = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ role: 'owner' });
+    expect(toOwner.body.error.code).toBe('VALIDATION_ERROR');
+    const takenLogin = await request(app)
+      .patch(`${users}/${userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ login_id: 'priya.owner' });
+    expect(takenLogin.body.error.code).toBe('LOGIN_ID_TAKEN');
+    const methodsKeep = await request(app)
+      .put(`${users}/${userId}/methods?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({});
+    expect(methodsKeep.status).toBe(200);
+    const methodsMobile = await request(app)
+      .put(`${users}/${userId}/methods?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({
+        password_enabled: true,
+        otp_enabled: true,
+        otp_mobile: '+919822222222',
+      });
+    expect(methodsMobile.status).toBe(200);
+    const mergeMissing = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ mode: 'merge' });
+    expect(mergeMissing.body.error.code).toBe('VALIDATION_ERROR');
+    const defaultMode = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({});
+    expect(defaultMode.body.error.code).toBe('VALIDATION_ERROR');
+    const replaceMissing = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ mode: 'replace' });
+    expect(replaceMissing.body.error.code).toBe('VALIDATION_ERROR');
+    const replaceMap = allPermissionsTrue();
+    replaceMap.crm = false;
+    const replaced = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ mode: 'replace', permissions: replaceMap });
+    expect(replaced.body.data.permissions.crm).toBe(false);
+    const replaceUnknown = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ mode: 'replace', permissions: { ...allPermissionsTrue(), nope: true } });
+    expect(replaceUnknown.body.error.code).toBe('UNKNOWN_MODULE_KEY');
+    const replaceIncomplete = await request(app)
+      .put(`${users}/${userId}/permissions?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`)
+      .send({ mode: 'replace', permissions: { crm: true } });
+    expect(replaceIncomplete.body.error.code).toBe('VALIDATION_ERROR');
+    const missingDevice = await request(app)
+      .delete(`${users}/${userId}/devices/cccccccc-cccc-4ccc-8ccc-cccccccccccc?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(missingDevice.status).toBe(404);
+    const share = await request(app)
+      .post(`${users}/${otpOnly.body.data.user_id}/share-link?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(share.body.data.body).toContain('Ask the Owner');
+    const foreign = await auth.createUser({
+      tenantId: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      locationId: loc,
+      loginId: 'other.tenant',
+      role: 'cashier',
+      passwordEnabled: true,
+      otpEnabled: false,
+    });
+    const leaked = await request(app)
+      .get(`${users}/${foreign.userId}?location_id=${loc}`)
+      .set('authorization', `Bearer ${bearer}`);
+    expect(leaked.status).toBe(404);
+  });
+
+  it('returns 404 when tenancy location does not match the session', async () => {
+    const seed = localSeedPharmacy();
+    const { app } = await wired({
+      tenancy: createMemoryTenancyRepository({
+        ...seed,
+        location: { ...seed.location, locationId: OTHER_LOCATION },
+      }),
+    });
+    const res = await request(app)
+      .get(`/manage-users/seats?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`);
+    expect(res.status).toBe(404);
+  });
+
+  it('creates users when the plan seat limit is unlimited', async () => {
+    const planGating = new MemoryPlanGatingClient();
+    planGating.plan = 'pro';
+    planGating.seatLimit = null;
+    const { app, auth } = await wired({ planGating });
+    await auth.createUser({
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+      loginId: 'fill.one',
+      role: 'cashier',
+      passwordEnabled: true,
+      otpEnabled: false,
+    });
+    const res = await request(app)
+      .post(`/manage-users/users?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`)
+      .send({
+        login_id: 'pro.cashier',
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+      });
+    expect(res.status).toBe(201);
+    const seats = await request(app)
+      .get(`/manage-users/seats?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`);
+    expect(seats.body.data.unlimited).toBe(true);
+  });
+
+  it('shares a login with a fallback shop name', async () => {
+    const seed = localSeedPharmacy();
+    const inner = createMemoryTenancyRepository(seed);
+    let seen = 0;
+    const tenancy = {
+      ...inner,
+      async getLocationForTenant(tenantId: string) {
+        seen += 1;
+        if (seen > 1) {
+          return undefined;
+        }
+        return inner.getLocationForTenant(tenantId);
+      },
+    };
+    const { app, auth } = await wired({ tenancy });
+    const user = await auth.createUser({
+      tenantId: LOCAL_SEED_TENANT_ID,
+      locationId: LOCAL_SEED_LOCATION_ID,
+      loginId: 'share.fallback',
+      role: 'cashier',
+      passwordEnabled: true,
+      otpEnabled: false,
+    });
+    const res = await request(app)
+      .post(`/manage-users/users/${user.userId}/share-link?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`);
+    expect(res.status).toBe(200);
+    expect(res.body.data.body).toContain('Namma MedMate');
+  });
+
+  it('returns 500 when plan-gating seats cannot be read', async () => {
+    const planGating = new MemoryPlanGatingClient();
+    planGating.fail = true;
+    const { app } = await wired({ planGating });
+    const res = await request(app)
+      .post(`/manage-users/users?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`)
+      .send({
+        login_id: 'cap.fail',
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+      });
+    expect(res.status).toBeGreaterThanOrEqual(500);
+  });
+
+  it('forbids a removed actor', async () => {
+    const { app, auth } = await wired();
+    await auth.softDeleteUser(LOCAL_SEED_OWNER_ID, new Date());
+    const res = await request(app)
+      .get(`/manage-users/seats?location_id=${LOCAL_SEED_LOCATION_ID}`)
+      .set('authorization', `Bearer ${await ownerToken()}`);
+    expect(res.status).toBe(403);
   });
 });

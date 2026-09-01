@@ -220,8 +220,12 @@ describe('memory auth repository', () => {
       pageSize: 20,
     });
     expect(listed.total).toBe(2);
+    await expect(repo.findUserByEmployeeId(TENANT, LOCATION, 'e_01')).resolves.toMatchObject({
+      loginId: 'ravi.cashier',
+    });
     await repo.updateUserProfile(cashier.userId, {
       loginId: 'ravi.till',
+      role: 'manager',
       active: false,
       employeeId: null,
       otpMobile: '+919111111111',
@@ -261,6 +265,7 @@ describe('memory auth repository', () => {
     expect(await repo.revokeSavedDevice(device.deviceId)).toBe(true);
     expect(await repo.revokeSavedDevice('missing')).toBe(false);
     expect(await repo.revokeSessionsForUser(cashier.userId, NOW)).toBe(1);
+    await repo.touchSession('missing', NOW);
     await repo.putIdempotency({
       tenantId: TENANT,
       idempotencyKey: 'k1',
@@ -440,7 +445,7 @@ describe('sql auth repository', () => {
         return { rows: [sessionRow] };
       }
       if (sql.startsWith('update sessions')) {
-        return { rows: [] };
+        return { rows: [], rowCount: sql.includes('user_id') ? 2 : 1 };
       }
       if (sql.includes('saved_devices')) {
         if (sql.startsWith('delete')) {
@@ -548,6 +553,16 @@ describe('sql auth repository', () => {
     await expect(
       repo.listUsers({ tenantId: TENANT, locationId: LOCATION, page: 1, pageSize: 20 }),
     ).resolves.toMatchObject({ total: 2 });
+    await expect(
+      repo.listUsers({
+        tenantId: TENANT,
+        locationId: LOCATION,
+        active: true,
+        role: 'cashier',
+        page: 1,
+        pageSize: 20,
+      }),
+    ).resolves.toMatchObject({ total: 2 });
     await expect(repo.countActiveUsers(TENANT, LOCATION)).resolves.toBe(2);
     await expect(repo.findLiveOwner(TENANT, LOCATION)).resolves.toMatchObject({ role: 'cashier' });
     await expect(repo.findUserByEmployeeId(TENANT, LOCATION, 'e_01')).resolves.toMatchObject({
@@ -555,6 +570,13 @@ describe('sql auth repository', () => {
     });
     await expect(
       repo.updateUserProfile(userRow.user_id, { loginId: 'x', active: false, employeeId: null }),
+    ).resolves.toMatchObject({ userId: userRow.user_id });
+    await expect(
+      repo.updateUserProfile(userRow.user_id, {
+        role: 'manager',
+        otpMobile: '+919000000000',
+        employeeId: 'e_01',
+      }),
     ).resolves.toMatchObject({ userId: userRow.user_id });
     await expect(repo.setPermissions(userRow.user_id, { crm: true })).resolves.toMatchObject({
       userId: userRow.user_id,
@@ -591,6 +613,11 @@ describe('sql auth repository', () => {
       userId: userRow.user_id,
     });
     await expect(repo.getIdempotency(TENANT, 'k1')).resolves.toMatchObject({ bodyHash: 'h1' });
+    await expect(
+      createSqlAuthRepository(
+        mockPool(vi.fn(async () => ({ rows: [{ ...userRow, permissions: null }] }))) as never,
+      ).findUserById(userRow.user_id),
+    ).resolves.toMatchObject({ permissions: {} });
   });
 
   it('returns undefined and throws when SQL writes persist nothing', async () => {

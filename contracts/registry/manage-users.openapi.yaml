@@ -28,6 +28,8 @@ paths:
           $ref: '#/components/responses/Error'
         '403':
           $ref: '#/components/responses/Error'
+        '404':
+          $ref: '#/components/responses/Error'
   /manage-users/users:
     get:
       operationId: listManageUsers
@@ -65,6 +67,8 @@ paths:
         '401':
           $ref: '#/components/responses/Error'
         '403':
+          $ref: '#/components/responses/Error'
+        '404':
           $ref: '#/components/responses/Error'
     post:
       operationId: createManageUser
@@ -494,6 +498,7 @@ components:
         pin:
           type: string
         permissions:
+          type: object
           nullable: true
           additionalProperties:
             type: boolean

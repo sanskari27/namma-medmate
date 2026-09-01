@@ -84,15 +84,12 @@ export function UserDrawer({
   const [saveError, setSaveError] = useState(false);
   const owner = user?.role === 'owner';
 
-  async function copyTemp(): Promise<void> {
-    if (!user) {
-      return;
-    }
+  async function copyTemp(current: ManageUserDetail): Promise<void> {
     if (skipQuery) {
       setNotice(t('manageUsers.drawer.copied'));
       return;
     }
-    const result = await copyPassword({ userId: user.user_id });
+    const result = await copyPassword({ userId: current.user_id });
     if ('data' in result && result.data?.temp_password) {
       await writeClipboard(result.data.temp_password);
       setNotice(t('manageUsers.drawer.copied'));
@@ -101,64 +98,66 @@ export function UserDrawer({
     }
   }
 
-  async function handleResetPassword(): Promise<void> {
-    if (!user) {
-      return;
-    }
+  async function handleResetPassword(current: ManageUserDetail): Promise<void> {
     if (skipQuery) {
       setNotice(t('manageUsers.drawer.copied'));
       return;
     }
-    const result = await resetPassword({ userId: user.user_id });
+    const result = await resetPassword({ userId: current.user_id });
     if ('data' in result && result.data?.temp_password) {
       await writeClipboard(result.data.temp_password);
       setNotice(t('manageUsers.drawer.copied'));
-      events.userSaved(user.user_id);
+      events.userSaved(current.user_id);
     } else {
       setSaveError(true);
     }
   }
 
-  async function handleMethods(passwordEnabled: boolean, otpEnabled: boolean): Promise<void> {
-    if (!user || skipQuery) {
+  async function handleMethods(
+    current: ManageUserDetail,
+    passwordEnabled: boolean,
+    otpEnabled: boolean,
+  ): Promise<void> {
+    if (skipQuery) {
       return;
     }
     const result = await putMethods({
-      userId: user.user_id,
+      userId: current.user_id,
       password_enabled: passwordEnabled,
       otp_enabled: otpEnabled,
-      otp_mobile: user.otp_mobile,
+      otp_mobile: current.otp_mobile,
     });
     if ('error' in result) {
       setSaveError(true);
       return;
     }
-    events.userSaved(user.user_id);
+    events.userSaved(current.user_id);
   }
 
-  async function handleActive(active: boolean): Promise<void> {
-    if (!user || skipQuery) {
+  async function handleActive(current: ManageUserDetail, active: boolean): Promise<void> {
+    if (skipQuery) {
       return;
     }
-    const result = await patchUser({ userId: user.user_id, active });
+    const result = await patchUser({ userId: current.user_id, active });
     if ('error' in result) {
       setSaveError(true);
       return;
     }
     events.listChanged(locationId);
-    events.userSaved(user.user_id);
+    events.userSaved(current.user_id);
   }
 
   async function handlePermissions(
+    current: ManageUserDetail,
     mode: 'select_all' | 'reset_defaults' | 'merge',
     key?: string,
     checked?: boolean,
   ): Promise<void> {
-    if (!user || skipQuery) {
+    if (skipQuery) {
       return;
     }
     const result = await putPermissions({
-      userId: user.user_id,
+      userId: current.user_id,
       mode,
       permissions: key ? { [key]: checked === true } : undefined,
     });
@@ -166,40 +165,40 @@ export function UserDrawer({
       setSaveError(true);
       return;
     }
-    events.userSaved(user.user_id);
+    events.userSaved(current.user_id);
   }
 
-  async function handlePin(event: FormEvent<HTMLFormElement>): Promise<void> {
+  async function handlePin(
+    current: ManageUserDetail,
+    event: FormEvent<HTMLFormElement>,
+  ): Promise<void> {
     event.preventDefault();
-    if (!user || skipQuery) {
+    if (skipQuery) {
       return;
     }
-    const pin = String(new FormData(event.currentTarget).get('pin') ?? '');
-    const result = await putPin({ userId: user.user_id, pin });
+    const pin = String(new FormData(event.currentTarget).get('pin') || '');
+    const result = await putPin({ userId: current.user_id, pin });
     if ('error' in result) {
       setSaveError(true);
     }
   }
 
-  async function handleShare(): Promise<void> {
-    if (!user) {
-      return;
-    }
+  async function handleShare(current: ManageUserDetail): Promise<void> {
     if (skipQuery) {
       return;
     }
-    const result = await shareLink({ userId: user.user_id });
+    const result = await shareLink({ userId: current.user_id });
     if ('data' in result && result.data?.url) {
       globalThis.open(result.data.url, '_blank', 'noopener');
     }
   }
 
   async function handleRemove(): Promise<void> {
-    if (!user || skipQuery) {
+    if (skipQuery) {
       onOpenChange?.(false);
       return;
     }
-    const result = await removeUser({ userId: user.user_id });
+    const result = await removeUser({ userId: resolvedId });
     if ('error' in result) {
       setSaveError(true);
       return;
@@ -229,54 +228,58 @@ export function UserDrawer({
               <Label>{t('manageUsers.drawer.role')}</Label>
               <Input value={t(`manageUsers.roles.${user.role}`)} disabled readOnly />
             </div>
-            <label className="flex items-center gap-3 text-sm">
+            <div className="flex items-center gap-3 text-sm">
               <Switch
                 checked={user.active}
                 disabled={owner}
                 onCheckedChange={(checked) => {
-                  void handleActive(checked === true);
+                  void handleActive(user, checked === true);
                 }}
                 aria-label={t('manageUsers.drawer.active')}
               />
-              {t('manageUsers.drawer.active')}
-            </label>
-            <label className="flex items-center gap-3 text-sm">
+              <span>{t('manageUsers.drawer.active')}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
               <Switch
                 checked={user.password_enabled}
                 onCheckedChange={(checked) => {
-                  void handleMethods(checked === true, user.otp_enabled);
+                  void handleMethods(user, checked === true, user.otp_enabled);
                 }}
                 aria-label={t('manageUsers.drawer.password')}
               />
-              {t('manageUsers.drawer.password')}
-            </label>
-            <label className="flex items-center gap-3 text-sm">
+              <span>{t('manageUsers.drawer.password')}</span>
+            </div>
+            <div className="flex items-center gap-3 text-sm">
               <Switch
                 checked={user.otp_enabled}
                 onCheckedChange={(checked) => {
-                  void handleMethods(user.password_enabled, checked === true);
+                  void handleMethods(user, user.password_enabled, checked === true);
                 }}
                 aria-label={t('manageUsers.drawer.otp')}
               />
-              {t('manageUsers.drawer.otp')}
-            </label>
+              <span>{t('manageUsers.drawer.otp')}</span>
+            </div>
             <div className="flex flex-wrap gap-2">
-              <Button type="button" variant="outline" onClick={() => void handleResetPassword()}>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => void handleResetPassword(user)}
+              >
                 {t('manageUsers.drawer.resetPassword')}
               </Button>
               <Button
                 type="button"
                 variant="outline"
                 disabled={!user.temp_password_pending}
-                onClick={() => void copyTemp()}
+                onClick={() => void copyTemp(user)}
               >
                 {t('manageUsers.drawer.copyPassword')}
               </Button>
-              <Button type="button" variant="outline" onClick={() => void handleShare()}>
+              <Button type="button" variant="outline" onClick={() => void handleShare(user)}>
                 {t('manageUsers.drawer.share')}
               </Button>
             </div>
-            <form className="grid gap-2" onSubmit={(event) => void handlePin(event)}>
+            <form className="grid gap-2" onSubmit={(event) => void handlePin(user, event)}>
               <Label htmlFor="user-pin">{t('manageUsers.drawer.pin')}</Label>
               <p className="text-sm text-muted-foreground">
                 {user.pin_set ? t('manageUsers.drawer.pinSet') : t('manageUsers.drawer.pinUnset')}
@@ -290,7 +293,7 @@ export function UserDrawer({
                   type="button"
                   variant="outline"
                   onClick={() => {
-                    if (skipQuery || !user) {
+                    if (skipQuery) {
                       return;
                     }
                     void deletePin({ userId: user.user_id });
@@ -323,7 +326,7 @@ export function UserDrawer({
                 type="button"
                 variant="outline"
                 onClick={() => {
-                  if (skipQuery || !user) {
+                  if (skipQuery) {
                     return;
                   }
                   void revokeAllDevices({ userId: user.user_id });
@@ -338,14 +341,14 @@ export function UserDrawer({
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void handlePermissions('select_all')}
+                  onClick={() => void handlePermissions(user, 'select_all')}
                 >
                   {t('manageUsers.drawer.selectAll')}
                 </Button>
                 <Button
                   type="button"
                   variant="outline"
-                  onClick={() => void handlePermissions('reset_defaults')}
+                  onClick={() => void handlePermissions(user, 'reset_defaults')}
                 >
                   {t('manageUsers.drawer.resetDefaults')}
                 </Button>
@@ -358,7 +361,7 @@ export function UserDrawer({
                       disabled={owner}
                       aria-label={key}
                       onCheckedChange={(checked) => {
-                        void handlePermissions('merge', key, checked === true);
+                        void handlePermissions(user, 'merge', key, checked === true);
                       }}
                     />
                     <span className="text-sm">{key}</span>

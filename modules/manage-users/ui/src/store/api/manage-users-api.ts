@@ -335,16 +335,18 @@ export const manageUsersApi = createApi({
     removeUser: builder.mutation<Record<string, never>, { userId: string }>({
       async queryFn(arg, api) {
         const extra = api.extra as ManageUsersApiContext;
-        return load<Record<string, never>>(async () => {
-          const client = createApiClient(extra);
-          return client.DELETE('/manage-users/users/{user_id}', {
-            params: {
-              header: authHeader(),
-              path: { user_id: arg.userId },
-              query: locationQuery(extra),
-            },
-          });
+        const client = createApiClient(extra);
+        const result = await client.DELETE('/manage-users/users/{user_id}', {
+          params: {
+            header: authHeader(),
+            path: { user_id: arg.userId },
+            query: locationQuery(extra),
+          },
         });
+        if (result.response?.status === 204) {
+          return { data: {} };
+        }
+        return load<Record<string, never>>(async () => result);
       },
       invalidatesTags: ['Seats', 'Users'],
     }),
