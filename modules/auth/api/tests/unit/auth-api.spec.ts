@@ -804,7 +804,7 @@ describe('auth-api chemist login', () => {
     let hideUser = false;
     const missingAuth: AuthRepository = {
       ...missingInner,
-      findUserById: async (userId) => (hideUser ? null : missingInner.findUserById(userId)),
+      findUserById: async (userId) => (hideUser ? undefined : missingInner.findUserById(userId)),
     };
     const missingApp = createApp(env(), { auth: missingAuth });
     const live = await login(missingApp);
