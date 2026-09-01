@@ -1,6 +1,6 @@
 ---
 name: implement-story
-description: Implement one named Namma MedMate story as a tested vertical slice and update its tracker lifecycle.
+description: Implement one named Namma MedMate story as a tested vertical slice by dispatching spring-story and/or react-story from the story apps list, then update its tracker lifecycle.
 ---
 
 # Implement one story
@@ -15,20 +15,19 @@ Input is a required `M#-S##` story ID.
 3. Read product sources, architecture, current callers, and relevant tests.
 4. Change only the selected tracker row to `in_progress` before runtime code.
 
-## TDD implementation
+## Dispatch from `apps`
 
-1. Convert each acceptance criterion and rule into explicit test cases.
-2. Write tests in every target app and observe the new tests fail for the
-   expected missing behavior.
-3. Implement the smallest complete vertical slice; reuse current patterns.
-4. Protect tenant/branch isolation, authorization, validation, transaction
-   rollback, idempotency, and concurrency at the server.
-5. Handle all required UI states and accessibility behavior.
-6. Avoid adjacent cleanup, speculative abstractions, and Phase 2 behavior.
+Read frontmatter `apps`. Skip any stack that is not listed (example: M1-S08
+is server + admin only). Do not implement a React screen with the Spring
+checklist or a Java endpoint with the React checklist.
+
+- `server` → follow the `spring-story` skill.
+- `dispensary` and/or `admin` → follow the `react-story` skill once per
+  listed SPA, including that app's uniqueness reference.
 
 ## Completion
 
-1. Run all story target gates and fix failures.
+1. Run only the listed target gates and fix failures.
 2. Change tracker status to `implemented` with files, tests, and command output.
 3. Dispatch `story-verifier` with the story path, diff, and evidence.
 4. On `PASS`, record verdict and progress `verified → done`. On `FAIL`,

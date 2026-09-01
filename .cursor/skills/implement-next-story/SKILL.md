@@ -10,5 +10,6 @@ description: Select and complete the first dependency-ready vertical story from 
 2. Stop if any row is already `in_progress`; report its ID.
 3. In tracker order, select the first `ready` row whose dependencies are all
    `done` and whose decisions are closed or absent.
-4. Follow the `implement-story` skill for that exact ID.
+4. Follow the `implement-story` skill for that exact ID. It dispatches
+   `spring-story` and/or `react-story` from the story `apps` list.
 5. Complete only one story per invocation.

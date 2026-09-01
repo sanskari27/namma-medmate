@@ -6,6 +6,8 @@ alwaysApply: false
 
 # React frontends
 
+- Story slices: skill `react-story` (load `dispensary.md` or `admin.md`).
+  Verification: skill `verify-react`.
 - React 19 function components and hooks with strict TypeScript; do not use
   `any`, unsafe double assertions, or class components.
 - Redux Toolkit owns authenticated/server-derived shared state; temporary

@@ -16,6 +16,11 @@ Commands:
 - `/verify-story M1-S01`
 - `/requirements-status`
 
+Stack skills (dispatched from story frontmatter `apps`):
+
+- `server` → `spring-story` / `verify-spring`
+- `dispensary` and/or `admin` → `react-story` / `verify-react` (once per SPA)
+
 Work on one vertical story at a time. Never implement blocked or deferred work,
 skip tests, invent product decisions, bypass tenant/branch scope, or claim a
 story is done without an independent verifier `PASS`.

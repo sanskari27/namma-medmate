@@ -6,6 +6,7 @@ alwaysApply: false
 
 # Spring backend
 
+- Story slices: skill `spring-story`. Verification: skill `verify-spring`.
 - Java 17, Spring Boot 3.4.x, Maven, root package `com.nammamedmate.server`.
 - Flow is `feature → application → persistence + domain`; controllers never
   call repositories. External adapters and security live in `infrastructure`.

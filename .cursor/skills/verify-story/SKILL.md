@@ -1,6 +1,6 @@
 ---
 name: verify-story
-description: Independently verify an implemented Namma MedMate story against acceptance, architecture, tests, and scope.
+description: Independently verify an implemented Namma MedMate story by dispatching verify-spring and/or verify-react from the story apps list. Evidence-based PASS or FAIL only.
 ---
 
 # Verify one story
@@ -9,7 +9,10 @@ description: Independently verify an implemented Namma MedMate story against acc
 2. Read the story, epic, product sources, decisions, dependencies, architecture,
    implementation diff, tests, and tracker evidence.
 3. Use the `story-verifier` agent. Do not edit implementation during review.
-4. Require evidence for every AC, business rule, target app, tenant/branch
-   boundary, failure case, migration, and target gate.
-5. Return exactly `PASS` or `FAIL` with concise evidence and actionable gaps.
+4. Dispatch from frontmatter `apps`. Skip unlisted stacks.
+   - `server` → follow the `verify-spring` skill.
+   - `dispensary` and/or `admin` → follow the `verify-react` skill once per
+     listed SPA.
+5. Return exactly `PASS` or `FAIL`. Overall `PASS` only when every dispatched
+   stack skill passed. Cite evidence; list actionable gaps on `FAIL`.
 6. Only a `PASS` may advance tracker status through `verified` to `done`.

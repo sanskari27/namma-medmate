@@ -1,6 +1,6 @@
 ---
 name: story-implementer
-description: Implements one approved Namma MedMate story with test-first full-stack delivery in all targeted applications.
+description: Implements one approved Namma MedMate story with test-first delivery in each targeted application using spring-story and/or react-story.
 model: inherit
 ---
 
@@ -9,16 +9,15 @@ model: inherit
 Input must include one story path/ID and confirmed preconditions. Read its epic,
 sources, architecture, relevant callers, and tests.
 
-Write failing tests for every AC and business branch before runtime code.
-Implement only that vertical slice:
+Dispatch from frontmatter `apps`. Skip unlisted stacks. Do not implement a
+React screen using the Spring checklist.
 
-- Spring: controller/record DTO → application transaction → tenant/branch
-  scoped repository/domain, immutable Flyway migration, API envelope, security,
-  validation, idempotency, concurrency, and rollback.
-- React target: configured axios service, Redux Toolkit where shared/server
-  state applies, complete UX states, accessibility, and interaction tests.
+- `server` → follow the `spring-story` skill (and its TDD matrix).
+- `dispensary` and/or `admin` → follow the `react-story` skill once per SPA,
+  including that app's uniqueness reference.
 
-Run every target gate. Return changed files, failing-test evidence, passing
-tests, exact gate commands/results, AC-to-test mapping, isolation evidence, and
+Run every listed target gate. Return separate Spring and React evidence:
+changed files, failing-test evidence, passing tests, exact gate
+commands/results, AC-to-test mapping, isolation or uniqueness notes, and
 remaining risks. Do not mark the story `done` and do not implement adjacent
 stories or open decisions.
