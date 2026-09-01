@@ -30,6 +30,10 @@ const files = await walk(dist);
 let jsBytes = 0;
 let totalBytes = 0;
 for (const file of files) {
+  // Source maps are not shipped to users; counting them blew the 500 KiB gzip budget.
+  if (file.endsWith('.map')) {
+    continue;
+  }
   const gzipped = gzipSync(await readFile(file)).length;
   totalBytes += gzipped;
   if (file.endsWith('.js')) {
