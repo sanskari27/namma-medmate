@@ -170,8 +170,6 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     get:
       operationId: getEmployee
       summary: Employee detail
@@ -180,6 +178,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       responses:
         '200':
           description: Detail
@@ -203,6 +202,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       requestBody:
         required: true
         content:
@@ -236,12 +236,11 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       responses:
         '405':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/photo/upload-url:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     post:
       operationId: createEmployeePhotoUploadUrl
       summary: Presigned photo upload URL
@@ -250,6 +249,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       requestBody:
         required: true
         content:
@@ -272,8 +272,6 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/photo:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     put:
       operationId: confirmEmployeePhoto
       summary: Confirm photo object key
@@ -282,6 +280,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       requestBody:
         required: true
         content:
@@ -304,8 +303,6 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/documents/upload-url:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     post:
       operationId: createEmployeeDocumentUploadUrl
       summary: Presigned document upload URL
@@ -314,6 +311,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       requestBody:
         required: true
         content:
@@ -338,8 +336,6 @@ paths:
         '409':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/documents:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     post:
       operationId: createEmployeeDocument
       summary: Confirm a document after upload
@@ -348,6 +344,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       requestBody:
         required: true
         content:
@@ -372,9 +369,6 @@ paths:
         '409':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/documents/{document_id}:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
-      - $ref: '#/components/parameters/DocumentId'
     delete:
       operationId: deleteEmployeeDocument
       summary: Remove a document
@@ -383,6 +377,8 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
+        - $ref: '#/components/parameters/DocumentId'
       responses:
         '200':
           description: Deleted
@@ -399,8 +395,6 @@ paths:
         '404':
           $ref: '#/components/responses/Error'
   /employees/{employee_id}/id-card.pdf:
-    parameters:
-      - $ref: '#/components/parameters/EmployeeId'
     get:
       operationId: getEmployeeIdCardPdf
       summary: ID card PDF
@@ -409,6 +403,7 @@ paths:
       parameters:
         - $ref: '#/components/parameters/AuthorizationHeader'
         - $ref: '#/components/parameters/LocationIdQuery'
+        - $ref: '#/components/parameters/EmployeeId'
       responses:
         '200':
           description: PDF

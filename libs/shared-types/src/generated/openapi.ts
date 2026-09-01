@@ -233,9 +233,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         /** Employee detail */
@@ -254,9 +252,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -273,9 +269,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -292,9 +286,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -311,9 +303,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -330,10 +320,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-                document_id: components["parameters"]["DocumentId"];
-            };
+            path?: never;
             cookie?: never;
         };
         get?: never;
@@ -350,9 +337,7 @@ export interface paths {
         parameters: {
             query?: never;
             header?: never;
-            path: {
-                employee_id: components["parameters"]["EmployeeId"];
-            };
+            path?: never;
             cookie?: never;
         };
         /** ID card PDF */
