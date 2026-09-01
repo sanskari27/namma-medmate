@@ -24,19 +24,31 @@ test('HQ cannot read pharmacy seats', async ({ request }) => {
 
 test('Add user at the Free cap returns SEAT_CAP_REACHED', async ({ request }) => {
   const { pharmacy } = e2eTokens();
-  await request.post(`/manage-users/users?location_id=${locationId}`, {
-    headers: { authorization: `Bearer ${pharmacy}` },
-    data: {
-      login_id: 'fill.cashier',
-      role: 'cashier',
-      password_enabled: true,
-      otp_enabled: false,
-    },
-  });
+  const headers = { authorization: `Bearer ${pharmacy}` };
+  const seats = await request.get(`/manage-users/seats?location_id=${locationId}`, { headers });
+  const seatBody = (await seats.json()) as {
+    data: { active_count: number; seat_limit: number };
+  };
+  let active = seatBody.data.active_count;
+  while (active < seatBody.data.seat_limit) {
+    const fill = await request.post(`/manage-users/users?location_id=${locationId}`, {
+      headers,
+      data: {
+        login_id: `fill.cashier.${Date.now()}.${active}`,
+        role: 'cashier',
+        password_enabled: true,
+        otp_enabled: false,
+      },
+    });
+    if (fill.status() !== 201) {
+      break;
+    }
+    active += 1;
+  }
   const blocked = await request.post(`/manage-users/users?location_id=${locationId}`, {
-    headers: { authorization: `Bearer ${pharmacy}` },
+    headers,
     data: {
-      login_id: 'extra.cashier',
+      login_id: `extra.cashier.${Date.now()}`,
       role: 'cashier',
       password_enabled: true,
       otp_enabled: false,
