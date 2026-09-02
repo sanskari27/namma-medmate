@@ -1,6 +1,9 @@
 package com.nammamedmate.server.feature.auth;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -10,25 +13,38 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.application.email.AdapterSendRequest;
+import com.nammamedmate.server.application.email.AdapterSendResult;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.EmailDeliveryStatus;
 import com.nammamedmate.server.domain.SavedLogin;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
+import com.nammamedmate.server.infrastructure.email.ResendEmailAdapter;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.PasswordHistoryRepository;
+import com.nammamedmate.server.persistence.PasswordResetTokenRepository;
 import com.nammamedmate.server.persistence.SavedLoginRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
+import com.nammamedmate.server.persistence.TransactionalEmailRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.mockito.ArgumentCaptor;
+import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.context.ActiveProfiles;
@@ -50,6 +66,7 @@ class AuthSavedLoginTest {
   private static final String NEXT_PASSWORD = "counter-pass-2";
   private static final String PIN = "123456";
   private static final String OTHER_PIN = "654321";
+  private static final Pattern TOKEN_IN_URL = Pattern.compile("token=([^\\s<&\"]+)");
 
   @Container
   static final PostgreSQLContainer<?> POSTGRES =
@@ -65,20 +82,35 @@ class AuthSavedLoginTest {
     registry.add("spring.datasource.password", POSTGRES::getPassword);
   }
 
+  @MockBean private ResendEmailAdapter resendEmailAdapter;
+
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
   @Autowired private TenantRepository tenantRepository;
   @Autowired private AppUserRepository appUserRepository;
   @Autowired private UserSessionRepository userSessionRepository;
   @Autowired private SavedLoginRepository savedLoginRepository;
+  @Autowired private PasswordResetTokenRepository passwordResetTokenRepository;
+  @Autowired private PasswordHistoryRepository passwordHistoryRepository;
+  @Autowired private TransactionalEmailRepository transactionalEmailRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  private final AtomicInteger messageSeq = new AtomicInteger();
 
   @BeforeEach
   void wipeAuthTables() {
+    passwordResetTokenRepository.deleteAll();
+    passwordHistoryRepository.deleteAll();
+    transactionalEmailRepository.deleteAll();
     userSessionRepository.deleteAll();
     savedLoginRepository.deleteAll();
     appUserRepository.deleteAll();
     tenantRepository.deleteAll();
+    Mockito.reset(resendEmailAdapter);
+    when(resendEmailAdapter.send(any(AdapterSendRequest.class)))
+        .thenAnswer(
+            invocation ->
+                new AdapterSendResult(
+                    EmailDeliveryStatus.QUEUED, "msg-saved-" + messageSeq.incrementAndGet()));
   }
 
   @Test
@@ -295,6 +327,66 @@ class AuthSavedLoginTest {
   }
 
   @Test
+  void ac06_emailResetRevokesSavedDevices() throws Exception {
+    AppUser user = persistUser(null, "ops@hq.local", AppUserRole.admin_super);
+    AuthCookies cookies = enrollOnDevice("ops@hq.local", null);
+    String token = requestResetToken("ops@hq.local");
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/password/reset")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"token\":\"" + token + "\",\"password\":\"" + NEXT_PASSWORD + "\"}"))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/auth/saved-logins").cookie(cookies.device()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items.length()").value(0));
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin/login")
+                .cookie(cookies.device())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pinLoginJson(user.getId(), PIN)))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
+  void ac06_adminResetRevokesSavedDevices() throws Exception {
+    Tenant tenant = persistTenant("saved-reset");
+    AppUser owner =
+        persistUser(tenant.getId(), "owner@saved.local", AppUserRole.pharmacy_owner, null);
+    AppUser staff =
+        persistUser(tenant.getId(), "clerk@saved.local", AppUserRole.pharmacy_staff, owner.getId());
+    AuthCookies staffCookies = enrollOnDevice("clerk@saved.local", null);
+    AuthCookies ownerCookies = login("owner@saved.local");
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/password/admin-reset")
+                .cookie(ownerCookies.access())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"email\":\"clerk@saved.local\",\"password\":\"" + NEXT_PASSWORD + "\"}"))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/auth/saved-logins").cookie(staffCookies.device()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items.length()").value(0));
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin/login")
+                .cookie(staffCookies.device())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pinLoginJson(staff.getId(), PIN)))
+        .andExpect(status().isUnauthorized());
+  }
+
+  @Test
   void ac07_deactivatedUserIsOmittedAndMalformedPinIs400() throws Exception {
     Tenant tenant = persistTenant("saved-a");
     AppUser user = persistUser(tenant.getId(), "owner@saved.local", AppUserRole.pharmacy_owner);
@@ -383,6 +475,20 @@ class AuthSavedLoginTest {
     mockMvc.perform(post("/api/v1/auth/logout")).andExpect(status().isUnauthorized());
   }
 
+  private String requestResetToken(String email) throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/auth/password/reset-request")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"email\":\"" + email + "\"}"))
+        .andExpect(status().isOk());
+    ArgumentCaptor<AdapterSendRequest> captor = ArgumentCaptor.forClass(AdapterSendRequest.class);
+    verify(resendEmailAdapter, Mockito.atLeastOnce()).send(captor.capture());
+    Matcher matcher = TOKEN_IN_URL.matcher(captor.getValue().html());
+    assertThat(matcher.find()).isTrue();
+    return matcher.group(1);
+  }
+
   private AuthCookies enrollOnDevice(String email, Cookie device) throws Exception {
     AuthCookies cookies = login(email, device);
     setPin(cookies);
@@ -438,6 +544,10 @@ class AuthSavedLoginTest {
   }
 
   private AppUser persistUser(UUID tenantId, String email, AppUserRole role) {
+    return persistUser(tenantId, email, role, null);
+  }
+
+  private AppUser persistUser(UUID tenantId, String email, AppUserRole role, UUID createdBy) {
     Instant now = Instant.parse("2026-09-01T00:00:00Z");
     AppUser user = new AppUser();
     user.setId(UUID.randomUUID());
@@ -448,6 +558,7 @@ class AuthSavedLoginTest {
     user.setRole(role);
     user.setActive(true);
     user.setStatus(UserAccountStatus.ACTIVE);
+    user.setCreatedBy(createdBy);
     user.setCreatedAt(now);
     user.setUpdatedAt(now);
     return appUserRepository.saveAndFlush(user);

@@ -6,12 +6,12 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 9 |
+| done | 10 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 48 |
-| blocked | 11 |
+| ready | 57 |
+| blocked | 1 |
 | deferred | 3 |
 | total | 71 |
 
@@ -24,16 +24,16 @@ independent verifier verdict. When a row status changes, update the counts.
 | M1-S05 | M1 | server + dispensary + admin | done | M1-S04 | — | Independent verifier PASS (fb459d96). verified→done. Server: V11 access_role + access_role_module + user_access_role + access_role_event; AccessRoleService/AccessQueryService; GET/POST/PATCH/deactivate /api/v1/roles; GET/PUT/POST/DELETE /api/v1/users/{id}/roles; plan+creator caps PLAN_LIMIT/PRIVILEGE_ESCALATION; LoginResponse roles[]+modules[]; app_user.role kept as account class. Tests: AccessRoleTest 8, AccessRoleRollbackTest 1, ModuleCatalogTest, PlanModuleEntitlementsTest, EffectiveModuleSetTest, AccessRolePolicyTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 208 tests BUILD SUCCESS. Dispensary: Floor roles /roles + Till roles on Staff accounts; plan-gated Loyalty/Online store explained. Admin: HQ desks /desks two-pane + Desk assignment on Operators (not a dispensary clone). SPA: dispensary lint+100 tests+build; admin lint+107 tests+build. `make compose-config` OK. Browser: :5173 OWNER Floor roles Night till (Sales+Inventory), gated Loyalty/Online store, assign Pharmacist+Cashier to counter.staff; :5174 MASTER HQ desks KYC night desk (no Sales), Desk assignment to Meera. |
 | M1-S06 | M1 | server + dispensary | ready | M1-S05, M2-S04 | — | — |
 | M1-S07 | M1 | server + dispensary + admin | done | M1-S05 | — | Independent verifier PASS (a3344fa9). Gap close after prior FAIL. Server: V12 approval_rule/request/decision + audit_event; ApprovalService/AuditService; /api/v1/approvals + /api/v1/audit; login+PIN login audit; MASTER platform builder bypass; APPROVAL_REQUESTED notify. Tests: ApprovalPolicyTest; ApprovalWorkflowTest AC01–AC06 (MASTER platform, STALE_STATE, PIN_LOGIN); ApprovalRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 225 tests BUILD SUCCESS. Dispensary Sign-off rules/Waiting/Floor activity (117 tests). Admin Workflow desks/HQ sign-offs/Platform activity not a clone (123). SPA lint+test+build OK. `make compose-config` OK. Requirements valid. Browser: automation host could not reach live stack; uniqueness from source (viridian shop-floor vs navy HQ). |
-| M1-S08 | M1 | server + admin | blocked | M1-S01, M1-S05 | D-001 | — |
+| M1-S08 | M1 | server + admin | ready | M1-S01, M1-S05 | D-001 closed | Unblocked 2026-09-03: impersonation not audit-logged; session until exit. |
 | M1-S09 | M1 | server + dispensary + admin | blocked | M1-S07, M3-S01 | D-013 | — |
-| M1-S10 | M1 | server + dispensary + admin | ready | M1-S01, M1-S02 | — | — |
+| M1-S10 | M1 | server + dispensary + admin | done | M1-S01, M1-S02 | D-014, D-015 closed | Independent verifier PASS (efae5bba). verified→done. Gap-close AC06 email+admin reset revoke. AuthSavedLoginTest (+2: ac06_emailResetRevokesSavedDevices, ac06_adminResetRevokesSavedDevices); V9 saved_login; SavedLoginService; GET/POST/DELETE saved-logins + pin/login + logout. Dispensary LoginScreen till tiles+CounterPinSignIn keypad; idle DashboardLayout.pin.test signs out (no Counter locked). Admin LoginScreen HQ list+HqPinSignIn cells; idle signs out (no HQ session locked). Gates: `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 227 BUILD SUCCESS; dispensary lint+117 tests+build; admin lint+123 tests+build; `make compose-config` OK. Browser: automation host cannot reach :8080 from IDE browser (saved-list falls back); API smoke on host: OWNER logout keeps Varshmaan on saved-logins, PIN 123456 → 200 new session, no-device PIN → 401; MASTER saved Sanskar after logout. Uniqueness from SPA shells (viridian shop-floor vs navy HQ). |
 | M2-S01 | M2 | server + dispensary | ready | M1-S03 | — | — |
 | M2-S02 | M2 | server + dispensary + admin | ready | M2-S01, M1-S05 | — | — |
 | M2-S03 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |
 | M2-S04 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |
-| M2-S05 | M2 | server + dispensary + admin | blocked | M2-S02 | D-007, D-008 | — |
+| M2-S05 | M2 | server + dispensary + admin | ready | M2-S02 | D-007, D-008 closed | Unblocked 2026-09-03: branches Free1/Starter2/Growth3/Pro5 + MASTER override; online store Phase 2. |
 | M2-S06 | M2 | server + dispensary | ready | M2-S04, M4-S03, M1-S07 | — | — |
-| M2-S07 | M2 | server + dispensary | blocked | M2-S04 | D-009 | — |
+| M2-S07 | M2 | server + dispensary | ready | M2-S04 | D-009 closed | Unblocked 2026-09-03: Phase 1 Pro self-order kiosk workflow. |
 | M3-S01 | M3 | server + dispensary | ready | M1-S05 | — | — |
 | M3-S02 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S03 | M3 | server + dispensary | ready | M3-S01 | — | — |
@@ -41,9 +41,9 @@ independent verifier verdict. When a row status changes, update the counts.
 | M3-S05 | M3 | server + dispensary | ready | M3-S03 | — | — |
 | M3-S06 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S07 | M3 | server + dispensary | ready | M3-S06, M10-S03, M8-S05 | — | — |
-| M3-S08 | M3 | server + dispensary | blocked | M3-S01, M4-S01 | D-011 | — |
-| M3-S09 | M3 | server + dispensary | blocked | M3-S01, M2-S05, M6-S05, M6-S07 | D-012 | — |
-| M3-S10 | M3 | server + dispensary | blocked | M3-S03, M3-S05 | D-002 | — |
+| M3-S08 | M3 | server + dispensary | ready | M3-S01, M4-S01 | D-011 closed | Unblocked 2026-09-03: tenant allergy/composition warn-only; any billing role ack+audit. |
+| M3-S09 | M3 | server + dispensary | ready | M3-S01, M2-S05, M6-S05, M6-S07 | D-012 closed | Unblocked 2026-09-03: 1pt/₹100 paid, 1pt=₹1 max 20%, nearest, never expire. |
+| M3-S10 | M3 | server + dispensary | ready | M3-S03, M3-S05 | D-002 closed | Unblocked 2026-09-03: individual member limits; family combined visibility only. |
 | M4-S01 | M4 | server + dispensary | ready | M1-S05 | — | — |
 | M4-S02 | M4 | server + dispensary | ready | M4-S01 | — | — |
 | M4-S03 | M4 | server + dispensary | ready | M4-S01, M4-S02 | — | — |
@@ -62,16 +62,16 @@ independent verifier verdict. When a row status changes, update the counts.
 | M6-S03 | M6 | server + dispensary | ready | M6-S02, M3-S05 | — | — |
 | M6-S04 | M6 | server + dispensary | ready | M6-S01, M4-S07, M3-S04 | — | — |
 | M6-S05 | M6 | server + dispensary | ready | M6-S01, M6-S02, M6-S03, M6-S04, M3-S04, M3-S08, M1-S07 | — | — |
-| M6-S06 | M6 | server + dispensary | blocked | M6-S02 | D-010 | — |
+| M6-S06 | M6 | server + dispensary | ready | M6-S02 | D-010 closed | Unblocked 2026-09-03: priority wins, one offer/line, discount before GST, OWNER+approved role. |
 | M6-S07 | M6 | server + dispensary | ready | M6-S05, M4-S03 | — | — |
 | M6-S08 | M6 | server + dispensary | ready | M6-S05, M11-S02 | — | — |
 | M7-S01 | M7 | server + dispensary + admin | ready | M2-S04, M1-S04 | — | — |
 | M7-S02 | M7 | server + dispensary | ready | M6-S04, M6-S07, M4-S07 | — | — |
 | M7-S03 | M7 | server + dispensary | ready | M4-S04, M4-S05, M4-S06, M5-S06, M6-S07, M7-S01, M7-S02 | — | — |
-| M7-S04 | M7 | server + dispensary | blocked | M6-S04 | D-003 | — |
+| M7-S04 | M7 | server + dispensary | ready | M6-S04 | D-003 closed | Unblocked 2026-09-03: Rx reference valid 6 months then auto-archive. |
 | M7-S05 | M7 | server + dispensary + admin | deferred | M7-S03 | — | Phase 2 only |
 | M8-S01 | M8 | server + dispensary | ready | M1-S05, M2-S04 | — | — |
-| M8-S02 | M8 | server + dispensary | blocked | M8-S01, M1-S07 | D-004 | — |
+| M8-S02 | M8 | server + dispensary | ready | M8-S01, M1-S07 | D-004 closed | Unblocked 2026-09-03: expenses post immediately; no approval threshold. |
 | M8-S03 | M8 | server + dispensary | ready | M3-S05, M5-S06 | — | — |
 | M8-S04 | M8 | server + dispensary | ready | M6-S05, M5-S06, M8-S01 | — | — |
 | M8-S05 | M8 | server + dispensary | ready | M8-S04 | — | — |
@@ -79,7 +79,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M9-S02 | M9 | server + dispensary | ready | M9-S01, M1-S07, M2-S06, M4-S04, M5-S05, M6-S05, M7-S01, M8-S03 | — | — |
 | M9-S03 | M9 | server + dispensary | ready | M9-S01, M6-S05, M4-S03 | — | — |
 | M9-S04 | M9 | server + dispensary | ready | M9-S03 | — | — |
-| M9-S05 | M9 | server + dispensary | blocked | M9-S04, M2-S05 | D-005 | — |
+| M9-S05 | M9 | server + dispensary | ready | M9-S04, M2-S05 | D-005 closed | Unblocked 2026-09-03: Free/Starter/Growth report matrix locked as product draft. |
 | M10-S01 | M10 | server + dispensary + admin | done | M1-S01 | — | Independent verifier PASS (2a35af99). verified→done. Server: V5 notification_source + notification; GET /api/v1/notifications + unread-count, POST /{id}/read (idempotent) + /open (live href). NotificationInboxTest 17 + NotificationInboxServiceTest 5. AuthPinTest.ac04 same-session unlock without requiring distinct JWT string. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 69 tests BUILD SUCCESS. Dispensary CounterAlertBell (shop-floor tickets); admin HqInboxBell (HQ table, not a clone). SPA gates: dispensary lint+47 tests+build; admin lint+40 tests+build. Browser: :5173 varshmaan Counter alerts → /inventory; :5174 Sanskar HQ inbox → /kyc. Magic get_component paywalled; restyled from inbox 8245 / Vercel 10479 / empty 19367. No mute/preferences. |
 | M10-S02 | M10 | server + dispensary + admin | done | M10-S01 | — | Independent verifier PASS (9da8bb76). verified→done. Server: V6 notification_event + notification_delivery + notification_role_assignment; NotificationRoutingService.route (no fire HTTP); matrix 13 triggers; OWNER/MASTER from app_user, staff roles from roster at event time; idempotent event_key; WhatsApp/credential recorded not sent; persona hrefs. Tests: NotificationRoutingMatrixTest 10, NotificationRoutingServiceTest 5, NotificationRoutingTest 20, NotificationRoutingRollbackTest 1. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 105 tests BUILD SUCCESS. Dispensary CounterAlertBell destination hints (Opens khata/inventory); admin HqInboxBell (Opens subscriptions/pharmacy file/KYC queue). SPA: dispensary lint+48 tests+build; admin lint+42 tests+build. Browser: :5173 varshmaan credit slip → /credit; :5174 Sanskar subscription signal → /subscriptions. |
 | M10-S03 | M10 | server + dispensary + admin | ready | M10-S02, M1-S05 | — | — |

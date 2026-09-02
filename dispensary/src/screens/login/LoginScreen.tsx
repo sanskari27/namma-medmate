@@ -185,7 +185,7 @@ export default function LoginScreen() {
                   className="flex items-start gap-2 border border-line bg-canvas px-3 py-2 text-sm text-ink"
                 >
                   <WifiOff className="mt-0.5 size-4 shrink-0 text-danger" aria-hidden="true" />
-                  <span>Could not load saved till logins. Use email and password.</span>
+                  <span>Could not load saved logins. Use email and password.</span>
                 </p>
               ) : null}
               {banner ? (

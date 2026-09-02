@@ -200,7 +200,7 @@ describe('dispensary login', () => {
     renderLogin();
     expect(await screen.findByRole('heading', { name: 'Pharmacy sign in' })).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Could not load saved till logins. Use email and password.',
+      'Could not load saved logins. Use email and password.',
     );
   });
 
