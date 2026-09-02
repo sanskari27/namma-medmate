@@ -1,5 +1,5 @@
 # Local development — Namma MedMate (pharmacy ERP + CRM).
-# Run: make up  OR  make deps && make backend && make dispensary && make admin
+# Run: make dev (fast, hot reload)  OR  make up (container images)
 #
 # Ports: Postgres 25432, Redis 16379, API 8080, dispensary 5173, admin 5174
 # Server DATABASE_URL is hardcoded to compose postgres — never RDS on local.

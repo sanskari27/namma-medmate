@@ -22,9 +22,12 @@ clone-db: ## Clone prod Postgres into local dev (ARGS=--yes --keep-dump, SOURCE=
 db-tunnel: ## SSM port-forward localhost:15432 -> prod RDS
 	./scripts/tunnel-prod-db.sh
 
-.PHONY: deps up down logs
+.PHONY: deps dev up down logs
 deps: ## Start local Postgres + Redis
 	$(COMPOSE) -f compose.yaml up -d postgres redis
+
+dev: ## Postgres/Redis in Compose; APIs and SPAs on host with hot reload
+	./scripts/dev.sh
 
 up: ## Build and start full local stack
 	$(COMPOSE) -f compose.yaml up -d --build

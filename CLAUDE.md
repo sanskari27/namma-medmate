@@ -45,6 +45,6 @@ answer an open decision, or mark `done` without independent verification.
 /requirements-status
 ```
 
-Local stack: `make up` (API 8080, dispensary 5173, admin 5174). Never point the
+Local stack: `make dev` (API 8080, dispensary 5173, admin 5174). Never point the
 local Spring profile at RDS. Local login accounts:
 [`docs/local-accounts.md`](docs/local-accounts.md).

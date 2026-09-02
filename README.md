@@ -12,9 +12,12 @@
 
 ```bash
 cp .env.example .env
-make up
+make dev
 # API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174
+# Postgres/Redis in Compose; Spring + Vite on the host (Vite HMR, Java DevTools restart)
 ```
+
+Containerized stack (rebuilds images — slower): `make up`.
 
 Local sign-in (password `password` for both): see
 [`docs/local-accounts.md`](docs/local-accounts.md).

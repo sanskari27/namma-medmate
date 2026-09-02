@@ -15,7 +15,7 @@ The pharmacy owner belongs to tenant `11111111-1111-1111-1111-111111111111`
 
 ## Recreate after a fresh local database
 
-After Flyway has applied (`make up` or `make backend`):
+After Flyway has applied (`make dev`, `make up`, or `make backend`):
 
 ```bash
 PGPASSWORD=postgres psql -h localhost -p 25432 -U postgres -d nammamedmate \
