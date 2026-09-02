@@ -60,6 +60,46 @@ SET
     deleted_at = NULL,
     updated_at = NOW();
 
+-- Pharmacy staff created by the OWNER (M1-S03 admin-reset / must-change checks).
+INSERT INTO app_user (
+    id,
+    tenant_id,
+    email,
+    password_hash,
+    display_name,
+    role,
+    active,
+    status,
+    created_by,
+    created_at,
+    updated_at
+)
+VALUES
+    (
+        'c0a1e5c0-1111-4000-8000-000000000001',
+        '11111111-1111-1111-1111-111111111111',
+        'counter.staff@varshmaan.local',
+        '$2b$10$0WiQ0dLgQjP1unelVIhZfON/kH4KS7euUC8KLMmIt1J5RDgxhTAd2',
+        'Counter staff',
+        'pharmacy_staff',
+        TRUE,
+        'ACTIVE',
+        'f70713e0-0e91-4bc3-a287-47ca3b819a25',
+        NOW(),
+        NOW()
+    )
+ON CONFLICT (email) DO UPDATE
+SET
+    password_hash = EXCLUDED.password_hash,
+    display_name = EXCLUDED.display_name,
+    role = EXCLUDED.role,
+    tenant_id = EXCLUDED.tenant_id,
+    created_by = EXCLUDED.created_by,
+    active = TRUE,
+    status = 'ACTIVE',
+    deleted_at = NULL,
+    updated_at = NOW();
+
 -- Inbox fixtures for local browser checks (M10-S01). Harmless on re-run.
 INSERT INTO notification_source (id, tenant_id, branch_id, href, deleted_at, access_revoked_at, created_at)
 VALUES

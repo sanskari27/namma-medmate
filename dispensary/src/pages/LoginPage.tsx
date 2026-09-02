@@ -1,6 +1,6 @@
 import { FormEvent, useId, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { AlertCircle, Eye, EyeOff, Lock, WifiOff } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -152,6 +152,12 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={status === 'loading'}>
               {status === 'loading' ? 'Signing in' : 'Sign in'}
             </Button>
+            <p className="text-sm text-muted">
+              <Link to={ROUTES.FORGOT_PASSWORD} className="text-brand underline-offset-2 hover:underline">
+                Forgot the owner password?
+              </Link>
+              <span className="block pt-1">Staff passwords are reset by the owner at the counter.</span>
+            </p>
           </form>
         </Reveal>
       </section>

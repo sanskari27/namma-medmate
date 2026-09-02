@@ -5,6 +5,7 @@ import jakarta.persistence.Entity;
 import jakarta.persistence.EnumType;
 import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -53,4 +54,20 @@ public class AppUser {
 
   @Column(name = "deleted_at")
   private Instant deletedAt;
+
+  @Column(name = "password_changed_at", nullable = false)
+  private Instant passwordChangedAt;
+
+  @Column(name = "must_change_password", nullable = false)
+  private boolean mustChangePassword;
+
+  @Column(name = "created_by")
+  private UUID createdBy;
+
+  @PrePersist
+  void defaultPasswordChangedAt() {
+    if (passwordChangedAt == null) {
+      passwordChangedAt = createdAt != null ? createdAt : Instant.now();
+    }
+  }
 }

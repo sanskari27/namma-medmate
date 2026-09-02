@@ -1,6 +1,6 @@
 import { FormEvent, useId, useState } from 'react';
 import { useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { Ban, Eye, EyeOff, ShieldAlert, Unplug } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -134,6 +134,14 @@ export default function LoginPage() {
             <Button type="submit" className="w-full" disabled={status === 'loading'}>
               {status === 'loading' ? 'Authenticating' : 'Sign in'}
             </Button>
+            <p className="text-sm text-muted">
+              <Link to={ROUTES.FORGOT_PASSWORD} className="text-brand underline-offset-2 hover:underline">
+                Forgot the HQ password?
+              </Link>
+              <span className="mt-1 block font-mono text-[11px] text-muted">
+                Sub-account secrets are reset by the creating MASTER operator.
+              </span>
+            </p>
           </form>
         </Reveal>
       </section>

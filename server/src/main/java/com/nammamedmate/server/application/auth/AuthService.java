@@ -2,6 +2,7 @@ package com.nammamedmate.server.application.auth;
 
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.EmailNormalizer;
+import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
@@ -175,13 +176,15 @@ public class AuthService {
         .orElseThrow(AuthService::unauthorized);
   }
 
-  private static AuthenticatedUser toAuthenticatedUser(AppUser user) {
+  private AuthenticatedUser toAuthenticatedUser(AppUser user) {
     return new AuthenticatedUser(
         user.getId(),
         user.getDisplayName(),
         user.getRole(),
         user.getTenantId(),
-        user.getPinHash() != null);
+        user.getPinHash() != null,
+        PasswordPolicy.mustChange(
+            user.isMustChangePassword(), user.getPasswordChangedAt(), Instant.now(clock)));
   }
 
   private static void requireSixDigitPin(String pin) {

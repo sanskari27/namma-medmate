@@ -14,6 +14,7 @@ import {
   Gift,
   HeartPulse,
   IdCard,
+  KeyRound,
   LayoutGrid,
   LogOut,
   MapPin,
@@ -90,6 +91,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.ACCOUNTANT]: Calculator,
   [ROUTES.ACCOUNT]: CircleUser,
   [ROUTES.EMPLOYEES]: IdCard,
+  [ROUTES.STAFF_PASSWORD]: KeyRound,
   [ROUTES.USERS]: UserCog,
   [ROUTES.INVOICE_SETTINGS]: FileText,
   [ROUTES.SUBSCRIPTION]: BadgePercent,
@@ -125,6 +127,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const navigate = useNavigate();
   const { pathname } = useLocation();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName) ?? 'Chemist';
+  const role = useSelector((s: RootState) => s.auth.user?.role);
   const [counterId, setCounterId] = useState<CounterId>(readStoredCounter);
   const [profileOpen, setProfileOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(() => NAV_SECTIONS.map((section) => section.id));
@@ -265,7 +268,9 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
               )}
               {open ? (
                 <ul className="flex flex-col gap-0.5">
-                  {section.items.map((item) => (
+                  {section.items
+                    .filter((item) => item.path !== ROUTES.STAFF_PASSWORD || role === 'pharmacy_owner')
+                    .map((item) => (
                     <li key={item.path}>
                       <RailLink item={item} collapsed={collapsed} reduceMotion={Boolean(reduceMotion)} onNavigate={onNavigate} />
                     </li>

@@ -3,6 +3,7 @@ import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { CounterAlertBell } from '@/components/alerts/CounterAlertBell';
 import { AppSidebar, ShellHeader } from '@/components/layout/AppSidebar';
+import { CounterPasswordChange } from '@/components/lock/CounterPasswordChange';
 import { CounterPinEnroll } from '@/components/lock/CounterPinEnroll';
 import { CounterPinLock } from '@/components/lock/CounterPinLock';
 import { Button } from '@/components/ui/button';
@@ -11,14 +12,15 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { logout, pinEnrolled, type RootState } from '@/store';
+import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet);
+  const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
+  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -89,7 +91,11 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-      {!pinSet ? <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
+      {mustChangePassword ? (
+        <CounterPasswordChange onChanged={() => dispatch(passwordChanged())} />
+      ) : !pinSet ? (
+        <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
+      ) : null}
       {pinSet && locked && !expired ? (
         <CounterPinLock
           staffName={displayName ?? 'staff'}

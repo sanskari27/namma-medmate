@@ -3,6 +3,8 @@ package com.nammamedmate.server.feature.auth;
 import com.nammamedmate.server.application.auth.AuthService;
 import com.nammamedmate.server.application.auth.AuthenticatedUser;
 import com.nammamedmate.server.application.auth.LoginOutcome;
+import com.nammamedmate.server.application.auth.PasswordLifecycleService;
+import com.nammamedmate.server.application.auth.ResetAccepted;
 import com.nammamedmate.server.infrastructure.security.AuthCookieService;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -21,10 +23,15 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
   private final AuthService authService;
+  private final PasswordLifecycleService passwordLifecycleService;
   private final AuthCookieService authCookieService;
 
-  public AuthController(AuthService authService, AuthCookieService authCookieService) {
+  public AuthController(
+      AuthService authService,
+      PasswordLifecycleService passwordLifecycleService,
+      AuthCookieService authCookieService) {
     this.authService = authService;
+    this.passwordLifecycleService = passwordLifecycleService;
     this.authCookieService = authCookieService;
   }
 
@@ -67,8 +74,47 @@ public class AuthController {
     }
   }
 
+  @PostMapping("/password")
+  public ApiResponse<LoginResponse> changePassword(
+      @Valid @RequestBody ChangePasswordRequest request, Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            passwordLifecycleService.changePassword(
+                principal, request.currentPassword(), request.newPassword())));
+  }
+
+  @PostMapping("/password/reset-request")
+  public ApiResponse<PasswordResetAcceptedResponse> requestReset(
+      @Valid @RequestBody PasswordResetRequest request) {
+    ResetAccepted accepted = passwordLifecycleService.requestReset(request.email());
+    return ApiResponse.ok(new PasswordResetAcceptedResponse(accepted.accepted()));
+  }
+
+  @PostMapping("/password/reset")
+  public ApiResponse<PasswordResetAcceptedResponse> completeReset(
+      @Valid @RequestBody CompletePasswordResetRequest request) {
+    ResetAccepted accepted =
+        passwordLifecycleService.completeReset(request.token(), request.password());
+    return ApiResponse.ok(new PasswordResetAcceptedResponse(accepted.accepted()));
+  }
+
+  @PostMapping("/password/admin-reset")
+  public ApiResponse<LoginResponse> adminReset(
+      @Valid @RequestBody AdminPasswordResetRequest request, Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            passwordLifecycleService.adminReset(principal, request.email(), request.password())));
+  }
+
   private static LoginResponse toResponse(AuthenticatedUser user) {
     return new LoginResponse(
-        user.userId(), user.displayName(), user.role().name(), user.tenantId(), user.pinSet());
+        user.userId(),
+        user.displayName(),
+        user.role().name(),
+        user.tenantId(),
+        user.pinSet(),
+        user.mustChangePassword());
   }
 }

@@ -433,7 +433,6 @@ class AuthLoginTest {
             .getResponse()
             .getContentAsString();
     assertThat(body).doesNotContain(PASSWORD);
-    assertThat(body.toLowerCase()).doesNotContain("password");
     JsonNode data = objectMapper.readTree(body).path("data");
     assertThat(data.has("token")).isFalse();
     assertThat(data.has("passwordHash")).isFalse();

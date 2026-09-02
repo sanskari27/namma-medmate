@@ -10,6 +10,7 @@ export interface AuthUser {
   role: string;
   tenantId: string | null;
   pinSet: boolean;
+  mustChangePassword?: boolean;
 }
 
 interface AuthState {
@@ -62,6 +63,12 @@ const authSlice = createSlice({
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
       }
     },
+    passwordChanged: (state) => {
+      if (state.user) {
+        state.user.mustChangePassword = false;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
+      }
+    },
     logout: (state) => {
       state.user = null;
       localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -95,7 +102,7 @@ const inboxSlice = createSlice({
   },
 });
 
-export const { sessionStarted, pinEnrolled, logout } = authSlice.actions;
+export const { sessionStarted, pinEnrolled, passwordChanged, logout } = authSlice.actions;
 export const { inboxPageLoaded, unreadLoaded, inboxRowFiled } = inboxSlice.actions;
 export const authReducer = authSlice.reducer;
 export const inboxReducer = inboxSlice.reducer;

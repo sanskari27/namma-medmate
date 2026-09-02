@@ -3,6 +3,7 @@ import {
   Building2,
   CreditCard,
   Headset,
+  KeyRound,
   LayoutDashboard,
   Settings,
   Funnel,
@@ -14,10 +15,11 @@ import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { HqInboxBell } from '@/components/inbox/HqInboxBell';
+import { HqPasswordChange } from '@/components/lock/HqPasswordChange';
 import { HqPinEnroll } from '@/components/lock/HqPinEnroll';
 import { HqSessionLock } from '@/components/lock/HqSessionLock';
 import { useIdleLock } from '@/hooks/useIdleLock';
-import { logout, pinEnrolled, type RootState } from '@/store';
+import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
 import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
@@ -28,6 +30,7 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.LEADS]: Funnel,
   [ROUTES.SUPPORT]: Headset,
   [ROUTES.SETTINGS]: Settings,
+  [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };
 
 export default function DashboardLayout() {
@@ -35,7 +38,8 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet);
+  const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
+  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet && !mustChangePassword);
 
   useEffect(() => {
     if (!expired) {
@@ -107,7 +111,11 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-      {!pinSet ? <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
+      {mustChangePassword ? (
+        <HqPasswordChange onChanged={() => dispatch(passwordChanged())} />
+      ) : !pinSet ? (
+        <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
+      ) : null}
       {pinSet && locked && !expired ? (
         <HqSessionLock
           operatorName={displayName ?? 'operator'}

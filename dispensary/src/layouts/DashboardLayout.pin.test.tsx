@@ -11,12 +11,13 @@ import { COUNTER_STORAGE_KEY } from '@/libs/constants/counters.const';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, notificationsReducer } from '@/store';
 
-vi.mock('@/services/auth', async () => {
+    vi.mock('@/services/auth', async () => {
   const axios = await import('@/services/axios');
   return {
     setPin: vi.fn(),
     unlockPin: vi.fn(),
     loginWithPassword: vi.fn(),
+    changePassword: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };

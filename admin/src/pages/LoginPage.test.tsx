@@ -50,6 +50,7 @@ describe('admin HQ login', () => {
     renderLogin();
     expect(screen.getByRole('heading', { name: 'HQ sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Forgot the HQ password?' })).toBeInTheDocument();
   });
 
   it('validation: empty submit asks for HQ credentials', async () => {

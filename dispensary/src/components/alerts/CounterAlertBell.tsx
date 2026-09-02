@@ -193,8 +193,8 @@ export function CounterAlertBell() {
     inbox.unreadCount > 0 ? `Counter alerts, ${inbox.unreadCount} unread` : 'Counter alerts';
 
   const panel = (
-    <div className="flex max-h-[28rem] flex-col">
-      <div className="border-b border-line px-3 py-2">
+    <div className="flex max-h-[min(28rem,calc(100vh-4rem))] flex-col overflow-hidden">
+      <div className="shrink-0 border-b border-line px-3 py-2">
         <p id={titleId} className="text-sm font-medium text-ink">
           Counter alerts
         </p>
@@ -219,7 +219,7 @@ export function CounterAlertBell() {
         <p className="px-3 py-6 text-sm text-muted">No slips on this counter. Keep billing.</p>
       ) : null}
       {inbox.items.length > 0 && status !== 'loading' && status !== 'empty' ? (
-        <ul className="min-h-0 flex-1 overflow-y-auto" aria-labelledby={titleId}>
+        <ul className="panel-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto pr-1.5" aria-labelledby={titleId}>
           {inbox.items.map((item) => (
             <li
               key={item.id}
@@ -230,8 +230,8 @@ export function CounterAlertBell() {
                 aria-hidden
               />
               <div className="min-w-0 flex-1 px-3 py-2.5">
-                <p className="text-sm font-medium text-ink">{item.title}</p>
-                {item.body ? <p className="mt-0.5 text-xs text-muted">{item.body}</p> : null}
+                <p className="break-words text-sm font-medium text-ink">{item.title}</p>
+                {item.body ? <p className="mt-0.5 break-words text-xs text-muted">{item.body}</p> : null}
                 <p className="mt-1 font-mono text-[11px] text-muted">{floorDestination(item.sourceType)}</p>
                 <p className="mt-1 flex items-center justify-between gap-2">
                   <time className="font-mono text-[11px] text-muted" dateTime={item.createdAt}>
@@ -255,7 +255,7 @@ export function CounterAlertBell() {
         </ul>
       ) : null}
       {inbox.totalPages > 1 ? (
-        <div className="flex items-center justify-between border-t border-line px-3 py-2">
+        <div className="flex shrink-0 items-center justify-between border-t border-line px-3 py-2">
           <Button
             type="button"
             size="sm"

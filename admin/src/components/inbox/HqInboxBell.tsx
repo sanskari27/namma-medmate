@@ -28,12 +28,18 @@ type DeskStatus =
 
 const PAGE_SIZE = 6;
 
-function formatHqStamp(iso: string): string {
+function formatHqDate(iso: string): string {
   return new Intl.DateTimeFormat('en-IN', {
     timeZone: 'Asia/Kolkata',
     day: '2-digit',
     month: 'short',
     year: 'numeric',
+  }).format(new Date(iso));
+}
+
+function formatHqClock(iso: string): string {
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
     hour: '2-digit',
     minute: '2-digit',
     hour12: false,
@@ -188,12 +194,12 @@ export function HqInboxBell() {
       </PopoverTrigger>
       <PopoverContent aria-labelledby={headingId} aria-describedby={hintId}>
         <motion.div
-          className="flex max-h-[26rem] flex-col"
+          className="flex max-h-[min(26rem,calc(100vh-4rem))] flex-col overflow-hidden"
           initial={reduce ? false : { opacity: 0, x: 10 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ duration: 0.2 }}
         >
-          <div className="border-b border-line px-3 py-2">
+          <div className="shrink-0 border-b border-line px-3 py-2">
             <p id={headingId} className="font-serif text-sm text-ink">
               HQ inbox
             </p>
@@ -202,7 +208,7 @@ export function HqInboxBell() {
             </p>
           </div>
           {banner ? (
-            <p role="alert" className="flex items-start gap-2 border-b border-line bg-brand-soft px-3 py-2 text-xs text-ink">
+            <p role="alert" className="flex shrink-0 items-start gap-2 border-b border-line bg-brand-soft px-3 py-2 text-xs text-ink">
               <banner.icon className="mt-0.5 size-3.5 shrink-0" aria-hidden />
               {banner.text}
             </p>
@@ -214,49 +220,58 @@ export function HqInboxBell() {
             <p className="px-3 py-6 text-sm text-muted">No tenant signals in this inbox.</p>
           ) : null}
           {inbox.rows.length > 0 && status !== 'loading' && status !== 'empty' ? (
-            <table className="w-full text-left text-sm">
-              <caption className="sr-only">HQ inbox</caption>
-              <thead className="border-b border-line text-[11px] text-muted">
-                <tr>
-                  <th scope="col" className="px-3 py-1.5 font-mono font-normal">
-                    IST
-                  </th>
-                  <th scope="col" className="px-3 py-1.5 font-normal">
-                    Signal
-                  </th>
-                </tr>
-              </thead>
-              <tbody>
-                {inbox.rows.map((row) => (
-                  <tr key={row.id} className="border-b border-line last:border-b-0">
-                    <td className="align-top px-3 py-2">
-                      <time className="font-mono text-[11px] text-muted" dateTime={row.createdAt}>
-                        {formatHqStamp(row.createdAt)} IST
-                      </time>
-                      <p className="mt-1 text-[11px] text-brand">{row.read ? 'Filed' : 'Unread'}</p>
-                    </td>
-                    <td className="px-3 py-2">
-                      <p className="text-sm text-ink">{row.title}</p>
-                      {row.body ? <p className="mt-0.5 text-xs text-muted">{row.body}</p> : null}
-                      <p className="mt-1 font-mono text-[11px] text-muted">{hqDestination(row.sourceType)}</p>
-                      <div className="mt-2 flex flex-wrap gap-2">
-                        <Button type="button" size="sm" onClick={() => void onOpenFile(row)}>
-                          Open tenant file
-                        </Button>
-                        {row.read ? null : (
-                          <Button type="button" size="sm" variant="ghost" onClick={() => void onFile(row)}>
-                            File as read
-                          </Button>
-                        )}
-                      </div>
-                    </td>
+            <div className="desk-scroll min-h-0 flex-1 overflow-x-hidden overflow-y-auto">
+              <table className="w-full table-fixed text-left text-sm">
+                <caption className="sr-only">HQ inbox</caption>
+                <colgroup>
+                  <col className="w-[6.75rem]" />
+                  <col />
+                </colgroup>
+                <thead className="border-b border-line text-[11px] text-muted">
+                  <tr>
+                    <th scope="col" className="px-3 py-1.5 font-mono font-normal">
+                      IST
+                    </th>
+                    <th scope="col" className="px-3 py-1.5 font-normal">
+                      Signal
+                    </th>
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {inbox.rows.map((row) => (
+                    <tr key={row.id} className="border-b border-line last:border-b-0">
+                      <td className="align-top px-3 py-2">
+                        <time className="block font-mono text-[11px] leading-4 text-muted" dateTime={row.createdAt}>
+                          <span className="block">{formatHqDate(row.createdAt)}</span>
+                          <span className="mt-0.5 block">
+                            {formatHqClock(row.createdAt)} IST
+                          </span>
+                        </time>
+                        <p className="mt-1 text-[11px] text-brand">{row.read ? 'Filed' : 'Unread'}</p>
+                      </td>
+                      <td className="min-w-0 px-3 py-2">
+                        <p className="break-words text-sm text-ink">{row.title}</p>
+                        {row.body ? <p className="mt-0.5 break-words text-xs text-muted">{row.body}</p> : null}
+                        <p className="mt-1 font-mono text-[11px] text-muted">{hqDestination(row.sourceType)}</p>
+                        <div className="mt-2 flex flex-wrap gap-2">
+                          <Button type="button" size="sm" onClick={() => void onOpenFile(row)}>
+                            Open tenant file
+                          </Button>
+                          {row.read ? null : (
+                            <Button type="button" size="sm" variant="ghost" onClick={() => void onFile(row)}>
+                              File as read
+                            </Button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           ) : null}
           {inbox.pageCount > 1 ? (
-            <div className="flex items-center justify-between border-t border-line px-3 py-2">
+            <div className="flex shrink-0 items-center justify-between border-t border-line px-3 py-2">
               <Button
                 type="button"
                 size="sm"

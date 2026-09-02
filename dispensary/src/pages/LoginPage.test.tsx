@@ -50,8 +50,8 @@ describe('dispensary login', () => {
     renderLogin();
     expect(screen.getByRole('heading', { name: 'Pharmacy sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Email')).toHaveValue('');
-    expect(screen.getByLabelText('Password')).toHaveValue('');
+    expect(screen.getByRole('link', { name: 'Forgot the owner password?' })).toBeInTheDocument();
+    expect(screen.getByText('Staff passwords are reset by the owner at the counter.')).toBeInTheDocument();
   });
 
   it('validation: empty submit asks for counter credentials', async () => {
