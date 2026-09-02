@@ -5,7 +5,7 @@ Stories are vertical implementation contracts, not backend-only tasks.
 
 | Epic | Product module | Stories | Delivery |
 |---|---|---:|---|
-| M1 | [Authentication & User Roles](01-authentication-user-roles/_index.md) | 9 | Phase 1 |
+| M1 | [Authentication & User Roles](01-authentication-user-roles/_index.md) | 10 | Phase 1 |
 | M2 | [Organization, Tenant & Branch Structure](02-organization-tenant-branches/_index.md) | 7 | Phase 1 |
 | M3 | [CRM — Customer & Patient Management](03-customer-patient-crm/_index.md) | 10 | Phase 1 |
 | M4 | [ERP — Inventory & Stock Management](04-inventory-stock-management/_index.md) | 7 | Phase 1 |
@@ -28,7 +28,7 @@ dependencies rather than duplicated.
 
 - **Tenancy and hierarchy:** M1-S04, M1-S05, M1-S06
 - **Staff onboarding:** M1-S03, M1-S04
-- **Authentication and session security:** M1-S01, M1-S02, M1-S03
+- **Authentication and session security:** M1-S01, M1-S02, M1-S03, M1-S10
 - **Permissions and approvals:** M1-S05, M1-S07
 - **Audit and compliance:** M1-S07, M1-S08, M1-S09
 

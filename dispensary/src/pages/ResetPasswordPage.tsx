@@ -1,13 +1,13 @@
-import { FormEvent, useId, useState } from 'react';
-import { Link, useSearchParams } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { CounterFeatureSlider, CounterFeatureStrip } from '@/components/auth/CounterFeatureSlider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CounterFeatureSlider, CounterFeatureStrip } from '@/components/auth/CounterFeatureSlider';
-import { Reveal } from '@/components/Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { ApiError, completePasswordReset, isApiError } from '@/services/auth';
+import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { FormEvent, useId, useState } from 'react';
+import { Link, useSearchParams } from 'react-router-dom';
 
 type FormStatus =
   | 'idle'
@@ -22,17 +22,35 @@ type FormStatus =
 function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: string } | null {
   switch (status) {
     case 'empty':
-      return { icon: AlertCircle, text: 'Open the reset link from the owner email. This page needs that token.' };
+      return {
+        icon: AlertCircle,
+        text: 'Open the reset link from the owner email. This page needs that token.',
+      };
     case 'validation':
-      return { icon: AlertCircle, text: 'Use at least eight characters, and type the same password twice.' };
+      return {
+        icon: AlertCircle,
+        text: 'Use at least eight characters, and type the same password twice.',
+      };
     case 'denied':
-      return { icon: AlertCircle, text: 'This reset link is expired or already used. Request a new owner email.' };
+      return {
+        icon: AlertCircle,
+        text: 'This reset link is expired or already used. Request a new owner email.',
+      };
     case 'conflict':
-      return { icon: AlertCircle, text: 'That password was used before on this counter. Pick a new one.' };
+      return {
+        icon: AlertCircle,
+        text: 'That password was used before on this counter. Pick a new one.',
+      };
     case 'failure':
-      return { icon: WifiOff, text: 'Could not reach the server. Try finishing the owner reset from this counter.' };
+      return {
+        icon: WifiOff,
+        text: 'Could not reach the server. Try finishing the owner reset from this counter.',
+      };
     case 'success':
-      return { icon: CheckCircle2, text: 'Owner password updated. Sign in at this counter with the new password.' };
+      return {
+        icon: CheckCircle2,
+        text: 'Owner password updated. Sign in at this counter with the new password.',
+      };
     default:
       return null;
   }
@@ -86,7 +104,9 @@ export default function ResetPasswordPage() {
           <form onSubmit={onSubmit} className="space-y-4" noValidate>
             <div>
               <h1 className="text-xl font-semibold text-ink">Set a new owner password</h1>
-              <p className="mt-1 text-sm text-muted">Choose eight or more characters that this counter has not used before.</p>
+              <p className="mt-1 text-sm text-muted">
+                Choose eight or more characters that this counter has not used before.
+              </p>
             </div>
             {copy ? (
               <p
@@ -124,7 +144,11 @@ export default function ResetPasswordPage() {
                 disabled={!token || status === 'success'}
               />
             </div>
-            <Button type="submit" className="w-full" disabled={status === 'loading' || !token || status === 'success'}>
+            <Button
+              type="submit"
+              className="w-full"
+              disabled={status === 'loading' || !token || status === 'success'}
+            >
               {status === 'loading' ? 'Saving password' : 'Save owner password'}
             </Button>
             <p className="text-sm text-muted">

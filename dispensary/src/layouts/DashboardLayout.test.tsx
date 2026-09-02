@@ -10,6 +10,18 @@ import { COUNTER_STORAGE_KEY, COUNTERS } from '@/libs/constants/counters.const';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 import { authReducer, notificationsReducer } from '@/store';
 
+vi.mock('@/services/auth', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    logoutSession: vi.fn().mockResolvedValue(undefined),
+    setPin: vi.fn(),
+    unlockPin: vi.fn(),
+    loginWithPassword: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 vi.mock('@/services/notifications', async () => {
   const axios = await import('@/services/axios');
   return {

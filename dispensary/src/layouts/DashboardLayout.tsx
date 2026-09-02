@@ -1,11 +1,10 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { CounterAlertBell } from '@/components/alerts/CounterAlertBell';
 import { AppSidebar, ShellHeader } from '@/components/layout/AppSidebar';
 import { CounterPasswordChange } from '@/components/lock/CounterPasswordChange';
 import { CounterPinEnroll } from '@/components/lock/CounterPinEnroll';
-import { CounterPinLock } from '@/components/lock/CounterPinLock';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -13,6 +12,7 @@ import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
+import { logoutSession } from '@/services/auth';
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
@@ -20,18 +20,23 @@ export default function DashboardLayout() {
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
   const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
-  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet && !mustChangePassword);
+  const { expired } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  const leaveCounter = useCallback(() => {
+    void logoutSession().catch(() => undefined);
+    dispatch(logout());
+    navigate(ROUTES.LOGIN);
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     if (!expired) {
       return;
     }
-    dispatch(logout());
-    navigate(ROUTES.LOGIN);
-  }, [expired, dispatch, navigate]);
+    leaveCounter();
+  }, [expired, leaveCounter]);
 
   return (
     <div className="flex min-h-screen bg-canvas">
@@ -77,10 +82,7 @@ export default function DashboardLayout() {
                 variant="outline"
                 size="sm"
                 className="hidden sm:inline-flex"
-                onClick={() => {
-                  dispatch(logout());
-                  navigate(ROUTES.LOGIN);
-                }}
+                onClick={leaveCounter}
               >
                 Sign out
               </Button>
@@ -95,16 +97,6 @@ export default function DashboardLayout() {
         <CounterPasswordChange onChanged={() => dispatch(passwordChanged())} />
       ) : !pinSet ? (
         <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
-      ) : null}
-      {pinSet && locked && !expired ? (
-        <CounterPinLock
-          staffName={displayName ?? 'staff'}
-          onUnlocked={acknowledgeUnlock}
-          onSessionRevoked={() => {
-            dispatch(logout());
-            navigate(ROUTES.LOGIN);
-          }}
-        />
       ) : null}
     </div>
   );

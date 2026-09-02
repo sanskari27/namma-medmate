@@ -24,3 +24,25 @@ chosen behavior and date.
 
 Record the chosen behavior, rejected alternatives, effective date, owner, and
 affected story IDs below the table. Never rewrite product source history.
+
+## D-014 — Saved PIN login (device-scoped staff picker)
+
+**Chosen:** After email+password and PIN enroll, this browser keeps that person as a saved login. Several people per device. Tap a saved person and enter the six-digit PIN to start a **new** session (the one-active-session rule still applies). Sign out ends the session and keeps saved people. A binding lasts 30 days from the last successful PIN or password login on that device (sliding). Three failed PINs drop that person on this device; password login still works. Password change, email reset, and admin reset revoke all of that user’s saved devices. PIN is accepted only with a device binding. WhatsApp OTP is not a Phase 1 login factor. Owner enable/remove in Manage Users waits for M1-S04.
+
+**Rejected:** Last-user-only remembered account; PIN as a global password from any browser; WhatsApp OTP as a Phase 1 login factor.
+
+**Superseded idle behavior:** See D-015.
+
+**Effective:** 2026-09-02  
+**Owner:** Product owner  
+**Affected:** M1-S10
+
+## D-015 — Five-minute idle signs out (PIN picker relogin)
+
+**Chosen:** After five minutes of inactivity on a PIN-enrolled session, the till or HQ console **signs out** (revokes the access session, keeps saved people). There is no idle lock overlay and no same-session PIN unlock. Relogin is the saved-login picker plus PIN (or email+password for another account). PIN enroll still happens once after first password login.
+
+**Rejected:** Five-minute idle PIN lock that keeps the session; a second 55-minute idle logout on top of lock.
+
+**Effective:** 2026-09-02  
+**Owner:** Product owner  
+**Affected:** M1-S10

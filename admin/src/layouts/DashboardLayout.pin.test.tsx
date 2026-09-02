@@ -9,6 +9,18 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, inboxReducer } from '@/store';
 
+vi.mock('@/services/auth', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    logoutSession: vi.fn().mockResolvedValue(undefined),
+    setPin: vi.fn(),
+    unlockPin: vi.fn(),
+    loginWithPassword: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 vi.mock('@/services/inbox', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -71,7 +83,7 @@ function renderShell(pinSet: boolean) {
   };
 }
 
-describe('admin idle PIN lock', () => {
+describe('admin idle sign-out', () => {
   afterEach(() => {
     vi.useRealTimers();
     sessionStorage.removeItem(LAST_ACTIVITY_KEY);
@@ -83,22 +95,12 @@ describe('admin idle PIN lock', () => {
     expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
   });
 
-  it('locks after five minutes of inactivity without ending the HQ session', () => {
+  it('signs the operator out after five minutes of inactivity', () => {
     vi.useFakeTimers();
     const { store } = renderShell(true);
     expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(5 * 60 * 1000);
-    });
-    expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
-    expect(store.getState().auth.user?.displayName).toBe('Sanskar');
-  });
-
-  it('signs the operator out after fifty-five minutes of inactivity', () => {
-    vi.useFakeTimers();
-    const { store } = renderShell(true);
-    act(() => {
-      vi.advanceTimersByTime(55 * 60 * 1000);
     });
     expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
     expect(screen.getByText('HQ sign in')).toBeInTheDocument();

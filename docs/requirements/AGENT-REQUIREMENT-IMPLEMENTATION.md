@@ -15,6 +15,7 @@ independent verifier verdict.
 | M1-S07 | M1 | server + dispensary + admin | ready | M1-S05 | — | — |
 | M1-S08 | M1 | server + admin | blocked | M1-S01, M1-S05 | D-001 | — |
 | M1-S09 | M1 | server + dispensary + admin | blocked | M1-S07, M3-S01 | D-013 | — |
+| M1-S10 | M1 | server + dispensary + admin | in_progress | M1-S01, M1-S02 | — | — |
 | M2-S01 | M2 | server + dispensary | ready | M1-S03 | — | — |
 | M2-S02 | M2 | server + dispensary + admin | ready | M2-S01, M1-S05 | — | — |
 | M2-S03 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |

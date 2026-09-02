@@ -1,12 +1,12 @@
-import { FormEvent, useEffect, useId, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
-import { Reveal } from '@/components/Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { adminResetPassword, ApiError, isApiError } from '@/services/auth';
 import type { RootState } from '@/store';
+import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
 
 type FormStatus =
   | 'empty'
@@ -30,9 +30,15 @@ function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: strin
         text: 'That staff login is not on this pharmacy, or only the owner who created it can reset it.',
       };
     case 'conflict':
-      return { icon: AlertCircle, text: 'That temporary password was already used on this till. Pick another.' };
+      return {
+        icon: AlertCircle,
+        text: 'That temporary password was already used on this till. Pick another.',
+      };
     case 'failure':
-      return { icon: WifiOff, text: 'Could not reach the server. Reset the staff password from this counter again.' };
+      return {
+        icon: WifiOff,
+        text: 'Could not reach the server. Reset the staff password from this counter again.',
+      };
     case 'success':
       return {
         icon: CheckCircle2,
@@ -55,7 +61,8 @@ export default function StaffPasswordPage() {
   const banner = statusCopy(status);
 
   useEffect(() => {
-    restoreRef.current = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    restoreRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
     if (role === 'pharmacy_owner') {
       document.getElementById(emailId)?.focus();
     }
@@ -99,7 +106,8 @@ export default function StaffPasswordPage() {
         <div>
           <h1 className="text-xl font-semibold text-ink">Reset a staff password</h1>
           <p className="mt-1 text-sm text-muted">
-            Only the owner who created the till login can set a temporary password. Staff change it at next sign-in.
+            Only the owner who created the till login can set a temporary password. Staff change it
+            at next sign-in.
           </p>
         </div>
         {banner ? (

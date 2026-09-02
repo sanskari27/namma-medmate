@@ -1,9 +1,9 @@
-import { useEffect, useState } from 'react';
 import { AreaMetricChart } from '@/components/charts/AreaMetricChart';
-import { Reveal } from '@/components/Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 import { Card } from '@/components/ui/card';
-import { apiClient } from '@/services/axios';
 import { API } from '@/libs/constants/api.const';
+import { apiClient } from '@/services/axios';
+import { useEffect, useState } from 'react';
 
 interface HealthStatus {
   status: string;

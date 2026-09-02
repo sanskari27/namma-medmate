@@ -69,6 +69,7 @@ import {
 } from '@/libs/constants/routes.const';
 import { cn } from '@/libs/cn';
 import { logout, type RootState } from '@/store';
+import { logoutSession } from '@/services/auth';
 
 const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.DASHBOARD]: Gauge,
@@ -154,6 +155,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   };
 
   const signOut = () => {
+    void logoutSession().catch(() => undefined);
     dispatch(logout());
     onNavigate?.();
     navigate(ROUTES.LOGIN);

@@ -24,13 +24,14 @@
 
 ### Onboarding
 - No self-registration for staff — admin creates accounts and sets initial password.
-- User sets a **6-digit PIN** post-onboarding (per-user, works across devices) for lock-screen unlock.
+- User sets a **6-digit PIN** post-onboarding (per-user) so this device can save them for PIN sign-in.
 - Staff license/registration verified by MASTER or a MASTER-created Verification Agent role.
 - Tenant KYC: docs uploaded at registration, approved by MASTER/Verification Agent before account unlocks.
 
 ### Authentication
-- Email + Password only (no OTP, social login, SSO, or 2FA in Phase 1).
-- **Lock screen:** 5-minute inactivity → PIN lock (session persists, not a full logout). 3 failed PIN attempts → forced full logout/re-login. Successful PIN resumes the same session.
+- First-factor login is email + password (no OTP, social login, SSO, or 2FA in Phase 1).
+- After the user sets a 6-digit PIN, this browser may keep that person as a **saved login**. Several people can be saved on one till or HQ console. Tap a saved person, enter PIN, start a new session. “Use another account” is email + password. Sign out ends the session and keeps saved people. A binding lasts **30 days** from the last successful PIN or password login on that device (sliding). 3 failed PINs drop that person on this device (password still works). Password change or reset revokes all of that user’s saved devices. PIN is accepted only with a device binding — it is not a global password.
+- **Idle:** 5-minute inactivity on a PIN-enrolled session **signs out** (session ends; saved people stay). Relogin is PIN on this device’s saved-login picker. There is no idle lock overlay.
 - **Password policy:** min 8 characters, 90-day expiry, no reuse.
 - **Concurrent sessions:** not allowed — new login force-logs-out the previous session.
 - **Password reset:** MASTER & OWNER reset their own via email link. All other sub-accounts reset manually by their creating admin (OWNER for pharmacy staff).

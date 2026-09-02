@@ -50,6 +50,7 @@ public class PasswordLifecycleService {
   private final PasswordHistoryRepository passwordHistoryRepository;
   private final PasswordResetTokenRepository passwordResetTokenRepository;
   private final UserSessionRepository userSessionRepository;
+  private final SavedLoginService savedLoginService;
   private final TenantRepository tenantRepository;
   private final TransactionalEmailService transactionalEmailService;
   private final PasswordEncoder passwordEncoder;
@@ -64,6 +65,7 @@ public class PasswordLifecycleService {
       PasswordHistoryRepository passwordHistoryRepository,
       PasswordResetTokenRepository passwordResetTokenRepository,
       UserSessionRepository userSessionRepository,
+      SavedLoginService savedLoginService,
       TenantRepository tenantRepository,
       TransactionalEmailService transactionalEmailService,
       PasswordEncoder passwordEncoder,
@@ -75,6 +77,7 @@ public class PasswordLifecycleService {
     this.passwordHistoryRepository = passwordHistoryRepository;
     this.passwordResetTokenRepository = passwordResetTokenRepository;
     this.userSessionRepository = userSessionRepository;
+    this.savedLoginService = savedLoginService;
     this.tenantRepository = tenantRepository;
     this.transactionalEmailService = transactionalEmailService;
     this.passwordEncoder = passwordEncoder;
@@ -97,6 +100,7 @@ public class PasswordLifecycleService {
     Instant now = Instant.now(clock);
     rotatePassword(user, newPassword, now, false);
     userSessionRepository.revokeOtherSessions(user.getId(), principal.sessionId(), now);
+    savedLoginService.revokeAllForUser(user.getId());
     return toAuthenticatedUser(user, now);
   }
 
@@ -166,6 +170,7 @@ public class PasswordLifecycleService {
     passwordResetTokenRepository.saveAndFlush(token);
     passwordResetTokenRepository.consumeUnusedForUser(user.getId(), now);
     userSessionRepository.revokeActiveSessions(user.getId(), now);
+    savedLoginService.revokeAllForUser(user.getId());
     return new ResetAccepted(true);
   }
 
@@ -196,6 +201,7 @@ public class PasswordLifecycleService {
     rejectIfReused(locked, newPassword);
     rotatePassword(locked, newPassword, now, true);
     userSessionRepository.revokeActiveSessions(locked.getId(), now);
+    savedLoginService.revokeAllForUser(locked.getId());
     return toAuthenticatedUser(locked, now);
   }
 

@@ -1,13 +1,13 @@
-import { FormEvent, useId, useState } from 'react';
-import { Link } from 'react-router-dom';
-import { AlertCircle, Mail, WifiOff } from 'lucide-react';
+import { CounterFeatureSlider, CounterFeatureStrip } from '@/components/auth/CounterFeatureSlider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CounterFeatureSlider, CounterFeatureStrip } from '@/components/auth/CounterFeatureSlider';
-import { Reveal } from '@/components/Reveal';
+import { Reveal } from '@/components/ui/Reveal';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { ApiError, isApiError, requestPasswordReset } from '@/services/auth';
+import { AlertCircle, Mail, WifiOff } from 'lucide-react';
+import { FormEvent, useId, useState } from 'react';
+import { Link } from 'react-router-dom';
 
 type FormStatus =
   | 'empty'
@@ -23,13 +23,25 @@ function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: strin
     case 'validation':
       return { icon: AlertCircle, text: 'Enter the owner email for this pharmacy.' };
     case 'denied':
-      return { icon: AlertCircle, text: 'This counter cannot start an email reset. Ask the owner.' };
+      return {
+        icon: AlertCircle,
+        text: 'This counter cannot start an email reset. Ask the owner.',
+      };
     case 'conflict':
-      return { icon: AlertCircle, text: 'A reset is already in flight. Wait, then try from this counter again.' };
+      return {
+        icon: AlertCircle,
+        text: 'A reset is already in flight. Wait, then try from this counter again.',
+      };
     case 'failure':
-      return { icon: WifiOff, text: 'Could not reach the server. Try the owner reset from this counter again.' };
+      return {
+        icon: WifiOff,
+        text: 'Could not reach the server. Try the owner reset from this counter again.',
+      };
     case 'success':
-      return { icon: Mail, text: 'If this owner account can reset by email, a link is on the way. Staff passwords are reset by the owner.' };
+      return {
+        icon: Mail,
+        text: 'If this owner account can reset by email, a link is on the way. Staff passwords are reset by the owner.',
+      };
     default:
       return null;
   }
@@ -76,8 +88,8 @@ export default function ForgotPasswordPage() {
             <div>
               <h1 className="text-xl font-semibold text-ink">Owner password reset</h1>
               <p className="mt-1 text-sm text-muted">
-                Email a time-limited link to the pharmacy owner. Staff at this counter ask the owner to set a
-                temporary password.
+                Email a time-limited link to the pharmacy owner. Staff at this counter ask the owner
+                to set a temporary password.
               </p>
             </div>
             {banner ? (

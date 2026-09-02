@@ -44,6 +44,7 @@ Secure tenant-aware access, staff lifecycle, role authorization, approvals, and 
 | 7 | [M1-S07 — Approval workflows and audit](m1-s07-approval-workflows-and-audit.md) | server + dispensary + admin | M1-S05 | — |
 | 8 | [M1-S08 — MASTER tenant-user impersonation](m1-s08-master-impersonation.md) | server + admin | M1-S01, M1-S05 | D-001 |
 | 9 | [M1-S09 — DPDP operational controls](m1-s09-dpdp-operational-controls.md) | server + dispensary + admin | M1-S07, M3-S01 | D-013 |
+| 10 | [M1-S10 — Saved PIN login](m1-s10-saved-pin-login.md) | server + dispensary + admin | M1-S01, M1-S02 | — |
 
 ## Boundaries
 

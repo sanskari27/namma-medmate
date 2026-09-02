@@ -15,7 +15,7 @@ function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: strin
     case 'denied':
       return { icon: AlertCircle, text: 'This counter session expired. Sign in again, then set the PIN.' };
     case 'conflict':
-      return { icon: AlertCircle, text: 'This counter already has a PIN. Wait for lock, then unlock with it.' };
+      return { icon: AlertCircle, text: 'This counter already has a PIN. Sign in again with it from the till picker.' };
     case 'failure':
       return { icon: WifiOff, text: 'Could not reach the server. Try saving the PIN from this counter.' };
     default:
@@ -103,7 +103,7 @@ export function CounterPinEnroll({ onEnrolled }: { onEnrolled: () => void }) {
               Set a counter PIN
             </h2>
             <p className="mt-1 text-sm text-muted">
-              After five quiet minutes this till locks. Choose six digits you can type at the counter.
+              After five quiet minutes this till signs out. Choose six digits to sign back in on this till.
             </p>
           </div>
           {banner ? (

@@ -128,6 +128,18 @@ public class AuthService {
     return toAuthenticatedUser(user);
   }
 
+  @Transactional
+  public void logout(AuthPrincipal principal) {
+    Instant now = Instant.now(clock);
+    userSessionRepository
+        .lockActiveScopedSession(principal.sessionId(), principal.userId(), principal.tenantId())
+        .ifPresent(
+            session -> {
+              session.setRevokedAt(now);
+              userSessionRepository.save(session);
+            });
+  }
+
   @Transactional(noRollbackFor = ApiException.class)
   public LoginOutcome unlockPin(AuthPrincipal principal, String pin) {
     requireSixDigitPin(pin);

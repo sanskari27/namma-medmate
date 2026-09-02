@@ -28,7 +28,7 @@ test('accepts the canonical requirements tree', async (t) => {
 
   const result = validate(root);
   assert.equal(result.status, 0, result.stderr);
-  assert.match(result.stdout, /Requirements valid: 70 stories, 13 decisions, 70 tracker rows/);
+  assert.match(result.stdout, /Requirements valid: 71 stories, 13 decisions, 71 tracker rows/);
 });
 
 test('rejects a missing tracker row', async (t) => {

@@ -29,6 +29,31 @@ export async function loginWithPassword(email: string, password: string): Promis
   return toAuthUser(data);
 }
 
+export interface SavedLoginPerson {
+  userId: string;
+  displayName: string;
+  role: string;
+  email: string;
+}
+
+export async function listSavedLogins(): Promise<SavedLoginPerson[]> {
+  const { data } = await apiClient.get<{ items: SavedLoginPerson[] }>(API.SAVED_LOGINS);
+  return data.items;
+}
+
+export async function pinLogin(userId: string, pin: string): Promise<AuthUser> {
+  const { data } = await apiClient.post<LoginIdentity>(API.PIN_LOGIN, { userId, pin });
+  return toAuthUser(data);
+}
+
+export async function forgetSavedLogin(userId: string): Promise<void> {
+  await apiClient.delete(`${API.SAVED_LOGINS}/${userId}`);
+}
+
+export async function logoutSession(): Promise<void> {
+  await apiClient.post(API.LOGOUT);
+}
+
 export async function setPin(pin: string): Promise<AuthUser> {
   const { data } = await apiClient.post<LoginIdentity>(API.PIN, { pin });
   return toAuthUser(data);

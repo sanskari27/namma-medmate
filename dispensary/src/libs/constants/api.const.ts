@@ -1,6 +1,9 @@
 export const API = {
   HEALTH: '/api/v1/health',
   LOGIN: '/api/v1/auth/login',
+  SAVED_LOGINS: '/api/v1/auth/saved-logins',
+  PIN_LOGIN: '/api/v1/auth/pin/login',
+  LOGOUT: '/api/v1/auth/logout',
   PIN: '/api/v1/auth/pin',
   PIN_UNLOCK: '/api/v1/auth/pin/unlock',
   PASSWORD: '/api/v1/auth/password',

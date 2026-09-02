@@ -9,7 +9,7 @@ import {
   Funnel,
   type LucideIcon,
 } from 'lucide-react';
-import { useEffect } from 'react';
+import { useCallback, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
@@ -17,9 +17,9 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { HqInboxBell } from '@/components/inbox/HqInboxBell';
 import { HqPasswordChange } from '@/components/lock/HqPasswordChange';
 import { HqPinEnroll } from '@/components/lock/HqPinEnroll';
-import { HqSessionLock } from '@/components/lock/HqSessionLock';
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
+import { logoutSession } from '@/services/auth';
 import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
@@ -39,15 +39,20 @@ export default function DashboardLayout() {
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
   const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
-  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet && !mustChangePassword);
+  const { expired } = useIdleLock(pinSet && !mustChangePassword);
+
+  const leaveHq = useCallback(() => {
+    void logoutSession().catch(() => undefined);
+    dispatch(logout());
+    navigate(ROUTES.LOGIN);
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     if (!expired) {
       return;
     }
-    dispatch(logout());
-    navigate(ROUTES.LOGIN);
-  }, [expired, dispatch, navigate]);
+    leaveHq();
+  }, [expired, leaveHq]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -98,10 +103,7 @@ export default function DashboardLayout() {
               type="button"
               variant="outline"
               size="sm"
-              onClick={() => {
-                dispatch(logout());
-                navigate(ROUTES.LOGIN);
-              }}
+              onClick={leaveHq}
             >
               Sign out
             </Button>
@@ -115,16 +117,6 @@ export default function DashboardLayout() {
         <HqPasswordChange onChanged={() => dispatch(passwordChanged())} />
       ) : !pinSet ? (
         <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
-      ) : null}
-      {pinSet && locked && !expired ? (
-        <HqSessionLock
-          operatorName={displayName ?? 'operator'}
-          onUnlocked={acknowledgeUnlock}
-          onSessionRevoked={() => {
-            dispatch(logout());
-            navigate(ROUTES.LOGIN);
-          }}
-        />
       ) : null}
     </div>
   );
