@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { CounterAlertBell } from '@/components/alerts/CounterAlertBell';
@@ -18,10 +18,18 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const { locked, acknowledgeUnlock } = useIdleLock(pinSet);
+  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
+
+  useEffect(() => {
+    if (!expired) {
+      return;
+    }
+    dispatch(logout());
+    navigate(ROUTES.LOGIN);
+  }, [expired, dispatch, navigate]);
 
   return (
     <div className="flex min-h-screen bg-canvas">
@@ -82,7 +90,7 @@ export default function DashboardLayout() {
         </main>
       </div>
       {!pinSet ? <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
-      {pinSet && locked ? (
+      {pinSet && locked && !expired ? (
         <CounterPinLock
           staffName={displayName ?? 'staff'}
           onUnlocked={acknowledgeUnlock}

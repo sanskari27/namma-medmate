@@ -8,6 +8,7 @@ import {
   Funnel,
   type LucideIcon,
 } from 'lucide-react';
+import { useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
@@ -34,7 +35,15 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const { locked, acknowledgeUnlock } = useIdleLock(pinSet);
+  const { locked, expired, acknowledgeUnlock } = useIdleLock(pinSet);
+
+  useEffect(() => {
+    if (!expired) {
+      return;
+    }
+    dispatch(logout());
+    navigate(ROUTES.LOGIN);
+  }, [expired, dispatch, navigate]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -99,7 +108,7 @@ export default function DashboardLayout() {
         </main>
       </div>
       {!pinSet ? <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
-      {pinSet && locked ? (
+      {pinSet && locked && !expired ? (
         <HqSessionLock
           operatorName={displayName ?? 'operator'}
           onUnlocked={acknowledgeUnlock}

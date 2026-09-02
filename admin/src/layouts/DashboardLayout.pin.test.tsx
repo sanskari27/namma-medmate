@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
+import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, inboxReducer } from '@/store';
@@ -73,6 +74,7 @@ function renderShell(pinSet: boolean) {
 describe('admin idle PIN lock', () => {
   afterEach(() => {
     vi.useRealTimers();
+    sessionStorage.removeItem(LAST_ACTIVITY_KEY);
   });
 
   it('empty: operator without a PIN must enroll before HQ work', () => {
@@ -90,5 +92,16 @@ describe('admin idle PIN lock', () => {
     });
     expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
     expect(store.getState().auth.user?.displayName).toBe('Sanskar');
+  });
+
+  it('signs the operator out after fifty-five minutes of inactivity', () => {
+    vi.useFakeTimers();
+    const { store } = renderShell(true);
+    act(() => {
+      vi.advanceTimersByTime(55 * 60 * 1000);
+    });
+    expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
+    expect(screen.getByText('HQ sign in')).toBeInTheDocument();
+    expect(store.getState().auth.user).toBeNull();
   });
 });

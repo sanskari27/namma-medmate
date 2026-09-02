@@ -49,6 +49,26 @@ function formatFloorClock(iso: string): string {
   }).format(new Date(iso));
 }
 
+function floorDestination(sourceType: string): string {
+  switch (sourceType) {
+    case 'credit_due':
+      return 'Opens khata';
+    case 'supplier_due':
+      return 'Opens purchases';
+    case 'staff_license':
+      return 'Opens employees';
+    case 'license_expiry':
+    case 'plan_limit':
+    case 'subscription_expiry':
+      return 'Opens subscription';
+    case 'kyc':
+    case 'account_created':
+      return 'Opens account';
+    default:
+      return 'Opens inventory';
+  }
+}
+
 function statusCopy(status: PanelStatus): { icon: typeof AlertCircle; text: string } | null {
   switch (status) {
     case 'validation':
@@ -212,6 +232,7 @@ export function CounterAlertBell() {
               <div className="min-w-0 flex-1 px-3 py-2.5">
                 <p className="text-sm font-medium text-ink">{item.title}</p>
                 {item.body ? <p className="mt-0.5 text-xs text-muted">{item.body}</p> : null}
+                <p className="mt-1 font-mono text-[11px] text-muted">{floorDestination(item.sourceType)}</p>
                 <p className="mt-1 flex items-center justify-between gap-2">
                   <time className="font-mono text-[11px] text-muted" dateTime={item.createdAt}>
                     {formatFloorClock(item.createdAt)} IST

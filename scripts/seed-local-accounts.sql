@@ -107,6 +107,33 @@ VALUES
         NOW(),
         NULL,
         NOW()
+    ),
+    (
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4',
+        '11111111-1111-1111-1111-111111111111',
+        NULL,
+        '/credit',
+        NULL,
+        NULL,
+        NOW()
+    ),
+    (
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3',
+        NULL,
+        NULL,
+        '/subscriptions',
+        NULL,
+        NULL,
+        NOW()
+    ),
+    (
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4',
+        NULL,
+        NULL,
+        '/pharmacies',
+        NULL,
+        NULL,
+        NOW()
     )
 ON CONFLICT (id) DO NOTHING;
 
@@ -131,7 +158,7 @@ VALUES
         NULL,
         'Paracetamol 500mg is below reorder',
         'Shelf A has 4 strips left. Open inventory to indent.',
-        'stock_item',
+        'low_stock',
         'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa1',
         '/inventory',
         NULL,
@@ -214,5 +241,44 @@ VALUES
         '/kyc',
         NULL,
         NOW() - INTERVAL '4 hours'
+    ),
+    (
+        'cccccccc-cccc-cccc-cccc-ccccccccccc5',
+        'f70713e0-0e91-4bc3-a287-47ca3b819a25',
+        '11111111-1111-1111-1111-111111111111',
+        NULL,
+        'Customer credit due',
+        'A khata balance is due. Open credit to follow up.',
+        'credit_due',
+        'aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaa4',
+        '/credit',
+        NULL,
+        NOW() - INTERVAL '8 minutes'
+    ),
+    (
+        'dddddddd-dddd-dddd-dddd-ddddddddddd4',
+        'd0199133-19c9-49b0-a3bc-2bcf0bf531e9',
+        NULL,
+        NULL,
+        'Subscription expiring',
+        'A tenant plan is nearing expiry. Open subscriptions.',
+        'subscription_expiry',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb3',
+        '/subscriptions',
+        NULL,
+        NOW() - INTERVAL '6 minutes'
+    ),
+    (
+        'dddddddd-dddd-dddd-dddd-ddddddddddd5',
+        'd0199133-19c9-49b0-a3bc-2bcf0bf531e9',
+        NULL,
+        NULL,
+        'License expiring',
+        'A tenant or branch license is nearing expiry. Open the pharmacy file.',
+        'license_expiry',
+        'bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbb4',
+        '/pharmacies',
+        NULL,
+        NOW() - INTERVAL '12 minutes'
     )
 ON CONFLICT (id) DO NOTHING;

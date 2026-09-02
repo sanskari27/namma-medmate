@@ -82,6 +82,8 @@ function renderInbox() {
             <Routes>
               <Route path={ROUTES.DASHBOARD} element={<HqInboxBell />} />
               <Route path={ROUTES.KYC} element={<div>KYC page</div>} />
+              <Route path={ROUTES.SUBSCRIPTIONS} element={<div>Subscriptions page</div>} />
+              <Route path={ROUTES.PHARMACIES} element={<div>Pharmacies page</div>} />
             </Routes>
           </MemoryRouter>
         </TooltipProvider>
@@ -139,6 +141,7 @@ describe('admin HQ inbox', () => {
     expect(within(table).getByText('Unread')).toBeInTheDocument();
     expect(within(table).getByText('Filed')).toBeInTheDocument();
     expect(within(table).getByText('KYC pack waiting on Varshmaan Pharmacy')).toBeInTheDocument();
+    expect(within(table).getAllByText('Opens KYC queue').length).toBeGreaterThan(0);
     expect(within(table).getAllByText(/IST/).length).toBeGreaterThan(0);
   });
 
@@ -218,6 +221,68 @@ describe('admin HQ inbox', () => {
     await user.click(screen.getByRole('button', { name: /hq inbox/i }));
     await user.click(await screen.findByRole('button', { name: 'Open tenant file' }));
     expect(await screen.findByText('KYC page')).toBeInTheDocument();
+  });
+
+  it('success: a subscription signal names the destination and walks to subscriptions', async () => {
+    const user = userEvent.setup();
+    const subRow = {
+      id: 'hq-sub',
+      title: 'Subscription expiring',
+      body: 'A tenant plan is nearing expiry. Open subscriptions.',
+      sourceType: 'subscription_expiry',
+      sourceId: 'src-sub',
+      read: false,
+      createdAt: '2026-09-02T03:00:00Z',
+    };
+    listMock.mockResolvedValue({
+      items: [subRow],
+      unreadCount: 1,
+      page: 0,
+      size: 6,
+      totalPages: 1,
+      totalItems: 1,
+    });
+    openMock.mockResolvedValue({
+      href: '/subscriptions',
+      sourceType: 'subscription_expiry',
+      sourceId: 'src-sub',
+    });
+    renderInbox();
+    await user.click(screen.getByRole('button', { name: /hq inbox/i }));
+    expect(await screen.findByText('Opens subscriptions')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Open tenant file' }));
+    expect(await screen.findByText('Subscriptions page')).toBeInTheDocument();
+  });
+
+  it('success: a license signal walks to the pharmacy file', async () => {
+    const user = userEvent.setup();
+    const licenseRow = {
+      id: 'hq-lic',
+      title: 'License expiring',
+      body: 'A tenant or branch license is nearing expiry. Open the pharmacy file.',
+      sourceType: 'license_expiry',
+      sourceId: 'src-lic',
+      read: false,
+      createdAt: '2026-09-02T03:10:00Z',
+    };
+    listMock.mockResolvedValue({
+      items: [licenseRow],
+      unreadCount: 1,
+      page: 0,
+      size: 6,
+      totalPages: 1,
+      totalItems: 1,
+    });
+    openMock.mockResolvedValue({
+      href: '/pharmacies',
+      sourceType: 'license_expiry',
+      sourceId: 'src-lic',
+    });
+    renderInbox();
+    await user.click(screen.getByRole('button', { name: /hq inbox/i }));
+    expect(await screen.findByText('Opens pharmacy file')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Open tenant file' }));
+    expect(await screen.findByText('Pharmacies page')).toBeInTheDocument();
   });
 
   it('file as read persists without preference controls', async () => {

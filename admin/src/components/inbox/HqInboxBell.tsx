@@ -40,6 +40,19 @@ function formatHqStamp(iso: string): string {
   }).format(new Date(iso));
 }
 
+function hqDestination(sourceType: string): string {
+  switch (sourceType) {
+    case 'subscription_expiry':
+      return 'Opens subscriptions';
+    case 'license_expiry':
+      return 'Opens pharmacy file';
+    case 'kyc':
+      return 'Opens KYC queue';
+    default:
+      return 'Opens tenant file';
+  }
+}
+
 function deskCopy(status: DeskStatus): { icon: typeof AlertTriangle; text: string } | null {
   switch (status) {
     case 'validation':
@@ -225,6 +238,7 @@ export function HqInboxBell() {
                     <td className="px-3 py-2">
                       <p className="text-sm text-ink">{row.title}</p>
                       {row.body ? <p className="mt-0.5 text-xs text-muted">{row.body}</p> : null}
+                      <p className="mt-1 font-mono text-[11px] text-muted">{hqDestination(row.sourceType)}</p>
                       <div className="mt-2 flex flex-wrap gap-2">
                         <Button type="button" size="sm" onClick={() => void onOpenFile(row)}>
                           Open tenant file

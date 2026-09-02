@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Host-run local stack: Compose Postgres + Redis, Spring + Vite on the host.
-# Vite HMR is live. Java class/resource changes trigger DevTools restart.
+# Vite HMR is live. Spring DevTools restarts when the IDE/Maven writes classes.
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
@@ -50,26 +50,6 @@ ensure_npm() {
   fi
 }
 
-mtime_stamp() {
-  find src/main/java src/main/resources -type f -print0 2>/dev/null |
-    xargs -0 stat -f '%m' 2>/dev/null ||
-    find src/main/java src/main/resources -type f -print0 2>/dev/null |
-      xargs -0 stat -c '%Y' 2>/dev/null
-}
-
-watch_java() {
-  local last now
-  last=$(mtime_stamp | sort -n | tail -1 || true)
-  while sleep 2; do
-    now=$(mtime_stamp | sort -n | tail -1 || true)
-    if [[ -n "${now:-}" && -n "${last:-}" && "$now" != "$last" ]]; then
-      log "Java/resources changed — compiling"
-      ./mvnw -q -DskipTests compile || log "compile failed"
-    fi
-    last=$now
-  done
-}
-
 log "Stopping containerized apps if they hold 8080/5173/5174"
 $COMPOSE -f "$COMPOSE_FILE" stop server dispensary admin >/dev/null 2>&1 || true
 
@@ -88,7 +68,6 @@ ensure_npm dispensary
 ensure_npm admin
 
 (cd server && prefix server ./mvnw spring-boot:run -Dspring-boot.run.profiles=local) &
-(cd server && prefix compile watch_java) &
 (cd dispensary && prefix dispensary npm run dev) &
 (cd admin && prefix admin npm run dev) &
 

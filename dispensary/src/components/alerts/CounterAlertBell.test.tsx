@@ -38,7 +38,7 @@ const unreadItem = {
   id: 'n-unread',
   title: 'Paracetamol 500mg is below reorder',
   body: 'Shelf A has 4 strips left.',
-  sourceType: 'stock_item',
+  sourceType: 'low_stock',
   sourceId: 'src-1',
   read: false,
   createdAt: '2026-09-02T02:30:00Z',
@@ -87,6 +87,7 @@ function renderBell() {
             <Routes>
               <Route path={ROUTES.DASHBOARD} element={<CounterAlertBell />} />
               <Route path={ROUTES.INVENTORY} element={<div>Inventory page</div>} />
+              <Route path={ROUTES.CREDIT} element={<div>Khata page</div>} />
             </Routes>
           </MemoryRouter>
         </TooltipProvider>
@@ -144,6 +145,7 @@ describe('dispensary counter alert bell', () => {
     expect(within(list).getByText('Unread')).toBeInTheDocument();
     expect(within(list).getByText('Seen')).toBeInTheDocument();
     expect(within(list).getByText('Paracetamol 500mg is below reorder')).toBeInTheDocument();
+    expect(within(list).getAllByText('Opens inventory').length).toBeGreaterThan(0);
     expect(within(list).getAllByText(/IST/).length).toBeGreaterThan(0);
   });
 
@@ -216,11 +218,38 @@ describe('dispensary counter alert bell', () => {
       totalPages: 1,
       totalItems: 1,
     });
-    openMock.mockResolvedValue({ href: '/inventory', sourceType: 'stock_item', sourceId: 'src-1' });
+    openMock.mockResolvedValue({ href: '/inventory', sourceType: 'low_stock', sourceId: 'src-1' });
     renderBell();
     await user.click(screen.getByRole('button', { name: /counter alerts/i }));
     await user.click(await screen.findByRole('button', { name: 'Open on this counter' }));
     expect(await screen.findByText('Inventory page')).toBeInTheDocument();
+  });
+
+  it('success: a khata slip names the destination and walks to credit', async () => {
+    const user = userEvent.setup();
+    const creditItem = {
+      id: 'n-credit',
+      title: 'Customer credit due',
+      body: 'A khata balance is due. Open credit to follow up.',
+      sourceType: 'credit_due',
+      sourceId: 'src-credit',
+      read: false,
+      createdAt: '2026-09-02T03:00:00Z',
+    };
+    fetchInboxMock.mockResolvedValue({
+      items: [creditItem],
+      unreadCount: 1,
+      page: 0,
+      size: 8,
+      totalPages: 1,
+      totalItems: 1,
+    });
+    openMock.mockResolvedValue({ href: '/credit', sourceType: 'credit_due', sourceId: 'src-credit' });
+    renderBell();
+    await user.click(screen.getByRole('button', { name: /counter alerts/i }));
+    expect(await screen.findByText('Opens khata')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Open on this counter' }));
+    expect(await screen.findByText('Khata page')).toBeInTheDocument();
   });
 
   it('mark seen persists on the slip without mute controls', async () => {

@@ -91,6 +91,7 @@ function renderShell(pinSet: boolean) {
 describe('dispensary idle PIN lock', () => {
   afterEach(() => {
     vi.useRealTimers();
+    sessionStorage.removeItem(LAST_ACTIVITY_KEY);
   });
 
   it('empty: chemist without a PIN must enroll before using the till', () => {
@@ -108,6 +109,17 @@ describe('dispensary idle PIN lock', () => {
     });
     expect(screen.getByRole('dialog', { name: 'Counter locked' })).toBeInTheDocument();
     expect(store.getState().auth.user?.displayName).toBe('Chemist');
+  });
+
+  it('signs the chemist out after fifty-five minutes of inactivity', () => {
+    vi.useFakeTimers();
+    const { store } = renderShell(true);
+    act(() => {
+      vi.advanceTimersByTime(55 * 60 * 1000);
+    });
+    expect(screen.queryByRole('dialog', { name: 'Counter locked' })).not.toBeInTheDocument();
+    expect(screen.getByText('Pharmacy sign in')).toBeInTheDocument();
+    expect(store.getState().auth.user).toBeNull();
   });
 
   it('restores the same counter after a successful PIN', async () => {
