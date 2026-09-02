@@ -3,6 +3,8 @@ package com.nammamedmate.server.feature.auth;
 import com.nammamedmate.server.application.access.AccessIdentity;
 import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.access.AccessRoleView;
+import com.nammamedmate.server.application.audit.AuditRecordCommand;
+import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.auth.AuthService;
 import com.nammamedmate.server.application.auth.AuthenticatedUser;
 import com.nammamedmate.server.application.auth.LoginOutcome;
@@ -36,18 +38,21 @@ public class AuthController {
   private final SavedLoginService savedLoginService;
   private final AuthCookieService authCookieService;
   private final AccessQueryService accessQueryService;
+  private final AuditService auditService;
 
   public AuthController(
       AuthService authService,
       PasswordLifecycleService passwordLifecycleService,
       SavedLoginService savedLoginService,
       AuthCookieService authCookieService,
-      AccessQueryService accessQueryService) {
+      AccessQueryService accessQueryService,
+      AuditService auditService) {
     this.authService = authService;
     this.passwordLifecycleService = passwordLifecycleService;
     this.savedLoginService = savedLoginService;
     this.authCookieService = authCookieService;
     this.accessQueryService = accessQueryService;
+    this.auditService = auditService;
   }
 
   @PostMapping("/login")
@@ -55,13 +60,33 @@ public class AuthController {
       @Valid @RequestBody LoginRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse response) {
-    LoginOutcome outcome = authService.login(request.email(), request.password());
-    authCookieService.writeAccessToken(response, outcome.accessToken());
-    UUID deviceId = authCookieService.ensureDeviceId(httpRequest, response);
-    if (outcome.user().pinSet()) {
-      savedLoginService.bind(deviceId, outcome.user().userId());
+    try {
+      LoginOutcome outcome = authService.login(request.email(), request.password());
+      authCookieService.writeAccessToken(response, outcome.accessToken());
+      UUID deviceId = authCookieService.ensureDeviceId(httpRequest, response);
+      if (outcome.user().pinSet()) {
+        savedLoginService.bind(deviceId, outcome.user().userId());
+      }
+      auditLogin(
+          AuditService.LOGIN_ACTION,
+          AuditService.OUTCOME_SUCCESS,
+          request.email(),
+          outcome.user().userId(),
+          outcome.user().tenantId(),
+          outcome.sessionId(),
+          httpRequest);
+      return ApiResponse.ok(toResponse(outcome.user()));
+    } catch (ApiException ex) {
+      auditLogin(
+          AuditService.LOGIN_ACTION,
+          AuditService.OUTCOME_FAILURE,
+          request.email(),
+          null,
+          null,
+          null,
+          httpRequest);
+      throw ex;
     }
-    return ApiResponse.ok(toResponse(outcome.user()));
   }
 
   @GetMapping("/saved-logins")
@@ -78,12 +103,40 @@ public class AuthController {
       HttpServletResponse response) {
     UUID deviceId = authCookieService.readDeviceId(httpRequest);
     if (deviceId == null) {
+      auditLogin(
+          AuditService.PIN_LOGIN_ACTION,
+          AuditService.OUTCOME_FAILURE,
+          request.userId().toString(),
+          null,
+          null,
+          null,
+          httpRequest);
       throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
     }
-    LoginOutcome outcome = savedLoginService.pinLogin(deviceId, request.userId(), request.pin());
-    authCookieService.writeAccessToken(response, outcome.accessToken());
-    authCookieService.writeDeviceId(response, deviceId);
-    return ApiResponse.ok(toResponse(outcome.user()));
+    try {
+      LoginOutcome outcome = savedLoginService.pinLogin(deviceId, request.userId(), request.pin());
+      authCookieService.writeAccessToken(response, outcome.accessToken());
+      authCookieService.writeDeviceId(response, deviceId);
+      auditLogin(
+          AuditService.PIN_LOGIN_ACTION,
+          AuditService.OUTCOME_SUCCESS,
+          request.userId().toString(),
+          outcome.user().userId(),
+          outcome.user().tenantId(),
+          outcome.sessionId(),
+          httpRequest);
+      return ApiResponse.ok(toResponse(outcome.user()));
+    } catch (ApiException ex) {
+      auditLogin(
+          AuditService.PIN_LOGIN_ACTION,
+          AuditService.OUTCOME_FAILURE,
+          request.userId().toString(),
+          null,
+          null,
+          null,
+          httpRequest);
+      throw ex;
+    }
   }
 
   @DeleteMapping("/saved-logins/{userId}")
@@ -175,6 +228,37 @@ public class AuthController {
     return ApiResponse.ok(
         toResponse(
             passwordLifecycleService.adminReset(principal, request.email(), request.password())));
+  }
+
+  private void auditLogin(
+      String action,
+      String outcome,
+      String attemptedIdentity,
+      UUID userId,
+      UUID tenantId,
+      UUID sessionId,
+      HttpServletRequest httpRequest) {
+    auditService.record(
+        new AuditRecordCommand(
+            userId,
+            tenantId,
+            null,
+            action,
+            outcome,
+            attemptedIdentity,
+            clientIp(httpRequest),
+            httpRequest.getHeader("User-Agent"),
+            sessionId,
+            null));
+  }
+
+  private static String clientIp(HttpServletRequest request) {
+    String forwarded = request.getHeader("X-Forwarded-For");
+    if (forwarded != null && !forwarded.isBlank()) {
+      int comma = forwarded.indexOf(',');
+      return comma > 0 ? forwarded.substring(0, comma).trim() : forwarded.trim();
+    }
+    return request.getRemoteAddr();
   }
 
   private LoginResponse toResponse(AuthenticatedUser user) {

@@ -5,13 +5,7 @@ import { createStaff } from '@/services/staff';
 import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 
 type DialogStatus =
-  | 'empty'
-  | 'validation'
-  | 'loading'
-  | 'denied'
-  | 'conflict'
-  | 'quota'
-  | 'failure';
+  'empty' | 'validation' | 'loading' | 'denied' | 'conflict' | 'quota' | 'failure';
 
 interface AddTillLoginDialogProps {
   open: boolean;

@@ -24,6 +24,9 @@ export const ROUTES = {
   EMPLOYEES: '/employees',
   USERS: '/users',
   ROLES: '/roles',
+  APPROVALS: '/approvals',
+  APPROVALS_PENDING: '/approvals/pending',
+  ACTIVITY: '/activity',
   INVOICE_SETTINGS: '/invoice-settings',
   SUBSCRIPTION: '/subscription',
   REFER: '/refer',
@@ -106,6 +109,17 @@ export const NAV_SECTIONS = [
       { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
       { label: 'Staff accounts', path: ROUTES.USERS, hint: 'Who can sign in at this pharmacy' },
       { label: 'Floor roles', path: ROUTES.ROLES, hint: 'What each staff login can access' },
+      {
+        label: 'Sign-off rules',
+        path: ROUTES.APPROVALS,
+        hint: 'When a till action needs another sign-off',
+      },
+      {
+        label: 'Waiting for sign-off',
+        path: ROUTES.APPROVALS_PENDING,
+        hint: 'Requests waiting on the counter',
+      },
+      { label: 'Floor activity', path: ROUTES.ACTIVITY, hint: 'Who signed in and what they did' },
       { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
       { label: 'Refer & Earn', path: ROUTES.REFER, hint: 'Refer another chemist' },
@@ -122,7 +136,12 @@ export const MODULE_NAV_ITEMS: readonly NavItem[] = [
 
 export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
   (item) =>
-    item.path !== ROUTES.DASHBOARD && item.path !== ROUTES.USERS && item.path !== ROUTES.ROLES,
+    item.path !== ROUTES.DASHBOARD &&
+    item.path !== ROUTES.USERS &&
+    item.path !== ROUTES.ROLES &&
+    item.path !== ROUTES.APPROVALS &&
+    item.path !== ROUTES.APPROVALS_PENDING &&
+    item.path !== ROUTES.ACTIVITY,
 ).map((item) => ({
   path: item.path,
   title: item.label,

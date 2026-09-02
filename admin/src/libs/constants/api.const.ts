@@ -15,4 +15,9 @@ export const API = {
   USERS: '/api/v1/users',
   STAFF_VERIFICATIONS: '/api/v1/admin/staff-verifications',
   ROLES: '/api/v1/roles',
+  APPROVAL_ACTIONS: '/api/v1/approvals/actions',
+  APPROVAL_RULES: '/api/v1/approvals/rules',
+  APPROVAL_PENDING: '/api/v1/approvals/pending',
+  APPROVAL_REQUESTS: '/api/v1/approvals/requests',
+  AUDIT: '/api/v1/audit',
 } as const;

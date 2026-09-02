@@ -9,6 +9,9 @@ import OperatorPasswordScreen from '@/screens/operator-password/OperatorPassword
 import OperatorsScreen from '@/screens/operators/OperatorsScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
 import HqDesksScreen from '@/screens/hq-desks/HqDesksScreen';
+import WorkflowDesksScreen from '@/screens/workflow-desks/WorkflowDesksScreen';
+import HqSignOffsScreen from '@/screens/hq-sign-offs/HqSignOffsScreen';
+import PlatformActivityScreen from '@/screens/platform-activity/PlatformActivityScreen';
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
@@ -38,6 +41,9 @@ const router = createBrowserRouter([
           { path: ROUTES.OPERATORS, element: <OperatorsScreen /> },
           { path: ROUTES.STAFF_VERIFICATIONS, element: <StaffVerificationScreen /> },
           { path: ROUTES.DESKS, element: <HqDesksScreen /> },
+          { path: ROUTES.WORKFLOWS, element: <WorkflowDesksScreen /> },
+          { path: ROUTES.SIGN_OFFS, element: <HqSignOffsScreen /> },
+          { path: ROUTES.ACTIVITY, element: <PlatformActivityScreen /> },
           { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
         ],
       },

@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 7 |
-| in_progress | 1 |
+| done | 9 |
+| in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 49 |
+| ready | 48 |
 | blocked | 11 |
 | deferred | 3 |
 | total | 71 |
@@ -23,7 +23,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M1-S04 | M1 | server + dispensary + admin | done | M1-S03 | — | Independent verifier PASS (1a27aef7). verified→done. Prior FAIL (007d348e) closed: no HQ copy on dispensary staff screens; PLAN_LIMIT named quota vs EMAIL_TAKEN; OperatorsScreen Remove access tests. Server: V10 staff_onboarding; StaffOnboardingService; POST/GET /api/v1/users + POST /{id}/deactivate; GET/POST /api/v1/admin/staff-verifications. Tests: StaffOnboardingTest 10, StaffOnboardingRollbackTest 2, StaffQuotaTest, StaffRolePolicyTest, StaffLicenseRulesTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 190 tests BUILD SUCCESS. Dispensary: StaffAccountsScreen /users (add/reset/remove dialogs; no /staff-password). Admin: OperatorsScreen + StaffVerificationScreen; VA login. Seed VA verify.agent@nammamedmate.local. SPA: dispensary lint+92 tests+build; admin lint+99 tests+build. `make compose-config` OK. Browser: :5173/users registration-approved copy; :5174/operators Actions; :5174/staff-verifications numbered packs. |
 | M1-S05 | M1 | server + dispensary + admin | done | M1-S04 | — | Independent verifier PASS (fb459d96). verified→done. Server: V11 access_role + access_role_module + user_access_role + access_role_event; AccessRoleService/AccessQueryService; GET/POST/PATCH/deactivate /api/v1/roles; GET/PUT/POST/DELETE /api/v1/users/{id}/roles; plan+creator caps PLAN_LIMIT/PRIVILEGE_ESCALATION; LoginResponse roles[]+modules[]; app_user.role kept as account class. Tests: AccessRoleTest 8, AccessRoleRollbackTest 1, ModuleCatalogTest, PlanModuleEntitlementsTest, EffectiveModuleSetTest, AccessRolePolicyTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 208 tests BUILD SUCCESS. Dispensary: Floor roles /roles + Till roles on Staff accounts; plan-gated Loyalty/Online store explained. Admin: HQ desks /desks two-pane + Desk assignment on Operators (not a dispensary clone). SPA: dispensary lint+100 tests+build; admin lint+107 tests+build. `make compose-config` OK. Browser: :5173 OWNER Floor roles Night till (Sales+Inventory), gated Loyalty/Online store, assign Pharmacist+Cashier to counter.staff; :5174 MASTER HQ desks KYC night desk (no Sales), Desk assignment to Meera. |
 | M1-S06 | M1 | server + dispensary | ready | M1-S05, M2-S04 | — | — |
-| M1-S07 | M1 | server + dispensary + admin | ready | M1-S05 | — | — |
+| M1-S07 | M1 | server + dispensary + admin | done | M1-S05 | — | Independent verifier PASS (a3344fa9). Gap close after prior FAIL. Server: V12 approval_rule/request/decision + audit_event; ApprovalService/AuditService; /api/v1/approvals + /api/v1/audit; login+PIN login audit; MASTER platform builder bypass; APPROVAL_REQUESTED notify. Tests: ApprovalPolicyTest; ApprovalWorkflowTest AC01–AC06 (MASTER platform, STALE_STATE, PIN_LOGIN); ApprovalRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 225 tests BUILD SUCCESS. Dispensary Sign-off rules/Waiting/Floor activity (117 tests). Admin Workflow desks/HQ sign-offs/Platform activity not a clone (123). SPA lint+test+build OK. `make compose-config` OK. Requirements valid. Browser: automation host could not reach live stack; uniqueness from source (viridian shop-floor vs navy HQ). |
 | M1-S08 | M1 | server + admin | blocked | M1-S01, M1-S05 | D-001 | — |
 | M1-S09 | M1 | server + dispensary + admin | blocked | M1-S07, M3-S01 | D-013 | — |
 | M1-S10 | M1 | server + dispensary + admin | ready | M1-S01, M1-S02 | — | — |

@@ -14,12 +14,7 @@ interface FloorRoleDialogProps {
   onSuccess: (message: string) => void;
 }
 
-export function FloorRoleDialog({
-  open,
-  catalog,
-  onOpenChange,
-  onSuccess,
-}: FloorRoleDialogProps) {
+export function FloorRoleDialog({ open, catalog, onOpenChange, onSuccess }: FloorRoleDialogProps) {
   const statusId = useId();
   const restoreRef = useRef<HTMLElement | null>(null);
   const [name, setName] = useState('');
@@ -89,8 +84,8 @@ export function FloorRoleDialog({
       <DialogContent aria-describedby={undefined}>
         <DialogTitle>Add role</DialogTitle>
         <DialogDescription>
-          Name the role and select the areas it can use. Greyed items are not included in the current
-          plan.
+          Name the role and select the areas it can use. Greyed items are not included in the
+          current plan.
         </DialogDescription>
         {message ? (
           <p id={statusId} role="alert" className="mt-3 text-sm text-ink">
@@ -100,11 +95,7 @@ export function FloorRoleDialog({
         <form onSubmit={onSubmit} className="mt-4 space-y-3" noValidate>
           <div className="space-y-1.5">
             <Label htmlFor="role-name">Role name</Label>
-            <Input
-              id="role-name"
-              value={name}
-              onChange={(event) => setName(event.target.value)}
-            />
+            <Input id="role-name" value={name} onChange={(event) => setName(event.target.value)} />
           </div>
           <fieldset className="space-y-1 border border-line bg-canvas px-3 py-2">
             <legend className="px-1 text-xs font-medium text-ink">Pharmacy areas</legend>

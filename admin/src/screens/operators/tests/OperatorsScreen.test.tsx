@@ -174,7 +174,9 @@ describe('HQ operators', () => {
     await screen.findByText('Meera');
     await user.click(screen.getByRole('button', { name: 'Actions for Meera' }));
     await user.click(screen.getByRole('button', { name: 'Remove access' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }),
+    );
     expect(deactivateMock).toHaveBeenCalledWith('v1');
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Access removed. Historical records remain.',
@@ -189,7 +191,9 @@ describe('HQ operators', () => {
     await screen.findByText('Meera');
     await user.click(screen.getByRole('button', { name: 'Actions for Meera' }));
     await user.click(screen.getByRole('button', { name: 'Remove access' }));
-    await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }));
+    await user.click(
+      within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }),
+    );
     expect(await screen.findByRole('alert')).toHaveTextContent('Access has already been removed.');
   });
 
@@ -233,8 +237,6 @@ describe('HQ operators', () => {
     await user.click(within(dialog).getByLabelText('Verification Agent'));
     await user.click(within(dialog).getByRole('button', { name: 'Save assignment' }));
     expect(replaceRolesMock).toHaveBeenCalledWith('v1', ['va']);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Desk assignment saved for Meera.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Desk assignment saved for Meera.');
   });
 });

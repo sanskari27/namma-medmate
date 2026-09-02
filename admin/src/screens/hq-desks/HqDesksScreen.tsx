@@ -116,8 +116,8 @@ export default function HqDesksScreen() {
         <div>
           <h1 className="font-serif text-xl text-ink">HQ desks</h1>
           <p className="mt-1 text-sm text-muted">
-            Create desks for operators and choose which HQ areas each desk can open. You already have
-            full HQ access as the administrator.
+            Create desks for operators and choose which HQ areas each desk can open. You already
+            have full HQ access as the administrator.
           </p>
         </div>
         {master ? (

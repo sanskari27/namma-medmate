@@ -13,6 +13,9 @@ export const ROUTES = {
   OPERATORS: '/operators',
   STAFF_VERIFICATIONS: '/staff-verifications',
   DESKS: '/desks',
+  WORKFLOWS: '/workflows',
+  SIGN_OFFS: '/sign-offs',
+  ACTIVITY: '/activity',
 } as const;
 
 export const NAV_ITEMS = [
@@ -25,6 +28,9 @@ export const NAV_ITEMS = [
   { label: 'Operators', path: ROUTES.OPERATORS },
   { label: 'Staff approvals', path: ROUTES.STAFF_VERIFICATIONS },
   { label: 'HQ desks', path: ROUTES.DESKS },
+  { label: 'Workflow desks', path: ROUTES.WORKFLOWS },
+  { label: 'HQ sign-offs', path: ROUTES.SIGN_OFFS },
+  { label: 'Platform activity', path: ROUTES.ACTIVITY },
   { label: 'Settings', path: ROUTES.SETTINGS },
   { label: 'Operator password', path: ROUTES.OPERATOR_PASSWORD },
 ] as const;

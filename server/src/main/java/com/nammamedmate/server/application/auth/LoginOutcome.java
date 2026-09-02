@@ -1,3 +1,5 @@
 package com.nammamedmate.server.application.auth;
 
-public record LoginOutcome(AuthenticatedUser user, String accessToken) {}
+import java.util.UUID;
+
+public record LoginOutcome(AuthenticatedUser user, String accessToken, UUID sessionId) {}

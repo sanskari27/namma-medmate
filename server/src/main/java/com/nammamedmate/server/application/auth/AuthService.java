@@ -88,7 +88,7 @@ public class AuthService {
             user.getRole(),
             now,
             now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
-    return new LoginOutcome(toAuthenticatedUser(user), token);
+    return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 
   private UserSession newSession(AppUser user, Instant now) {
@@ -176,7 +176,7 @@ public class AuthService {
             user.getRole(),
             now,
             now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
-    return new LoginOutcome(toAuthenticatedUser(user), token);
+    return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 
   private AppUser lockActiveUser(AuthPrincipal principal) {
