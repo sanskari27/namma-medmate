@@ -28,7 +28,7 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
 export default function DashboardLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const displayName = useSelector((s: RootState) => s.auth.displayName);
+  const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">

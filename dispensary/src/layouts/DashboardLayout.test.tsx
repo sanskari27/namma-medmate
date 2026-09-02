@@ -13,7 +13,16 @@ import { authReducer } from '@/store';
 function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
   const store = configureStore({
     reducer: { auth: authReducer },
-    preloadedState: { auth: { token: 'dev-token', displayName } },
+    preloadedState: {
+      auth: {
+        user: {
+          userId: 'user-1',
+          displayName,
+          role: 'pharmacy_owner',
+          tenantId: 'tenant-1',
+        },
+      },
+    },
   });
 
   return {
@@ -116,6 +125,6 @@ describe('dispensary counter rail', () => {
     await user.click(screen.getByRole('button', { name: /account for chemist/i }));
     await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
 
-    expect(store.getState().auth.token).toBeNull();
+    expect(store.getState().auth.user).toBeNull();
   });
 });

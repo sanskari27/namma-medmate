@@ -1,14 +1,18 @@
 package com.nammamedmate.server.infrastructure.security;
 
-import com.nammamedmate.server.shared.web.ApiResponse;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.persistence.UserSessionRepository;
+import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import java.io.IOException;
+import java.time.Clock;
 import java.util.Arrays;
 import java.util.List;
 import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -17,12 +21,36 @@ import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 
 @Configuration
 public class SecurityConfig {
+
+  @Bean
+  public JwtAuthenticationFilter jwtAuthenticationFilter(
+      JwtService jwtService,
+      AuthCookieService authCookieService,
+      UserSessionRepository userSessionRepository,
+      Clock clock) {
+    return new JwtAuthenticationFilter(jwtService, authCookieService, userSessionRepository, clock);
+  }
+
+  @Bean
+  public FilterRegistrationBean<JwtAuthenticationFilter> disableDuplicateJwtFilter(
+      JwtAuthenticationFilter jwtAuthenticationFilter) {
+    FilterRegistrationBean<JwtAuthenticationFilter> registration =
+        new FilterRegistrationBean<>(jwtAuthenticationFilter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
+  public Clock utcClock() {
+    return Clock.systemUTC();
+  }
 
   @Bean
   public PasswordEncoder passwordEncoder() {
@@ -50,7 +78,10 @@ public class SecurityConfig {
 
   @Bean
   public SecurityFilterChain securityFilterChain(
-      HttpSecurity http, CorsConfigurationSource corsConfigurationSource, ObjectMapper objectMapper)
+      HttpSecurity http,
+      CorsConfigurationSource corsConfigurationSource,
+      ObjectMapper objectMapper,
+      JwtAuthenticationFilter jwtAuthenticationFilter)
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -59,6 +90,8 @@ public class SecurityConfig {
         .authorizeHttpRequests(
             auth ->
                 auth.requestMatchers("/actuator/health", "/actuator/info", "/api/v1/health")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
                     .anyRequest()
                     .authenticated())
@@ -79,7 +112,8 @@ public class SecurityConfig {
                                 objectMapper,
                                 HttpStatus.FORBIDDEN,
                                 "FORBIDDEN",
-                                "Access denied")));
+                                "Access denied")))
+        .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
     return http.build();
   }
 

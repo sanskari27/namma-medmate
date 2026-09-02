@@ -10,7 +10,7 @@ afterEach(() => {
 Object.defineProperty(window, 'matchMedia', {
   writable: true,
   value: (query: string) => ({
-    matches: query.includes('min-width: 768px'),
+    matches: query.includes('min-width: 768px') || query.includes('prefers-reduced-motion'),
     media: query,
     onchange: null,
     addEventListener: () => undefined,

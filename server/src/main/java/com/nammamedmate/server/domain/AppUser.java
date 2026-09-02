@@ -17,8 +17,7 @@ import lombok.Setter;
 @Setter
 public class AppUser {
 
-  @Id
-  private UUID id;
+  @Id private UUID id;
 
   @Column(name = "tenant_id")
   private UUID tenantId;
@@ -35,6 +34,10 @@ public class AppUser {
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 50)
   private AppUserRole role;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private UserAccountStatus status = UserAccountStatus.ACTIVE;
 
   @Column(nullable = false)
   private boolean active = true;

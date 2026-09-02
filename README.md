@@ -16,6 +16,14 @@ make up
 # API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174
 ```
 
+Local sign-in (password `password` for both): see
+[`docs/local-accounts.md`](docs/local-accounts.md).
+
+| App | Email |
+|-----|-------|
+| Dispensary | `varshmaan.sonkar@gmail.com` |
+| Admin / MASTER | `sanskarkumar85111@gmail.com` |
+
 Or run on the host:
 
 ```bash

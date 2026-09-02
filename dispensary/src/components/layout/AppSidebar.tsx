@@ -124,7 +124,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const displayName = useSelector((s: RootState) => s.auth.displayName) ?? 'Chemist';
+  const displayName = useSelector((s: RootState) => s.auth.user?.displayName) ?? 'Chemist';
   const [counterId, setCounterId] = useState<CounterId>(readStoredCounter);
   const [profileOpen, setProfileOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(() => NAV_SECTIONS.map((section) => section.id));

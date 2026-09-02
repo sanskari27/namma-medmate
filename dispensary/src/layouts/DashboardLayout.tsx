@@ -12,7 +12,7 @@ import { logout, type RootState } from '@/store';
 export default function DashboardLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
-  const displayName = useSelector((s: RootState) => s.auth.displayName);
+  const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);

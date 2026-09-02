@@ -1,35 +1,51 @@
 import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+const AUTH_STORAGE_KEY = 'nmm.dispensary.session';
+
+export interface AuthUser {
+  userId: string;
+  displayName: string;
+  role: string;
+  tenantId: string | null;
+}
+
 interface AuthState {
-  token: string | null;
-  displayName: string | null;
+  user: AuthUser | null;
+}
+
+function readStoredUser(): AuthUser | null {
+  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
+  if (!raw) {
+    return null;
+  }
+  try {
+    return JSON.parse(raw) as AuthUser;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
 }
 
 const initialState: AuthState = {
-  token: localStorage.getItem('token'),
-  displayName: localStorage.getItem('displayName'),
+  user: readStoredUser(),
 };
 
 const authSlice = createSlice({
   name: 'auth',
   initialState,
   reducers: {
-    login: (state, action: PayloadAction<{ token: string; displayName: string }>) => {
-      state.token = action.payload.token;
-      state.displayName = action.payload.displayName;
-      localStorage.setItem('token', action.payload.token);
-      localStorage.setItem('displayName', action.payload.displayName);
+    sessionStarted: (state, action: PayloadAction<AuthUser>) => {
+      state.user = action.payload;
+      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(action.payload));
     },
     logout: (state) => {
-      state.token = null;
-      state.displayName = null;
-      localStorage.removeItem('token');
-      localStorage.removeItem('displayName');
+      state.user = null;
+      localStorage.removeItem(AUTH_STORAGE_KEY);
     },
   },
 });
 
-export const { login, logout } = authSlice.actions;
+export const { sessionStarted, logout } = authSlice.actions;
 export const authReducer = authSlice.reducer;
 
 export const store = configureStore({

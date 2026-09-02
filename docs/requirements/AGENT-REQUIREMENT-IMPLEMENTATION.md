@@ -6,7 +6,7 @@ independent verifier verdict.
 
 | Story | Epic | Apps | Status | Depends on | Decisions | Evidence / notes |
 |---|---|---|---|---|---|---|
-| M1-S01 | M1 | server + dispensary + admin | ready | — | — | — |
+| M1-S01 | M1 | server + dispensary + admin | done | — | — | Independent verifier PASS (203f205a). Server: POST /api/v1/auth/login + GET /api/v1/auth/me, httpOnly nmm_access, BCrypt, EmailNormalizer, V2 status+unique email+user_session, V3 unique one-active-session + lockById FOR UPDATE. Tests AuthLoginTest (16, incl. 8-way overlap + unique index), AuthServiceTest (5), EmailNormalizerTest. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 25 tests BUILD SUCCESS. Dispensary LoginPage + CounterFeatureSlider; admin LoginPage + HqFeatureSlider. Identity in Redux not JWT. SPA gates re-run: dispensary 16 tests lint+build; admin 10 tests lint+build. Browser: :5173 varshmaan.sonkar@gmail.com → Counter overview Varshmaan; :5174 sanskarkumar85111@gmail.com → Tenant pulse Sanskar. |
 | M1-S02 | M1 | server + dispensary + admin | ready | M1-S01 | — | — |
 | M1-S03 | M1 | server + dispensary + admin | ready | M1-S01, M11-S02 | — | — |
 | M1-S04 | M1 | server + dispensary + admin | ready | M1-S03 | — | — |

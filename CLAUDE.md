@@ -46,4 +46,5 @@ answer an open decision, or mark `done` without independent verification.
 ```
 
 Local stack: `make up` (API 8080, dispensary 5173, admin 5174). Never point the
-local Spring profile at RDS.
+local Spring profile at RDS. Local login accounts:
+[`docs/local-accounts.md`](docs/local-accounts.md).

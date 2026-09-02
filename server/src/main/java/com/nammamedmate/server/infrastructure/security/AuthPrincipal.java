@@ -1,0 +1,6 @@
+package com.nammamedmate.server.infrastructure.security;
+
+import com.nammamedmate.server.domain.AppUserRole;
+import java.util.UUID;
+
+public record AuthPrincipal(UUID userId, UUID tenantId, UUID sessionId, AppUserRole role) {}

@@ -4,8 +4,8 @@ import type { RootState } from '@/store';
 import { ROUTES } from '@/libs/constants/routes.const';
 
 export default function ProtectedRoute() {
-  const token = useSelector((s: RootState) => s.auth.token);
-  if (!token) {
+  const user = useSelector((s: RootState) => s.auth.user);
+  if (!user) {
     return <Navigate to={ROUTES.LOGIN} replace />;
   }
   return <Outlet />;
