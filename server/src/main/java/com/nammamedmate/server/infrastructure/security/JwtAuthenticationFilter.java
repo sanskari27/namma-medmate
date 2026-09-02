@@ -49,7 +49,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         UserSession session =
             userSessionRepository
                 .findActiveScopedSession(
-                    principal.sessionId(), principal.userId(), principal.tenantId())
+                    principal.sessionId(), principal.sessionUserId(), principal.sessionTenantId())
                 .orElse(null);
         Instant now = Instant.now(clock);
         if (session != null && session.getExpiresAt().isAfter(now)) {

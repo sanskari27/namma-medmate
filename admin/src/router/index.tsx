@@ -13,6 +13,7 @@ import WorkflowDesksScreen from '@/screens/workflow-desks/WorkflowDesksScreen';
 import HqSignOffsScreen from '@/screens/hq-sign-offs/HqSignOffsScreen';
 import PlatformActivityScreen from '@/screens/platform-activity/PlatformActivityScreen';
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
+import SupportSessionScreen from '@/screens/support-session/SupportSessionScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
@@ -36,7 +37,7 @@ const router = createBrowserRouter([
           { path: ROUTES.KYC, element: <StubScreen title="KYC queue" /> },
           { path: ROUTES.SUBSCRIPTIONS, element: <StubScreen title="Subscriptions" /> },
           { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
-          { path: ROUTES.SUPPORT, element: <StubScreen title="Support" /> },
+          { path: ROUTES.SUPPORT, element: <SupportSessionScreen /> },
           { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },
           { path: ROUTES.OPERATORS, element: <OperatorsScreen /> },
           { path: ROUTES.STAFF_VERIFICATIONS, element: <StaffVerificationScreen /> },

@@ -1,6 +1,6 @@
 import { apiClient, ApiError, isApiError } from '@/services/axios';
 import { API } from '@/libs/constants/api.const';
-import type { AuthUser } from '@/store';
+import type { AuthUser, ImpersonationState } from '@/store';
 
 export interface LoginIdentity {
   userId: string;
@@ -11,11 +11,12 @@ export interface LoginIdentity {
   mustChangePassword?: boolean;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
+  impersonation?: ImpersonationState | null;
 }
 
 export { ApiError, isApiError };
 
-function toAuthUser(data: LoginIdentity): AuthUser {
+export function toAuthUser(data: LoginIdentity): AuthUser {
   return {
     userId: data.userId,
     displayName: data.displayName,
@@ -25,6 +26,7 @@ function toAuthUser(data: LoginIdentity): AuthUser {
     mustChangePassword: Boolean(data.mustChangePassword),
     roles: data.roles,
     modules: data.modules,
+    impersonation: data.impersonation ?? null,
   };
 }
 

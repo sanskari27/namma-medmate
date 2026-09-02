@@ -132,7 +132,8 @@ public class AuthService {
   public void logout(AuthPrincipal principal) {
     Instant now = Instant.now(clock);
     userSessionRepository
-        .lockActiveScopedSession(principal.sessionId(), principal.userId(), principal.tenantId())
+        .lockActiveScopedSession(
+            principal.sessionId(), principal.sessionUserId(), principal.sessionTenantId())
         .ifPresent(
             session -> {
               session.setRevokedAt(now);
@@ -143,11 +144,11 @@ public class AuthService {
   @Transactional(noRollbackFor = ApiException.class)
   public LoginOutcome unlockPin(AuthPrincipal principal, String pin) {
     requireSixDigitPin(pin);
-    AppUser user = lockActiveUser(principal);
+    AppUser user = lockSessionOwner(principal);
     UserSession session =
         userSessionRepository
             .lockActiveScopedSession(
-                principal.sessionId(), principal.userId(), principal.tenantId())
+                principal.sessionId(), principal.sessionUserId(), principal.sessionTenantId())
             .orElseThrow(AuthService::unauthorized);
     if (user.getPinHash() == null) {
       throw new ApiException(
@@ -185,6 +186,15 @@ public class AuthService {
         .filter(candidate -> candidate.getDeletedAt() == null)
         .filter(candidate -> candidate.getStatus() == UserAccountStatus.ACTIVE)
         .filter(candidate -> Objects.equals(candidate.getTenantId(), principal.tenantId()))
+        .orElseThrow(AuthService::unauthorized);
+  }
+
+  private AppUser lockSessionOwner(AuthPrincipal principal) {
+    return appUserRepository
+        .lockById(principal.sessionUserId())
+        .filter(candidate -> candidate.getDeletedAt() == null)
+        .filter(candidate -> candidate.getStatus() == UserAccountStatus.ACTIVE)
+        .filter(candidate -> Objects.equals(candidate.getTenantId(), principal.sessionTenantId()))
         .orElseThrow(AuthService::unauthorized);
   }
 

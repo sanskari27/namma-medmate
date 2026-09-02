@@ -9,6 +9,7 @@ export {
   pinEnrolled,
   sessionStarted,
   type AuthUser,
+  type ImpersonationState,
 } from './auth.slice';
 export {
   inboxPageLoaded,

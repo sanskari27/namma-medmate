@@ -11,6 +11,7 @@ import com.nammamedmate.server.application.auth.LoginOutcome;
 import com.nammamedmate.server.application.auth.PasswordLifecycleService;
 import com.nammamedmate.server.application.auth.ResetAccepted;
 import com.nammamedmate.server.application.auth.SavedLoginService;
+import com.nammamedmate.server.application.impersonation.ImpersonationService;
 import com.nammamedmate.server.infrastructure.security.AuthCookieService;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -39,6 +40,7 @@ public class AuthController {
   private final AuthCookieService authCookieService;
   private final AccessQueryService accessQueryService;
   private final AuditService auditService;
+  private final ImpersonationService impersonationService;
 
   public AuthController(
       AuthService authService,
@@ -46,13 +48,15 @@ public class AuthController {
       SavedLoginService savedLoginService,
       AuthCookieService authCookieService,
       AccessQueryService accessQueryService,
-      AuditService auditService) {
+      AuditService auditService,
+      ImpersonationService impersonationService) {
     this.authService = authService;
     this.passwordLifecycleService = passwordLifecycleService;
     this.savedLoginService = savedLoginService;
     this.authCookieService = authCookieService;
     this.accessQueryService = accessQueryService;
     this.auditService = auditService;
+    this.impersonationService = impersonationService;
   }
 
   @PostMapping("/login")
@@ -162,7 +166,9 @@ public class AuthController {
   @GetMapping("/me")
   public ApiResponse<LoginResponse> me(Authentication authentication) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(toResponse(authService.currentUser(principal)));
+    return ApiResponse.ok(
+        toResponse(
+            authService.currentUser(principal), impersonationService.currentView(principal)));
   }
 
   @PostMapping("/pin")
@@ -262,6 +268,13 @@ public class AuthController {
   }
 
   private LoginResponse toResponse(AuthenticatedUser user) {
+    return toResponse(user, null);
+  }
+
+  private LoginResponse toResponse(
+      AuthenticatedUser user,
+      com.nammamedmate.server.application.impersonation.ImpersonationService.ImpersonationView
+          impersonation) {
     AccessIdentity identity = accessQueryService.identity(user.userId());
     return new LoginResponse(
         user.userId(),
@@ -271,7 +284,24 @@ public class AuthController {
         user.pinSet(),
         user.mustChangePassword(),
         identity.roles().stream().map(AuthController::toAssigned).toList(),
-        identity.modules());
+        identity.modules(),
+        toImpersonation(impersonation));
+  }
+
+  private static ImpersonationResponse toImpersonation(
+      com.nammamedmate.server.application.impersonation.ImpersonationService.ImpersonationView
+          view) {
+    if (view == null) {
+      return null;
+    }
+    return new ImpersonationResponse(
+        view.originalUserId(),
+        view.originalDisplayName(),
+        view.effectiveUserId(),
+        view.effectiveDisplayName(),
+        view.effectiveRole(),
+        view.tenantId(),
+        view.tenantName());
   }
 
   private static AssignedRoleResponse toAssigned(AccessRoleView role) {

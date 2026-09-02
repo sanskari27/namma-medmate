@@ -15,14 +15,15 @@ import {
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
-import { useCallback, useEffect } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
-import { HqInboxBell, HqPasswordChange, HqPinEnroll } from '@organisms';
+import { HqInboxBell, HqPasswordChange, HqPinEnroll, HqSupportBanner } from '@organisms';
 import { useIdleLock } from '@/hooks/useIdleLock';
-import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
+import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
+import { exitImpersonation } from '@/services/impersonation';
 import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
@@ -50,13 +51,27 @@ export default function DashboardLayout() {
   const mustChangePassword = useSelector((s: RootState) =>
     Boolean(s.auth.user?.mustChangePassword),
   );
-  const { expired } = useIdleLock(pinSet && !mustChangePassword);
+  const support = useSelector((s: RootState) => s.auth.user?.impersonation);
+  const [exiting, setExiting] = useState(false);
+  const { expired } = useIdleLock(pinSet && !mustChangePassword && !support);
 
   const leaveHq = useCallback(() => {
     void logoutSession().catch(() => undefined);
     dispatch(logout());
     navigate(ROUTES.LOGIN);
   }, [dispatch, navigate]);
+
+  const leaveSupport = useCallback(async () => {
+    setExiting(true);
+    try {
+      const restored = await exitImpersonation();
+      dispatch(sessionStarted(restored));
+    } catch {
+      /* keep banner; operator can retry */
+    } finally {
+      setExiting(false);
+    }
+  }, [dispatch]);
 
   useEffect(() => {
     if (!expired) {
@@ -117,13 +132,16 @@ export default function DashboardLayout() {
             </Button>
           </div>
         </header>
+        {support ? (
+          <HqSupportBanner session={support} busy={exiting} onExit={() => void leaveSupport()} />
+        ) : null}
         <main id="main" className="flex-1 p-6">
           <Outlet />
         </main>
       </div>
       {mustChangePassword ? (
         <HqPasswordChange onChanged={() => dispatch(passwordChanged())} />
-      ) : !pinSet ? (
+      ) : !pinSet && !support ? (
         <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
       ) : null}
     </div>

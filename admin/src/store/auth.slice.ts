@@ -3,6 +3,16 @@ import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 
 const AUTH_STORAGE_KEY = 'nmm.admin.session';
 
+export interface ImpersonationState {
+  originalUserId: string;
+  originalDisplayName: string;
+  effectiveUserId: string;
+  effectiveDisplayName: string;
+  effectiveRole: string;
+  tenantId: string;
+  tenantName: string;
+}
+
 export interface AuthUser {
   userId: string;
   displayName: string;
@@ -12,6 +22,7 @@ export interface AuthUser {
   mustChangePassword?: boolean;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
+  impersonation?: ImpersonationState | null;
 }
 
 interface AuthState {

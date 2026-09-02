@@ -207,19 +207,32 @@ for (const [id, story] of stories) {
   const expectedApps = story.apps.length ? story.apps.join(' + ') : 'decision';
   const expectedDependencies = story.dependsOn.length ? story.dependsOn.join(', ') : '—';
   const expectedBlockedBy = story.blockedBy.length ? story.blockedBy.join(', ') : '—';
+  const expectedBlockedByClosed = story.blockedBy.length
+    ? `${story.blockedBy.join(', ')} closed`
+    : '—';
   if (row && row.apps !== expectedApps) {
     errors.push(`${trackerFile}: ${id} apps "${row.apps}" do not match "${expectedApps}"`);
   }
   if (row && row.dependencies !== expectedDependencies) {
     errors.push(`${trackerFile}: ${id} dependencies do not match story frontmatter`);
   }
-  if (row && row.blockedBy !== expectedBlockedBy) {
-    errors.push(`${trackerFile}: ${id} decisions do not match story frontmatter`);
+  if (
+    row &&
+    row.blockedBy !== expectedBlockedBy &&
+    row.blockedBy !== expectedBlockedByClosed
+  ) {
+    const historicalClosedNote = /^(D-\d{3}(?:, D-\d{3})*) closed$/.test(row.blockedBy);
+    if (!(story.blockedBy.length === 0 && historicalClosedNote)) {
+      errors.push(`${trackerFile}: ${id} decisions do not match story frontmatter`);
+    }
   }
   if (story.phase === 2 && status !== 'deferred') {
     errors.push(`${trackerFile}: Phase 2 story ${id} must be deferred`);
   }
-  if (story.blockedBy.length > 0 && !['blocked', 'deferred'].includes(status)) {
+  const openDecisionBlocks = (story.blockedBy ?? []).filter(
+    (decisionId) => decisions.get(decisionId)?.status === 'Open',
+  );
+  if (openDecisionBlocks.length > 0 && !['blocked', 'deferred'].includes(status)) {
     errors.push(`${trackerFile}: decision-linked story ${id} must be blocked or deferred`);
   }
   if (story.blockedBy.length === 0 && status === 'blocked') {
