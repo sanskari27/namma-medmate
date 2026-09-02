@@ -34,6 +34,7 @@ export function HqSessionLock({
   const statusId = useId();
   const pinId = useId();
   const restoreRef = useRef<HTMLElement | null>(null);
+  const inputRef = useRef<HTMLInputElement | null>(null);
   const [pin, setPinValue] = useState('');
   const [status, setStatus] = useState<FormStatus>('empty');
   const banner = statusCopy(status);
@@ -121,27 +122,34 @@ export function HqSessionLock({
         <label htmlFor={pinId} className="mb-2 block text-sm">
           Operator PIN
         </label>
-        <input
-          id={pinId}
-          name="unlockPin"
-          inputMode="numeric"
-          autoComplete="off"
-          maxLength={6}
-          value={pin}
-          onChange={(event) => setPinValue(event.target.value.replace(/\D/g, '').slice(0, 6))}
-          aria-invalid={status === 'validation' || status === 'denied'}
-          aria-describedby={banner ? statusId : 'hq-pin-cells'}
-          className="sr-only"
-        />
-        <div id="hq-pin-cells" className="mb-4 flex gap-2" aria-hidden="true">
-          {Array.from({ length: 6 }, (_, index) => (
-            <span
-              key={index}
-              className="grid h-11 w-10 place-items-center border border-line bg-surface font-mono text-lg"
-            >
-              {pin[index] ? '•' : ''}
-            </span>
-          ))}
+        <div
+          data-testid="hq-pin-cells"
+          className="relative mb-4 focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus"
+          onClick={() => inputRef.current?.focus()}
+        >
+          <input
+            ref={inputRef}
+            id={pinId}
+            name="unlockPin"
+            inputMode="numeric"
+            autoComplete="off"
+            maxLength={6}
+            value={pin}
+            onChange={(event) => setPinValue(event.target.value.replace(/\D/g, '').slice(0, 6))}
+            aria-invalid={status === 'validation' || status === 'denied'}
+            aria-describedby={banner ? statusId : 'hq-pin-cells-visual'}
+            className="absolute inset-0 z-10 cursor-text opacity-0"
+          />
+          <div id="hq-pin-cells-visual" className="flex gap-2" aria-hidden="true">
+            {Array.from({ length: 6 }, (_, index) => (
+              <span
+                key={index}
+                className="grid h-11 w-10 place-items-center border border-line bg-surface font-mono text-lg"
+              >
+                {pin[index] ? '•' : ''}
+              </span>
+            ))}
+          </div>
         </div>
         <p className="mb-4 font-mono text-[11px] text-muted">{pin.length} / 6 digits</p>
         <Button type="submit" className="w-full" disabled={status === 'loading'}>

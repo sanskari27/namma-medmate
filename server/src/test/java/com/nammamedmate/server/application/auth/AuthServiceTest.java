@@ -4,6 +4,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.eq;
+import static org.mockito.ArgumentMatchers.isNull;
 import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -18,6 +19,7 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.Optional;
@@ -51,7 +53,8 @@ class AuthServiceTest {
             userSessionRepository,
             passwordEncoder,
             jwtService,
-            Clock.fixed(NOW, ZoneOffset.UTC));
+            Clock.fixed(NOW, ZoneOffset.UTC),
+            720L);
   }
 
   @Test
@@ -106,7 +109,16 @@ class AuthServiceTest {
     assertThat(captor.getValue().getUserId()).isEqualTo(user.getId());
     assertThat(captor.getValue().getTenantId()).isNull();
     assertThat(captor.getValue().getRevokedAt()).isNull();
+    assertThat(captor.getValue().getExpiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(720)));
     assertThat(outcome.accessToken()).isEqualTo("jwt");
+    verify(jwtService)
+        .createToken(
+            eq(user.getId()),
+            any(),
+            isNull(),
+            eq(AppUserRole.admin_super),
+            eq(NOW),
+            eq(NOW.plus(Duration.ofMinutes(60))));
   }
 
   @Test
@@ -203,7 +215,7 @@ class AuthServiceTest {
   }
 
   @Test
-  void ac04_successfulUnlockResetsAttemptsWithoutIssuingToken() {
+  void ac04_successfulUnlockIssuesTokenAndExtendsSession() {
     AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
     user.setPinHash("$2pin");
     UserSession session = activeSession(user);
@@ -214,13 +226,24 @@ class AuthServiceTest {
             session.getId(), user.getId(), user.getTenantId()))
         .thenReturn(Optional.of(session));
     when(passwordEncoder.matches("123456", "$2pin")).thenReturn(true);
+    when(jwtService.accessTokenTtlMinutes()).thenReturn(60L);
+    when(jwtService.createToken(any(), any(), any(), any(), any(), any())).thenReturn("refreshed");
 
-    AuthenticatedUser result = authService.unlockPin(principal, "123456");
+    LoginOutcome result = authService.unlockPin(principal, "123456");
 
     assertThat(session.getPinFailedAttempts()).isZero();
     assertThat(session.getRevokedAt()).isNull();
-    assertThat(result.pinSet()).isTrue();
-    verify(jwtService, never()).createToken(any(), any(), any(), any(), any(), any());
+    assertThat(session.getExpiresAt()).isEqualTo(NOW.plus(Duration.ofMinutes(720)));
+    assertThat(result.user().pinSet()).isTrue();
+    assertThat(result.accessToken()).isEqualTo("refreshed");
+    verify(jwtService)
+        .createToken(
+            eq(user.getId()),
+            eq(session.getId()),
+            eq(user.getTenantId()),
+            eq(user.getRole()),
+            eq(NOW),
+            eq(NOW.plus(Duration.ofMinutes(60))));
   }
 
   @Test

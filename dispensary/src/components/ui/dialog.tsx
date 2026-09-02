@@ -49,3 +49,24 @@ export function DrawerContent({
     </DialogPrimitive.Portal>
   );
 }
+
+export function FloorSheetContent({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Content>) {
+  return (
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink/40" />
+      <DialogPrimitive.Content
+        className={cn(
+          'fixed inset-x-0 bottom-0 z-50 max-h-[80vh] rounded-t-lg border-t border-line bg-surface p-0 text-ink focus:outline-none',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+}

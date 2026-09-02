@@ -17,7 +17,7 @@ public class AuthCookieService {
   public AuthCookieService(
       @Value("${app.security.cookie-name:nmm_access}") String cookieName,
       @Value("${app.security.secure-cookie:false}") boolean secure,
-      @Value("${app.jwt.access-token-ttl-minutes:60}") long ttlMinutes) {
+      @Value("${app.session.ttl-minutes:720}") long ttlMinutes) {
     this.cookieName = cookieName;
     this.secure = secure;
     this.ttlMinutes = ttlMinutes;

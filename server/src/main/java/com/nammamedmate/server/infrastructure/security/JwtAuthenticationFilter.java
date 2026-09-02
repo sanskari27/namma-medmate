@@ -43,7 +43,9 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
     String token = resolveToken(request);
     if (token != null && SecurityContextHolder.getContext().getAuthentication() == null) {
       try {
-        AuthPrincipal principal = jwtService.parse(token);
+        boolean pinUnlock = isPinUnlock(request);
+        AuthPrincipal principal =
+            pinUnlock ? jwtService.parseAllowingExpired(token) : jwtService.parse(token);
         UserSession session =
             userSessionRepository
                 .findActiveScopedSession(
@@ -64,6 +66,17 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       }
     }
     filterChain.doFilter(request, response);
+  }
+
+  private static boolean isPinUnlock(HttpServletRequest request) {
+    if (!"POST".equalsIgnoreCase(request.getMethod())) {
+      return false;
+    }
+    String path = request.getServletPath();
+    if (path == null || path.isEmpty()) {
+      path = request.getRequestURI();
+    }
+    return "/api/v1/auth/pin/unlock".equals(path);
   }
 
   private String resolveToken(HttpServletRequest request) {

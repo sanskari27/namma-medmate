@@ -56,7 +56,9 @@ public class AuthController {
       HttpServletResponse response) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     try {
-      return ApiResponse.ok(toResponse(authService.unlockPin(principal, request.pin())));
+      LoginOutcome outcome = authService.unlockPin(principal, request.pin());
+      authCookieService.writeAccessToken(response, outcome.accessToken());
+      return ApiResponse.ok(toResponse(outcome.user()));
     } catch (ApiException ex) {
       if ("SESSION_REVOKED".equals(ex.getCode())) {
         authCookieService.clearAccessToken(response);

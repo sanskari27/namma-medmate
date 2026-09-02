@@ -14,6 +14,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.UUID;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -41,18 +42,21 @@ public class AuthService {
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final Clock clock;
+  private final long sessionTtlMinutes;
 
   public AuthService(
       AppUserRepository appUserRepository,
       UserSessionRepository userSessionRepository,
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
-      Clock clock) {
+      Clock clock,
+      @Value("${app.session.ttl-minutes:720}") long sessionTtlMinutes) {
     this.appUserRepository = appUserRepository;
     this.userSessionRepository = userSessionRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
     this.clock = clock;
+    this.sessionTtlMinutes = sessionTtlMinutes;
   }
 
   @Transactional
@@ -82,7 +86,7 @@ public class AuthService {
             user.getTenantId(),
             user.getRole(),
             now,
-            session.getExpiresAt());
+            now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
     return new LoginOutcome(toAuthenticatedUser(user), token);
   }
 
@@ -91,7 +95,7 @@ public class AuthService {
     session.setId(UUID.randomUUID());
     session.setUserId(user.getId());
     session.setTenantId(user.getTenantId());
-    session.setExpiresAt(now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
+    session.setExpiresAt(now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     session.setCreatedAt(now);
     return session;
   }
@@ -124,7 +128,7 @@ public class AuthService {
   }
 
   @Transactional(noRollbackFor = ApiException.class)
-  public AuthenticatedUser unlockPin(AuthPrincipal principal, String pin) {
+  public LoginOutcome unlockPin(AuthPrincipal principal, String pin) {
     requireSixDigitPin(pin);
     AppUser user = lockActiveUser(principal);
     UserSession session =
@@ -147,9 +151,19 @@ public class AuthService {
       userSessionRepository.save(session);
       throw new ApiException(HttpStatus.UNAUTHORIZED, INVALID_PIN_CODE, INVALID_PIN_MESSAGE);
     }
+    Instant now = Instant.now(clock);
     session.setPinFailedAttempts(0);
+    session.setExpiresAt(now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     userSessionRepository.save(session);
-    return toAuthenticatedUser(user);
+    String token =
+        jwtService.createToken(
+            user.getId(),
+            session.getId(),
+            user.getTenantId(),
+            user.getRole(),
+            now,
+            now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
+    return new LoginOutcome(toAuthenticatedUser(user), token);
   }
 
   private AppUser lockActiveUser(AuthPrincipal principal) {

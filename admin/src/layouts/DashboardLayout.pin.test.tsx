@@ -6,11 +6,30 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { authReducer } from '@/store';
+import { authReducer, inboxReducer } from '@/store';
+
+vi.mock('@/services/inbox', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listHqInbox: vi.fn().mockResolvedValue({
+      items: [],
+      unreadCount: 0,
+      page: 0,
+      size: 6,
+      totalPages: 0,
+      totalItems: 0,
+    }),
+    countHqUnread: vi.fn().mockResolvedValue(0),
+    fileHqInboxItem: vi.fn(),
+    openHqInboxItem: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
 
 function renderShell(pinSet: boolean) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, inbox: inboxReducer },
     preloadedState: {
       auth: {
         user: {
@@ -20,6 +39,14 @@ function renderShell(pinSet: boolean) {
           tenantId: null,
           pinSet,
         },
+      },
+      inbox: {
+        rows: [],
+        unread: 0,
+        page: 0,
+        pageSize: 6,
+        pageCount: 0,
+        rowCount: 0,
       },
     },
   });

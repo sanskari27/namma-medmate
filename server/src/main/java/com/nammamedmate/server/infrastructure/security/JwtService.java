@@ -2,6 +2,7 @@ package com.nammamedmate.server.infrastructure.security;
 
 import com.nammamedmate.server.domain.AppUserRole;
 import io.jsonwebtoken.Claims;
+import io.jsonwebtoken.ExpiredJwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
 import java.nio.charset.StandardCharsets;
@@ -51,7 +52,25 @@ public class JwtService {
   }
 
   public AuthPrincipal parse(String token) {
-    Claims claims = Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+    return principalFrom(claims(token, false));
+  }
+
+  public AuthPrincipal parseAllowingExpired(String token) {
+    return principalFrom(claims(token, true));
+  }
+
+  private Claims claims(String token, boolean allowExpired) {
+    try {
+      return Jwts.parser().verifyWith(key).build().parseSignedClaims(token).getPayload();
+    } catch (ExpiredJwtException ex) {
+      if (!allowExpired) {
+        throw ex;
+      }
+      return ex.getClaims();
+    }
+  }
+
+  private static AuthPrincipal principalFrom(Claims claims) {
     UUID userId = UUID.fromString(claims.getSubject());
     UUID sessionId = UUID.fromString(claims.get("sid", String.class));
     String tenantRaw = claims.get("tenant_id", String.class);

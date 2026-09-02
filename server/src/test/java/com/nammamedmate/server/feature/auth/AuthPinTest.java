@@ -14,6 +14,7 @@ import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
+import com.nammamedmate.server.infrastructure.security.JwtService;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
@@ -38,7 +39,6 @@ import org.springframework.test.context.ActiveProfiles;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.springframework.test.web.servlet.MvcResult;
 import org.testcontainers.containers.PostgreSQLContainer;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
@@ -73,6 +73,7 @@ class AuthPinTest {
   @Autowired private AppUserRepository appUserRepository;
   @Autowired private UserSessionRepository userSessionRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private JwtService jwtService;
 
   @BeforeEach
   void wipeAuthTables() {
@@ -106,17 +107,22 @@ class AuthPinTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.pinSet").value(true));
 
-    mockMvc
-        .perform(
-            post("/api/v1/auth/pin/unlock")
-                .cookie(cookie)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(pinJson(PIN)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.userId").exists())
-        .andExpect(cookie().doesNotExist("nmm_access"));
+    Cookie refreshed =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/pin/unlock")
+                    .cookie(cookie)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(pinJson(PIN)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.userId").exists())
+            .andExpect(cookie().exists("nmm_access"))
+            .andReturn()
+            .getResponse()
+            .getCookie("nmm_access");
+    assertThat(refreshed).isNotNull();
 
-    mockMvc.perform(get("/api/v1/auth/me").cookie(cookie)).andExpect(status().isOk());
+    mockMvc.perform(get("/api/v1/auth/me").cookie(refreshed)).andExpect(status().isOk());
     assertThat(activeSessions()).hasSize(1);
   }
 
@@ -224,7 +230,8 @@ class AuthPinTest {
                 .content(pinJson(OTHER_PIN)))
         .andExpect(status().isUnauthorized());
 
-    MvcResult unlocked =
+    UUID sessionId = activeSessions().get(0).getId();
+    Cookie refreshed =
         mockMvc
             .perform(
                 post("/api/v1/auth/pin/unlock")
@@ -234,13 +241,78 @@ class AuthPinTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.success").value(true))
             .andExpect(jsonPath("$.data.displayName").exists())
-            .andExpect(cookie().doesNotExist("nmm_access"))
-            .andReturn();
-    assertThat(unlocked.getResponse().getCookie("nmm_access")).isNull();
-
+            .andExpect(cookie().exists("nmm_access"))
+            .andReturn()
+            .getResponse()
+            .getCookie("nmm_access");
+    assertThat(refreshed).isNotNull();
     UserSession session = activeSessions().get(0);
+    assertThat(session.getId()).isEqualTo(sessionId);
     assertThat(session.getPinFailedAttempts()).isZero();
+    mockMvc.perform(get("/api/v1/auth/me").cookie(refreshed)).andExpect(status().isOk());
     mockMvc.perform(get("/api/v1/auth/me").cookie(cookie)).andExpect(status().isOk());
+  }
+
+  @Test
+  void ac04_expiredAccessTokenStillUnlocksWhenSessionIsLive() throws Exception {
+    persistUser(null, "ops@hq.local", AppUserRole.admin_super);
+    Cookie cookie = login("ops@hq.local");
+    setPin(cookie);
+    Cookie expired = expiredAccessCookie();
+
+    mockMvc.perform(get("/api/v1/auth/me").cookie(expired)).andExpect(status().isUnauthorized());
+
+    Cookie refreshed =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/pin/unlock")
+                    .cookie(expired)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(pinJson(PIN)))
+            .andExpect(status().isOk())
+            .andExpect(cookie().exists("nmm_access"))
+            .andReturn()
+            .getResponse()
+            .getCookie("nmm_access");
+    assertThat(refreshed).isNotNull();
+    mockMvc.perform(get("/api/v1/auth/me").cookie(refreshed)).andExpect(status().isOk());
+  }
+
+  @Test
+  void ac04_expiredSessionRejectsCorrectPin() throws Exception {
+    persistUser(null, "ops@hq.local", AppUserRole.admin_super);
+    Cookie cookie = login("ops@hq.local");
+    setPin(cookie);
+    UserSession session = activeSessions().get(0);
+    session.setExpiresAt(Instant.parse("2020-01-01T00:00:00Z"));
+    userSessionRepository.saveAndFlush(session);
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin/unlock")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pinJson(PIN)))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("UNAUTHORIZED"));
+  }
+
+  @Test
+  void ac04_wrongPinOnExpiredAccessTokenDoesNotRefreshCookie() throws Exception {
+    persistUser(null, "ops@hq.local", AppUserRole.admin_super);
+    Cookie cookie = login("ops@hq.local");
+    setPin(cookie);
+    Cookie expired = expiredAccessCookie();
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin/unlock")
+                .cookie(expired)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pinJson(OTHER_PIN)))
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("INVALID_PIN"))
+        .andExpect(cookie().doesNotExist("nmm_access"));
   }
 
   @Test
@@ -438,6 +510,21 @@ class AuthPinTest {
     AppUser stored =
         appUserRepository.findByEmailAndDeletedAtIsNull("noleak@hq.local").orElseThrow();
     assertThat(body).doesNotContain(stored.getPinHash());
+  }
+
+  private Cookie expiredAccessCookie() {
+    UserSession session = activeSessions().get(0);
+    AppUser user = appUserRepository.findById(session.getUserId()).orElseThrow();
+    Instant past = Instant.parse("2020-01-01T00:00:00Z");
+    String expired =
+        jwtService.createToken(
+            user.getId(),
+            session.getId(),
+            user.getTenantId(),
+            user.getRole(),
+            past,
+            past.plusSeconds(60));
+    return new Cookie("nmm_access", expired);
   }
 
   private void setPin(Cookie cookie) throws Exception {

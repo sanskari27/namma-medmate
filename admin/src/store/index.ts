@@ -1,5 +1,6 @@
 import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
+import type { HqInboxItem, HqInboxPage } from '@/services/inbox';
 
 const AUTH_STORAGE_KEY = 'nmm.admin.session';
 
@@ -15,6 +16,24 @@ interface AuthState {
   user: AuthUser | null;
 }
 
+export interface InboxState {
+  rows: HqInboxItem[];
+  unread: number;
+  page: number;
+  pageSize: number;
+  pageCount: number;
+  rowCount: number;
+}
+
+const emptyInbox: InboxState = {
+  rows: [],
+  unread: 0,
+  page: 0,
+  pageSize: 6,
+  pageCount: 0,
+  rowCount: 0,
+};
+
 function readStoredUser(): AuthUser | null {
   const raw = localStorage.getItem(AUTH_STORAGE_KEY);
   if (!raw) {
@@ -28,13 +47,9 @@ function readStoredUser(): AuthUser | null {
   }
 }
 
-const initialState: AuthState = {
-  user: readStoredUser(),
-};
-
 const authSlice = createSlice({
   name: 'auth',
-  initialState,
+  initialState: { user: readStoredUser() } as AuthState,
   reducers: {
     sessionStarted: (state, action: PayloadAction<AuthUser>) => {
       state.user = action.payload;
@@ -55,11 +70,38 @@ const authSlice = createSlice({
   },
 });
 
+const inboxSlice = createSlice({
+  name: 'inbox',
+  initialState: emptyInbox,
+  reducers: {
+    inboxPageLoaded: (_state, action: PayloadAction<HqInboxPage>) => ({
+      rows: action.payload.items,
+      unread: action.payload.unreadCount,
+      page: action.payload.page,
+      pageSize: action.payload.size,
+      pageCount: action.payload.totalPages,
+      rowCount: action.payload.totalItems,
+    }),
+    unreadLoaded: (state, action: PayloadAction<number>) => {
+      state.unread = action.payload;
+    },
+    inboxRowFiled: (state, action: PayloadAction<HqInboxItem>) => {
+      state.rows = state.rows.map((row) => (row.id === action.payload.id ? action.payload : row));
+      state.unread = state.rows.filter((row) => !row.read).length;
+    },
+  },
+  extraReducers: (builder) => {
+    builder.addCase(authSlice.actions.logout, () => emptyInbox);
+  },
+});
+
 export const { sessionStarted, pinEnrolled, logout } = authSlice.actions;
+export const { inboxPageLoaded, unreadLoaded, inboxRowFiled } = inboxSlice.actions;
 export const authReducer = authSlice.reducer;
+export const inboxReducer = inboxSlice.reducer;
 
 export const store = configureStore({
-  reducer: { auth: authSlice.reducer },
+  reducer: { auth: authSlice.reducer, inbox: inboxSlice.reducer },
 });
 
 export type RootState = ReturnType<typeof store.getState>;

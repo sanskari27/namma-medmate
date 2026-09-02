@@ -24,6 +24,16 @@ describe('admin HQ session lock', () => {
     unlockMock.mockReset();
   });
 
+  it('clicking the PIN cells then typing fills the operator PIN', async () => {
+    const user = userEvent.setup();
+    render(
+      <HqSessionLock operatorName="Sanskar" onUnlocked={vi.fn()} onSessionRevoked={vi.fn()} />,
+    );
+    await user.click(screen.getByTestId('hq-pin-cells'));
+    await user.keyboard('123456');
+    expect(screen.getByLabelText('Operator PIN')).toHaveValue('123456');
+  });
+
   it('empty: shows the locked HQ console without an alert', () => {
     render(
       <HqSessionLock operatorName="Sanskar" onUnlocked={vi.fn()} onSessionRevoked={vi.fn()} />,

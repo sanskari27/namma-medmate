@@ -3,16 +3,35 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { COUNTER_STORAGE_KEY, COUNTERS } from '@/libs/constants/counters.const';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
-import { authReducer } from '@/store';
+import { authReducer, notificationsReducer } from '@/store';
+
+vi.mock('@/services/notifications', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    fetchInbox: vi.fn().mockResolvedValue({
+      items: [],
+      unreadCount: 0,
+      page: 0,
+      size: 8,
+      totalPages: 0,
+      totalItems: 0,
+    }),
+    fetchUnreadCount: vi.fn().mockResolvedValue(0),
+    markNotificationRead: vi.fn(),
+    openNotification: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
 
 function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -22,6 +41,14 @@ function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
           tenantId: 'tenant-1',
           pinSet: true,
         },
+      },
+      notifications: {
+        items: [],
+        unreadCount: 0,
+        page: 0,
+        size: 8,
+        totalPages: 0,
+        totalItems: 0,
       },
     },
   });

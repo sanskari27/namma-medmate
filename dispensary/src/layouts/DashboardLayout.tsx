@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
+import { CounterAlertBell } from '@/components/alerts/CounterAlertBell';
 import { AppSidebar, ShellHeader } from '@/components/layout/AppSidebar';
 import { CounterPinEnroll } from '@/components/lock/CounterPinEnroll';
 import { CounterPinLock } from '@/components/lock/CounterPinLock';
@@ -54,6 +55,7 @@ export default function DashboardLayout() {
           onOpenMobile={() => setMobileOpen(true)}
           trailing={
             <div className="flex items-center gap-3">
+              <CounterAlertBell />
               <Tooltip>
                 <TooltipTrigger asChild>
                   <span className="text-sm font-medium text-ink">{displayName}</span>

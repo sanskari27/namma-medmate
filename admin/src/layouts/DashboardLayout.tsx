@@ -12,6 +12,7 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { HqInboxBell } from '@/components/inbox/HqInboxBell';
 import { HqPinEnroll } from '@/components/lock/HqPinEnroll';
 import { HqSessionLock } from '@/components/lock/HqSessionLock';
 import { useIdleLock } from '@/hooks/useIdleLock';
@@ -73,6 +74,7 @@ export default function DashboardLayout() {
         <header className="flex h-12 items-center justify-between border-b border-line bg-surface px-6">
           <span className="text-sm text-muted">Platform CRM</span>
           <div className="flex items-center gap-3">
+            <HqInboxBell />
             <Tooltip>
               <TooltipTrigger asChild>
                 <span className="font-mono text-xs text-ink">{displayName}</span>

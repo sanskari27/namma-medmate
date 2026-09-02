@@ -9,7 +9,7 @@ import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { COUNTER_STORAGE_KEY } from '@/libs/constants/counters.const';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { authReducer } from '@/store';
+import { authReducer, notificationsReducer } from '@/store';
 
 vi.mock('@/services/auth', async () => {
   const axios = await import('@/services/axios');
@@ -22,13 +22,32 @@ vi.mock('@/services/auth', async () => {
   };
 });
 
+vi.mock('@/services/notifications', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    fetchInbox: vi.fn().mockResolvedValue({
+      items: [],
+      unreadCount: 0,
+      page: 0,
+      size: 8,
+      totalPages: 0,
+      totalItems: 0,
+    }),
+    fetchUnreadCount: vi.fn().mockResolvedValue(0),
+    markNotificationRead: vi.fn(),
+    openNotification: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { unlockPin } from '@/services/auth';
 
 const unlockMock = vi.mocked(unlockPin);
 
 function renderShell(pinSet: boolean) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -38,6 +57,14 @@ function renderShell(pinSet: boolean) {
           tenantId: 'tenant-1',
           pinSet,
         },
+      },
+      notifications: {
+        items: [],
+        unreadCount: 0,
+        page: 0,
+        size: 8,
+        totalPages: 0,
+        totalItems: 0,
       },
     },
   });

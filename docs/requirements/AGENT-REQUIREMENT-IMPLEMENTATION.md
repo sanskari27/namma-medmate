@@ -68,7 +68,7 @@ independent verifier verdict.
 | M9-S03 | M9 | server + dispensary | ready | M9-S01, M6-S05, M4-S03 | — | — |
 | M9-S04 | M9 | server + dispensary | ready | M9-S03 | — | — |
 | M9-S05 | M9 | server + dispensary | blocked | M9-S04, M2-S05 | D-005 | — |
-| M10-S01 | M10 | server + dispensary + admin | ready | M1-S01 | — | — |
+| M10-S01 | M10 | server + dispensary + admin | done | M1-S01 | — | Independent verifier PASS (2a35af99). verified→done. Server: V5 notification_source + notification; GET /api/v1/notifications + unread-count, POST /{id}/read (idempotent) + /open (live href). NotificationInboxTest 17 + NotificationInboxServiceTest 5. AuthPinTest.ac04 same-session unlock without requiring distinct JWT string. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 69 tests BUILD SUCCESS. Dispensary CounterAlertBell (shop-floor tickets); admin HqInboxBell (HQ table, not a clone). SPA gates: dispensary lint+47 tests+build; admin lint+40 tests+build. Browser: :5173 varshmaan Counter alerts → /inventory; :5174 Sanskar HQ inbox → /kyc. Magic get_component paywalled; restyled from inbox 8245 / Vercel 10479 / empty 19367. No mute/preferences. |
 | M10-S02 | M10 | server + dispensary + admin | ready | M10-S01 | — | — |
 | M10-S03 | M10 | server + dispensary + admin | ready | M10-S02, M1-S05 | — | — |
 | M10-S04 | M10 | server + dispensary | ready | M10-S03, M3-S05, M3-S06, M3-S07 | — | — |
