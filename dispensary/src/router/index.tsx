@@ -5,7 +5,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import DashboardPage from '@/pages/DashboardPage';
 import LoginPage from '@/pages/LoginPage';
 import StubPage from '@/pages/StubPage';
-import { ROUTES } from '@/libs/constants/routes.const';
+import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
   {
@@ -19,13 +19,10 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
-          { path: ROUTES.POS, element: <StubPage title="POS" /> },
-          { path: ROUTES.INVENTORY, element: <StubPage title="Inventory" /> },
-          { path: ROUTES.PROCUREMENT, element: <StubPage title="Procurement" /> },
-          { path: ROUTES.INVOICES, element: <StubPage title="Invoices & GST" /> },
-          { path: ROUTES.CUSTOMERS, element: <StubPage title="Customers (Khata)" /> },
-          { path: ROUTES.PRESCRIPTIONS, element: <StubPage title="Prescriptions" /> },
-          { path: ROUTES.SETTINGS, element: <StubPage title="Settings" /> },
+          ...STUB_PAGES.map((page) => ({
+            path: page.path,
+            element: <StubPage title={page.title} />,
+          })),
         ],
       },
     ],

@@ -30,6 +30,7 @@ const authSlice = createSlice({
 });
 
 export const { login, logout } = authSlice.actions;
+export const authReducer = authSlice.reducer;
 
 export const store = configureStore({
   reducer: { auth: authSlice.reducer },

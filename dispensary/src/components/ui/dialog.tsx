@@ -28,3 +28,24 @@ export function DialogContent({
     </DialogPrimitive.Portal>
   );
 }
+
+export function DrawerContent({
+  className,
+  children,
+  ...props
+}: ComponentProps<typeof DialogPrimitive.Content>) {
+  return (
+    <DialogPrimitive.Portal>
+      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink/50 md:hidden" />
+      <DialogPrimitive.Content
+        className={cn(
+          'fixed inset-y-0 left-0 z-50 w-[min(100%,17rem)] border-r border-line p-0 focus:outline-none',
+          className,
+        )}
+        {...props}
+      >
+        {children}
+      </DialogPrimitive.Content>
+    </DialogPrimitive.Portal>
+  );
+}
