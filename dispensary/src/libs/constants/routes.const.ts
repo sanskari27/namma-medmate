@@ -57,9 +57,19 @@ export const NAV_SECTIONS = [
     id: 'billing',
     label: 'Billing / POS',
     items: [
-      { label: 'Orders', path: ROUTES.ORDERS, hint: 'Held bills at this counter', badge: { count: 1, label: '1 held bill' } },
+      {
+        label: 'Orders',
+        path: ROUTES.ORDERS,
+        hint: 'Held bills at this counter',
+        badge: { count: 1, label: '1 held bill' },
+      },
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
-      { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx waiting at this counter', badge: { count: 3, label: '3 prescriptions waiting' } },
+      {
+        label: 'Prescriptions',
+        path: ROUTES.PRESCRIPTIONS,
+        hint: 'Rx waiting at this counter',
+        badge: { count: 3, label: '3 prescriptions waiting' },
+      },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Credit / Khata', path: ROUTES.CREDIT, hint: 'Khata balances' },
       { label: 'CRM / Patients', path: ROUTES.CRM, hint: 'Patient records at this pharmacy' },
@@ -94,7 +104,11 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Account', path: ROUTES.ACCOUNT, hint: 'Pharmacy account' },
       { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
-      { label: 'Staff password', path: ROUTES.STAFF_PASSWORD, hint: 'Set a temporary till password' },
+      {
+        label: 'Staff password',
+        path: ROUTES.STAFF_PASSWORD,
+        hint: 'Set a temporary till password',
+      },
       { label: 'Manage Users', path: ROUTES.USERS, hint: 'Who can sign in here' },
       { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },

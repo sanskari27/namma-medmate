@@ -12,11 +12,8 @@ import {
 import { useCallback, useEffect } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { Button } from '@/components/ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { HqInboxBell } from '@/components/inbox/HqInboxBell';
-import { HqPasswordChange } from '@/components/lock/HqPasswordChange';
-import { HqPinEnroll } from '@/components/lock/HqPinEnroll';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
+import { HqInboxBell, HqPasswordChange, HqPinEnroll } from '@organisms';
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
@@ -38,7 +35,9 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
+  const mustChangePassword = useSelector((s: RootState) =>
+    Boolean(s.auth.user?.mustChangePassword),
+  );
   const { expired } = useIdleLock(pinSet && !mustChangePassword);
 
   const leaveHq = useCallback(() => {
@@ -77,7 +76,9 @@ export default function DashboardLayout() {
                 end={item.path === ROUTES.DASHBOARD}
                 className={({ isActive }) =>
                   `flex items-center gap-2 rounded-sm px-3 py-2 text-sm ${
-                    isActive ? 'bg-brand-soft text-brand' : 'text-muted hover:bg-elevated hover:text-ink'
+                    isActive
+                      ? 'bg-brand-soft text-brand'
+                      : 'text-muted hover:bg-elevated hover:text-ink'
                   }`
                 }
               >
@@ -99,12 +100,7 @@ export default function DashboardLayout() {
               </TooltipTrigger>
               <TooltipContent>HQ session</TooltipContent>
             </Tooltip>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={leaveHq}
-            >
+            <Button type="button" variant="outline" size="sm" onClick={leaveHq}>
               Sign out
             </Button>
           </div>

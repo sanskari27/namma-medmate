@@ -22,7 +22,17 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
     "baseUrl": ".",
-    "paths": { "@/*": ["src/*"] }
+    "paths": {
+      "@/*": ["src/*"],
+      "@atoms": ["src/components/atoms"],
+      "@atoms/*": ["src/components/atoms/*"],
+      "@molecules": ["src/components/molecules"],
+      "@molecules/*": ["src/components/molecules/*"],
+      "@organisms": ["src/components/organisms"],
+      "@organisms/*": ["src/components/organisms/*"],
+      "@templates": ["src/components/templates"],
+      "@templates/*": ["src/components/templates/*"]
+    }
   },
   "include": ["src"]
 }

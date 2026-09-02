@@ -35,7 +35,9 @@ apiClient.interceptors.response.use(
     const body = response.data as ApiResponse<unknown>;
     if (body && typeof body === 'object' && 'success' in body) {
       if (!body.success) {
-        return Promise.reject(new ApiError(body.message ?? 'Request failed', response.status, body.code));
+        return Promise.reject(
+          new ApiError(body.message ?? 'Request failed', response.status, body.code),
+        );
       }
       response.data = body.data;
     }

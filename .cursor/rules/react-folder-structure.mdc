@@ -1,0 +1,64 @@
+---
+description: Atomic + screen-isolated folder placement for dispensary and admin
+globs: dispensary/src/**/*.{ts,tsx},admin/src/**/*.{ts,tsx}
+alwaysApply: false
+---
+
+# React folder structure
+
+Each SPA owns this tree independently. Do not add a shared UI package.
+
+```text
+src/components/atoms|molecules|organisms|templates
+src/screens/<name>/
+src/layouts  src/store  src/libs  src/hooks  src/services  src/router
+```
+
+## Think-tree (stop at the first match)
+
+1. Used by only one screen (not layout/router)? → `screens/<name>/components/<x>/`
+2. Primitive, one control, no business meaning? → `components/atoms/<x>/`
+3. Dumb: props in, UI out, no fetch, no Redux? → `components/molecules/<x>/`
+4. Domain/application block reused across screens (CustomerDetailsPopup, product picker)? → `components/templates/<x>/`
+5. Self-contained chrome/capability (sidebar, PIN lock, alert bell)? → `components/organisms/<x>/`
+6. Otherwise: route chrome → `layouts/`; route table → `router/`; HTTP → `services/`; helper → `libs/`; session or multi-screen API data → global `store/`; one-screen shared state → `screens/<name>/store/`
+
+## Layer rules
+
+- **Atoms** — own folder, `index` export, **no tests**. Import `libs` only.
+- **Molecules** — own folder, `index` export, tests required when new or touched. No fetch, no Redux, no navigation.
+- **Organisms** — chrome/capability. May fetch and use **global** store. No templates, no screens.
+- **Templates** — shared application composites. Compose atoms/molecules/organisms. May fetch and read global store. The calling screen decides visibility. No screens. Keep `templates/index.ts` even when empty; add the first real cross-screen domain block there, do not invent placeholders.
+- **Screen** — orchestrates data and what is visible. May compose atoms/molecules/organisms/templates plus private `components/`.
+- **libs** — shared by every layer. No React components.
+
+Import direction only: `atoms → molecules → organisms → templates → screens`.
+
+A screen must not import another screen. Router is the only module that imports screen entry files.
+
+## Screen folder
+
+Add files when the screen needs them; do not scaffold empty `store/`, utils, or `components/`.
+
+```text
+screens/login/
+  LoginScreen.tsx
+  LoginScreen.utils.ts
+  tests/LoginScreen.test.tsx
+  tests/LoginScreen.utils.test.ts
+  store/LoginScreen.store.ts
+  store/LoginScreen.selectors.ts
+  components/<Child>/
+```
+
+Store/selector/utils files are `.ts` unless they contain JSX.
+
+## State
+
+One Redux `configureStore`. Nested react-redux Providers hide the outer store.
+
+- Session, inbox, any API result two or more screens read → `src/store/`
+- Screen-tree state shared by that screen’s children → `screens/<name>/store/`, registered on the root store
+- One-widget UI → local `useState`
+
+Do not import another screen’s store. Import a layer barrel via named aliases: `@atoms`, `@molecules`, `@organisms`, `@templates`. Each component folder still has its own `index.ts`. Do not import a layer barrel from inside that same layer (cycles). Intra-layer or lazy chunks may use a deep alias (`@molecules/live-area-chart/LiveAreaChart`).

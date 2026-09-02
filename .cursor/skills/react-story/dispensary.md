@@ -31,8 +31,10 @@ Type: **Noto Sans** (UI), **Noto Serif** (wordmark only), **IBM Plex Mono**
 ## Libraries (this app only)
 
 - Motion: `motion/react` — one reveal per route; respect reduced motion.
-- Charts: `recharts` via `src/components/charts/AreaMetricChart.tsx`.
-- Primitives: Radix in `src/components/ui`, restyled to the tokens above.
+- Charts: `recharts` via `src/components/molecules/area-metric-chart`.
+- Primitives: Radix in `src/components/atoms`, restyled to the tokens above.
+- Screens live in `src/screens/<name>/`. Shared domain blocks go in
+  `src/components/templates` when two screens need the same application UI.
 - Icons: `lucide-react`.
 
 Do not add GSAP, Lenis, Rive, Lottie, visx, Nivo, Tremor, or D3 here.

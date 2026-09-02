@@ -36,7 +36,7 @@ Never `slate-500`, `emerald-600`, `sky-600`, or `blue-600` on new UI.
 
 ## Primitives
 
-Restyle Radix in `src/components/ui`. Do not paste stock shadcn New York
+Restyle Radix in `src/components/atoms`. Do not paste stock shadcn New York
 chrome. Lucide only — no emoji icons. 21st.dev/Magic is for pattern
 reference; restyle to this app's tokens before commit.
 

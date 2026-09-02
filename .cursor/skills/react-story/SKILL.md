@@ -43,9 +43,10 @@ denied, conflict, failure, success.
 - Status is not color-only. No emoji-as-icons. No unlabeled placeholders.
 - When the story requires real auth, remove scaffold `dev-token` login.
 - Do not copy pages, tokens, or copy between dispensary and admin.
-- Use that app's `@theme` tokens, `src/components/ui` primitives, Lucide,
+- Use that app's `@theme` tokens, `src/components/atoms` primitives, Lucide,
   and `motion/react` (one reveal per route). Charts go through Recharts
-  helpers. Follow rule `design-taste`. No GSAP/Lenis/Rive/Lottie.
+  helpers in `src/components/molecules`. Follow rules `design-taste` and
+  `react-folder-structure`. No GSAP/Lenis/Rive/Lottie.
 
 ## Browser check
 

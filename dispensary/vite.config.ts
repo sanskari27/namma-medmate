@@ -12,7 +12,13 @@ export default defineConfig(({ mode }) => {
     plugins: [react(), tailwindcss()],
     server: { host: true, port },
     resolve: {
-      alias: { '@': path.resolve(__dirname, './src') },
+      alias: {
+        '@': path.resolve(__dirname, './src'),
+        '@atoms': path.resolve(__dirname, './src/components/atoms'),
+        '@molecules': path.resolve(__dirname, './src/components/molecules'),
+        '@organisms': path.resolve(__dirname, './src/components/organisms'),
+        '@templates': path.resolve(__dirname, './src/components/templates'),
+      },
     },
     test: {
       environment: 'jsdom',

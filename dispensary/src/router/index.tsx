@@ -1,22 +1,22 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { ProtectedRoute } from '@organisms';
 import AuthLayout from '@/layouts/AuthLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import DashboardPage from '@/pages/DashboardPage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import LoginPage from '@/pages/LoginPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import StaffPasswordPage from '@/pages/StaffPasswordPage';
-import StubPage from '@/pages/StubPage';
+import DashboardScreen from '@/screens/dashboard/DashboardScreen';
+import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen';
+import LoginScreen from '@/screens/login/LoginScreen';
+import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
+import StaffPasswordScreen from '@/screens/staff-password/StaffPasswordScreen';
+import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
   {
     element: <AuthLayout />,
     children: [
-      { path: ROUTES.LOGIN, element: <LoginPage /> },
-      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
-      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
+      { path: ROUTES.LOGIN, element: <LoginScreen /> },
+      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordScreen /> },
+      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordScreen /> },
     ],
   },
   {
@@ -25,11 +25,11 @@ const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
-          { path: ROUTES.STAFF_PASSWORD, element: <StaffPasswordPage /> },
+          { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
+          { path: ROUTES.STAFF_PASSWORD, element: <StaffPasswordScreen /> },
           ...STUB_PAGES.map((page) => ({
             path: page.path,
-            element: <StubPage title={page.title} />,
+            element: <StubScreen title={page.title} />,
           })),
         ],
       },

@@ -64,8 +64,14 @@ export async function unlockPin(pin: string): Promise<AuthUser> {
   return toAuthUser(data);
 }
 
-export async function changePassword(currentPassword: string, newPassword: string): Promise<AuthUser> {
-  const { data } = await apiClient.post<LoginIdentity>(API.PASSWORD, { currentPassword, newPassword });
+export async function changePassword(
+  currentPassword: string,
+  newPassword: string,
+): Promise<AuthUser> {
+  const { data } = await apiClient.post<LoginIdentity>(API.PASSWORD, {
+    currentPassword,
+    newPassword,
+  });
   return toAuthUser(data);
 }
 
@@ -78,6 +84,9 @@ export async function completePasswordReset(token: string, password: string): Pr
 }
 
 export async function adminResetPassword(email: string, password: string): Promise<AuthUser> {
-  const { data } = await apiClient.post<LoginIdentity>(API.PASSWORD_ADMIN_RESET, { email, password });
+  const { data } = await apiClient.post<LoginIdentity>(API.PASSWORD_ADMIN_RESET, {
+    email,
+    password,
+  });
   return toAuthUser(data);
 }

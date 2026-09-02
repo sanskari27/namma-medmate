@@ -48,7 +48,7 @@ dispensary: ## Run dispensary Vite dev server
 admin: ## Run admin Vite dev server
 	cd $(ADMIN) && npm run dev
 
-.PHONY: build test format
+.PHONY: build build-server test test-server
 build: build-server ## Build backend JAR
 
 build-server: ## Package server JAR (skip tests)
@@ -59,8 +59,35 @@ test: test-server ## Run server tests
 test-server: ## Run server unit tests
 	cd $(SERVER) && ./mvnw test
 
-format: ## Format Java (Spotless)
+.PHONY: format format-server format-dispensary format-admin
+format: format-server format-dispensary format-admin ## Format Java and React apps
+
+format-server: ## Format Java (Spotless)
 	cd $(SERVER) && ./mvnw spotless:apply
+
+format-dispensary: ## Format dispensary (Prettier)
+	cd $(DISPENSARY) && npm run format
+
+format-admin: ## Format admin (Prettier)
+	cd $(ADMIN) && npm run format
+
+.PHONY: lint lint-dispensary lint-admin
+lint: lint-dispensary lint-admin ## Lint React apps
+
+lint-dispensary: ## Lint dispensary (ESLint)
+	cd $(DISPENSARY) && npm run lint
+
+lint-admin: ## Lint admin (ESLint)
+	cd $(ADMIN) && npm run lint
+
+.PHONY: typecheck typecheck-dispensary typecheck-admin
+typecheck: typecheck-dispensary typecheck-admin ## Typecheck React apps
+
+typecheck-dispensary: ## Typecheck dispensary (tsc)
+	cd $(DISPENSARY) && npm run typecheck
+
+typecheck-admin: ## Typecheck admin (tsc)
+	cd $(ADMIN) && npm run typecheck
 
 .PHONY: compose-config
 compose-config: ## Validate compose files

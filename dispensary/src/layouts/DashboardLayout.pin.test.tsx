@@ -3,7 +3,7 @@ import { act, render, screen } from '@testing-library/react';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@atoms';
 import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { ROUTES } from '@/libs/constants/routes.const';

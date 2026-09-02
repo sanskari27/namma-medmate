@@ -71,18 +71,36 @@ complete.
 ## Frontend conventions
 
 - React function components and hooks; strict TypeScript.
-- Redux Toolkit owns authenticated/server-derived shared state. Temporary
+- Each SPA uses the same folder contract independently. Do not add a shared
+  UI package. Placement: `.cursor/rules/react-folder-structure.mdc`.
+
+```text
+src/
+  components/atoms|molecules|organisms|templates
+  screens/<name>/          # isolated; router imports the screen entry only
+  layouts/ store/ libs/ hooks/ services/ router/
+```
+
+- Import direction: `atoms → molecules → organisms → templates → screens`.
+  Prefer named aliases `@atoms`, `@molecules`, `@organisms`, `@templates`
+  (each layer has an `index.ts` barrel).
+- Redux Toolkit owns authenticated/server-derived **shared** state in
+  `src/store`. A payload two or more screens read stays there. Screen-only
+  shared state lives in `screens/<name>/store/` and is registered on the same
+  root store (nested react-redux Providers hide the outer store). Temporary
   presentation state stays local.
 - Keep authorization, tenant, branch, and plan enforcement on the server.
 - Every screen covers loading, empty, validation, denied, conflict, failure, and
   success states with semantic labels, keyboard access, visible focus, and focus
   restoration.
-- Each SPA owns its Tailwind `@theme` tokens, restyled Radix primitives, Lucide
-  icons, Motion micro-interactions, and Recharts helpers. Do not add a shared
-  UI package, GSAP, Lenis, or extra chart kits. Visual identity lives in
+- Each SPA owns its Tailwind `@theme` tokens, restyled Radix primitives in
+  `src/components/atoms`, Lucide icons, Motion micro-interactions, and Recharts
+  helpers in `src/components/molecules`. Do not add a shared UI package, GSAP,
+  Lenis, or extra chart kits. Visual identity lives in
   `.cursor/skills/react-story/dispensary.md` and `admin.md`.
-- Both apps currently have scaffolding and no test runner. The first UI story
-  must add interaction testing before it can be completed.
+- Templates (`src/components/templates`) are shared application/domain blocks
+  (for example a customer details popup). Keep `templates/index.ts`; add the
+  first real cross-screen domain component there, do not invent placeholders.
 
 ## Environments and gates
 

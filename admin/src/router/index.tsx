@@ -1,22 +1,22 @@
 import { createBrowserRouter, Navigate } from 'react-router-dom';
-import ProtectedRoute from '@/components/ProtectedRoute';
+import { ProtectedRoute } from '@organisms';
 import AuthLayout from '@/layouts/AuthLayout';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import DashboardPage from '@/pages/DashboardPage';
-import ForgotPasswordPage from '@/pages/ForgotPasswordPage';
-import LoginPage from '@/pages/LoginPage';
-import OperatorPasswordPage from '@/pages/OperatorPasswordPage';
-import ResetPasswordPage from '@/pages/ResetPasswordPage';
-import StubPage from '@/pages/StubPage';
+import DashboardScreen from '@/screens/dashboard/DashboardScreen';
+import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen';
+import LoginScreen from '@/screens/login/LoginScreen';
+import OperatorPasswordScreen from '@/screens/operator-password/OperatorPasswordScreen';
+import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
+import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
   {
     element: <AuthLayout />,
     children: [
-      { path: ROUTES.LOGIN, element: <LoginPage /> },
-      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordPage /> },
-      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordPage /> },
+      { path: ROUTES.LOGIN, element: <LoginScreen /> },
+      { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordScreen /> },
+      { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordScreen /> },
     ],
   },
   {
@@ -25,14 +25,14 @@ const router = createBrowserRouter([
       {
         element: <DashboardLayout />,
         children: [
-          { path: ROUTES.DASHBOARD, element: <DashboardPage /> },
-          { path: ROUTES.PHARMACIES, element: <StubPage title="Pharmacies" /> },
-          { path: ROUTES.KYC, element: <StubPage title="KYC queue" /> },
-          { path: ROUTES.SUBSCRIPTIONS, element: <StubPage title="Subscriptions" /> },
-          { path: ROUTES.LEADS, element: <StubPage title="Lead pipeline" /> },
-          { path: ROUTES.SUPPORT, element: <StubPage title="Support" /> },
-          { path: ROUTES.SETTINGS, element: <StubPage title="Platform settings" /> },
-          { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordPage /> },
+          { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
+          { path: ROUTES.PHARMACIES, element: <StubScreen title="Pharmacies" /> },
+          { path: ROUTES.KYC, element: <StubScreen title="KYC queue" /> },
+          { path: ROUTES.SUBSCRIPTIONS, element: <StubScreen title="Subscriptions" /> },
+          { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
+          { path: ROUTES.SUPPORT, element: <StubScreen title="Support" /> },
+          { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
+          { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },
         ],
       },
     ],

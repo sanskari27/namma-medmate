@@ -1,13 +1,15 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
-import { CounterAlertBell } from '@/components/alerts/CounterAlertBell';
-import { AppSidebar, ShellHeader } from '@/components/layout/AppSidebar';
-import { CounterPasswordChange } from '@/components/lock/CounterPasswordChange';
-import { CounterPinEnroll } from '@/components/lock/CounterPinEnroll';
-import { Button } from '@/components/ui/button';
-import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@/components/ui/dialog';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  CounterAlertBell,
+  AppSidebar,
+  ShellHeader,
+  CounterPasswordChange,
+  CounterPinEnroll,
+} from '@organisms';
+import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
+import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@molecules';
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
@@ -19,7 +21,9 @@ export default function DashboardLayout() {
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
   const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
-  const mustChangePassword = useSelector((s: RootState) => Boolean(s.auth.user?.mustChangePassword));
+  const mustChangePassword = useSelector((s: RootState) =>
+    Boolean(s.auth.user?.mustChangePassword),
+  );
   const { expired } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);

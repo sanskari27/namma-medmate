@@ -35,8 +35,10 @@ Do not import dispensary light/viridian tokens or Noto families.
 
 - Motion: `motion/react` — one reveal per route (horizontal, not the
   dispensary vertical lift); respect reduced motion.
-- Charts: `recharts` via `src/components/charts/AreaMetricChart.tsx`.
-- Primitives: Radix in `src/components/ui`, restyled to the tokens above.
+- Charts: `recharts` via `src/components/molecules/area-metric-chart`.
+- Primitives: Radix in `src/components/atoms`, restyled to the tokens above.
+- Screens live in `src/screens/<name>/`. Shared domain blocks go in
+  `src/components/templates` when two screens need the same application UI.
 - Icons: `lucide-react`.
 
 Do not add GSAP, Lenis, Rive, Lottie, visx, Nivo, Tremor, or D3 here.

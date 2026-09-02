@@ -12,7 +12,10 @@ alwaysApply: false
   `slate-*` / `emerald-*` / `sky-*` on new UI or share tokens across SPAs.
 - React 19 function components and hooks with strict TypeScript; do not use
   `any`, unsafe double assertions, or class components.
-- Redux Toolkit owns authenticated/server-derived shared state; temporary
+- Folder placement: rule `react-folder-structure` (atoms → molecules →
+  organisms → templates → isolated `screens/`). No shared UI package.
+- Redux Toolkit owns authenticated/server-derived shared state in `src/store`;
+  screen-only shared state lives in that screen’s `store/`; temporary
   presentation state remains local.
 - API calls use the target app's configured axios service and
   `VITE_API_BASE_URL`. Never import server source or the other SPA.

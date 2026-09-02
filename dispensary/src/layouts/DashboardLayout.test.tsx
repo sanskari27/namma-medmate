@@ -4,7 +4,7 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { describe, expect, it, vi } from 'vitest';
-import { TooltipProvider } from '@/components/ui/tooltip';
+import { TooltipProvider } from '@atoms';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { COUNTER_STORAGE_KEY, COUNTERS } from '@/libs/constants/counters.const';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
@@ -102,7 +102,9 @@ describe('dispensary counter rail', () => {
     await user.click(screen.getByRole('button', { name: /this counter/i }));
     await user.click(screen.getByRole('menuitemradio', { name: COUNTERS[1].name }));
 
-    expect(screen.getByRole('button', { name: new RegExp(COUNTERS[1].name, 'i') })).toBeInTheDocument();
+    expect(
+      screen.getByRole('button', { name: new RegExp(COUNTERS[1].name, 'i') }),
+    ).toBeInTheDocument();
     expect(localStorage.getItem(COUNTER_STORAGE_KEY)).toBe(COUNTERS[1].id);
   });
 
@@ -112,7 +114,10 @@ describe('dispensary counter rail', () => {
     const nav = screen.getByRole('navigation', { name: 'On this floor' });
 
     for (const section of NAV_SECTIONS) {
-      expect(within(nav).getByRole('button', { name: section.label })).toHaveAttribute('aria-expanded', 'true');
+      expect(within(nav).getByRole('button', { name: section.label })).toHaveAttribute(
+        'aria-expanded',
+        'true',
+      );
     }
 
     for (const item of MODULE_NAV_ITEMS) {
@@ -120,12 +125,20 @@ describe('dispensary counter rail', () => {
       expect(within(nav).getByRole('link', { name })).toBeInTheDocument();
     }
 
-    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(within(nav).getByRole('link', { name: 'Orders, 1 held bill' })).toBeInTheDocument();
-    expect(within(nav).getByRole('link', { name: 'Prescriptions, 3 prescriptions waiting' })).toBeInTheDocument();
+    expect(
+      within(nav).getByRole('link', { name: 'Prescriptions, 3 prescriptions waiting' }),
+    ).toBeInTheDocument();
 
     await user.click(within(nav).getByRole('link', { name: 'Sales' }));
-    expect(within(nav).getByRole('link', { name: 'Sales' })).toHaveAttribute('aria-current', 'page');
+    expect(within(nav).getByRole('link', { name: 'Sales' })).toHaveAttribute(
+      'aria-current',
+      'page',
+    );
     expect(screen.getByText('Sales page')).toBeInTheDocument();
   });
 
