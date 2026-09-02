@@ -8,6 +8,7 @@ import type { RootState } from '@/store';
 import { AddTillLoginDialog } from './components/add-till-login-dialog';
 import { OffboardTillDialog } from './components/offboard-till-dialog';
 import { TillPasswordDialog } from './components/till-password-dialog';
+import { RolesDialog } from './components/roles-dialog';
 import { TillRowMenu } from './components/till-row-menu';
 
 type PageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
@@ -80,6 +81,7 @@ export default function StaffAccountsScreen() {
   const [banner, setBanner] = useState<string | null>(null);
   const [addOpen, setAddOpen] = useState(false);
   const [passwordFor, setPasswordFor] = useState<StaffAccount | null>(null);
+  const [rolesFor, setRolesFor] = useState<StaffAccount | null>(null);
   const [offboardFor, setOffboardFor] = useState<StaffAccount | null>(null);
   const [offboardBusy, setOffboardBusy] = useState(false);
 
@@ -191,6 +193,7 @@ export default function StaffAccountsScreen() {
                     <TillRowMenu
                       staff={row}
                       onPassword={() => setPasswordFor(row)}
+                      onRoles={() => setRolesFor(row)}
                       onOffboard={() => setOffboardFor(row)}
                     />
                   ) : (
@@ -218,6 +221,21 @@ export default function StaffAccountsScreen() {
               onOpenChange={(open) => {
                 if (!open) {
                   setPasswordFor(null);
+                }
+              }}
+              onSuccess={(message) => {
+                setBanner(message);
+                setStatus('success');
+              }}
+            />
+          ) : null}
+          {rolesFor ? (
+            <RolesDialog
+              staff={rolesFor}
+              open
+              onOpenChange={(open) => {
+                if (!open) {
+                  setRolesFor(null);
                 }
               }}
               onSuccess={(message) => {

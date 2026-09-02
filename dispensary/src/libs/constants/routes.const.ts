@@ -23,6 +23,7 @@ export const ROUTES = {
   ACCOUNT: '/account',
   EMPLOYEES: '/employees',
   USERS: '/users',
+  ROLES: '/roles',
   INVOICE_SETTINGS: '/invoice-settings',
   SUBSCRIPTION: '/subscription',
   REFER: '/refer',
@@ -104,6 +105,7 @@ export const NAV_SECTIONS = [
       { label: 'Account', path: ROUTES.ACCOUNT, hint: 'Pharmacy account' },
       { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
       { label: 'Staff accounts', path: ROUTES.USERS, hint: 'Who can sign in at this pharmacy' },
+      { label: 'Floor roles', path: ROUTES.ROLES, hint: 'What each staff login can access' },
       { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
       { label: 'Refer & Earn', path: ROUTES.REFER, hint: 'Refer another chemist' },
@@ -119,7 +121,8 @@ export const MODULE_NAV_ITEMS: readonly NavItem[] = [
 ];
 
 export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
-  (item) => item.path !== ROUTES.DASHBOARD && item.path !== ROUTES.USERS,
+  (item) =>
+    item.path !== ROUTES.DASHBOARD && item.path !== ROUTES.USERS && item.path !== ROUTES.ROLES,
 ).map((item) => ({
   path: item.path,
   title: item.label,

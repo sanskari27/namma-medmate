@@ -12,6 +12,7 @@ export const ROUTES = {
   OPERATOR_PASSWORD: '/operators/reset-password',
   OPERATORS: '/operators',
   STAFF_VERIFICATIONS: '/staff-verifications',
+  DESKS: '/desks',
 } as const;
 
 export const NAV_ITEMS = [
@@ -23,6 +24,7 @@ export const NAV_ITEMS = [
   { label: 'Support', path: ROUTES.SUPPORT },
   { label: 'Operators', path: ROUTES.OPERATORS },
   { label: 'Staff approvals', path: ROUTES.STAFF_VERIFICATIONS },
+  { label: 'HQ desks', path: ROUTES.DESKS },
   { label: 'Settings', path: ROUTES.SETTINGS },
   { label: 'Operator password', path: ROUTES.OPERATOR_PASSWORD },
 ] as const;

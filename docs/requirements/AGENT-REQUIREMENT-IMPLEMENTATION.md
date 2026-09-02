@@ -2,7 +2,18 @@
 
 This is the only implementation-status source. Keep exactly one row
 `in_progress`. Evidence must name commits/files, tests, gate commands, and the
-independent verifier verdict.
+independent verifier verdict. When a row status changes, update the counts.
+
+| Status | Count |
+|---|---:|
+| done | 7 |
+| in_progress | 1 |
+| implemented | 0 |
+| verified | 0 |
+| ready | 49 |
+| blocked | 11 |
+| deferred | 3 |
+| total | 71 |
 
 | Story | Epic | Apps | Status | Depends on | Decisions | Evidence / notes |
 |---|---|---|---|---|---|---|
@@ -10,7 +21,7 @@ independent verifier verdict.
 | M1-S02 | M1 | server + dispensary + admin | done | M1-S01 | — | Independent verifier PASS (868d18f9). Server: V4 pin_hash + pin_failed_attempts; POST /api/v1/auth/pin + /pin/unlock; pinSet on login/me; BCrypt; 3rd fail revokes + clearAccessToken; AuthPinTest (13) + AuthService PIN cases. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 44 tests BUILD SUCCESS. Dispensary: CounterPinEnroll/Lock POS keypad, useIdleLock 300000ms + sessionStorage nmm.dispensary.lastActivityAt. Admin: HqPinEnroll + HqSessionLock segmented cells (not shared). SPA gates: dispensary lint+36 tests+build; admin lint+28 tests+build. Browser: :5173 CDP idle → Counter locked keypad, wrong PIN denied, 123456 unlock keeps Varshmaan + Main counter; :5174 Set HQ PIN → CDP idle HQ session locked, wrong PIN denied, 123456 resume Tenant pulse Sanskar. Magic generate paywalled; patterns 22111 keypad / segmented OTP restyled per SPA. |
 | M1-S03 | M1 | server + dispensary + admin | done | M1-S01, M11-S02 | — | Independent verifier PASS (dc8cc582). verified→done. Server: V8 password_lifecycle (password_history, password_reset_token SHA-256, app_user.password_changed_at/must_change_password/created_by); PasswordLifecycleService + AuthController POST /api/v1/auth/password, /password/reset-request (permitAll opaque 200), /password/reset, /password/admin-reset (creator+tenant, 404 no disclosure); PasswordChangeRequiredFilter (GET /me, POST /password, POST /pin/unlock only); PASSWORD_RESET via TransactionalEmailService resetUrl (OWNER dispensary, MASTER admin). Tests: PasswordPolicyTest 5, AuthPasswordTest 16, AuthPasswordRollbackTest 2. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 155 tests BUILD SUCCESS. Dispensary: Forgot/Reset/StaffPassword + CounterPasswordChange overlay (shop-floor copy). Admin: Forgot/Reset/OperatorPassword + HqPasswordChange (HQ navy/Plex, not a clone). Seed: counter.staff@varshmaan.local created_by OWNER. SPA: dispensary lint+78 tests+build; admin lint+71 tests+build. `make compose-config` OK. Browser: :5173 owner forgot validation+success; OWNER staff-password temp-pass-9 for counter.staff@varshmaan.local; staff login overlay Change this counter password → staff-new-1 then PIN enroll; staff reset-request HTTP 200. :5174 HQ forgot success; reset-password empty token alert; MASTER Operator password form. |
 | M1-S04 | M1 | server + dispensary + admin | done | M1-S03 | — | Independent verifier PASS (1a27aef7). verified→done. Prior FAIL (007d348e) closed: no HQ copy on dispensary staff screens; PLAN_LIMIT named quota vs EMAIL_TAKEN; OperatorsScreen Remove access tests. Server: V10 staff_onboarding; StaffOnboardingService; POST/GET /api/v1/users + POST /{id}/deactivate; GET/POST /api/v1/admin/staff-verifications. Tests: StaffOnboardingTest 10, StaffOnboardingRollbackTest 2, StaffQuotaTest, StaffRolePolicyTest, StaffLicenseRulesTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 190 tests BUILD SUCCESS. Dispensary: StaffAccountsScreen /users (add/reset/remove dialogs; no /staff-password). Admin: OperatorsScreen + StaffVerificationScreen; VA login. Seed VA verify.agent@nammamedmate.local. SPA: dispensary lint+92 tests+build; admin lint+99 tests+build. `make compose-config` OK. Browser: :5173/users registration-approved copy; :5174/operators Actions; :5174/staff-verifications numbered packs. |
-| M1-S05 | M1 | server + dispensary + admin | ready | M1-S04 | — | — |
+| M1-S05 | M1 | server + dispensary + admin | done | M1-S04 | — | Independent verifier PASS (fb459d96). verified→done. Server: V11 access_role + access_role_module + user_access_role + access_role_event; AccessRoleService/AccessQueryService; GET/POST/PATCH/deactivate /api/v1/roles; GET/PUT/POST/DELETE /api/v1/users/{id}/roles; plan+creator caps PLAN_LIMIT/PRIVILEGE_ESCALATION; LoginResponse roles[]+modules[]; app_user.role kept as account class. Tests: AccessRoleTest 8, AccessRoleRollbackTest 1, ModuleCatalogTest, PlanModuleEntitlementsTest, EffectiveModuleSetTest, AccessRolePolicyTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 208 tests BUILD SUCCESS. Dispensary: Floor roles /roles + Till roles on Staff accounts; plan-gated Loyalty/Online store explained. Admin: HQ desks /desks two-pane + Desk assignment on Operators (not a dispensary clone). SPA: dispensary lint+100 tests+build; admin lint+107 tests+build. `make compose-config` OK. Browser: :5173 OWNER Floor roles Night till (Sales+Inventory), gated Loyalty/Online store, assign Pharmacist+Cashier to counter.staff; :5174 MASTER HQ desks KYC night desk (no Sales), Desk assignment to Meera. |
 | M1-S06 | M1 | server + dispensary | ready | M1-S05, M2-S04 | — | — |
 | M1-S07 | M1 | server + dispensary + admin | ready | M1-S05 | — | — |
 | M1-S08 | M1 | server + admin | blocked | M1-S01, M1-S05 | D-001 | — |

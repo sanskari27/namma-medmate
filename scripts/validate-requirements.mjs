@@ -233,6 +233,42 @@ if ([...tracker.values()].filter((row) => row.status === 'in_progress').length >
   errors.push(`${trackerFile}: more than one story is in_progress`);
 }
 
+const actualCounts = Object.fromEntries([...allowedStatuses].map((status) => [status, 0]));
+for (const row of tracker.values()) actualCounts[row.status] += 1;
+const declaredCounts = new Map();
+let inCountTable = false;
+for (const line of trackerContent.split('\n')) {
+  if (/^\| Status \| Count \|/.test(line)) {
+    inCountTable = true;
+    continue;
+  }
+  if (!inCountTable) continue;
+  if (!line.startsWith('|')) break;
+  const cells = line.split('|').map((cell) => cell.trim()).filter(Boolean);
+  if (!cells.length || /^-+$/.test(cells[0].replaceAll(':', ''))) continue;
+  const [status, count] = cells;
+  if (!/^\d+$/.test(count ?? '')) {
+    errors.push(`${trackerFile}: invalid count for ${status}`);
+    continue;
+  }
+  declaredCounts.set(status, Number(count));
+}
+if (!declaredCounts.size) errors.push(`${trackerFile}: missing status count table`);
+for (const status of allowedStatuses) {
+  if (!declaredCounts.has(status)) {
+    errors.push(`${trackerFile}: missing ${status} count`);
+  } else if (declaredCounts.get(status) !== actualCounts[status]) {
+    errors.push(
+      `${trackerFile}: ${status} count ${declaredCounts.get(status)} does not match ${actualCounts[status]} rows`,
+    );
+  }
+}
+if (declaredCounts.get('total') !== tracker.size) {
+  errors.push(
+    `${trackerFile}: total count ${declaredCounts.get('total') ?? 'missing'} does not match ${tracker.size} rows`,
+  );
+}
+
 for (const [id, story] of stories) {
   const epicIndex = path.join(path.dirname(story.file), '_index.md');
   const content = await readFile(epicIndex, 'utf8');

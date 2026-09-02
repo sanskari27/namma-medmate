@@ -14,6 +14,12 @@ vi.mock('@/services/staff', () => ({
   deactivateStaff: vi.fn(),
 }));
 
+vi.mock('@/services/roles', () => ({
+  listRoles: vi.fn(),
+  listUserRoles: vi.fn(),
+  replaceUserRoles: vi.fn(),
+}));
+
 vi.mock('@/services/auth', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -24,12 +30,16 @@ vi.mock('@/services/auth', async () => {
 });
 
 import { adminResetPassword } from '@/services/auth';
+import { listRoles, listUserRoles, replaceUserRoles } from '@/services/roles';
 import { createStaff, deactivateStaff, listStaff } from '@/services/staff';
 
 const listMock = vi.mocked(listStaff);
 const createMock = vi.mocked(createStaff);
 const deactivateMock = vi.mocked(deactivateStaff);
 const resetMock = vi.mocked(adminResetPassword);
+const listRolesMock = vi.mocked(listRoles);
+const listUserRolesMock = vi.mocked(listUserRoles);
+const replaceRolesMock = vi.mocked(replaceUserRoles);
 
 const owner: StaffAccount = {
   id: 'u1',
@@ -89,6 +99,9 @@ describe('staff accounts at this pharmacy', () => {
     createMock.mockReset();
     deactivateMock.mockReset();
     resetMock.mockReset();
+    listRolesMock.mockReset();
+    listUserRolesMock.mockReset();
+    replaceRolesMock.mockReset();
   });
 
   it('loading: waits for staff accounts', () => {
@@ -253,5 +266,57 @@ describe('staff accounts at this pharmacy', () => {
     await user.click(screen.getByRole('button', { name: 'Save staff' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Enter the pharmacist licence number.');
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('success: owner assigns pharmacist and cashier roles', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([owner, clerk]);
+    listRolesMock.mockResolvedValue({
+      roles: [
+        {
+          id: 'pharm',
+          name: 'Pharmacist',
+          code: 'pharmacist',
+          kind: 'PREDEFINED',
+          scope: 'TENANT',
+          version: 1,
+          modules: ['SALES'],
+        },
+        {
+          id: 'cash',
+          name: 'Cashier',
+          code: 'cashier',
+          kind: 'PREDEFINED',
+          scope: 'TENANT',
+          version: 1,
+          modules: ['SALES'],
+        },
+      ],
+      catalog: [],
+    });
+    listUserRolesMock.mockResolvedValue({ userId: 's1', roles: [] });
+    replaceRolesMock.mockResolvedValue({
+      userId: 's1',
+      roles: [
+        {
+          id: 'pharm',
+          name: 'Pharmacist',
+          code: 'pharmacist',
+          kind: 'PREDEFINED',
+          scope: 'TENANT',
+          version: 1,
+          modules: ['SALES'],
+        },
+      ],
+    });
+    renderPage('pharmacy_owner');
+    await screen.findByText('Asha');
+    await user.click(screen.getByRole('button', { name: 'Actions for Asha' }));
+    await user.click(screen.getByRole('menuitem', { name: 'Roles' }));
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Pharmacist'));
+    await user.click(within(dialog).getByRole('button', { name: 'Save roles' }));
+    expect(replaceRolesMock).toHaveBeenCalledWith('s1', ['pharm']);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Roles updated for Asha.');
   });
 });

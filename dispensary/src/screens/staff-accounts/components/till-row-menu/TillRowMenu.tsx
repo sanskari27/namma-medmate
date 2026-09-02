@@ -13,10 +13,11 @@ import { MoreHorizontal } from 'lucide-react';
 interface TillRowMenuProps {
   staff: StaffAccount;
   onPassword: () => void;
+  onRoles: () => void;
   onOffboard: () => void;
 }
 
-export function TillRowMenu({ staff, onPassword, onOffboard }: TillRowMenuProps) {
+export function TillRowMenu({ staff, onPassword, onRoles, onOffboard }: TillRowMenuProps) {
   const terminated = staff.status === 'TERMINATED';
 
   return (
@@ -36,6 +37,9 @@ export function TillRowMenu({ staff, onPassword, onOffboard }: TillRowMenuProps)
         <DropdownMenuLabel>{staff.displayName}</DropdownMenuLabel>
         <DropdownMenuItem onSelect={() => onPassword()} disabled={terminated}>
           Reset password
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onRoles()} disabled={terminated}>
+          Roles
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => onOffboard()} disabled={terminated}>

@@ -1,0 +1,1 @@
+export { DeskAssignmentDialog } from './DeskAssignmentDialog';

@@ -5,10 +5,11 @@ import { ChevronDown } from 'lucide-react';
 
 interface OperatorFileMenuProps {
   operator: HqOperator;
+  onDesks: () => void;
   onOffboard: () => void;
 }
 
-export function OperatorFileMenu({ operator, onOffboard }: OperatorFileMenuProps) {
+export function OperatorFileMenu({ operator, onDesks, onOffboard }: OperatorFileMenuProps) {
   return (
     <Popover>
       <PopoverTrigger asChild>
@@ -24,6 +25,13 @@ export function OperatorFileMenu({ operator, onOffboard }: OperatorFileMenuProps
       </PopoverTrigger>
       <PopoverContent className="w-56 p-1" align="end">
         <p className="px-2 py-1.5 text-[11px] text-muted">{operator.displayName}</p>
+        <button
+          type="button"
+          className="flex w-full cursor-pointer px-2 py-1.5 text-left text-sm text-ink hover:bg-brand-soft"
+          onClick={onDesks}
+        >
+          Desk assignment
+        </button>
         <button
           type="button"
           className="flex w-full cursor-pointer px-2 py-1.5 text-left text-sm text-ink hover:bg-brand-soft"

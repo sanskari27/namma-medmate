@@ -100,6 +100,16 @@ SET
     deleted_at = NULL,
     updated_at = NOW();
 
+INSERT INTO user_access_role (id, user_id, role_id, tenant_id, created_at)
+VALUES (
+    'c0a1e5c0-1111-4000-8000-0000000000aa',
+    'c0a1e5c0-1111-4000-8000-000000000001',
+    '11111111-1111-1111-1111-000000000002',
+    '11111111-1111-1111-1111-111111111111',
+    NOW()
+)
+ON CONFLICT (user_id, role_id) DO NOTHING;
+
 -- Verification Agent created by MASTER (M1-S04 HQ queue / operator checks).
 INSERT INTO app_user (
     id,

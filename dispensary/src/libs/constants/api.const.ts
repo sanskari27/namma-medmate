@@ -13,4 +13,5 @@ export const API = {
   NOTIFICATIONS: '/api/v1/notifications',
   NOTIFICATIONS_UNREAD: '/api/v1/notifications/unread-count',
   USERS: '/api/v1/users',
+  ROLES: '/api/v1/roles',
 } as const;

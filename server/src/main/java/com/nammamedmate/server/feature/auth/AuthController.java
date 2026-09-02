@@ -1,5 +1,8 @@
 package com.nammamedmate.server.feature.auth;
 
+import com.nammamedmate.server.application.access.AccessIdentity;
+import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.access.AccessRoleView;
 import com.nammamedmate.server.application.auth.AuthService;
 import com.nammamedmate.server.application.auth.AuthenticatedUser;
 import com.nammamedmate.server.application.auth.LoginOutcome;
@@ -32,16 +35,19 @@ public class AuthController {
   private final PasswordLifecycleService passwordLifecycleService;
   private final SavedLoginService savedLoginService;
   private final AuthCookieService authCookieService;
+  private final AccessQueryService accessQueryService;
 
   public AuthController(
       AuthService authService,
       PasswordLifecycleService passwordLifecycleService,
       SavedLoginService savedLoginService,
-      AuthCookieService authCookieService) {
+      AuthCookieService authCookieService,
+      AccessQueryService accessQueryService) {
     this.authService = authService;
     this.passwordLifecycleService = passwordLifecycleService;
     this.savedLoginService = savedLoginService;
     this.authCookieService = authCookieService;
+    this.accessQueryService = accessQueryService;
   }
 
   @PostMapping("/login")
@@ -171,13 +177,21 @@ public class AuthController {
             passwordLifecycleService.adminReset(principal, request.email(), request.password())));
   }
 
-  private static LoginResponse toResponse(AuthenticatedUser user) {
+  private LoginResponse toResponse(AuthenticatedUser user) {
+    AccessIdentity identity = accessQueryService.identity(user.userId());
     return new LoginResponse(
         user.userId(),
         user.displayName(),
         user.role().name(),
         user.tenantId(),
         user.pinSet(),
-        user.mustChangePassword());
+        user.mustChangePassword(),
+        identity.roles().stream().map(AuthController::toAssigned).toList(),
+        identity.modules());
+  }
+
+  private static AssignedRoleResponse toAssigned(AccessRoleView role) {
+    return new AssignedRoleResponse(
+        role.id(), role.name(), role.code(), role.kind() == null ? null : role.kind().name());
   }
 }

@@ -1,5 +1,6 @@
 import {
   BadgeCheck,
+  Briefcase,
   Building2,
   ClipboardList,
   CreditCard,
@@ -30,6 +31,7 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.SUPPORT]: Headset,
   [ROUTES.OPERATORS]: UserRound,
   [ROUTES.STAFF_VERIFICATIONS]: ClipboardList,
+  [ROUTES.DESKS]: Briefcase,
   [ROUTES.SETTINGS]: Settings,
   [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };

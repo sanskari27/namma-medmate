@@ -8,6 +8,7 @@ import LoginScreen from '@/screens/login/LoginScreen';
 import OperatorPasswordScreen from '@/screens/operator-password/OperatorPasswordScreen';
 import OperatorsScreen from '@/screens/operators/OperatorsScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
+import HqDesksScreen from '@/screens/hq-desks/HqDesksScreen';
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
           { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },
           { path: ROUTES.OPERATORS, element: <OperatorsScreen /> },
           { path: ROUTES.STAFF_VERIFICATIONS, element: <StaffVerificationScreen /> },
+          { path: ROUTES.DESKS, element: <HqDesksScreen /> },
           { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
         ],
       },

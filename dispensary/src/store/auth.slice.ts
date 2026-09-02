@@ -10,6 +10,8 @@ export interface AuthUser {
   tenantId: string | null;
   pinSet: boolean;
   mustChangePassword?: boolean;
+  roles?: { id: string; name: string; code: string | null; kind: string }[];
+  modules?: string[];
 }
 
 interface AuthState {

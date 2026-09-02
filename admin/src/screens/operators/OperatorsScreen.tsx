@@ -7,6 +7,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '@/store';
 import { FileAgentDialog } from './components/file-agent-dialog';
 import { OffboardOperatorDialog } from './components/offboard-operator-dialog';
+import { DeskAssignmentDialog } from './components/desk-assignment-dialog';
 import { OperatorFileMenu } from './components/operator-file-menu';
 
 type PageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
@@ -42,6 +43,7 @@ export default function OperatorsScreen() {
   const [status, setStatus] = useState<PageStatus>(master ? 'loading' : 'denied');
   const [banner, setBanner] = useState<string | null>(null);
   const [fileOpen, setFileOpen] = useState(false);
+  const [desksFor, setDesksFor] = useState<HqOperator | null>(null);
   const [offboardFor, setOffboardFor] = useState<HqOperator | null>(null);
   const [offboardBusy, setOffboardBusy] = useState(false);
 
@@ -151,7 +153,11 @@ export default function OperatorsScreen() {
                   <p className="text-xs text-ink">
                     {row.status === 'PENDING' ? 'Pending approval' : 'Active'}
                   </p>
-                  <OperatorFileMenu operator={row} onOffboard={() => setOffboardFor(row)} />
+                  <OperatorFileMenu
+                    operator={row}
+                    onDesks={() => setDesksFor(row)}
+                    onOffboard={() => setOffboardFor(row)}
+                  />
                 </li>
               ))}
             </ul>
@@ -166,6 +172,21 @@ export default function OperatorsScreen() {
               setItems(next);
             }}
           />
+          {desksFor ? (
+            <DeskAssignmentDialog
+              operator={desksFor}
+              open
+              onOpenChange={(open) => {
+                if (!open) {
+                  setDesksFor(null);
+                }
+              }}
+              onSuccess={(message) => {
+                setBanner(message);
+                setStatus('success');
+              }}
+            />
+          ) : null}
           {offboardFor ? (
             <OffboardOperatorDialog
               operator={offboardFor}

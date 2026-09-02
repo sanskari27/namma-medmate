@@ -14,11 +14,21 @@ vi.mock('@/services/staff', () => ({
   deactivateOperator: vi.fn(),
 }));
 
+vi.mock('@/services/roles', () => ({
+  listRoles: vi.fn(),
+  listUserRoles: vi.fn(),
+  replaceUserRoles: vi.fn(),
+}));
+
 import { createOperator, deactivateOperator, listOperators } from '@/services/staff';
+import { listRoles, listUserRoles, replaceUserRoles } from '@/services/roles';
 
 const listMock = vi.mocked(listOperators);
 const createMock = vi.mocked(createOperator);
 const deactivateMock = vi.mocked(deactivateOperator);
+const listRolesMock = vi.mocked(listRoles);
+const listUserRolesMock = vi.mocked(listUserRoles);
+const replaceRolesMock = vi.mocked(replaceUserRoles);
 
 const master: HqOperator = {
   id: 'm1',
@@ -73,6 +83,9 @@ describe('HQ operators', () => {
     listMock.mockReset();
     createMock.mockReset();
     deactivateMock.mockReset();
+    listRolesMock.mockReset();
+    listUserRolesMock.mockReset();
+    replaceRolesMock.mockReset();
   });
 
   it('loading: waits for operators', () => {
@@ -178,5 +191,50 @@ describe('HQ operators', () => {
     await user.click(screen.getByRole('button', { name: 'Remove access' }));
     await user.click(within(screen.getByRole('dialog')).getByRole('button', { name: 'Remove access' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Access has already been removed.');
+  });
+
+  it('success: administrator assigns an HQ desk', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([master, agent]);
+    listRolesMock.mockResolvedValue({
+      roles: [
+        {
+          id: 'va',
+          name: 'Verification Agent',
+          code: 'verification_agent',
+          kind: 'PREDEFINED',
+          scope: 'PLATFORM',
+          version: 1,
+          modules: ['TENANT_KYC'],
+        },
+      ],
+      catalog: [],
+    });
+    listUserRolesMock.mockResolvedValue({ userId: 'v1', roles: [] });
+    replaceRolesMock.mockResolvedValue({
+      userId: 'v1',
+      roles: [
+        {
+          id: 'va',
+          name: 'Verification Agent',
+          code: 'verification_agent',
+          kind: 'PREDEFINED',
+          scope: 'PLATFORM',
+          version: 1,
+          modules: ['TENANT_KYC'],
+        },
+      ],
+    });
+    renderPage('admin_super');
+    await screen.findByText('Meera');
+    await user.click(screen.getByRole('button', { name: 'Actions for Meera' }));
+    await user.click(screen.getByRole('button', { name: 'Desk assignment' }));
+    const dialog = screen.getByRole('dialog');
+    await user.click(within(dialog).getByLabelText('Verification Agent'));
+    await user.click(within(dialog).getByRole('button', { name: 'Save assignment' }));
+    expect(replaceRolesMock).toHaveBeenCalledWith('v1', ['va']);
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Desk assignment saved for Meera.',
+    );
   });
 });

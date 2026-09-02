@@ -1,5 +1,6 @@
 package com.nammamedmate.server.feature.auth;
 
+import java.util.List;
 import java.util.UUID;
 
 public record LoginResponse(
@@ -8,4 +9,6 @@ public record LoginResponse(
     String role,
     UUID tenantId,
     boolean pinSet,
-    boolean mustChangePassword) {}
+    boolean mustChangePassword,
+    List<AssignedRoleResponse> roles,
+    List<String> modules) {}

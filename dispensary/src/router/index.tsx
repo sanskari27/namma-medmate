@@ -7,6 +7,7 @@ import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen
 import LoginScreen from '@/screens/login/LoginScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
 import StaffAccountsScreen from '@/screens/staff-accounts/StaffAccountsScreen';
+import CounterRolesScreen from '@/screens/counter-roles/CounterRolesScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
@@ -27,6 +28,7 @@ const router = createBrowserRouter([
         children: [
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },
+          { path: ROUTES.ROLES, element: <CounterRolesScreen /> },
           ...STUB_PAGES.map((page) => ({
             path: page.path,
             element: <StubScreen title={page.title} />,

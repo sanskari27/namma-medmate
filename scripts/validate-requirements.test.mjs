@@ -56,6 +56,18 @@ test('rejects dependency cycles and index drift', async (t) => {
   assert.match(result.stderr, /dependencies do not match/);
 });
 
+test('rejects a stale status count', async (t) => {
+  const { directory, root } = await fixture();
+  t.after(() => rm(directory, { force: true, recursive: true }));
+  const tracker = path.join(root, 'AGENT-REQUIREMENT-IMPLEMENTATION.md');
+  const content = await readFile(tracker, 'utf8');
+  await writeFile(tracker, content.replace(/^\| done \| \d+ \|$/m, '| done | 0 |'));
+
+  const result = validate(root);
+  assert.equal(result.status, 1);
+  assert.match(result.stderr, /done count 0 does not match \d+ rows/);
+});
+
 test('rejects tracker metadata drift', async (t) => {
   const { directory, root } = await fixture();
   t.after(() => rm(directory, { force: true, recursive: true }));
