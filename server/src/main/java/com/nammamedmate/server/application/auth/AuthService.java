@@ -12,6 +12,7 @@ import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -25,6 +26,15 @@ public class AuthService {
   static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
   static final String ACCOUNT_LOCKED_CODE = "ACCOUNT_CANNOT_SIGN_IN";
   static final String ACCOUNT_LOCKED_MESSAGE = "This account cannot sign in.";
+  static final String PIN_ALREADY_SET_CODE = "PIN_ALREADY_SET";
+  static final String PIN_ALREADY_SET_MESSAGE = "PIN is already set.";
+  static final String PIN_NOT_SET_CODE = "PIN_NOT_SET";
+  static final String PIN_NOT_SET_MESSAGE = "PIN has not been set.";
+  static final String INVALID_PIN_CODE = "INVALID_PIN";
+  static final String INVALID_PIN_MESSAGE = "Incorrect PIN";
+  static final String SESSION_REVOKED_CODE = "SESSION_REVOKED";
+  static final String SESSION_REVOKED_MESSAGE = "Session ended. Sign in again.";
+  static final int PIN_ATTEMPT_LIMIT = 3;
 
   private final AppUserRepository appUserRepository;
   private final UserSessionRepository userSessionRepository;
@@ -100,9 +110,74 @@ public class AuthService {
     return toAuthenticatedUser(user);
   }
 
+  @Transactional
+  public AuthenticatedUser setPin(AuthPrincipal principal, String pin) {
+    requireSixDigitPin(pin);
+    AppUser user = lockActiveUser(principal);
+    if (user.getPinHash() != null) {
+      throw new ApiException(HttpStatus.CONFLICT, PIN_ALREADY_SET_CODE, PIN_ALREADY_SET_MESSAGE);
+    }
+    user.setPinHash(passwordEncoder.encode(pin));
+    user.setUpdatedAt(Instant.now(clock));
+    appUserRepository.save(user);
+    return toAuthenticatedUser(user);
+  }
+
+  @Transactional(noRollbackFor = ApiException.class)
+  public AuthenticatedUser unlockPin(AuthPrincipal principal, String pin) {
+    requireSixDigitPin(pin);
+    AppUser user = lockActiveUser(principal);
+    UserSession session =
+        userSessionRepository
+            .lockActiveScopedSession(
+                principal.sessionId(), principal.userId(), principal.tenantId())
+            .orElseThrow(AuthService::unauthorized);
+    if (user.getPinHash() == null) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, PIN_NOT_SET_CODE, PIN_NOT_SET_MESSAGE);
+    }
+    if (!passwordEncoder.matches(pin, user.getPinHash())) {
+      session.setPinFailedAttempts(session.getPinFailedAttempts() + 1);
+      if (session.getPinFailedAttempts() >= PIN_ATTEMPT_LIMIT) {
+        session.setRevokedAt(Instant.now(clock));
+        userSessionRepository.save(session);
+        throw new ApiException(
+            HttpStatus.UNAUTHORIZED, SESSION_REVOKED_CODE, SESSION_REVOKED_MESSAGE);
+      }
+      userSessionRepository.save(session);
+      throw new ApiException(HttpStatus.UNAUTHORIZED, INVALID_PIN_CODE, INVALID_PIN_MESSAGE);
+    }
+    session.setPinFailedAttempts(0);
+    userSessionRepository.save(session);
+    return toAuthenticatedUser(user);
+  }
+
+  private AppUser lockActiveUser(AuthPrincipal principal) {
+    return appUserRepository
+        .lockById(principal.userId())
+        .filter(candidate -> candidate.getDeletedAt() == null)
+        .filter(candidate -> candidate.getStatus() == UserAccountStatus.ACTIVE)
+        .filter(candidate -> Objects.equals(candidate.getTenantId(), principal.tenantId()))
+        .orElseThrow(AuthService::unauthorized);
+  }
+
   private static AuthenticatedUser toAuthenticatedUser(AppUser user) {
     return new AuthenticatedUser(
-        user.getId(), user.getDisplayName(), user.getRole(), user.getTenantId());
+        user.getId(),
+        user.getDisplayName(),
+        user.getRole(),
+        user.getTenantId(),
+        user.getPinHash() != null);
+  }
+
+  private static void requireSixDigitPin(String pin) {
+    if (pin == null || !pin.matches("^[0-9]{6}$")) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+  }
+
+  private static ApiException unauthorized() {
+    return new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
   }
 
   private static ApiException invalidCredentials() {

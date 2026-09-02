@@ -29,6 +29,9 @@ public class UserSession {
   @Column(name = "revoked_at")
   private Instant revokedAt;
 
+  @Column(name = "pin_failed_attempts", nullable = false)
+  private int pinFailedAttempts;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 }

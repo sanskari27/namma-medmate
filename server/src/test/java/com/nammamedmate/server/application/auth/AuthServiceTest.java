@@ -12,6 +12,7 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
+import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.infrastructure.security.JwtService;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
@@ -128,6 +129,122 @@ class AuthServiceTest {
   }
 
   @Test
+  void ac02_setPinHashesSixDigitsAndMarksPinSet() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    AuthPrincipal principal = principalFor(user);
+    when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
+    when(passwordEncoder.encode("123456")).thenReturn("$2pin");
+
+    AuthenticatedUser result = authService.setPin(principal, "123456");
+
+    assertThat(user.getPinHash()).isEqualTo("$2pin");
+    assertThat(result.pinSet()).isTrue();
+    verify(appUserRepository).save(user);
+  }
+
+  @Test
+  void ac05_setPinRejectsMalformedDigits() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    AuthPrincipal principal = principalFor(user);
+
+    assertThatThrownBy(() -> authService.setPin(principal, "12345"))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              assertThat(api.getStatus()).isEqualTo(HttpStatus.BAD_REQUEST);
+              assertThat(api.getCode()).isEqualTo("VALIDATION_ERROR");
+            });
+    verify(appUserRepository, never()).lockById(any());
+  }
+
+  @Test
+  void idempotency_setPinWhenHashExistsIsConflict() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    user.setPinHash("$2existing");
+    AuthPrincipal principal = principalFor(user);
+    when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
+
+    assertThatThrownBy(() -> authService.setPin(principal, "123456"))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              assertThat(api.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+              assertThat(api.getCode()).isEqualTo("PIN_ALREADY_SET");
+            });
+    verify(passwordEncoder, never()).encode(any());
+  }
+
+  @Test
+  void ac03_thirdFailedUnlockRevokesSession() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    user.setPinHash("$2pin");
+    UserSession session = activeSession(user);
+    session.setPinFailedAttempts(2);
+    AuthPrincipal principal = principalFor(user, session.getId());
+    when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
+    when(userSessionRepository.lockActiveScopedSession(
+            session.getId(), user.getId(), user.getTenantId()))
+        .thenReturn(Optional.of(session));
+    when(passwordEncoder.matches("654321", "$2pin")).thenReturn(false);
+
+    assertThatThrownBy(() -> authService.unlockPin(principal, "654321"))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              assertThat(api.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
+              assertThat(api.getCode()).isEqualTo("SESSION_REVOKED");
+            });
+    assertThat(session.getRevokedAt()).isEqualTo(NOW);
+    assertThat(session.getPinFailedAttempts()).isEqualTo(3);
+    verify(jwtService, never()).createToken(any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void ac04_successfulUnlockResetsAttemptsWithoutIssuingToken() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    user.setPinHash("$2pin");
+    UserSession session = activeSession(user);
+    session.setPinFailedAttempts(2);
+    AuthPrincipal principal = principalFor(user, session.getId());
+    when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
+    when(userSessionRepository.lockActiveScopedSession(
+            session.getId(), user.getId(), user.getTenantId()))
+        .thenReturn(Optional.of(session));
+    when(passwordEncoder.matches("123456", "$2pin")).thenReturn(true);
+
+    AuthenticatedUser result = authService.unlockPin(principal, "123456");
+
+    assertThat(session.getPinFailedAttempts()).isZero();
+    assertThat(session.getRevokedAt()).isNull();
+    assertThat(result.pinSet()).isTrue();
+    verify(jwtService, never()).createToken(any(), any(), any(), any(), any(), any());
+  }
+
+  @Test
+  void ac05_unlockWithoutPinIsUnprocessable() {
+    AppUser user = activeUser("ops@hq.local", AppUserRole.admin_super);
+    UserSession session = activeSession(user);
+    AuthPrincipal principal = principalFor(user, session.getId());
+    when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
+    when(userSessionRepository.lockActiveScopedSession(
+            session.getId(), user.getId(), user.getTenantId()))
+        .thenReturn(Optional.of(session));
+
+    assertThatThrownBy(() -> authService.unlockPin(principal, "123456"))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              assertThat(api.getStatus()).isEqualTo(HttpStatus.UNPROCESSABLE_ENTITY);
+              assertThat(api.getCode()).isEqualTo("PIN_NOT_SET");
+            });
+    assertThat(session.getRevokedAt()).isNull();
+  }
+
+  @Test
   void ac07_unknownEmailIsGenericUnauthorized() {
     when(appUserRepository.findByNormalizedEmailAndDeletedAtIsNull("gone@hq.local"))
         .thenReturn(Optional.empty());
@@ -140,6 +257,25 @@ class AuthServiceTest {
               assertThat(api.getStatus()).isEqualTo(HttpStatus.UNAUTHORIZED);
               assertThat(api.getMessage()).isEqualTo("Invalid email or password");
             });
+  }
+
+  private static AuthPrincipal principalFor(AppUser user) {
+    return principalFor(user, UUID.randomUUID());
+  }
+
+  private static AuthPrincipal principalFor(AppUser user, UUID sessionId) {
+    return new AuthPrincipal(user.getId(), user.getTenantId(), sessionId, user.getRole());
+  }
+
+  private static UserSession activeSession(AppUser user) {
+    UserSession session = new UserSession();
+    session.setId(UUID.randomUUID());
+    session.setUserId(user.getId());
+    session.setTenantId(user.getTenantId());
+    session.setExpiresAt(NOW.plusSeconds(3600));
+    session.setCreatedAt(NOW);
+    session.setPinFailedAttempts(0);
+    return session;
   }
 
   private static AppUser activeUser(String email, AppUserRole role) {

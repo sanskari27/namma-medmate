@@ -123,6 +123,7 @@ describe('dispensary login', () => {
       displayName: 'Owner',
       role: 'pharmacy_owner',
       tenantId: 't1',
+      pinSet: false,
     });
     const { store } = renderLogin();
     await user.type(screen.getByLabelText('Email'), 'owner@pharmacy.local');
@@ -139,6 +140,7 @@ describe('dispensary login', () => {
       displayName: 'Master',
       role: 'admin_super',
       tenantId: null,
+      pinSet: false,
     });
     renderLogin();
     await user.type(screen.getByLabelText('Email'), 'ops@hq.local');

@@ -38,4 +38,16 @@ public class AuthCookieService {
             .build();
     response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
   }
+
+  public void clearAccessToken(HttpServletResponse response) {
+    ResponseCookie cookie =
+        ResponseCookie.from(cookieName, "")
+            .httpOnly(true)
+            .secure(secure)
+            .path("/")
+            .sameSite("Lax")
+            .maxAge(Duration.ZERO)
+            .build();
+    response.addHeader(HttpHeaders.SET_COOKIE, cookie.toString());
+  }
 }

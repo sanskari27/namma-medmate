@@ -5,6 +5,7 @@ import com.nammamedmate.server.application.auth.AuthenticatedUser;
 import com.nammamedmate.server.application.auth.LoginOutcome;
 import com.nammamedmate.server.infrastructure.security.AuthCookieService;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
+import com.nammamedmate.server.shared.exception.ApiException;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
@@ -41,8 +42,31 @@ public class AuthController {
     return ApiResponse.ok(toResponse(authService.currentUser(principal)));
   }
 
+  @PostMapping("/pin")
+  public ApiResponse<LoginResponse> setPin(
+      @Valid @RequestBody PinRequest request, Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toResponse(authService.setPin(principal, request.pin())));
+  }
+
+  @PostMapping("/pin/unlock")
+  public ApiResponse<LoginResponse> unlockPin(
+      @Valid @RequestBody PinRequest request,
+      Authentication authentication,
+      HttpServletResponse response) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    try {
+      return ApiResponse.ok(toResponse(authService.unlockPin(principal, request.pin())));
+    } catch (ApiException ex) {
+      if ("SESSION_REVOKED".equals(ex.getCode())) {
+        authCookieService.clearAccessToken(response);
+      }
+      throw ex;
+    }
+  }
+
   private static LoginResponse toResponse(AuthenticatedUser user) {
     return new LoginResponse(
-        user.userId(), user.displayName(), user.role().name(), user.tenantId());
+        user.userId(), user.displayName(), user.role().name(), user.tenantId(), user.pinSet());
   }
 }

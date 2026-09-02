@@ -117,6 +117,7 @@ describe('admin HQ login', () => {
       displayName: 'Ops',
       role: 'admin_super',
       tenantId: null,
+      pinSet: false,
     });
     const { store } = renderLogin();
     await user.type(screen.getByLabelText('Email'), 'ops@hq.local');
@@ -133,6 +134,7 @@ describe('admin HQ login', () => {
       displayName: 'Owner',
       role: 'pharmacy_owner',
       tenantId: 't1',
+      pinSet: false,
     });
     renderLogin();
     await user.type(screen.getByLabelText('Email'), 'owner@pharmacy.local');

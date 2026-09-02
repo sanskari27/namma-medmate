@@ -28,6 +28,9 @@ public class AppUser {
   @Column(name = "password_hash", nullable = false)
   private String passwordHash;
 
+  @Column(name = "pin_hash")
+  private String pinHash;
+
   @Column(name = "display_name", nullable = false)
   private String displayName;
 

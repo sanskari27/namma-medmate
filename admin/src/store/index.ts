@@ -1,4 +1,5 @@
 import { configureStore, createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 
 const AUTH_STORAGE_KEY = 'nmm.admin.session';
 
@@ -7,6 +8,7 @@ export interface AuthUser {
   displayName: string;
   role: string;
   tenantId: string | null;
+  pinSet: boolean;
 }
 
 interface AuthState {
@@ -37,15 +39,23 @@ const authSlice = createSlice({
     sessionStarted: (state, action: PayloadAction<AuthUser>) => {
       state.user = action.payload;
       localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(action.payload));
+      sessionStorage.removeItem(LAST_ACTIVITY_KEY);
+    },
+    pinEnrolled: (state) => {
+      if (state.user) {
+        state.user.pinSet = true;
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
+      }
     },
     logout: (state) => {
       state.user = null;
       localStorage.removeItem(AUTH_STORAGE_KEY);
+      sessionStorage.removeItem(LAST_ACTIVITY_KEY);
     },
   },
 });
 
-export const { sessionStarted, logout } = authSlice.actions;
+export const { sessionStarted, pinEnrolled, logout } = authSlice.actions;
 export const authReducer = authSlice.reducer;
 
 export const store = configureStore({

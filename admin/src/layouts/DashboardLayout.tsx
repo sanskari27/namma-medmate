@@ -12,7 +12,10 @@ import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { logout, type RootState } from '@/store';
+import { HqPinEnroll } from '@/components/lock/HqPinEnroll';
+import { HqSessionLock } from '@/components/lock/HqSessionLock';
+import { useIdleLock } from '@/hooks/useIdleLock';
+import { logout, pinEnrolled, type RootState } from '@/store';
 import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
@@ -29,6 +32,8 @@ export default function DashboardLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
+  const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
+  const { locked, acknowledgeUnlock } = useIdleLock(pinSet);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -91,6 +96,17 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      {!pinSet ? <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
+      {pinSet && locked ? (
+        <HqSessionLock
+          operatorName={displayName ?? 'operator'}
+          onUnlocked={acknowledgeUnlock}
+          onSessionRevoked={() => {
+            dispatch(logout());
+            navigate(ROUTES.LOGIN);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

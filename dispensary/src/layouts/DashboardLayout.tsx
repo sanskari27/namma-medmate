@@ -2,17 +2,22 @@ import { useState } from 'react';
 import { Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { AppSidebar, ShellHeader } from '@/components/layout/AppSidebar';
+import { CounterPinEnroll } from '@/components/lock/CounterPinEnroll';
+import { CounterPinLock } from '@/components/lock/CounterPinLock';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { logout, type RootState } from '@/store';
+import { logout, pinEnrolled, type RootState } from '@/store';
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const displayName = useSelector((s: RootState) => s.auth.user?.displayName);
+  const pinSet = useSelector((s: RootState) => Boolean(s.auth.user?.pinSet));
+  const { locked, acknowledgeUnlock } = useIdleLock(pinSet);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
@@ -74,6 +79,17 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
+      {!pinSet ? <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} /> : null}
+      {pinSet && locked ? (
+        <CounterPinLock
+          staffName={displayName ?? 'staff'}
+          onUnlocked={acknowledgeUnlock}
+          onSessionRevoked={() => {
+            dispatch(logout());
+            navigate(ROUTES.LOGIN);
+          }}
+        />
+      ) : null}
     </div>
   );
 }

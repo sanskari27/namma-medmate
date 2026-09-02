@@ -20,6 +20,7 @@ function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
           displayName,
           role: 'pharmacy_owner',
           tenantId: 'tenant-1',
+          pinSet: true,
         },
       },
     },
