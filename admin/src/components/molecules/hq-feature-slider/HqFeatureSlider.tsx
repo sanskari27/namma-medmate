@@ -44,7 +44,7 @@ const SLIDES = [
     id: 'agents',
     code: 'VERIFY-AGENT',
     title: 'Verification agents',
-    body: 'MASTER-created agents clear licence packs. Keep the verification lane off the POS.',
+    body: 'Verification agents review pharmacy staff details before those staff can sign in.',
     icon: Building2,
   },
 ] as const;

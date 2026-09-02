@@ -21,5 +21,5 @@ export function statusCopy(status: FormStatus): { icon: typeof Ban; text: string
 }
 
 export function isHqOperator(role: string): boolean {
-  return role === 'admin_super';
+  return role === 'admin_super' || role === 'admin_verification';
 }

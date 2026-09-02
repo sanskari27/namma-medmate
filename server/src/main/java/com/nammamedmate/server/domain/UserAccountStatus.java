@@ -5,5 +5,6 @@ public enum UserAccountStatus {
   SUSPENDED,
   EXPIRED,
   TERMINATED,
-  KYC_LOCKED
+  KYC_LOCKED,
+  PENDING
 }

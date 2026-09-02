@@ -100,6 +100,49 @@ SET
     deleted_at = NULL,
     updated_at = NOW();
 
+-- Verification Agent created by MASTER (M1-S04 HQ queue / operator checks).
+INSERT INTO app_user (
+    id,
+    tenant_id,
+    email,
+    password_hash,
+    display_name,
+    phone,
+    role,
+    active,
+    status,
+    created_by,
+    created_at,
+    updated_at
+)
+VALUES
+    (
+        'a2b3c4d5-2222-4000-8000-0000000000aa',
+        NULL,
+        'verify.agent@nammamedmate.local',
+        '$2b$10$0WiQ0dLgQjP1unelVIhZfON/kH4KS7euUC8KLMmIt1J5RDgxhTAd2',
+        'Meera',
+        '9000000001',
+        'admin_verification',
+        TRUE,
+        'ACTIVE',
+        'd0199133-19c9-49b0-a3bc-2bcf0bf531e9',
+        NOW(),
+        NOW()
+    )
+ON CONFLICT (email) DO UPDATE
+SET
+    password_hash = EXCLUDED.password_hash,
+    display_name = EXCLUDED.display_name,
+    phone = EXCLUDED.phone,
+    role = EXCLUDED.role,
+    tenant_id = EXCLUDED.tenant_id,
+    created_by = EXCLUDED.created_by,
+    active = TRUE,
+    status = 'ACTIVE',
+    deleted_at = NULL,
+    updated_at = NOW();
+
 -- Inbox fixtures for local browser checks (M10-S01). Harmless on re-run.
 INSERT INTO notification_source (id, tenant_id, branch_id, href, deleted_at, access_revoked_at, created_at)
 VALUES

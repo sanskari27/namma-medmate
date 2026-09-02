@@ -8,8 +8,9 @@ describe('LoginScreen.utils', () => {
     expect(statusCopy('empty')).toBeNull();
   });
 
-  it('allows only MASTER operators into HQ', () => {
+  it('allows MASTER and verification agents into HQ', () => {
     expect(isHqOperator('admin_super')).toBe(true);
+    expect(isHqOperator('admin_verification')).toBe(true);
     expect(isHqOperator('pharmacy_owner')).toBe(false);
   });
 });

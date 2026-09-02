@@ -6,7 +6,7 @@ import DashboardScreen from '@/screens/dashboard/DashboardScreen';
 import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen';
 import LoginScreen from '@/screens/login/LoginScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
-import StaffPasswordScreen from '@/screens/staff-password/StaffPasswordScreen';
+import StaffAccountsScreen from '@/screens/staff-accounts/StaffAccountsScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
@@ -26,7 +26,7 @@ const router = createBrowserRouter([
         element: <DashboardLayout />,
         children: [
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
-          { path: ROUTES.STAFF_PASSWORD, element: <StaffPasswordScreen /> },
+          { path: ROUTES.USERS, element: <StaffAccountsScreen /> },
           ...STUB_PAGES.map((page) => ({
             path: page.path,
             element: <StubScreen title={page.title} />,

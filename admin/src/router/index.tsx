@@ -6,7 +6,9 @@ import DashboardScreen from '@/screens/dashboard/DashboardScreen';
 import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen';
 import LoginScreen from '@/screens/login/LoginScreen';
 import OperatorPasswordScreen from '@/screens/operator-password/OperatorPasswordScreen';
+import OperatorsScreen from '@/screens/operators/OperatorsScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
+import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
@@ -31,8 +33,10 @@ const router = createBrowserRouter([
           { path: ROUTES.SUBSCRIPTIONS, element: <StubScreen title="Subscriptions" /> },
           { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
           { path: ROUTES.SUPPORT, element: <StubScreen title="Support" /> },
-          { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
           { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },
+          { path: ROUTES.OPERATORS, element: <OperatorsScreen /> },
+          { path: ROUTES.STAFF_VERIFICATIONS, element: <StaffVerificationScreen /> },
+          { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
         ],
       },
     ],

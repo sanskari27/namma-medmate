@@ -256,7 +256,7 @@ export default function LoginScreen() {
                   Forgot the owner password?
                 </Link>
                 <span className="block pt-1">
-                  Staff passwords are reset by the owner at the counter.
+                  Staff passwords are reset by the owner from Staff accounts.
                 </span>
               </p>
             </form>

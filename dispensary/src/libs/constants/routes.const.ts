@@ -28,7 +28,6 @@ export const ROUTES = {
   REFER: '/refer',
   SETTINGS: '/settings',
   HELP: '/help',
-  STAFF_PASSWORD: '/staff-password',
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
@@ -104,12 +103,7 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Account', path: ROUTES.ACCOUNT, hint: 'Pharmacy account' },
       { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
-      {
-        label: 'Staff password',
-        path: ROUTES.STAFF_PASSWORD,
-        hint: 'Set a temporary till password',
-      },
-      { label: 'Manage Users', path: ROUTES.USERS, hint: 'Who can sign in here' },
+      { label: 'Staff accounts', path: ROUTES.USERS, hint: 'Who can sign in at this pharmacy' },
       { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
       { label: 'Refer & Earn', path: ROUTES.REFER, hint: 'Refer another chemist' },
@@ -125,7 +119,7 @@ export const MODULE_NAV_ITEMS: readonly NavItem[] = [
 ];
 
 export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
-  (item) => item.path !== ROUTES.DASHBOARD && item.path !== ROUTES.STAFF_PASSWORD,
+  (item) => item.path !== ROUTES.DASHBOARD && item.path !== ROUTES.USERS,
 ).map((item) => ({
   path: item.path,
   title: item.label,

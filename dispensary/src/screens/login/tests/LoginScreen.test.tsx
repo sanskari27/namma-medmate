@@ -82,7 +82,10 @@ describe('dispensary login', () => {
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Forgot the owner password?' })).toBeInTheDocument();
     expect(
-      screen.getByText('Staff passwords are reset by the owner at the counter.'),
+      screen.queryByRole('link', { name: /sign up|create account|register/i }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByText('Staff passwords are reset by the owner from Staff accounts.'),
     ).toBeInTheDocument();
   });
 

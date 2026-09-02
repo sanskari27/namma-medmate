@@ -81,6 +81,9 @@ describe('admin HQ login', () => {
     expect(await screen.findByRole('heading', { name: 'HQ sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Forgot the HQ password?' })).toBeInTheDocument();
+    expect(
+      screen.queryByRole('link', { name: /sign up|create account|register/i }),
+    ).not.toBeInTheDocument();
   });
 
   it('empty: saved operators appear as a console list', async () => {
@@ -285,6 +288,24 @@ describe('admin HQ login', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Tenant pulse')).toBeInTheDocument();
     expect(store.getState().auth.user?.role).toBe('admin_super');
+  });
+
+  it('success: verification agent reaches tenant pulse', async () => {
+    const user = userEvent.setup();
+    loginMock.mockResolvedValue({
+      userId: 'v1',
+      displayName: 'Agent',
+      role: 'admin_verification',
+      tenantId: null,
+      pinSet: false,
+    });
+    const { store } = renderLogin();
+    await screen.findByRole('heading', { name: 'HQ sign in' });
+    await user.type(screen.getByLabelText('Email'), 'agent@hq.local');
+    await user.type(screen.getByLabelText('Password'), 'secret-pass');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByText('Tenant pulse')).toBeInTheDocument();
+    expect(store.getState().auth.user?.role).toBe('admin_verification');
   });
 
   it('denied: pharmacy staff cannot enter HQ', async () => {

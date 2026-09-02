@@ -1,12 +1,14 @@
 import {
   BadgeCheck,
   Building2,
+  ClipboardList,
   CreditCard,
   Headset,
   KeyRound,
   LayoutDashboard,
   Settings,
   Funnel,
+  UserRound,
   type LucideIcon,
 } from 'lucide-react';
 import { useCallback, useEffect } from 'react';
@@ -26,6 +28,8 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.SUBSCRIPTIONS]: CreditCard,
   [ROUTES.LEADS]: Funnel,
   [ROUTES.SUPPORT]: Headset,
+  [ROUTES.OPERATORS]: UserRound,
+  [ROUTES.STAFF_VERIFICATIONS]: ClipboardList,
   [ROUTES.SETTINGS]: Settings,
   [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };
@@ -73,7 +77,7 @@ export default function DashboardLayout() {
               <NavLink
                 key={item.path}
                 to={item.path}
-                end={item.path === ROUTES.DASHBOARD}
+                end={item.path === ROUTES.DASHBOARD || item.path === ROUTES.OPERATORS}
                 className={({ isActive }) =>
                   `flex items-center gap-2 rounded-sm px-3 py-2 text-sm ${
                     isActive

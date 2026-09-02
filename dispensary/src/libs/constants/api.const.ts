@@ -12,4 +12,5 @@ export const API = {
   PASSWORD_ADMIN_RESET: '/api/v1/auth/password/admin-reset',
   NOTIFICATIONS: '/api/v1/notifications',
   NOTIFICATIONS_UNREAD: '/api/v1/notifications/unread-count',
+  USERS: '/api/v1/users',
 } as const;

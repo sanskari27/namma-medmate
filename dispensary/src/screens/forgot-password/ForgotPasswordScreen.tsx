@@ -31,7 +31,7 @@ function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: strin
     case 'success':
       return {
         icon: Mail,
-        text: 'If this owner account can reset by email, a link is on the way. Staff passwords are reset by the owner.',
+        text: 'If this owner email can receive a reset link, it is on the way. Staff passwords are reset from Staff accounts.',
       };
     default:
       return null;
@@ -79,8 +79,8 @@ export default function ForgotPasswordScreen() {
             <div>
               <h1 className="text-xl font-semibold text-ink">Owner password reset</h1>
               <p className="mt-1 text-sm text-muted">
-                Email a time-limited link to the pharmacy owner. Staff at this counter ask the owner
-                to set a temporary password.
+                Email a time-limited link to the pharmacy owner. Staff passwords are reset from
+                Staff accounts.
               </p>
             </div>
             {banner ? (

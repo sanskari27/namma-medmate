@@ -94,7 +94,7 @@ describe('dispensary owner password reset request', () => {
     await user.type(screen.getByLabelText('Owner email'), 'owner@pharmacy.local');
     await user.click(screen.getByRole('button', { name: 'Send owner reset' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'If this owner account can reset by email',
+      'If this owner email can receive a reset link',
     );
   });
 });

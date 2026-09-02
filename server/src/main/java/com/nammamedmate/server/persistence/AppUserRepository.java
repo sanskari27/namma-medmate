@@ -24,6 +24,18 @@ public interface AppUserRepository extends JpaRepository<AppUser, UUID> {
   Optional<AppUser> findByNormalizedEmailAndDeletedAtIsNull(
       @Param("normalizedEmail") String normalizedEmail);
 
+  @Query("""
+      select u from AppUser u
+      where lower(u.email) = :normalizedEmail
+      """)
+  Optional<AppUser> findByNormalizedEmail(@Param("normalizedEmail") String normalizedEmail);
+
+  long countByTenantIdAndDeletedAtIsNull(UUID tenantId);
+
+  List<AppUser> findByTenantIdAndDeletedAtIsNullOrderByCreatedAtAsc(UUID tenantId);
+
+  List<AppUser> findByTenantIdIsNullAndDeletedAtIsNullOrderByCreatedAtAsc();
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select u from AppUser u where u.id = :id")
   Optional<AppUser> lockById(@Param("id") UUID id);

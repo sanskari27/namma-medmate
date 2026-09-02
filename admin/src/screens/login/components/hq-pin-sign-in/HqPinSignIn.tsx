@@ -102,7 +102,7 @@ export function HqPinSignIn({
       </label>
       <div
         data-testid="hq-pin-signin-cells"
-        className="relative focus-within:outline-2 focus-within:outline-offset-2 focus-within:outline-focus"
+        className="relative focus-within:outline-0 focus-within:outline-offset-0 focus-within:outline-focus"
         onClick={() => inputRef.current?.focus()}
       >
         <input

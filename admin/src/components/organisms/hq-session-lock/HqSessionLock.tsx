@@ -1,8 +1,8 @@
-import { FormEvent, useEffect, useId, useRef, useState } from 'react';
+import { ApiError, isApiError, unlockPin } from '@/services/auth';
+import { Button } from '@atoms';
 import { ShieldAlert, Unplug } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { Button } from '@atoms';
-import { ApiError, isApiError, unlockPin } from '@/services/auth';
+import { FormEvent, useEffect, useId, useRef, useState } from 'react';
 
 type FormStatus =
   'empty' | 'validation' | 'loading' | 'denied' | 'conflict' | 'failure' | 'success';
@@ -140,7 +140,7 @@ export function HqSessionLock({
             onChange={(event) => setPinValue(event.target.value.replace(/\D/g, '').slice(0, 6))}
             aria-invalid={status === 'validation' || status === 'denied'}
             aria-describedby={banner ? statusId : 'hq-pin-cells-visual'}
-            className="absolute inset-0 z-10 cursor-text opacity-0"
+            className="absolute inset-0 z-10 cursor-text opacity-0 focus:outline-none focus:ring-0 active:outline-none active:ring-0"
           />
           <div id="hq-pin-cells-visual" className="flex gap-2" aria-hidden="true">
             {Array.from({ length: 6 }, (_, index) => (
