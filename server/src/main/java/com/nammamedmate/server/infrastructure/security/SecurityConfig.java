@@ -93,6 +93,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/integrations/resend/webhook")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(

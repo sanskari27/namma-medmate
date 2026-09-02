@@ -13,3 +13,7 @@ output "rds_endpoint" {
 output "redis_endpoint" {
   value = module.platform.redis_endpoint
 }
+
+output "ssm_compose_env_parameter" {
+  value = module.platform.ssm_compose_env_parameter
+}

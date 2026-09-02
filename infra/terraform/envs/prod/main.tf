@@ -22,10 +22,13 @@ terraform {
 module "platform" {
   source = "../../modules/platform"
 
-  project_name        = "namma-medmate-prod"
-  aws_region          = var.aws_region
-  admin_ssh_cidr      = var.admin_ssh_cidr
-  ec2_instance_type   = var.ec2_instance_type
-  db_instance_class   = var.db_instance_class
-  skip_final_snapshot = var.skip_final_snapshot
+  project_name          = "namma-medmate-prod"
+  aws_region            = var.aws_region
+  admin_ssh_cidr        = var.admin_ssh_cidr
+  ec2_instance_type     = var.ec2_instance_type
+  db_instance_class     = var.db_instance_class
+  skip_final_snapshot   = var.skip_final_snapshot
+  resend_api_key        = var.resend_api_key
+  resend_webhook_secret = var.resend_webhook_secret
+  resend_from           = var.resend_from
 }

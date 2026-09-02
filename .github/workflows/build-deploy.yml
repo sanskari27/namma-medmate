@@ -25,5 +25,9 @@ jobs:
         with:
           ref: refs/tags/${{ inputs.tag }}
           clean: false
+      - name: Pull compose env from SSM
+        env:
+          AWS_REGION: ap-south-1
+        run: ./scripts/pull-prod-env.sh .env
       - name: Build and restart
         run: docker compose -f compose.prod.yaml up -d --build server dispensary admin

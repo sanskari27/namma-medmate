@@ -47,3 +47,20 @@ variable "skip_final_snapshot" {
   type    = bool
   default = true
 }
+
+variable "resend_api_key" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "resend_webhook_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "resend_from" {
+  type    = string
+  default = "Namma MedMate <noreply@nammamedmate.com>"
+}

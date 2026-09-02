@@ -1,0 +1,59 @@
+name: Prod env (SSM)
+
+on:
+  workflow_dispatch:
+    inputs:
+      action:
+        description: set adds or updates a key; unset removes it; keys lists names only
+        type: choice
+        required: true
+        options:
+          - set
+          - unset
+          - keys
+      key:
+        description: Env var name (e.g. RESEND_API_KEY). Ignored for keys.
+        type: string
+        required: false
+        default: ''
+      value:
+        description: Value for set. Ignored for unset/keys. Visible on this run to repo access.
+        type: string
+        required: false
+        default: ''
+
+permissions:
+  contents: read
+
+jobs:
+  update:
+    runs-on: [self-hosted, deploy-prod]
+    environment: production
+    steps:
+      - uses: actions/checkout@v4
+      - name: Mask value
+        if: inputs.action == 'set' && inputs.value != ''
+        run: echo "::add-mask::${{ inputs.value }}"
+      - name: Apply SSM compose env change
+        env:
+          AWS_REGION: ap-south-1
+          ENV_ACTION: ${{ inputs.action }}
+          ENV_KEY: ${{ inputs.key }}
+          ENV_VALUE: ${{ inputs.value }}
+        run: |
+          set -euo pipefail
+          case "$ENV_ACTION" in
+            keys)
+              ./scripts/update-prod-env.sh keys
+              ;;
+            set)
+              ./scripts/update-prod-env.sh set "$ENV_KEY" "$ENV_VALUE"
+              ;;
+            unset)
+              ./scripts/update-prod-env.sh unset "$ENV_KEY"
+              ;;
+            *)
+              echo "unknown action: ${ENV_ACTION}" >&2
+              exit 2
+              ;;
+          esac

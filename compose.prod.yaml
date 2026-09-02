@@ -1,4 +1,4 @@
-# Production — EC2 only. RDS + ElastiCache via host .env (see .env.prod.example).
+# Production — EC2 only. .env is pulled from SSM at deploy (scripts/pull-prod-env.sh).
 # Loopback ports for host Nginx: API 18080, dispensary 10080, admin 10081
 
 name: ${COMPOSE_PROJECT_NAME:-namma-medmate-prod}

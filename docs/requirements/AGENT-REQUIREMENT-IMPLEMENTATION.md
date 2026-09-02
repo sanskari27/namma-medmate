@@ -73,6 +73,6 @@ independent verifier verdict.
 | M10-S03 | M10 | server + dispensary + admin | ready | M10-S02, M1-S05 | — | — |
 | M10-S04 | M10 | server + dispensary | ready | M10-S03, M3-S05, M3-S06, M3-S07 | — | — |
 | M11-S01 | M11 | server + dispensary + admin | ready | M2-S05 | — | — |
-| M11-S02 | M11 | server | ready | — | — | — |
+| M11-S02 | M11 | server | done | — | — | Independent verifier PASS (7f49a35d). verified→done. Server: V7 transactional_email; TransactionalEmailService.send (PASSWORD_RESET/ONBOARDING/INVOICE_COPY, typed vars, tenant-scoped persist, REQUIRES_NEW); ResendEmailAdapter (com.resend:resend-java 4.13.0, CreateEmailOptions + RequestOptions.setIdempotencyKey); POST /api/v1/integrations/resend/webhook Svix HMAC isolated. Tests: EmailTemplateRendererTest 3, TransactionalEmailServiceTest 6, ResendEmailAdapterTest 6, TransactionalEmailTest 6, TransactionalEmailRollbackTest 2, ResendWebhookTest 4. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 132 tests BUILD SUCCESS. `make compose-config` OK. API key only in gitignored .env. |
 | M11-S03 | M11 | decision | deferred | — | — | Phase 2 integration backlog |
 | M12-S01 | M12 | decision | deferred | — | D-006 | — |

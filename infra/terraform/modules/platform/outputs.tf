@@ -22,13 +22,6 @@ output "db_secret_arn" {
   value = aws_secretsmanager_secret.db.arn
 }
 
-output "compose_env_snippet" {
-  value     = <<-EOT
-    DATABASE_URL=jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}
-    DATABASE_USERNAME=${var.db_username}
-    DATABASE_PASSWORD=<from Secrets Manager ${aws_secretsmanager_secret.db.name}>
-    REDIS_HOST=${aws_elasticache_cluster.this.cache_nodes[0].address}
-    REDIS_PORT=6379
-  EOT
-  sensitive = true
+output "ssm_compose_env_parameter" {
+  value = aws_ssm_parameter.compose_env.name
 }

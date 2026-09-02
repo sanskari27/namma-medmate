@@ -49,11 +49,18 @@ See [`scripts/clone-prod-db.env.example`](scripts/clone-prod-db.env.example).
 
 ## Production deploy
 
-Terraform provisions EC2 + RDS + ElastiCache (`infra/terraform/envs/prod`). On the EC2 host:
+Terraform provisions EC2 + RDS + ElastiCache and writes the compose `.env` to
+SSM (`/namma-medmate-prod/compose.env`). The deploy workflow pulls that
+parameter onto the host, then:
 
 ```bash
+./scripts/pull-prod-env.sh .env
 docker compose -f compose.prod.yaml up -d --build
 ```
+
+Change a value without a new Terraform apply: GitHub Action **Prod env (SSM)**
+(`set` / `unset` / `keys`), or `./scripts/update-prod-env.sh`. The next deploy
+pulls the updated blob into `.env`.
 
 Host Nginx TLS: [`deploy/HOST_NGINX.md`](deploy/HOST_NGINX.md).
 

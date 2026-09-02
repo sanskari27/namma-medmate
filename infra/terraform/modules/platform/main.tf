@@ -159,21 +159,21 @@ resource "aws_db_subnet_group" "this" {
 }
 
 resource "aws_db_instance" "this" {
-  identifier             = "${local.name}-postgres"
-  engine                 = "postgres"
-  engine_version         = "16"
-  instance_class         = var.db_instance_class
-  allocated_storage      = 20
-  db_name                = var.db_name
-  username               = var.db_username
-  password               = random_password.db.result
-  db_subnet_group_name   = aws_db_subnet_group.this.name
-  vpc_security_group_ids = [aws_security_group.rds.id]
-  publicly_accessible    = false
-  storage_encrypted      = true
-  skip_final_snapshot    = var.skip_final_snapshot
+  identifier              = "${local.name}-postgres"
+  engine                  = "postgres"
+  engine_version          = "16"
+  instance_class          = var.db_instance_class
+  allocated_storage       = 20
+  db_name                 = var.db_name
+  username                = var.db_username
+  password                = random_password.db.result
+  db_subnet_group_name    = aws_db_subnet_group.this.name
+  vpc_security_group_ids  = [aws_security_group.rds.id]
+  publicly_accessible     = false
+  storage_encrypted       = true
+  skip_final_snapshot     = var.skip_final_snapshot
   backup_retention_period = 7
-  tags                   = { Name = "${local.name}-rds" }
+  tags                    = { Name = "${local.name}-rds" }
 }
 
 resource "aws_elasticache_subnet_group" "this" {
@@ -208,6 +208,22 @@ resource "aws_iam_role" "ec2" {
 resource "aws_iam_role_policy_attachment" "ssm" {
   role       = aws_iam_role.ec2.name
   policy_arn = "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+}
+
+resource "aws_iam_role_policy" "compose_env" {
+  name = "${local.name}-compose-env"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect = "Allow"
+      Action = [
+        "ssm:GetParameter",
+        "ssm:PutParameter",
+      ]
+      Resource = aws_ssm_parameter.compose_env.arn
+    }]
+  })
 }
 
 resource "aws_iam_instance_profile" "ec2" {
@@ -260,4 +276,35 @@ resource "aws_secretsmanager_secret" "db" {
 resource "aws_secretsmanager_secret_version" "db" {
   secret_id     = aws_secretsmanager_secret.db.id
   secret_string = random_password.db.result
+}
+
+resource "random_password" "jwt" {
+  length  = 64
+  special = false
+}
+
+resource "aws_ssm_parameter" "compose_env" {
+  name        = "/${local.name}/compose.env"
+  description = "Production compose .env for Namma MedMate"
+  type        = "SecureString"
+  value = join("\n", [
+    "DATABASE_URL=jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}",
+    "DATABASE_USERNAME=${var.db_username}",
+    "DATABASE_PASSWORD=${random_password.db.result}",
+    "REDIS_HOST=${aws_elasticache_cluster.this.cache_nodes[0].address}",
+    "REDIS_PORT=6379",
+    "JWT_SECRET=${random_password.jwt.result}",
+    "SPRING_PROFILES_ACTIVE=prod",
+    "PUBLIC_BASE_URL=https://api.nammamedmate.com",
+    "CORS_ALLOWED_ORIGINS=https://dispensary.nammamedmate.com,https://admin.nammamedmate.com",
+    "STORAGE_ROOT=/app/files",
+    "VITE_API_BASE_URL=https://api.nammamedmate.com",
+    "RESEND_API_KEY=${var.resend_api_key}",
+    "RESEND_WEBHOOK_SECRET=${var.resend_webhook_secret}",
+    "RESEND_FROM=${var.resend_from}",
+  ])
+
+  lifecycle {
+    ignore_changes = [value]
+  }
 }
