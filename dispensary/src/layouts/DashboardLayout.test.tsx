@@ -110,6 +110,23 @@ describe('dispensary counter rail', () => {
     expect(screen.queryByRole('status')).not.toBeInTheDocument();
   });
 
+  it('shows a suspended lock explanation without deleting records', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'SUSPENDED');
+    expect(screen.getByRole('status')).toHaveTextContent('This pharmacy counter is suspended');
+    expect(screen.getByRole('status')).toHaveTextContent('records are kept');
+  });
+
+  it('shows an expired lock explanation', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'EXPIRED');
+    expect(screen.getByRole('status')).toHaveTextContent('This pharmacy plan has expired');
+  });
+
+  it('shows a terminated lock explanation', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'TERMINATED');
+    expect(screen.getByRole('status')).toHaveTextContent('This pharmacy account is closed');
+    expect(screen.getByRole('status')).toHaveTextContent('not deleted');
+  });
+
   it('shows the pharmacy name in the rail header', () => {
     renderDashboard();
     const rail = screen.getByRole('complementary', { name: 'Counter rail' });

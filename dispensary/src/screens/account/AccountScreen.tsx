@@ -1,20 +1,8 @@
 import { Button, Input, Label, Reveal } from '@atoms';
 import { ROUTES } from '@/libs/constants/routes.const';
-import {
-  ApiError,
-  getKycStatus,
-  isApiError,
-  submitKyc,
-  type KycStatus,
-} from '@/services/tenant';
+import { ApiError, getKycStatus, isApiError, submitKyc, type KycStatus } from '@/services/tenant';
 import { sessionStarted, type RootState } from '@/store';
-import {
-  AlertCircle,
-  CheckCircle2,
-  ClipboardList,
-  FileWarning,
-  Unplug,
-} from 'lucide-react';
+import { AlertCircle, CheckCircle2, ClipboardList, FileWarning, Unplug } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';

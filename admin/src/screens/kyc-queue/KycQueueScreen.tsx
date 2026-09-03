@@ -168,9 +168,7 @@ export default function KycQueueScreen() {
                 <button
                   type="button"
                   className={`flex w-full items-stretch border text-left ${
-                    selected?.id === row.id
-                      ? 'border-brand bg-elevated'
-                      : 'border-line bg-surface'
+                    selected?.id === row.id ? 'border-brand bg-elevated' : 'border-line bg-surface'
                   }`}
                   onClick={() => setSelected(row)}
                   aria-pressed={selected?.id === row.id}
@@ -180,7 +178,9 @@ export default function KycQueueScreen() {
                   </div>
                   <div className="min-w-0 flex-1 px-3 py-3">
                     <p className="text-sm text-ink">{row.tenantName}</p>
-                    <p className="mt-1 truncate font-mono text-[11px] text-muted">{row.legalName}</p>
+                    <p className="mt-1 truncate font-mono text-[11px] text-muted">
+                      {row.legalName}
+                    </p>
                     <p className="mt-1 font-mono text-[11px] text-brand">{row.drugLicenseNumber}</p>
                   </div>
                 </button>
@@ -188,10 +188,7 @@ export default function KycQueueScreen() {
             ))}
           </ol>
 
-          <section
-            aria-label="KYC dossier"
-            className="border border-line bg-surface px-4 py-4"
-          >
+          <section aria-label="KYC dossier" className="border border-line bg-surface px-4 py-4">
             {selected ? (
               <div className="space-y-4">
                 <div>
@@ -224,7 +221,10 @@ export default function KycQueueScreen() {
                 </dl>
                 <ul className="space-y-2">
                   {selected.documents.map((doc) => (
-                    <li key={doc.id} className="flex items-center justify-between gap-2 border border-line px-3 py-2">
+                    <li
+                      key={doc.id}
+                      className="flex items-center justify-between gap-2 border border-line px-3 py-2"
+                    >
                       <div>
                         <p className="text-sm text-ink">{doc.docType}</p>
                         <p className="font-mono text-[11px] text-muted">{doc.originalFilename}</p>
@@ -250,7 +250,9 @@ export default function KycQueueScreen() {
                 </div>
               </div>
             ) : (
-              <p className="text-sm text-muted">Select a dossier from the queue to inspect evidence.</p>
+              <p className="text-sm text-muted">
+                Select a dossier from the queue to inspect evidence.
+              </p>
             )}
           </section>
         </div>

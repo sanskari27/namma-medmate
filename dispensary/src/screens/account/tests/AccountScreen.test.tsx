@@ -83,7 +83,9 @@ describe('pharmacy account KYC', () => {
   it('empty: prompts owner to fill the counter form', async () => {
     getMock.mockResolvedValue(emptyPack);
     renderPage();
-    expect(await screen.findByRole('heading', { name: /pharmacy account \/ kyc/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: /pharmacy account \/ kyc/i }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('alert')).toHaveTextContent('No KYC pack yet');
   });
 
@@ -127,7 +129,9 @@ describe('pharmacy account KYC', () => {
   it('failure: network errors surface', async () => {
     getMock.mockRejectedValue(new Error('offline'));
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the server for KYC');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not reach the server for KYC',
+    );
   });
 
   it('success: submit sends the pack and shows waiting copy', async () => {

@@ -24,9 +24,7 @@ export default function DashboardLayout() {
   const mustChangePassword = useSelector((s: RootState) =>
     Boolean(s.auth.user?.mustChangePassword),
   );
-  const tenantLocked = useSelector(
-    (s: RootState) => s.auth.user?.tenantStatus === 'VERIFICATION_REQUIRED',
-  );
+  const tenantStatus = useSelector((s: RootState) => s.auth.user?.tenantStatus);
   const { expired } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -97,7 +95,7 @@ export default function DashboardLayout() {
           }
         />
         <main id="main" className="flex-1 p-4 md:p-5">
-          {tenantLocked ? (
+          {tenantStatus === 'VERIFICATION_REQUIRED' ? (
             <p
               role="status"
               className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
@@ -107,6 +105,33 @@ export default function DashboardLayout() {
                 open pharmacy account / KYC
               </Link>{' '}
               to submit or check the pack.
+            </p>
+          ) : null}
+          {tenantStatus === 'SUSPENDED' ? (
+            <p
+              role="status"
+              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+            >
+              This pharmacy counter is suspended. Floor modules stay closed. Your bills, stock, and
+              staff records are kept — contact MedMate support to reopen the floor.
+            </p>
+          ) : null}
+          {tenantStatus === 'EXPIRED' ? (
+            <p
+              role="status"
+              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+            >
+              This pharmacy plan has expired. Floor modules stay closed. Your bills, stock, and
+              staff records are kept — renew or contact support to reopen the floor.
+            </p>
+          ) : null}
+          {tenantStatus === 'TERMINATED' ? (
+            <p
+              role="status"
+              className="mb-4 border border-danger bg-canvas px-3 py-2 text-sm text-ink"
+            >
+              This pharmacy account is closed. Floor modules stay closed. Historical bills and stock
+              are not deleted — contact MedMate support if you need help.
             </p>
           ) : null}
           <Outlet />

@@ -19,8 +19,11 @@ import org.springframework.web.filter.OncePerRequestFilter;
 public class TenantAccessFilter extends OncePerRequestFilter {
 
   static final String TENANT_LOCKED_CODE = "TENANT_LOCKED";
-  static final String TENANT_LOCKED_MESSAGE =
+  static final String VERIFICATION_LOCKED_MESSAGE =
       "This pharmacy is locked until verification and KYC are complete.";
+  static final String SUSPENDED_LOCKED_MESSAGE = "This pharmacy is suspended.";
+  static final String EXPIRED_LOCKED_MESSAGE = "This pharmacy subscription has expired.";
+  static final String TERMINATED_LOCKED_MESSAGE = "This pharmacy has been terminated.";
 
   private final TenantRepository tenantRepository;
   private final ObjectMapper objectMapper;
@@ -40,28 +43,55 @@ public class TenantAccessFilter extends OncePerRequestFilter {
       filterChain.doFilter(request, response);
       return;
     }
-    if (principal.tenantId() == null || isAllowed(request)) {
+    if (principal.tenantId() == null || isSessionAllowlisted(request)) {
       filterChain.doFilter(request, response);
       return;
     }
     Tenant tenant = tenantRepository.findById(principal.tenantId()).orElse(null);
-    if (tenant != null
-        && tenant.getDeletedAt() == null
-        && tenant.getStatus() == TenantStatus.VERIFICATION_REQUIRED) {
-      response.setStatus(HttpStatus.FORBIDDEN.value());
-      response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-      objectMapper.writeValue(
-          response.getOutputStream(), ApiResponse.error(TENANT_LOCKED_CODE, TENANT_LOCKED_MESSAGE));
+    if (tenant == null || tenant.getDeletedAt() != null) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+    TenantStatus status = tenant.getStatus();
+    if (status == TenantStatus.ACTIVE) {
+      filterChain.doFilter(request, response);
+      return;
+    }
+    if (status == TenantStatus.VERIFICATION_REQUIRED) {
+      if (isKycAllowlisted(request)) {
+        filterChain.doFilter(request, response);
+        return;
+      }
+      writeLocked(response, VERIFICATION_LOCKED_MESSAGE);
+      return;
+    }
+    if (status == TenantStatus.SUSPENDED
+        || status == TenantStatus.EXPIRED
+        || status == TenantStatus.TERMINATED) {
+      writeLocked(response, lockedMessage(status));
       return;
     }
     filterChain.doFilter(request, response);
   }
 
-  private static boolean isAllowed(HttpServletRequest request) {
-    String path = request.getServletPath();
-    if (path == null || path.isEmpty()) {
-      path = request.getRequestURI();
-    }
+  private void writeLocked(HttpServletResponse response, String message) throws IOException {
+    response.setStatus(HttpStatus.FORBIDDEN.value());
+    response.setContentType(MediaType.APPLICATION_JSON_VALUE);
+    objectMapper.writeValue(
+        response.getOutputStream(), ApiResponse.error(TENANT_LOCKED_CODE, message));
+  }
+
+  private static String lockedMessage(TenantStatus status) {
+    return switch (status) {
+      case SUSPENDED -> SUSPENDED_LOCKED_MESSAGE;
+      case EXPIRED -> EXPIRED_LOCKED_MESSAGE;
+      case TERMINATED -> TERMINATED_LOCKED_MESSAGE;
+      default -> VERIFICATION_LOCKED_MESSAGE;
+    };
+  }
+
+  private static boolean isSessionAllowlisted(HttpServletRequest request) {
+    String path = servletPath(request);
     String method = request.getMethod();
     if ("GET".equalsIgnoreCase(method) && "/api/v1/auth/me".equals(path)) {
       return true;
@@ -78,10 +108,21 @@ public class TenantAccessFilter extends OncePerRequestFilter {
     if ("POST".equalsIgnoreCase(method) && "/api/v1/auth/pin/unlock".equals(path)) {
       return true;
     }
-    if (("GET".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method))
-        && path.matches("/api/v1/tenants/[^/]+/kyc")) {
-      return true;
-    }
     return "DELETE".equalsIgnoreCase(method) && "/api/v1/admin/impersonation".equals(path);
+  }
+
+  private static boolean isKycAllowlisted(HttpServletRequest request) {
+    String path = servletPath(request);
+    String method = request.getMethod();
+    return ("GET".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method))
+        && path.matches("/api/v1/tenants/[^/]+/kyc");
+  }
+
+  private static String servletPath(HttpServletRequest request) {
+    String path = request.getServletPath();
+    if (path == null || path.isEmpty()) {
+      return request.getRequestURI();
+    }
+    return path;
   }
 }
