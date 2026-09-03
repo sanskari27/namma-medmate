@@ -16,6 +16,7 @@ import FloorActivityScreen from '@/screens/floor-activity/FloorActivityScreen';
 import AccountScreen from '@/screens/account/AccountScreen';
 import BranchesScreen from '@/screens/branches/BranchesScreen';
 import SubscriptionScreen from '@/screens/subscription/SubscriptionScreen';
+import CustomersScreen from '@/screens/customers/CustomersScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.ACCOUNT, element: <AccountScreen /> },
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
+          { path: ROUTES.CUSTOMERS, element: <CustomersScreen /> },
           { path: ROUTES.SUBSCRIPTION, element: <SubscriptionScreen /> },
           { path: ROUTES.KIOSK, element: <KioskScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },

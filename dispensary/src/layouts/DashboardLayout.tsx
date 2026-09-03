@@ -44,7 +44,7 @@ export default function DashboardLayout() {
   }, [expired, leaveCounter]);
 
   return (
-    <div className="flex min-h-screen bg-canvas">
+    <div className="flex h-screen overflow-hidden bg-canvas">
       <a
         href="#main"
         className="absolute top-2 left-2 z-50 -translate-y-16 bg-surface px-3 py-2 text-sm text-ink focus:translate-y-0"
@@ -68,7 +68,7 @@ export default function DashboardLayout() {
         </DrawerContent>
       </Dialog>
 
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-h-0 min-w-0 flex-1 flex-col">
         <ShellHeader
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
@@ -94,11 +94,11 @@ export default function DashboardLayout() {
             </div>
           }
         />
-        <main id="main" className="flex-1 p-4 md:p-5">
+        <main id="main" className="flex min-h-0 flex-1 flex-col overflow-y-auto p-4 md:p-5">
           {tenantStatus === 'VERIFICATION_REQUIRED' ? (
             <p
               role="status"
-              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+              className="mb-4 shrink-0 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
             >
               This pharmacy is locked until KYC finishes. Floor modules stay closed;{' '}
               <Link className="font-medium text-brand underline" to={ROUTES.ACCOUNT}>
@@ -110,7 +110,7 @@ export default function DashboardLayout() {
           {tenantStatus === 'SUSPENDED' ? (
             <p
               role="status"
-              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+              className="mb-4 shrink-0 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
             >
               This pharmacy counter is suspended. Floor modules stay closed. Your bills, stock, and
               staff records are kept — contact MedMate support to reopen the floor.
@@ -119,7 +119,7 @@ export default function DashboardLayout() {
           {tenantStatus === 'EXPIRED' ? (
             <p
               role="status"
-              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+              className="mb-4 shrink-0 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
             >
               This pharmacy plan has expired. Floor modules stay closed. Your bills, stock, and
               staff records are kept — renew or contact support to reopen the floor.
@@ -128,13 +128,15 @@ export default function DashboardLayout() {
           {tenantStatus === 'TERMINATED' ? (
             <p
               role="status"
-              className="mb-4 border border-danger bg-canvas px-3 py-2 text-sm text-ink"
+              className="mb-4 shrink-0 border border-danger bg-canvas px-3 py-2 text-sm text-ink"
             >
               This pharmacy account is closed. Floor modules stay closed. Historical bills and stock
               are not deleted — contact MedMate support if you need help.
             </p>
           ) : null}
-          <Outlet />
+          <div className="flex min-h-0 min-w-0 flex-1 flex-col">
+            <Outlet />
+          </div>
         </main>
       </div>
       {mustChangePassword ? (

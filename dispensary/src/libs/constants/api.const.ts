@@ -30,7 +30,9 @@ export const API = {
   KIOSK_OPEN: '/api/v1/kiosk/open',
   KIOSK_CLOSE: '/api/v1/kiosk/close',
   KIOSK_TICKETS: '/api/v1/kiosk/tickets',
+  CUSTOMERS: '/api/v1/customers',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
+  customer: (id: string) => `/api/v1/customers/${id}`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

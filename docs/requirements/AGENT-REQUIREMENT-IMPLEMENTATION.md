@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 17 |
+| done | 18 |
 | in_progress | 0 |
 | implemented | 1 |
 | verified | 0 |
-| ready | 48 |
+| ready | 47 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -34,7 +34,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M2-S05 | M2 | server + dispensary + admin | done | M2-S02 | D-007, D-008 closed | Independent verifier PASS (6467f95e). verified→done. Prior FAIL closed: ONLINE_STORE neither tenant nor platform; ac05_paymentCallbackCrossTenantIsUndisclosed. Server: V17 branch_limit_override + upgrade_intent + override_event; PlanLimits Free 1/3 Starter 2/3 Growth 3/5 Pro 5/unlimited; LOYALTY Growth+; SubscriptionService /api/v1/subscriptions; MASTER /api/v1/admin/subscriptions. Tests: PlanLimitsTest 4, PlanModuleEntitlementsTest 3, ModuleCatalogTest, SubscriptionTest 10, SubscriptionRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 331 tests BUILD SUCCESS. Dispensary SubscriptionScreen /subscription + BranchesScreen PLAN_LIMIT CTA. Admin SubscriptionsScreen override+history. SPA: dispensary lint+174 tests+build; admin lint+161 tests+build. `make compose-config` OK. Requirements valid. |
 | M2-S06 | M2 | server + dispensary | ready | M2-S04, M4-S03, M1-S07 | — | — |
 | M2-S07 | M2 | server + dispensary | done | M2-S04 | D-009 closed | Verifier PASS (story-verifier). Server KIOSK Pro + V18 session/tickets; dispensary KioskScreen states; gates green; browser open→token→close. |
-| M3-S01 | M3 | server + dispensary | ready | M1-S05 | — | — |
+| M3-S01 | M3 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V19 customer (tenant_id, phone unique); CustomerService/Controller GET/POST/PATCH /api/v1/customers; CRM module gate; PHONE_TAKEN 409; no login fields. Tests CustomerTest (AC01–AC05), CustomerRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 345 tests BUILD SUCCESS. Dispensary: CustomersScreen + CustomerCreateDialog template; services/customers.ts; route /customers. SPA lint+193 tests+build. `make compose-config` OK. Browser: :5173 Customers list Smoke Customer; Add dialog duplicate phone → alert + Search this phone. Host API: create+PHONE_TAKEN+search 200. |
 | M3-S02 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S03 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S04 | M3 | server + dispensary | ready | M3-S01 | — | — |

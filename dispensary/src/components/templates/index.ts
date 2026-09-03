@@ -1,1 +1,1 @@
-export {};
+export { CustomerCreateDialog } from './customer-create-dialog';
