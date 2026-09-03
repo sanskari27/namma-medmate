@@ -10,6 +10,8 @@ export interface AuthUser {
   tenantId: string | null;
   pinSet: boolean;
   mustChangePassword?: boolean;
+  tenantStatus?: string | null;
+  emailVerified?: boolean | null;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
 }

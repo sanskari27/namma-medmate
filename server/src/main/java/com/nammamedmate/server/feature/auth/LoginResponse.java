@@ -14,7 +14,9 @@ public record LoginResponse(
     boolean mustChangePassword,
     List<AssignedRoleResponse> roles,
     List<String> modules,
-    ImpersonationResponse impersonation) {
+    ImpersonationResponse impersonation,
+    String tenantStatus,
+    Boolean emailVerified) {
 
   public LoginResponse(
       UUID userId,
@@ -25,6 +27,41 @@ public record LoginResponse(
       boolean mustChangePassword,
       List<AssignedRoleResponse> roles,
       List<String> modules) {
-    this(userId, displayName, role, tenantId, pinSet, mustChangePassword, roles, modules, null);
+    this(
+        userId,
+        displayName,
+        role,
+        tenantId,
+        pinSet,
+        mustChangePassword,
+        roles,
+        modules,
+        null,
+        null,
+        null);
+  }
+
+  public LoginResponse(
+      UUID userId,
+      String displayName,
+      String role,
+      UUID tenantId,
+      boolean pinSet,
+      boolean mustChangePassword,
+      List<AssignedRoleResponse> roles,
+      List<String> modules,
+      ImpersonationResponse impersonation) {
+    this(
+        userId,
+        displayName,
+        role,
+        tenantId,
+        pinSet,
+        mustChangePassword,
+        roles,
+        modules,
+        impersonation,
+        null,
+        null);
   }
 }

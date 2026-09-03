@@ -13,6 +13,7 @@ import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.infrastructure.security.JwtService;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.SavedLoginRepository;
+import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
@@ -37,6 +38,7 @@ class SavedLoginServiceTest {
   @Mock private SavedLoginRepository savedLoginRepository;
   @Mock private AppUserRepository appUserRepository;
   @Mock private UserSessionRepository userSessionRepository;
+  @Mock private TenantRepository tenantRepository;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private JwtService jwtService;
 
@@ -49,6 +51,7 @@ class SavedLoginServiceTest {
             savedLoginRepository,
             appUserRepository,
             userSessionRepository,
+            tenantRepository,
             passwordEncoder,
             jwtService,
             Clock.fixed(NOW, ZoneOffset.UTC),

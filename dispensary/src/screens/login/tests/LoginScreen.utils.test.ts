@@ -6,6 +6,7 @@ describe('LoginScreen.utils', () => {
     expect(statusCopy('validation')?.text).toMatch(/email and password/);
     expect(statusCopy('denied')?.text).toMatch(/does not match this counter/);
     expect(statusCopy('locked')?.text).toMatch(/Ask the owner/);
+    expect(statusCopy('unverified')?.text).toMatch(/Verify the pharmacy email/);
     expect(statusCopy('empty')).toBeNull();
   });
 

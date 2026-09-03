@@ -2,7 +2,10 @@ package com.nammamedmate.server.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
+import jakarta.persistence.PrePersist;
 import jakarta.persistence.Table;
 import java.time.Instant;
 import java.util.UUID;
@@ -23,6 +26,13 @@ public class Tenant {
   @Column(nullable = false, unique = true)
   private String slug;
 
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 32)
+  private TenantStatus status = TenantStatus.ACTIVE;
+
+  @Column(name = "email_verified_at")
+  private Instant emailVerifiedAt;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
@@ -31,4 +41,11 @@ public class Tenant {
 
   @Column(name = "deleted_at")
   private Instant deletedAt;
+
+  @PrePersist
+  void defaults() {
+    if (status == null) {
+      status = TenantStatus.ACTIVE;
+    }
+  }
 }

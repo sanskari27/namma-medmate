@@ -5,7 +5,9 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import DashboardScreen from '@/screens/dashboard/DashboardScreen';
 import ForgotPasswordScreen from '@/screens/forgot-password/ForgotPasswordScreen';
 import LoginScreen from '@/screens/login/LoginScreen';
+import RegisterScreen from '@/screens/register/RegisterScreen';
 import ResetPasswordScreen from '@/screens/reset-password/ResetPasswordScreen';
+import VerifyEmailScreen from '@/screens/verify-email/VerifyEmailScreen';
 import StaffAccountsScreen from '@/screens/staff-accounts/StaffAccountsScreen';
 import CounterRolesScreen from '@/screens/counter-roles/CounterRolesScreen';
 import SignOffRulesScreen from '@/screens/sign-off-rules/SignOffRulesScreen';
@@ -21,6 +23,8 @@ const router = createBrowserRouter([
       { path: ROUTES.LOGIN, element: <LoginScreen /> },
       { path: ROUTES.FORGOT_PASSWORD, element: <ForgotPasswordScreen /> },
       { path: ROUTES.RESET_PASSWORD, element: <ResetPasswordScreen /> },
+      { path: ROUTES.REGISTER, element: <RegisterScreen /> },
+      { path: ROUTES.VERIFY_EMAIL, element: <VerifyEmailScreen /> },
     ],
   },
   {

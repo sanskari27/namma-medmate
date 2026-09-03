@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 11 |
+| done | 12 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 56 |
+| ready | 55 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -27,7 +27,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M1-S08 | M1 | server + admin | done | M1-S01, M1-S05 | D-001 closed | Independent verifier PASS (f898e9df). verified→done. Server: dual-identity JWT (act_uid/act_tid/act_role) on MASTER user_session; POST/DELETE /api/v1/admin/impersonation; /me impersonation payload; no AuditService writes (D-001). AuthImpersonationTest 12. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 239 tests BUILD SUCCESS. Admin: SupportSessionScreen /support + HqSupportBanner in DashboardLayout; Redux impersonation; services/impersonation.ts. SPA: admin lint+133 tests+build. `make compose-config` OK. Requirements valid. Uniqueness: HQ navy/Plex support-session voice, not dispensary clone. |
 | M1-S09 | M1 | server + dispensary + admin | blocked | M1-S07, M3-S01 | D-013 | — |
 | M1-S10 | M1 | server + dispensary + admin | done | M1-S01, M1-S02 | D-014, D-015 closed | Independent verifier PASS (efae5bba). verified→done. Gap-close AC06 email+admin reset revoke. AuthSavedLoginTest (+2: ac06_emailResetRevokesSavedDevices, ac06_adminResetRevokesSavedDevices); V9 saved_login; SavedLoginService; GET/POST/DELETE saved-logins + pin/login + logout. Dispensary LoginScreen till tiles+CounterPinSignIn keypad; idle DashboardLayout.pin.test signs out (no Counter locked). Admin LoginScreen HQ list+HqPinSignIn cells; idle signs out (no HQ session locked). Gates: `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 227 BUILD SUCCESS; dispensary lint+117 tests+build; admin lint+123 tests+build; `make compose-config` OK. Browser: automation host cannot reach :8080 from IDE browser (saved-list falls back); API smoke on host: OWNER logout keeps Varshmaan on saved-logins, PIN 123456 → 200 new session, no-device PIN → 401; MASTER saved Sanskar after logout. Uniqueness from SPA shells (viridian shop-floor vs navy HQ). |
-| M2-S01 | M2 | server + dispensary | ready | M1-S03 | — | — |
+| M2-S01 | M2 | server + dispensary | done | M1-S03 | — | Independent verifier PASS (ae52aec5). verified→done. Gap-close after prior FAIL (9a4a436c): DashboardLayout lock-banner tests; Login EMAIL_UNVERIFIED → unverified copy. Server: V13 tenant.status + email_verified_at + email_verification_token; TenantRegistrationService POST /api/v1/tenants/register + /verify-email; ONBOARDING afterCommit; AuthService EMAIL_UNVERIFIED; TenantAccessFilter TENANT_LOCKED; /me tenantStatus+emailVerified. Tests: TenantRegistrationTest 6, TenantSlugTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 246 BUILD SUCCESS. Dispensary: RegisterScreen /register + VerifyEmailScreen /verify-email; Login register CTA; DashboardLayout KYC lock banner; services/tenant.ts. SPA: dispensary lint+134 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173/register + /verify-email + login CTA; viridian shop-floor uniqueness. |
 | M2-S02 | M2 | server + dispensary + admin | ready | M2-S01, M1-S05 | — | — |
 | M2-S03 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |
 | M2-S04 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |

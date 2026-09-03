@@ -2,11 +2,13 @@
 -- Password for both users is: password
 -- BCrypt cost 10, matches SecurityConfig.
 
-INSERT INTO tenant (id, name, slug, created_at, updated_at)
+INSERT INTO tenant (id, name, slug, status, email_verified_at, created_at, updated_at)
 VALUES (
     '11111111-1111-1111-1111-111111111111',
     'Varshmaan Pharmacy',
     'varshmaan-pharmacy',
+    'ACTIVE',
+    NOW(),
     NOW(),
     NOW()
 )

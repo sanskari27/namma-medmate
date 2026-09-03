@@ -285,7 +285,9 @@ public class AuthController {
         user.mustChangePassword(),
         identity.roles().stream().map(AuthController::toAssigned).toList(),
         identity.modules(),
-        toImpersonation(impersonation));
+        toImpersonation(impersonation),
+        user.tenantStatus() == null ? null : user.tenantStatus().name(),
+        user.emailVerified());
   }
 
   private static ImpersonationResponse toImpersonation(

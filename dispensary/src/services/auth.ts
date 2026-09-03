@@ -9,6 +9,8 @@ export interface LoginIdentity {
   tenantId: string | null;
   pinSet: boolean;
   mustChangePassword?: boolean;
+  tenantStatus?: string | null;
+  emailVerified?: boolean | null;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
 }
@@ -23,6 +25,8 @@ function toAuthUser(data: LoginIdentity): AuthUser {
     tenantId: data.tenantId,
     pinSet: Boolean(data.pinSet),
     mustChangePassword: Boolean(data.mustChangePassword),
+    tenantStatus: data.tenantStatus ?? null,
+    emailVerified: data.emailVerified ?? null,
     roles: data.roles,
     modules: data.modules,
   };

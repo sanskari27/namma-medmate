@@ -79,6 +79,10 @@ export default function LoginScreen() {
           return;
         }
         if (error.status === 403) {
+          if (error.code === 'EMAIL_UNVERIFIED') {
+            setStatus('unverified');
+            return;
+          }
           setStatus('locked');
           return;
         }
@@ -248,6 +252,14 @@ export default function LoginScreen() {
                   Back to saved till logins
                 </button>
               ) : null}
+              <p className="text-sm text-muted">
+                <Link
+                  to={ROUTES.REGISTER}
+                  className="text-brand underline-offset-2 hover:underline"
+                >
+                  Register this pharmacy
+                </Link>
+              </p>
               <p className="text-sm text-muted">
                 <Link
                   to={ROUTES.FORGOT_PASSWORD}

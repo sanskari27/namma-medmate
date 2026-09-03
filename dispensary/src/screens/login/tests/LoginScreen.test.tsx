@@ -81,9 +81,7 @@ describe('dispensary login', () => {
     expect(await screen.findByRole('heading', { name: 'Pharmacy sign in' })).toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Forgot the owner password?' })).toBeInTheDocument();
-    expect(
-      screen.queryByRole('link', { name: /sign up|create account|register/i }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Register this pharmacy' })).toBeInTheDocument();
     expect(
       screen.getByText('Staff passwords are reset by the owner from Staff accounts.'),
     ).toBeInTheDocument();
@@ -253,6 +251,21 @@ describe('dispensary login', () => {
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'This staff account cannot enter the dispensary. Ask the owner.',
+    );
+  });
+
+  it('unverified: EMAIL_UNVERIFIED asks to open the owner email link', async () => {
+    const user = userEvent.setup();
+    loginMock.mockRejectedValue(
+      new ApiError('Verify the pharmacy email before signing in.', 403, 'EMAIL_UNVERIFIED'),
+    );
+    renderLogin();
+    await screen.findByRole('heading', { name: 'Pharmacy sign in' });
+    await user.type(screen.getByLabelText('Email'), 'owner@pharmacy.local');
+    await user.type(screen.getByLabelText('Password'), 'secret-pass');
+    await user.click(screen.getByRole('button', { name: 'Sign in' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Verify the pharmacy email from the owner link',
     );
   });
 

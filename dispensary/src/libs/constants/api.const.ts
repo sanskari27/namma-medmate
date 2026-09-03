@@ -19,4 +19,6 @@ export const API = {
   APPROVAL_PENDING: '/api/v1/approvals/pending',
   APPROVAL_REQUESTS: '/api/v1/approvals/requests',
   AUDIT: '/api/v1/audit',
+  TENANTS_REGISTER: '/api/v1/tenants/register',
+  TENANTS_VERIFY_EMAIL: '/api/v1/tenants/verify-email',
 } as const;

@@ -2,6 +2,7 @@ package com.nammamedmate.server.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
@@ -46,10 +47,25 @@ public class SecurityConfig {
   }
 
   @Bean
+  public TenantAccessFilter tenantAccessFilter(
+      TenantRepository tenantRepository, ObjectMapper objectMapper) {
+    return new TenantAccessFilter(tenantRepository, objectMapper);
+  }
+
+  @Bean
   public FilterRegistrationBean<PasswordChangeRequiredFilter> disableDuplicatePasswordFilter(
       PasswordChangeRequiredFilter passwordChangeRequiredFilter) {
     FilterRegistrationBean<PasswordChangeRequiredFilter> registration =
         new FilterRegistrationBean<>(passwordChangeRequiredFilter);
+    registration.setEnabled(false);
+    return registration;
+  }
+
+  @Bean
+  public FilterRegistrationBean<TenantAccessFilter> disableDuplicateTenantAccessFilter(
+      TenantAccessFilter tenantAccessFilter) {
+    FilterRegistrationBean<TenantAccessFilter> registration =
+        new FilterRegistrationBean<>(tenantAccessFilter);
     registration.setEnabled(false);
     return registration;
   }
@@ -89,7 +105,8 @@ public class SecurityConfig {
       CorsConfigurationSource corsConfigurationSource,
       ObjectMapper objectMapper,
       JwtAuthenticationFilter jwtAuthenticationFilter,
-      PasswordChangeRequiredFilter passwordChangeRequiredFilter)
+      PasswordChangeRequiredFilter passwordChangeRequiredFilter,
+      TenantAccessFilter tenantAccessFilter)
       throws Exception {
     http.csrf(AbstractHttpConfigurer::disable)
         .cors(cors -> cors.configurationSource(corsConfigurationSource))
@@ -110,6 +127,10 @@ public class SecurityConfig {
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/password/reset-request")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/password/reset")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/tenants/register")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/tenants/verify-email")
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/integrations/resend/webhook")
                     .permitAll()
@@ -134,7 +155,8 @@ public class SecurityConfig {
                                 "FORBIDDEN",
                                 "Access denied")))
         .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
-        .addFilterAfter(passwordChangeRequiredFilter, JwtAuthenticationFilter.class);
+        .addFilterAfter(passwordChangeRequiredFilter, JwtAuthenticationFilter.class)
+        .addFilterAfter(tenantAccessFilter, PasswordChangeRequiredFilter.class);
     return http.build();
   }
 

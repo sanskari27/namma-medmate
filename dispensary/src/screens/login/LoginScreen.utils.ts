@@ -3,7 +3,15 @@ import { AlertCircle, Lock, WifiOff } from 'lucide-react';
 export const PHARMACY_ROLES = new Set(['pharmacy_owner', 'pharmacy_staff']);
 
 export type FormStatus =
-  'empty' | 'validation' | 'loading' | 'denied' | 'locked' | 'conflict' | 'failure' | null;
+  | 'empty'
+  | 'validation'
+  | 'loading'
+  | 'denied'
+  | 'locked'
+  | 'unverified'
+  | 'conflict'
+  | 'failure'
+  | null;
 
 export function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text: string } | null {
   switch (status) {
@@ -21,6 +29,11 @@ export function statusCopy(status: FormStatus): { icon: typeof AlertCircle; text
       return {
         icon: Lock,
         text: 'This staff account cannot enter the dispensary. Ask the owner.',
+      };
+    case 'unverified':
+      return {
+        icon: AlertCircle,
+        text: 'Verify the pharmacy email from the owner link before signing in at this counter.',
       };
     case 'conflict':
       return {

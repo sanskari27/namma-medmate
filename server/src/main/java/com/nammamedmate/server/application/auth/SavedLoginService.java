@@ -3,11 +3,14 @@ package com.nammamedmate.server.application.auth;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.SavedLogin;
+import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
 import com.nammamedmate.server.infrastructure.security.JwtService;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.SavedLoginRepository;
+import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
@@ -30,6 +33,7 @@ public class SavedLoginService {
   private final SavedLoginRepository savedLoginRepository;
   private final AppUserRepository appUserRepository;
   private final UserSessionRepository userSessionRepository;
+  private final TenantRepository tenantRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final Clock clock;
@@ -40,6 +44,7 @@ public class SavedLoginService {
       SavedLoginRepository savedLoginRepository,
       AppUserRepository appUserRepository,
       UserSessionRepository userSessionRepository,
+      TenantRepository tenantRepository,
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
       Clock clock,
@@ -48,6 +53,7 @@ public class SavedLoginService {
     this.savedLoginRepository = savedLoginRepository;
     this.appUserRepository = appUserRepository;
     this.userSessionRepository = userSessionRepository;
+    this.tenantRepository = tenantRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
     this.clock = clock;
@@ -117,6 +123,7 @@ public class SavedLoginService {
           AuthService.ACCOUNT_LOCKED_CODE,
           AuthService.ACCOUNT_LOCKED_MESSAGE);
     }
+    requireEmailVerifiedIfNeeded(user);
     SavedLogin binding =
         savedLoginRepository.lockByDeviceIdAndUserId(deviceId, userId).orElse(null);
     if (binding == null
@@ -181,14 +188,45 @@ public class SavedLoginService {
     return Objects.equals(binding.getTenantId(), user.getTenantId());
   }
 
+  private void requireEmailVerifiedIfNeeded(AppUser user) {
+    if (user.getTenantId() == null) {
+      return;
+    }
+    Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+    if (tenant == null || tenant.getDeletedAt() != null) {
+      throw new ApiException(
+          HttpStatus.FORBIDDEN,
+          AuthService.ACCOUNT_LOCKED_CODE,
+          AuthService.ACCOUNT_LOCKED_MESSAGE);
+    }
+    if (tenant.getStatus() == TenantStatus.VERIFICATION_REQUIRED
+        && tenant.getEmailVerifiedAt() == null) {
+      throw new ApiException(
+          HttpStatus.FORBIDDEN,
+          AuthService.EMAIL_UNVERIFIED_CODE,
+          AuthService.EMAIL_UNVERIFIED_MESSAGE);
+    }
+  }
+
   private AuthenticatedUser toAuthenticatedUser(AppUser user, Instant now) {
+    TenantStatus tenantStatus = null;
+    Boolean emailVerified = null;
+    if (user.getTenantId() != null) {
+      Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+      if (tenant != null) {
+        tenantStatus = tenant.getStatus();
+        emailVerified = tenant.getEmailVerifiedAt() != null;
+      }
+    }
     return new AuthenticatedUser(
         user.getId(),
         user.getDisplayName(),
         user.getRole(),
         user.getTenantId(),
         user.getPinHash() != null,
-        PasswordPolicy.mustChange(user.isMustChangePassword(), user.getPasswordChangedAt(), now));
+        PasswordPolicy.mustChange(user.isMustChangePassword(), user.getPasswordChangedAt(), now),
+        tenantStatus,
+        emailVerified);
   }
 
   private static void requireSixDigitPin(String pin) {

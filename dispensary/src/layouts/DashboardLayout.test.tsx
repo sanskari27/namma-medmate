@@ -41,7 +41,11 @@ vi.mock('@/services/notifications', async () => {
   };
 });
 
-function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
+function renderDashboard(
+  path = ROUTES.DASHBOARD,
+  displayName = 'Chemist',
+  tenantStatus: string | null = 'ACTIVE',
+) {
   const store = configureStore({
     reducer: { auth: authReducer, notifications: notificationsReducer },
     preloadedState: {
@@ -52,6 +56,8 @@ function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
           role: 'pharmacy_owner',
           tenantId: 'tenant-1',
           pinSet: true,
+          tenantStatus,
+          emailVerified: true,
         },
       },
       notifications: {
@@ -88,6 +94,18 @@ function renderDashboard(path = ROUTES.DASHBOARD, displayName = 'Chemist') {
 }
 
 describe('dispensary counter rail', () => {
+  it('shows a KYC lock banner when the pharmacy is still VERIFICATION_REQUIRED', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'VERIFICATION_REQUIRED');
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'This pharmacy is locked until KYC finishes',
+    );
+  });
+
+  it('hides the KYC lock banner for an ACTIVE pharmacy', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'ACTIVE');
+    expect(screen.queryByRole('status')).not.toBeInTheDocument();
+  });
+
   it('shows the pharmacy name in the rail header', () => {
     renderDashboard();
     const rail = screen.getByRole('complementary', { name: 'Counter rail' });

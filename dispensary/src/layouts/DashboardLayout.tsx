@@ -24,6 +24,9 @@ export default function DashboardLayout() {
   const mustChangePassword = useSelector((s: RootState) =>
     Boolean(s.auth.user?.mustChangePassword),
   );
+  const tenantLocked = useSelector(
+    (s: RootState) => s.auth.user?.tenantStatus === 'VERIFICATION_REQUIRED',
+  );
   const { expired } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -94,6 +97,15 @@ export default function DashboardLayout() {
           }
         />
         <main id="main" className="flex-1 p-4 md:p-5">
+          {tenantLocked ? (
+            <p
+              role="status"
+              className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
+            >
+              This pharmacy is locked until KYC finishes. Floor modules stay closed; complete
+              verification from the owner path when it opens.
+            </p>
+          ) : null}
           <Outlet />
         </main>
       </div>

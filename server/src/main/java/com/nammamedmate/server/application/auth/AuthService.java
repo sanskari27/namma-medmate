@@ -3,11 +3,14 @@ package com.nammamedmate.server.application.auth;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.EmailNormalizer;
 import com.nammamedmate.server.domain.PasswordPolicy;
+import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.infrastructure.security.JwtService;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
@@ -28,6 +31,8 @@ public class AuthService {
   static final String INVALID_CREDENTIALS_MESSAGE = "Invalid email or password";
   static final String ACCOUNT_LOCKED_CODE = "ACCOUNT_CANNOT_SIGN_IN";
   static final String ACCOUNT_LOCKED_MESSAGE = "This account cannot sign in.";
+  static final String EMAIL_UNVERIFIED_CODE = "EMAIL_UNVERIFIED";
+  static final String EMAIL_UNVERIFIED_MESSAGE = "Verify the pharmacy email before signing in.";
   static final String PIN_ALREADY_SET_CODE = "PIN_ALREADY_SET";
   static final String PIN_ALREADY_SET_MESSAGE = "PIN is already set.";
   static final String PIN_NOT_SET_CODE = "PIN_NOT_SET";
@@ -40,6 +45,7 @@ public class AuthService {
 
   private final AppUserRepository appUserRepository;
   private final UserSessionRepository userSessionRepository;
+  private final TenantRepository tenantRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
   private final Clock clock;
@@ -48,12 +54,14 @@ public class AuthService {
   public AuthService(
       AppUserRepository appUserRepository,
       UserSessionRepository userSessionRepository,
+      TenantRepository tenantRepository,
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
       Clock clock,
       @Value("${app.session.ttl-minutes:720}") long sessionTtlMinutes) {
     this.appUserRepository = appUserRepository;
     this.userSessionRepository = userSessionRepository;
+    this.tenantRepository = tenantRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
     this.clock = clock;
@@ -74,6 +82,7 @@ public class AuthService {
     if (user.getStatus() != UserAccountStatus.ACTIVE) {
       throw new ApiException(HttpStatus.FORBIDDEN, ACCOUNT_LOCKED_CODE, ACCOUNT_LOCKED_MESSAGE);
     }
+    requireEmailVerifiedIfNeeded(user);
 
     Instant now = Instant.now(clock);
     appUserRepository.lockById(user.getId()).orElseThrow(AuthService::invalidCredentials);
@@ -180,6 +189,20 @@ public class AuthService {
     return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 
+  void requireEmailVerifiedIfNeeded(AppUser user) {
+    if (user.getTenantId() == null) {
+      return;
+    }
+    Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+    if (tenant == null || tenant.getDeletedAt() != null) {
+      throw new ApiException(HttpStatus.FORBIDDEN, ACCOUNT_LOCKED_CODE, ACCOUNT_LOCKED_MESSAGE);
+    }
+    if (tenant.getStatus() == TenantStatus.VERIFICATION_REQUIRED
+        && tenant.getEmailVerifiedAt() == null) {
+      throw new ApiException(HttpStatus.FORBIDDEN, EMAIL_UNVERIFIED_CODE, EMAIL_UNVERIFIED_MESSAGE);
+    }
+  }
+
   private AppUser lockActiveUser(AuthPrincipal principal) {
     return appUserRepository
         .lockById(principal.userId())
@@ -199,6 +222,15 @@ public class AuthService {
   }
 
   private AuthenticatedUser toAuthenticatedUser(AppUser user) {
+    TenantStatus tenantStatus = null;
+    Boolean emailVerified = null;
+    if (user.getTenantId() != null) {
+      Tenant tenant = tenantRepository.findById(user.getTenantId()).orElse(null);
+      if (tenant != null) {
+        tenantStatus = tenant.getStatus();
+        emailVerified = tenant.getEmailVerifiedAt() != null;
+      }
+    }
     return new AuthenticatedUser(
         user.getId(),
         user.getDisplayName(),
@@ -206,7 +238,9 @@ public class AuthService {
         user.getTenantId(),
         user.getPinHash() != null,
         PasswordPolicy.mustChange(
-            user.isMustChangePassword(), user.getPasswordChangedAt(), Instant.now(clock)));
+            user.isMustChangePassword(), user.getPasswordChangedAt(), Instant.now(clock)),
+        tenantStatus,
+        emailVerified);
   }
 
   private static void requireSixDigitPin(String pin) {
