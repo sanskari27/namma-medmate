@@ -53,11 +53,12 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 .orElse(null);
         Instant now = Instant.now(clock);
         if (session != null && session.getExpiresAt().isAfter(now)) {
+          AuthPrincipal withBranch = principal.withActiveBranchId(session.getActiveBranchId());
           UsernamePasswordAuthenticationToken authentication =
               new UsernamePasswordAuthenticationToken(
-                  principal,
+                  withBranch,
                   null,
-                  List.of(new SimpleGrantedAuthority("ROLE_" + principal.role().name())));
+                  List.of(new SimpleGrantedAuthority("ROLE_" + withBranch.role().name())));
           authentication.setDetails(new WebAuthenticationDetailsSource().buildDetails(request));
           SecurityContextHolder.getContext().setAuthentication(authentication);
         }

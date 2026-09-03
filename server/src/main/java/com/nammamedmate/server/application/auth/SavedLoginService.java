@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.auth;
 
+import com.nammamedmate.server.application.branch.SessionBranchService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.SavedLogin;
@@ -36,6 +37,7 @@ public class SavedLoginService {
   private final TenantRepository tenantRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
+  private final SessionBranchService sessionBranchService;
   private final Clock clock;
   private final long sessionTtlMinutes;
   private final long savedLoginTtlDays;
@@ -47,6 +49,7 @@ public class SavedLoginService {
       TenantRepository tenantRepository,
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
+      SessionBranchService sessionBranchService,
       Clock clock,
       @Value("${app.session.ttl-minutes:720}") long sessionTtlMinutes,
       @Value("${app.saved-login.ttl-days:30}") long savedLoginTtlDays) {
@@ -56,6 +59,7 @@ public class SavedLoginService {
     this.tenantRepository = tenantRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
+    this.sessionBranchService = sessionBranchService;
     this.clock = clock;
     this.sessionTtlMinutes = sessionTtlMinutes;
     this.savedLoginTtlDays = savedLoginTtlDays;
@@ -155,6 +159,7 @@ public class SavedLoginService {
     session.setExpiresAt(now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     session.setCreatedAt(now);
     userSessionRepository.saveAndFlush(session);
+    sessionBranchService.ensureDefaultActiveBranch(session.getId(), user);
 
     String token =
         jwtService.createToken(

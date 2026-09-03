@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.auth;
 
+import com.nammamedmate.server.application.branch.SessionBranchService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.EmailNormalizer;
 import com.nammamedmate.server.domain.PasswordPolicy;
@@ -48,6 +49,7 @@ public class AuthService {
   private final TenantRepository tenantRepository;
   private final PasswordEncoder passwordEncoder;
   private final JwtService jwtService;
+  private final SessionBranchService sessionBranchService;
   private final Clock clock;
   private final long sessionTtlMinutes;
 
@@ -57,6 +59,7 @@ public class AuthService {
       TenantRepository tenantRepository,
       PasswordEncoder passwordEncoder,
       JwtService jwtService,
+      SessionBranchService sessionBranchService,
       Clock clock,
       @Value("${app.session.ttl-minutes:720}") long sessionTtlMinutes) {
     this.appUserRepository = appUserRepository;
@@ -64,6 +67,7 @@ public class AuthService {
     this.tenantRepository = tenantRepository;
     this.passwordEncoder = passwordEncoder;
     this.jwtService = jwtService;
+    this.sessionBranchService = sessionBranchService;
     this.clock = clock;
     this.sessionTtlMinutes = sessionTtlMinutes;
   }
@@ -88,6 +92,7 @@ public class AuthService {
     appUserRepository.lockById(user.getId()).orElseThrow(AuthService::invalidCredentials);
     userSessionRepository.revokeActiveSessions(user.getId(), now);
     UserSession session = userSessionRepository.saveAndFlush(newSession(user, now));
+    sessionBranchService.ensureDefaultActiveBranch(session.getId(), user);
 
     String token =
         jwtService.createToken(

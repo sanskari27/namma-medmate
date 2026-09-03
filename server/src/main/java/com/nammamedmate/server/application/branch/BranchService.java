@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.branch;
 
+import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchCodeGenerator;
 import com.nammamedmate.server.domain.BranchSettingsSnapshot;
@@ -8,6 +9,7 @@ import com.nammamedmate.server.domain.BranchType;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.OperatingHoursValidator;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
+import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -29,29 +31,70 @@ public class BranchService {
 
   private final LocationRepository locationRepository;
   private final TenantRepository tenantRepository;
+  private final AppUserRepository appUserRepository;
+  private final BranchAssignmentService branchAssignmentService;
   private final Clock clock;
 
   public BranchService(
-      LocationRepository locationRepository, TenantRepository tenantRepository, Clock clock) {
+      LocationRepository locationRepository,
+      TenantRepository tenantRepository,
+      AppUserRepository appUserRepository,
+      BranchAssignmentService branchAssignmentService,
+      Clock clock) {
     this.locationRepository = locationRepository;
     this.tenantRepository = tenantRepository;
+    this.appUserRepository = appUserRepository;
+    this.branchAssignmentService = branchAssignmentService;
     this.clock = clock;
   }
 
   @Transactional(readOnly = true)
-  public List<BranchView> listForOwner(AuthPrincipal principal) {
-    UUID tenantId = requireOwnerTenant(principal);
+  public List<BranchView> listForTenantUser(AuthPrincipal principal) {
+    UUID tenantId = requireTenantUser(principal);
+    if (principal.role() == AppUserRole.pharmacy_owner) {
+      return locationRepository
+          .findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(tenantId)
+          .stream()
+          .map(BranchService::toView)
+          .toList();
+    }
+    if (principal.activeBranchId() != null) {
+      branchAssignmentService.assertActiveBranchAllowed(principal);
+    }
+    AppUser user =
+        appUserRepository
+            .findById(principal.userId())
+            .filter(row -> row.getDeletedAt() == null)
+            .orElseThrow(BranchService::forbidden);
     return locationRepository
         .findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(tenantId)
         .stream()
+        .filter(branch -> branchAssignmentService.canAccessBranch(user, branch.getId()))
         .map(BranchService::toView)
         .toList();
   }
 
   @Transactional(readOnly = true)
+  public BranchView getForTenantUser(AuthPrincipal principal, UUID branchId) {
+    UUID tenantId = requireTenantUser(principal);
+    Location branch = requireBranch(branchId, tenantId);
+    if (principal.role() != AppUserRole.pharmacy_owner) {
+      if (principal.activeBranchId() != null) {
+        branchAssignmentService.assertActiveBranchAllowed(principal);
+      }
+      branchAssignmentService.assertCanAccess(principal, branchId);
+    }
+    return toView(branch);
+  }
+
+  @Transactional(readOnly = true)
+  public List<BranchView> listForOwner(AuthPrincipal principal) {
+    return listForTenantUser(principal);
+  }
+
+  @Transactional(readOnly = true)
   public BranchView getForOwner(AuthPrincipal principal, UUID branchId) {
-    UUID tenantId = requireOwnerTenant(principal);
-    return toView(requireBranch(branchId, tenantId));
+    return getForTenantUser(principal, branchId);
   }
 
   @Transactional(readOnly = true)
@@ -322,6 +365,16 @@ public class BranchService {
     if (principal == null
         || principal.role() != AppUserRole.pharmacy_owner
         || principal.tenantId() == null) {
+      throw forbidden();
+    }
+    return principal.tenantId();
+  }
+
+  private UUID requireTenantUser(AuthPrincipal principal) {
+    if (principal == null
+        || principal.tenantId() == null
+        || (principal.role() != AppUserRole.pharmacy_owner
+            && principal.role() != AppUserRole.pharmacy_staff)) {
       throw forbidden();
     }
     return principal.tenantId();

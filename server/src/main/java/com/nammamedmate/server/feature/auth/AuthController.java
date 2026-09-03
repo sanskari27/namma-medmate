@@ -11,7 +11,11 @@ import com.nammamedmate.server.application.auth.LoginOutcome;
 import com.nammamedmate.server.application.auth.PasswordLifecycleService;
 import com.nammamedmate.server.application.auth.ResetAccepted;
 import com.nammamedmate.server.application.auth.SavedLoginService;
+import com.nammamedmate.server.application.branch.AssignedBranchView;
+import com.nammamedmate.server.application.branch.SessionBranchService;
+import com.nammamedmate.server.application.branch.SessionBranchView;
 import com.nammamedmate.server.application.impersonation.ImpersonationService;
+import com.nammamedmate.server.feature.branch.AssignedBranchResponse;
 import com.nammamedmate.server.infrastructure.security.AuthCookieService;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -19,6 +23,7 @@ import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
@@ -41,6 +46,7 @@ public class AuthController {
   private final AccessQueryService accessQueryService;
   private final AuditService auditService;
   private final ImpersonationService impersonationService;
+  private final SessionBranchService sessionBranchService;
 
   public AuthController(
       AuthService authService,
@@ -49,7 +55,8 @@ public class AuthController {
       AuthCookieService authCookieService,
       AccessQueryService accessQueryService,
       AuditService auditService,
-      ImpersonationService impersonationService) {
+      ImpersonationService impersonationService,
+      SessionBranchService sessionBranchService) {
     this.authService = authService;
     this.passwordLifecycleService = passwordLifecycleService;
     this.savedLoginService = savedLoginService;
@@ -57,6 +64,7 @@ public class AuthController {
     this.accessQueryService = accessQueryService;
     this.auditService = auditService;
     this.impersonationService = impersonationService;
+    this.sessionBranchService = sessionBranchService;
   }
 
   @PostMapping("/login")
@@ -79,7 +87,7 @@ public class AuthController {
           outcome.user().tenantId(),
           outcome.sessionId(),
           httpRequest);
-      return ApiResponse.ok(toResponse(outcome.user()));
+      return ApiResponse.ok(toResponse(outcome.user(), outcome.sessionId()));
     } catch (ApiException ex) {
       auditLogin(
           AuditService.LOGIN_ACTION,
@@ -129,7 +137,7 @@ public class AuthController {
           outcome.user().tenantId(),
           outcome.sessionId(),
           httpRequest);
-      return ApiResponse.ok(toResponse(outcome.user()));
+      return ApiResponse.ok(toResponse(outcome.user(), outcome.sessionId()));
     } catch (ApiException ex) {
       auditLogin(
           AuditService.PIN_LOGIN_ACTION,
@@ -166,9 +174,7 @@ public class AuthController {
   @GetMapping("/me")
   public ApiResponse<LoginResponse> me(Authentication authentication) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(
-        toResponse(
-            authService.currentUser(principal), impersonationService.currentView(principal)));
+    return ApiResponse.ok(toResponse(authService.currentUser(principal), principal));
   }
 
   @PostMapping("/pin")
@@ -181,7 +187,7 @@ public class AuthController {
     AuthenticatedUser user = authService.setPin(principal, request.pin());
     UUID deviceId = authCookieService.ensureDeviceId(httpRequest, response);
     savedLoginService.bind(deviceId, user.userId());
-    return ApiResponse.ok(toResponse(user));
+    return ApiResponse.ok(toResponse(user, principal));
   }
 
   @PostMapping("/pin/unlock")
@@ -193,7 +199,7 @@ public class AuthController {
     try {
       LoginOutcome outcome = authService.unlockPin(principal, request.pin());
       authCookieService.writeAccessToken(response, outcome.accessToken());
-      return ApiResponse.ok(toResponse(outcome.user()));
+      return ApiResponse.ok(toResponse(outcome.user(), outcome.sessionId()));
     } catch (ApiException ex) {
       if ("SESSION_REVOKED".equals(ex.getCode())) {
         authCookieService.clearAccessToken(response);
@@ -209,7 +215,8 @@ public class AuthController {
     return ApiResponse.ok(
         toResponse(
             passwordLifecycleService.changePassword(
-                principal, request.currentPassword(), request.newPassword())));
+                principal, request.currentPassword(), request.newPassword()),
+            principal));
   }
 
   @PostMapping("/password/reset-request")
@@ -233,7 +240,8 @@ public class AuthController {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
         toResponse(
-            passwordLifecycleService.adminReset(principal, request.email(), request.password())));
+            passwordLifecycleService.adminReset(principal, request.email(), request.password()),
+            principal));
   }
 
   private void auditLogin(
@@ -267,15 +275,26 @@ public class AuthController {
     return request.getRemoteAddr();
   }
 
-  private LoginResponse toResponse(AuthenticatedUser user) {
-    return toResponse(user, null);
+  private LoginResponse toResponse(AuthenticatedUser user, UUID sessionId) {
+    return toResponse(user, null, sessionBranchService.viewForSession(sessionId, user.userId()));
+  }
+
+  private LoginResponse toResponse(AuthenticatedUser user, AuthPrincipal principal) {
+    SessionBranchView branchView =
+        user.tenantId() == null
+            ? new SessionBranchView(null, List.of())
+            : sessionBranchService.currentFor(principal);
+    return toResponse(user, impersonationService.currentView(principal), branchView);
   }
 
   private LoginResponse toResponse(
       AuthenticatedUser user,
       com.nammamedmate.server.application.impersonation.ImpersonationService.ImpersonationView
-          impersonation) {
+          impersonation,
+      SessionBranchView branchView) {
     AccessIdentity identity = accessQueryService.identity(user.userId());
+    SessionBranchView branches =
+        branchView == null ? new SessionBranchView(null, List.of()) : branchView;
     return new LoginResponse(
         user.userId(),
         user.displayName(),
@@ -287,7 +306,14 @@ public class AuthController {
         identity.modules(),
         toImpersonation(impersonation),
         user.tenantStatus() == null ? null : user.tenantStatus().name(),
-        user.emailVerified());
+        user.emailVerified(),
+        branches.branches().stream().map(AuthController::toBranch).toList(),
+        branches.activeBranchId());
+  }
+
+  private static AssignedBranchResponse toBranch(AssignedBranchView view) {
+    return new AssignedBranchResponse(
+        view.id(), view.name(), view.branchCode(), view.status().name());
   }
 
   private static ImpersonationResponse toImpersonation(

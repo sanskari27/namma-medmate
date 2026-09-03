@@ -52,4 +52,29 @@ public interface UserSessionRepository extends JpaRepository<UserSession, UUID> 
       """)
   Optional<UserSession> lockActiveScopedSession(
       @Param("id") UUID id, @Param("userId") UUID userId, @Param("tenantId") UUID tenantId);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      """
+      update UserSession s
+      set s.activeBranchId = null
+      where s.userId = :userId
+        and s.revokedAt is null
+        and s.activeBranchId is not null
+        and s.activeBranchId not in :allowedBranchIds
+      """)
+  int clearActiveBranchIfNotIn(
+      @Param("userId") UUID userId,
+      @Param("allowedBranchIds") java.util.Collection<UUID> allowedBranchIds);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      """
+      update UserSession s
+      set s.activeBranchId = null
+      where s.userId = :userId
+        and s.revokedAt is null
+        and s.activeBranchId is not null
+      """)
+  int clearActiveBranch(@Param("userId") UUID userId);
 }

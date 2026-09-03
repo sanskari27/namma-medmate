@@ -4,10 +4,12 @@ import { notificationsReducer } from './notifications.slice';
 
 export {
   authReducer,
+  branchSwitched,
   logout,
   passwordChanged,
   pinEnrolled,
   sessionStarted,
+  type AssignedBranch,
   type AuthUser,
 } from './auth.slice';
 export {

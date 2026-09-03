@@ -9,6 +9,7 @@ import { AddTillLoginDialog } from './components/add-till-login-dialog';
 import { OffboardTillDialog } from './components/offboard-till-dialog';
 import { TillPasswordDialog } from './components/till-password-dialog';
 import { RolesDialog } from './components/roles-dialog';
+import { BranchesDialog } from './components/branches-dialog';
 import { TillRowMenu } from './components/till-row-menu';
 
 type PageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
@@ -82,6 +83,7 @@ export default function StaffAccountsScreen() {
   const [addOpen, setAddOpen] = useState(false);
   const [passwordFor, setPasswordFor] = useState<StaffAccount | null>(null);
   const [rolesFor, setRolesFor] = useState<StaffAccount | null>(null);
+  const [branchesFor, setBranchesFor] = useState<StaffAccount | null>(null);
   const [offboardFor, setOffboardFor] = useState<StaffAccount | null>(null);
   const [offboardBusy, setOffboardBusy] = useState(false);
 
@@ -194,6 +196,7 @@ export default function StaffAccountsScreen() {
                       staff={row}
                       onPassword={() => setPasswordFor(row)}
                       onRoles={() => setRolesFor(row)}
+                      onBranches={() => setBranchesFor(row)}
                       onOffboard={() => setOffboardFor(row)}
                     />
                   ) : (
@@ -236,6 +239,21 @@ export default function StaffAccountsScreen() {
               onOpenChange={(open) => {
                 if (!open) {
                   setRolesFor(null);
+                }
+              }}
+              onSuccess={(message) => {
+                setBanner(message);
+                setStatus('success');
+              }}
+            />
+          ) : null}
+          {branchesFor ? (
+            <BranchesDialog
+              staff={branchesFor}
+              open
+              onOpenChange={(open) => {
+                if (!open) {
+                  setBranchesFor(null);
                 }
               }}
               onSuccess={(message) => {

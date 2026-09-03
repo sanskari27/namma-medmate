@@ -3,10 +3,9 @@ import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@atoms';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { COUNTER_STORAGE_KEY, COUNTERS } from '@/libs/constants/counters.const';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 import { authReducer, notificationsReducer } from '@/store';
 
@@ -21,6 +20,16 @@ vi.mock('@/services/auth', async () => {
     isApiError: axios.isApiError,
   };
 });
+
+vi.mock('@/services/sessionBranch', () => ({
+  switchSessionBranch: vi.fn().mockResolvedValue({
+    activeBranchId: 'b2',
+    branches: [
+      { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+      { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+    ],
+  }),
+}));
 
 vi.mock('@/services/notifications', async () => {
   const axios = await import('@/services/axios');
@@ -41,6 +50,10 @@ vi.mock('@/services/notifications', async () => {
   };
 });
 
+import { switchSessionBranch } from '@/services/sessionBranch';
+
+const switchMock = vi.mocked(switchSessionBranch);
+
 function renderDashboard(
   path = ROUTES.DASHBOARD,
   displayName = 'Chemist',
@@ -58,6 +71,11 @@ function renderDashboard(
           pinSet: true,
           tenantStatus,
           emailVerified: true,
+          branches: [
+            { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+            { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+          ],
+          activeBranchId: null,
         },
       },
       notifications: {
@@ -94,6 +112,10 @@ function renderDashboard(
 }
 
 describe('dispensary counter rail', () => {
+  beforeEach(() => {
+    switchMock.mockClear();
+  });
+
   it('shows a KYC lock banner when the pharmacy is still VERIFICATION_REQUIRED', () => {
     renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'VERIFICATION_REQUIRED');
     expect(screen.getByRole('status')).toHaveTextContent(
@@ -134,17 +156,52 @@ describe('dispensary counter rail', () => {
     expect(within(rail).getByText('This pharmacy')).toBeInTheDocument();
   });
 
-  it('lets the chemist pick a counter from the branch switcher', async () => {
+  it('lets the chemist switch outlet from the branch switcher', async () => {
     const user = userEvent.setup();
+    const { store } = renderDashboard();
+
+    await user.click(screen.getByRole('button', { name: /this outlet/i }));
+    await user.click(screen.getByRole('menuitemradio', { name: /annex outlet/i }));
+
+    expect(switchMock).toHaveBeenCalledWith('b2');
+    expect(store.getState().auth.user?.activeBranchId).toBe('b2');
+    expect(screen.getByRole('button', { name: /annex outlet/i })).toBeInTheDocument();
+  });
+
+  it('lets the owner return to all outlets consolidated view', async () => {
+    const user = userEvent.setup();
+    switchMock.mockResolvedValueOnce({
+      activeBranchId: null,
+      branches: [
+        { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+        { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+      ],
+    });
+    const { store } = renderDashboard();
+    store.dispatch({
+      type: 'auth/branchSwitched',
+      payload: {
+        activeBranchId: 'b1',
+        branches: store.getState().auth.user?.branches,
+      },
+    });
+
+    await user.click(screen.getByRole('button', { name: /this outlet/i }));
+    await user.click(screen.getByRole('menuitemradio', { name: /all outlets/i }));
+
+    expect(switchMock).toHaveBeenCalledWith(null);
+    expect(store.getState().auth.user?.activeBranchId).toBeNull();
+  });
+
+  it('shows a failure when the outlet switch is denied', async () => {
+    const user = userEvent.setup();
+    switchMock.mockRejectedValueOnce(new Error('denied'));
     renderDashboard();
 
-    await user.click(screen.getByRole('button', { name: /this counter/i }));
-    await user.click(screen.getByRole('menuitemradio', { name: COUNTERS[1].name }));
+    await user.click(screen.getByRole('button', { name: /this outlet/i }));
+    await user.click(screen.getByRole('menuitemradio', { name: /annex outlet/i }));
 
-    expect(
-      screen.getByRole('button', { name: new RegExp(COUNTERS[1].name, 'i') }),
-    ).toBeInTheDocument();
-    expect(localStorage.getItem(COUNTER_STORAGE_KEY)).toBe(COUNTERS[1].id);
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not switch outlet');
   });
 
   it('groups floor modules and marks the open one as current', async () => {

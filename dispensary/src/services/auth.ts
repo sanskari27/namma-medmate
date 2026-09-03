@@ -13,6 +13,8 @@ export interface LoginIdentity {
   emailVerified?: boolean | null;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
+  branches?: { id: string; name: string; branchCode: string; status: string }[];
+  activeBranchId?: string | null;
 }
 
 export { ApiError, isApiError };
@@ -29,6 +31,8 @@ function toAuthUser(data: LoginIdentity): AuthUser {
     emailVerified: data.emailVerified ?? null,
     roles: data.roles,
     modules: data.modules,
+    branches: data.branches ?? [],
+    activeBranchId: data.activeBranchId ?? null,
   };
 }
 

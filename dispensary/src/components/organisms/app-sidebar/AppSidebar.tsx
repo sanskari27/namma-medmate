@@ -41,7 +41,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
@@ -60,12 +60,6 @@ import {
   DropdownMenuTrigger,
 } from '@molecules';
 import {
-  COUNTER_STORAGE_KEY,
-  COUNTERS,
-  PHARMACY_NAME,
-  type CounterId,
-} from '@/libs/constants/counters.const';
-import {
   DASHBOARD_NAV,
   MODULE_NAV_ITEMS,
   NAV_SECTIONS,
@@ -73,8 +67,12 @@ import {
   type NavItem,
 } from '@/libs/constants/routes.const';
 import { cn } from '@/libs/cn';
-import { logout, type RootState } from '@/store';
+import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
+import { switchSessionBranch } from '@/services/sessionBranch';
+
+const ALL_OUTLETS_ID = 'all';
+const PHARMACY_NAME = 'This pharmacy';
 
 const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.DASHBOARD]: Gauge,
@@ -109,11 +107,6 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.HELP]: CircleHelp,
 };
 
-function readStoredCounter(): CounterId {
-  const stored = localStorage.getItem(COUNTER_STORAGE_KEY);
-  return COUNTERS.some((counter) => counter.id === stored) ? (stored as CounterId) : COUNTERS[0].id;
-}
-
 function initials(name: string) {
   const parts = name.trim().split(/\s+/).filter(Boolean);
   if (parts.length === 0) return 'C';
@@ -135,15 +128,26 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const dispatch = useDispatch();
   const navigate = useNavigate();
   const { pathname } = useLocation();
-  const displayName = useSelector((s: RootState) => s.auth.user?.displayName) ?? 'Chemist';
-  const [counterId, setCounterId] = useState<CounterId>(readStoredCounter);
+  const user = useSelector((s: RootState) => s.auth.user);
+  const displayName = user?.displayName ?? 'Chemist';
+  const isOwner = user?.role === 'pharmacy_owner';
+  const branches = user?.branches ?? [];
+  const activeBranchId = user?.activeBranchId ?? null;
+  const selectedId =
+    activeBranchId ?? (isOwner ? ALL_OUTLETS_ID : (branches[0]?.id ?? ALL_OUTLETS_ID));
+  const selectedLabel =
+    selectedId === ALL_OUTLETS_ID
+      ? 'All outlets'
+      : (branches.find((branch) => branch.id === selectedId)?.name ?? 'This outlet');
+  const selectedCode =
+    selectedId === ALL_OUTLETS_ID
+      ? 'ALL'
+      : (branches.find((branch) => branch.id === selectedId)?.branchCode ?? '—');
+  const [switchBusy, setSwitchBusy] = useState(false);
+  const [switchError, setSwitchError] = useState<string | null>(null);
   const [profileOpen, setProfileOpen] = useState(false);
   const [openSections, setOpenSections] = useState<string[]>(() =>
     NAV_SECTIONS.map((section) => section.id),
-  );
-  const counter = useMemo(
-    () => COUNTERS.find((item) => item.id === counterId) ?? COUNTERS[0],
-    [counterId],
   );
 
   useEffect(() => {
@@ -154,11 +158,27 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
     );
   }, [pathname]);
 
-  const selectCounter = (id: string) => {
-    if (!COUNTERS.some((item) => item.id === id)) return;
-    const next = id as CounterId;
-    setCounterId(next);
-    localStorage.setItem(COUNTER_STORAGE_KEY, next);
+  const selectOutlet = (id: string) => {
+    if (switchBusy) return;
+    const nextBranchId = id === ALL_OUTLETS_ID ? null : id;
+    if ((activeBranchId ?? null) === nextBranchId) return;
+    setSwitchBusy(true);
+    setSwitchError(null);
+    void switchSessionBranch(nextBranchId)
+      .then((result) => {
+        dispatch(
+          branchSwitched({
+            activeBranchId: result.activeBranchId,
+            branches: result.branches,
+          }),
+        );
+      })
+      .catch(() => {
+        setSwitchError('Could not switch outlet. Try again.');
+      })
+      .finally(() => {
+        setSwitchBusy(false);
+      });
   };
 
   const toggleSection = (id: string) => {
@@ -214,32 +234,34 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
               <TooltipTrigger asChild>
                 <button
                   type="button"
-                  aria-label={`This counter: ${counter.name}`}
+                  aria-label={`This outlet: ${selectedLabel}`}
                   className="flex size-9 cursor-pointer items-center justify-center rounded-md bg-canvas text-ink hover:bg-brand-soft"
+                  disabled={switchBusy || branches.length === 0}
                 >
                   <MapPin className="size-4 text-brand" aria-hidden />
                 </button>
               </TooltipTrigger>
-              <TooltipContent side="right">This counter: {counter.name}</TooltipContent>
+              <TooltipContent side="right">This outlet: {selectedLabel}</TooltipContent>
             </Tooltip>
           ) : (
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
                   type="button"
-                  aria-label={`This counter: ${counter.name}`}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-md bg-canvas px-2.5 py-2 text-left text-ink hover:bg-brand-soft"
+                  aria-label={`This outlet: ${selectedLabel}`}
+                  className="flex w-full cursor-pointer items-center gap-2 rounded-md bg-canvas px-2.5 py-2 text-left text-ink hover:bg-brand-soft disabled:opacity-60"
+                  disabled={switchBusy || (branches.length === 0 && !isOwner)}
                 >
                   <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-brand-soft text-brand">
                     <MapPin className="size-3.5" aria-hidden />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block text-[10px] leading-none text-muted">This counter</span>
+                    <span className="block text-[10px] leading-none text-muted">This outlet</span>
                     <span className="mt-0.5 block truncate text-sm leading-tight font-medium">
-                      {counter.name}
+                      {selectedLabel}
                     </span>
                   </span>
-                  <span className="font-mono text-[10px] text-muted">{counter.code}</span>
+                  <span className="font-mono text-[10px] text-muted">{selectedCode}</span>
                   <ChevronsUpDown className="size-3.5 shrink-0 text-muted" aria-hidden />
                 </button>
               </DropdownMenuTrigger>
@@ -247,20 +269,38 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
                 align="start"
                 className="w-[var(--radix-dropdown-menu-trigger-width)]"
               >
-                <DropdownMenuLabel>This counter</DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={counterId} onValueChange={selectCounter}>
-                  {COUNTERS.map((item) => (
+                <DropdownMenuLabel>This outlet</DropdownMenuLabel>
+                <DropdownMenuRadioGroup value={selectedId} onValueChange={selectOutlet}>
+                  {isOwner ? (
+                    <DropdownMenuRadioItem value={ALL_OUTLETS_ID} aria-label="All outlets">
+                      <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+                        <span className="truncate">All outlets</span>
+                        <span className="font-mono text-[10px] text-muted">ALL</span>
+                      </span>
+                    </DropdownMenuRadioItem>
+                  ) : null}
+                  {branches.map((item) => (
                     <DropdownMenuRadioItem key={item.id} value={item.id} aria-label={item.name}>
                       <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
                         <span className="truncate">{item.name}</span>
-                        <span className="font-mono text-[10px] text-muted">{item.code}</span>
+                        <span className="font-mono text-[10px] text-muted">{item.branchCode}</span>
                       </span>
                     </DropdownMenuRadioItem>
                   ))}
                 </DropdownMenuRadioGroup>
+                {switchError ? (
+                  <p role="alert" className="px-2 py-1.5 text-xs text-danger">
+                    {switchError}
+                  </p>
+                ) : null}
               </DropdownMenuContent>
             </DropdownMenu>
           )}
+          {switchError && !collapsed ? (
+            <p role="alert" className="mt-1.5 px-0.5 text-[11px] text-danger">
+              {switchError}
+            </p>
+          ) : null}
         </div>
       </header>
 
@@ -397,7 +437,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
             </div>
             <div>
               <dt className="text-muted">Counter</dt>
-              <dd className="font-medium text-ink">{counter.name}</dd>
+              <dd className="font-medium text-ink">{selectedLabel}</dd>
             </div>
           </dl>
           <div className="mt-5 flex justify-end">

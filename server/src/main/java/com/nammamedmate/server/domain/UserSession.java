@@ -32,6 +32,9 @@ public class UserSession {
   @Column(name = "pin_failed_attempts", nullable = false)
   private int pinFailedAttempts;
 
+  @Column(name = "active_branch_id")
+  private UUID activeBranchId;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 }

@@ -15,6 +15,7 @@ import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
+import java.util.List;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -71,7 +72,11 @@ public class ImpersonationController {
         user.mustChangePassword(),
         identity.roles().stream().map(ImpersonationController::toAssigned).toList(),
         identity.modules(),
-        toImpersonation(outcome.impersonation()));
+        toImpersonation(outcome.impersonation()),
+        null,
+        null,
+        List.of(),
+        null);
   }
 
   private static ImpersonationResponse toImpersonation(ImpersonationView view) {

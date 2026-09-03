@@ -9,6 +9,7 @@ import static org.mockito.Mockito.never;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nammamedmate.server.application.branch.SessionBranchService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.UserAccountStatus;
@@ -44,6 +45,7 @@ class AuthServiceTest {
   @Mock private TenantRepository tenantRepository;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private JwtService jwtService;
+  @Mock private SessionBranchService sessionBranchService;
 
   private AuthService authService;
 
@@ -56,6 +58,7 @@ class AuthServiceTest {
             tenantRepository,
             passwordEncoder,
             jwtService,
+            sessionBranchService,
             Clock.fixed(NOW, ZoneOffset.UTC),
             720L);
   }

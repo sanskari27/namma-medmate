@@ -14,10 +14,17 @@ interface TillRowMenuProps {
   staff: StaffAccount;
   onPassword: () => void;
   onRoles: () => void;
+  onBranches: () => void;
   onOffboard: () => void;
 }
 
-export function TillRowMenu({ staff, onPassword, onRoles, onOffboard }: TillRowMenuProps) {
+export function TillRowMenu({
+  staff,
+  onPassword,
+  onRoles,
+  onBranches,
+  onOffboard,
+}: TillRowMenuProps) {
   const terminated = staff.status === 'TERMINATED';
 
   return (
@@ -40,6 +47,9 @@ export function TillRowMenu({ staff, onPassword, onRoles, onOffboard }: TillRowM
         </DropdownMenuItem>
         <DropdownMenuItem onSelect={() => onRoles()} disabled={terminated}>
           Roles
+        </DropdownMenuItem>
+        <DropdownMenuItem onSelect={() => onBranches()} disabled={terminated}>
+          Outlets
         </DropdownMenuItem>
         <DropdownMenuSeparator />
         <DropdownMenuItem onSelect={() => onOffboard()} disabled={terminated}>

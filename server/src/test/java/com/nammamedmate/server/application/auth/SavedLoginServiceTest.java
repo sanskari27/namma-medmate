@@ -6,6 +6,7 @@ import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
+import com.nammamedmate.server.application.branch.SessionBranchService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.SavedLogin;
@@ -41,6 +42,7 @@ class SavedLoginServiceTest {
   @Mock private TenantRepository tenantRepository;
   @Mock private PasswordEncoder passwordEncoder;
   @Mock private JwtService jwtService;
+  @Mock private SessionBranchService sessionBranchService;
 
   private SavedLoginService service;
 
@@ -54,6 +56,7 @@ class SavedLoginServiceTest {
             tenantRepository,
             passwordEncoder,
             jwtService,
+            sessionBranchService,
             Clock.fixed(NOW, ZoneOffset.UTC),
             720L,
             30L);

@@ -3,6 +3,13 @@ import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 
 const AUTH_STORAGE_KEY = 'nmm.dispensary.session';
 
+export interface AssignedBranch {
+  id: string;
+  name: string;
+  branchCode: string;
+  status: string;
+}
+
 export interface AuthUser {
   userId: string;
   displayName: string;
@@ -14,6 +21,8 @@ export interface AuthUser {
   emailVerified?: boolean | null;
   roles?: { id: string; name: string; code: string | null; kind: string }[];
   modules?: string[];
+  branches?: AssignedBranch[];
+  activeBranchId?: string | null;
 }
 
 interface AuthState {
@@ -54,6 +63,18 @@ const authSlice = createSlice({
         localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
       }
     },
+    branchSwitched: (
+      state,
+      action: PayloadAction<{ activeBranchId: string | null; branches?: AssignedBranch[] }>,
+    ) => {
+      if (state.user) {
+        state.user.activeBranchId = action.payload.activeBranchId;
+        if (action.payload.branches) {
+          state.user.branches = action.payload.branches;
+        }
+        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
+      }
+    },
     logout: (state) => {
       state.user = null;
       localStorage.removeItem(AUTH_STORAGE_KEY);
@@ -62,5 +83,6 @@ const authSlice = createSlice({
   },
 });
 
-export const { sessionStarted, pinEnrolled, passwordChanged, logout } = authSlice.actions;
+export const { sessionStarted, pinEnrolled, passwordChanged, branchSwitched, logout } =
+  authSlice.actions;
 export const authReducer = authSlice.reducer;
