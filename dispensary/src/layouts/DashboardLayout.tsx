@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Outlet, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   CounterAlertBell,
@@ -102,8 +102,11 @@ export default function DashboardLayout() {
               role="status"
               className="mb-4 border border-warn bg-canvas px-3 py-2 text-sm text-ink"
             >
-              This pharmacy is locked until KYC finishes. Floor modules stay closed; complete
-              verification from the owner path when it opens.
+              This pharmacy is locked until KYC finishes. Floor modules stay closed;{' '}
+              <Link className="font-medium text-brand underline" to={ROUTES.ACCOUNT}>
+                open pharmacy account / KYC
+              </Link>{' '}
+              to submit or check the pack.
             </p>
           ) : null}
           <Outlet />

@@ -99,6 +99,10 @@ describe('dispensary counter rail', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'This pharmacy is locked until KYC finishes',
     );
+    expect(screen.getByRole('link', { name: /open pharmacy account \/ kyc/i })).toHaveAttribute(
+      'href',
+      ROUTES.ACCOUNT,
+    );
   });
 
   it('hides the KYC lock banner for an ACTIVE pharmacy', () => {

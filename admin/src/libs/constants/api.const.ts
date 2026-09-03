@@ -22,4 +22,5 @@ export const API = {
   APPROVAL_PENDING: '/api/v1/approvals/pending',
   APPROVAL_REQUESTS: '/api/v1/approvals/requests',
   AUDIT: '/api/v1/audit',
+  ADMIN_KYC: '/api/v1/admin/kyc',
 } as const;

@@ -78,6 +78,10 @@ public class TenantAccessFilter extends OncePerRequestFilter {
     if ("POST".equalsIgnoreCase(method) && "/api/v1/auth/pin/unlock".equals(path)) {
       return true;
     }
+    if (("GET".equalsIgnoreCase(method) || "POST".equalsIgnoreCase(method))
+        && path.matches("/api/v1/tenants/[^/]+/kyc")) {
+      return true;
+    }
     return "DELETE".equalsIgnoreCase(method) && "/api/v1/admin/impersonation".equals(path);
   }
 }

@@ -14,6 +14,7 @@ import HqSignOffsScreen from '@/screens/hq-sign-offs/HqSignOffsScreen';
 import PlatformActivityScreen from '@/screens/platform-activity/PlatformActivityScreen';
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import SupportSessionScreen from '@/screens/support-session/SupportSessionScreen';
+import KycQueueScreen from '@/screens/kyc-queue/KycQueueScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
@@ -34,7 +35,7 @@ const router = createBrowserRouter([
         children: [
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.PHARMACIES, element: <StubScreen title="Pharmacies" /> },
-          { path: ROUTES.KYC, element: <StubScreen title="KYC queue" /> },
+          { path: ROUTES.KYC, element: <KycQueueScreen /> },
           { path: ROUTES.SUBSCRIPTIONS, element: <StubScreen title="Subscriptions" /> },
           { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
           { path: ROUTES.SUPPORT, element: <SupportSessionScreen /> },
