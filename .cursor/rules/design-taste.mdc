@@ -19,6 +19,21 @@ Each SPA already has a locked identity. Load it and obey it:
 Use `@theme` tokens (`bg-canvas`, `text-ink`, `bg-brand`, `border-line`).
 Never `slate-500`, `emerald-600`, `sky-600`, or `blue-600` on new UI.
 
+## Robust and clean
+
+Prefer operational clarity over decoration. Done means:
+
+- One clear hierarchy per view (title → primary action → content → quiet
+  secondary). No competing hero blocks on ERP screens.
+- Consistent spacing and alignment across sibling regions (same inset,
+  gap, border treatment). Hairline `border-line` surfaces beat card stacks.
+- Reserved space for loading / empty / error so the layout does not jump.
+- Dense, aligned forms and tables; labels above fields; actions in a stable
+  footer/bar when editing.
+- Split UI into small region components so each piece can stay visually
+  disciplined (see `react-story/composition.md`). A monolithic JSX dump is
+  usually a messy layout.
+
 ## Layout
 
 - Dispensary: dense tables and forms, tight type, left brand rail. Speed.

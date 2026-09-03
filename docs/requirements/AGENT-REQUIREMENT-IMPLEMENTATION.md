@@ -6,7 +6,7 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 18 |
+| done | 19 |
 | in_progress | 0 |
 | implemented | 1 |
 | verified | 0 |
@@ -35,7 +35,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M2-S06 | M2 | server + dispensary | ready | M2-S04, M4-S03, M1-S07 | — | — |
 | M2-S07 | M2 | server + dispensary | done | M2-S04 | D-009 closed | Verifier PASS (story-verifier). Server KIOSK Pro + V18 session/tickets; dispensary KioskScreen states; gates green; browser open→token→close. |
 | M3-S01 | M3 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V19 customer (tenant_id, phone unique); CustomerService/Controller GET/POST/PATCH /api/v1/customers; CRM module gate; PHONE_TAKEN 409; no login fields. Tests CustomerTest (AC01–AC05), CustomerRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 345 tests BUILD SUCCESS. Dispensary: CustomersScreen + CustomerCreateDialog template; services/customers.ts; route /customers. SPA lint+193 tests+build. `make compose-config` OK. Browser: :5173 Customers list Smoke Customer; Add dialog duplicate phone → alert + Search this phone. Host API: create+PHONE_TAKEN+search 200. |
-| M3-S02 | M3 | server + dispensary | ready | M3-S01 | — | — |
+| M3-S02 | M3 | server + dispensary | done | M3-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: tenant-scoped notification count/repoint; MergeDialogStatus + MergeConflictFields (dialog 238 lines). Server: V20 merge provenance; CustomerMergeService POST /api/v1/customers/merge PREVIEW|EXECUTE; soft-deactivate + provenance. Tests CustomerMergeTest AC01–AC05, CustomerMergeRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 351 tests BUILD SUCCESS. Dispensary: CustomerMergeDialog + CustomersScreen Merge duplicate; lint+204 tests+build. `make compose-config` OK. Requirements valid. Host API PREVIEW/EXECUTE OK; IDE browser cannot reach API. |
 | M3-S03 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S04 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S05 | M3 | server + dispensary | ready | M3-S03 | — | — |

@@ -14,7 +14,9 @@ React screen using the Spring checklist.
 
 - `server` → follow the `spring-story` skill (and its TDD matrix).
 - `dispensary` and/or `admin` → follow the `react-story` skill once per SPA,
-  including that app's uniqueness reference.
+  including that app's uniqueness reference and `composition.md`. Screens
+  orchestrate; split UI into small region components. Do not ship monolith
+  screen files or decorative/generic layouts.
 
 Run every listed target gate. Return separate Spring and React evidence:
 changed files, failing-test evidence, passing tests, exact gate

@@ -52,3 +52,48 @@ export async function updateCustomer(id: string, input: CustomerInput): Promise<
   const { data } = await apiClient.patch<Customer>(API.customer(id), input);
   return data;
 }
+
+export type MergeSide = 'SURVIVOR' | 'DUPLICATE';
+
+export interface CustomerMergeField {
+  field: string;
+  status: 'SAME' | 'SURVIVOR_ONLY' | 'DUPLICATE_ONLY' | 'CONFLICT';
+  survivorValue: string | null;
+  duplicateValue: string | null;
+}
+
+export interface CustomerMergePreview {
+  mode: 'PREVIEW';
+  survivor: Customer;
+  duplicate: Customer;
+  fields: CustomerMergeField[];
+  conflicts: string[];
+  linkedRecords: { notificationEvents: number };
+}
+
+export async function previewCustomerMerge(
+  survivorId: string,
+  duplicateId: string,
+): Promise<CustomerMergePreview> {
+  const { data } = await apiClient.post<CustomerMergePreview>(API.CUSTOMERS_MERGE, {
+    mode: 'PREVIEW',
+    survivorId,
+    duplicateId,
+    resolutions: {},
+  });
+  return data;
+}
+
+export async function executeCustomerMerge(
+  survivorId: string,
+  duplicateId: string,
+  resolutions: Record<string, MergeSide>,
+): Promise<Customer> {
+  const { data } = await apiClient.post<Customer>(API.CUSTOMERS_MERGE, {
+    mode: 'EXECUTE',
+    survivorId,
+    duplicateId,
+    resolutions,
+  });
+  return data;
+}

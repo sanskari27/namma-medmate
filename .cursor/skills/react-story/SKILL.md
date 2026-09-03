@@ -1,6 +1,6 @@
 ---
 name: react-story
-description: Implement a Namma MedMate dispensary or admin story slice with React 19 TDD, app-unique UX, required UI states, accessibility, axios/RTK, and npm gates. Use when the story apps list includes dispensary or admin, or when changing those SPAs.
+description: Implement a Namma MedMate dispensary or admin story slice with React 19 TDD, small composed components, robust clean UX, required UI states, accessibility, axios/RTK, and npm gates. Use when the story apps list includes dispensary or admin, or when changing those SPAs.
 ---
 
 # React story slice
@@ -13,6 +13,9 @@ Before coding, load the matching uniqueness reference:
 
 - `dispensary` → [dispensary.md](dispensary.md)
 - `admin` → [admin.md](admin.md)
+
+Also load [composition.md](composition.md) before writing JSX. Follow rules
+`design-taste` and `react-folder-structure`.
 
 ## TDD
 
@@ -36,23 +39,55 @@ denied, conflict, failure, success.
 - Server remains authoritative for auth, tenant, branch, plan, totals, prices.
   UI guards improve UX only.
 
+## Composition (hard rule)
+
+A screen file **orchestrates**. It does not own the whole UI tree inline.
+
+- Default: `Screen.tsx` + `Screen.utils.ts` + private
+  `screens/<name>/components/<child>/` pieces. See [composition.md](composition.md).
+- Split by region or concern (header, list, detail, form section, status
+  banner, empty state, dialog body) — not one mega-component with every field.
+- A component does **not** need everything in it. Prefer props-in / events-out
+  children under ~120 lines of JSX each. Extract when a file grows past ~200
+  lines or mixes two visual regions.
+- Keep forms as section components (`ContactFields`, `HealthFields`,
+  `AddressFields`) composed by a panel — not one 300-line form JSX block.
+- Do not leave a 400+ line `*Screen.tsx` with markup, helpers, and status
+  copy all inlined. That shape is incomplete work; split before gates.
+
+Good reference shape: `dispensary/src/screens/customers/` (header / list /
+profile / status as siblings). Bad shape: a single `BranchesScreen.tsx` that
+embeds list + form + status + helpers in one file.
+
+## Design quality
+
+Ship **robust, clean** operational UI — not decorative dashboards.
+
+- Clear hierarchy: one primary action, scannable secondary actions, quiet
+  chrome. Consistent spacing rhythm (token-aligned gaps, aligned columns).
+- Dense where the persona needs speed (dispensary tables/forms); calm scan
+  density for admin oversight. No equal card grids, soft shadows, or
+  marketing hero chrome on ERP screens.
+- Stable states: loading / empty / error / success occupy reserved space so
+  layout does not jump. Disabled + busy are explicit.
+- Use that app's `@theme` tokens, `src/components/atoms` primitives, Lucide,
+  and `motion/react` (one reveal per route). Charts via Recharts helpers in
+  `src/components/molecules`. No GSAP/Lenis/Rive/Lottie.
+- Do not copy pages, tokens, or copy between dispensary and admin.
+- When the story requires real auth, remove scaffold `dev-token` login.
+
 ## UX and a11y
 
 - Semantic labels on every field. Keyboard submit and escape. Visible focus.
   Restore focus after dialogs/routes.
 - Status is not color-only. No emoji-as-icons. No unlabeled placeholders.
-- When the story requires real auth, remove scaffold `dev-token` login.
-- Do not copy pages, tokens, or copy between dispensary and admin.
-- Use that app's `@theme` tokens, `src/components/atoms` primitives, Lucide,
-  and `motion/react` (one reveal per route). Charts go through Recharts
-  helpers in `src/components/molecules`. Follow rules `design-taste` and
-  `react-folder-structure`. No GSAP/Lenis/Rive/Lottie.
 
 ## Browser check
 
 Exercise the changed flow in the browser before claiming the UI slice done.
-Screenshot the result, critique generic tells, and fix before finishing.
-A single screenshot is not evidence.
+Screenshot the result, critique density, hierarchy, contrast, composition
+splits, and generic tells. Fix, then re-screenshot. A single screenshot is
+not evidence.
 
 ## Gates
 
@@ -63,5 +98,6 @@ cd dispensary && npm run lint && npm run test -- --run && npm run build
 cd admin && npm run lint && npm run test -- --run && npm run build
 ```
 
-Run only the apps in `apps`. Return per-app files, failing-then-passing tests,
-state/a11y coverage, uniqueness notes, browser-check notes, and exact output.
+Run only the apps in `apps`. Return per-app files (list each new child
+component), failing-then-passing tests, state/a11y coverage, uniqueness
+notes, browser-check notes, and exact gate output.

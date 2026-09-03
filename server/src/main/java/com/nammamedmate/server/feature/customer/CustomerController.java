@@ -1,15 +1,20 @@
 package com.nammamedmate.server.feature.customer;
 
+import com.nammamedmate.server.application.customer.CustomerMergePreview;
+import com.nammamedmate.server.application.customer.CustomerMergeService;
 import com.nammamedmate.server.application.customer.CustomerService;
 import com.nammamedmate.server.application.customer.CustomerView;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.UUID;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -26,9 +31,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class CustomerController {
 
   private final CustomerService customerService;
+  private final CustomerMergeService customerMergeService;
 
-  public CustomerController(CustomerService customerService) {
+  public CustomerController(
+      CustomerService customerService, CustomerMergeService customerMergeService) {
     this.customerService = customerService;
+    this.customerMergeService = customerMergeService;
   }
 
   @GetMapping
@@ -63,6 +71,25 @@ public class CustomerController {
                 request.bloodGroup(),
                 request.allergies(),
                 request.chronicConditions())));
+  }
+
+  @PostMapping("/merge")
+  public ApiResponse<?> merge(
+      Authentication authentication, @Valid @RequestBody MergeCustomerRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    MergeMode mode = parseMode(request.mode());
+    if (mode == MergeMode.PREVIEW) {
+      CustomerMergePreview preview =
+          customerMergeService.preview(principal, request.survivorId(), request.duplicateId());
+      return ApiResponse.ok(toMergePreviewResponse(preview));
+    }
+    return ApiResponse.ok(
+        toResponse(
+            customerMergeService.execute(
+                principal,
+                request.survivorId(),
+                request.duplicateId(),
+                request.resolutions() == null ? Map.of() : request.resolutions())));
   }
 
   @PatchMapping("/{id}")
@@ -104,6 +131,37 @@ public class CustomerController {
         view.updatedAt());
   }
 
+  private MergePreviewResponse toMergePreviewResponse(CustomerMergePreview preview) {
+    return new MergePreviewResponse(
+        preview.mode(),
+        toResponse(preview.survivor()),
+        toResponse(preview.duplicate()),
+        preview.fields().stream()
+            .map(
+                field ->
+                    new MergeFieldResponse(
+                        field.field(),
+                        field.status(),
+                        field.survivorValue(),
+                        field.duplicateValue()))
+            .toList(),
+        preview.conflicts(),
+        new MergeLinkedRecordsResponse(preview.linkedRecords().notificationEvents()));
+  }
+
+  private static MergeMode parseMode(String mode) {
+    if (mode == null || mode.isBlank()) {
+      throw new com.nammamedmate.server.shared.exception.ApiException(
+          org.springframework.http.HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    try {
+      return MergeMode.valueOf(mode.trim().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException ex) {
+      throw new com.nammamedmate.server.shared.exception.ApiException(
+          org.springframework.http.HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+  }
+
   public record CustomerListResponse(List<CustomerResponse> items) {}
 
   public record CustomerResponse(
@@ -131,4 +189,28 @@ public class CustomerController {
       @Size(max = 16) String bloodGroup,
       String allergies,
       String chronicConditions) {}
+
+  public record MergeCustomerRequest(
+      @NotBlank String mode,
+      @NotNull UUID survivorId,
+      @NotNull UUID duplicateId,
+      Map<String, String> resolutions) {}
+
+  public record MergePreviewResponse(
+      String mode,
+      CustomerResponse survivor,
+      CustomerResponse duplicate,
+      List<MergeFieldResponse> fields,
+      List<String> conflicts,
+      MergeLinkedRecordsResponse linkedRecords) {}
+
+  public record MergeFieldResponse(
+      String field, String status, String survivorValue, String duplicateValue) {}
+
+  public record MergeLinkedRecordsResponse(long notificationEvents) {}
+
+  private enum MergeMode {
+    PREVIEW,
+    EXECUTE
+  }
 }

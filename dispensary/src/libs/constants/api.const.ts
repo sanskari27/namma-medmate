@@ -31,6 +31,7 @@ export const API = {
   KIOSK_CLOSE: '/api/v1/kiosk/close',
   KIOSK_TICKETS: '/api/v1/kiosk/tickets',
   CUSTOMERS: '/api/v1/customers',
+  CUSTOMERS_MERGE: '/api/v1/customers/merge',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   customer: (id: string) => `/api/v1/customers/${id}`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,

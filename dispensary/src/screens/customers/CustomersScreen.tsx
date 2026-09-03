@@ -1,4 +1,4 @@
-import { CustomerCreateDialog } from '@templates';
+import { CustomerCreateDialog, CustomerMergeDialog } from '@templates';
 import { isApiError, listCustomers, updateCustomer, type Customer } from '@/services/customers';
 import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -23,12 +23,14 @@ export default function CustomersScreen() {
   const formId = useId();
   const statusId = useId();
   const addRef = useRef<HTMLButtonElement | null>(null);
+  const mergeRef = useRef<HTMLButtonElement | null>(null);
   const [status, setStatus] = useState<PageStatus>('loading');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [form, setForm] = useState<FormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
+  const [mergeOpen, setMergeOpen] = useState(false);
   const [busy, setBusy] = useState(false);
 
   const allowed = hasCrmAccess(user?.modules);
@@ -166,6 +168,8 @@ export default function CustomersScreen() {
           onChange={updateField}
           onSave={onSave}
           onClose={clearSelection}
+          mergeButtonRef={mergeRef}
+          onMerge={() => setMergeOpen(true)}
         />
       </div>
 
@@ -186,6 +190,20 @@ export default function CustomersScreen() {
           );
           selectCustomer(customer);
           setStatus('success');
+        }}
+      />
+
+      <CustomerMergeDialog
+        open={mergeOpen}
+        survivor={selected}
+        candidates={customers}
+        onOpenChange={setMergeOpen}
+        onCloseFocus={() => mergeRef.current?.focus()}
+        onMerged={(merged) => {
+          void load(query.trim() || undefined).then(() => {
+            selectCustomer(merged);
+            setStatus('success');
+          });
         }}
       />
     </div>

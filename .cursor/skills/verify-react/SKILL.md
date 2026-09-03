@@ -27,12 +27,21 @@ or [admin.md](../react-story/admin.md).
    automatic `FAIL`. New UI uses `@theme` tokens, not `slate-*` /
    `emerald-600` / `sky-600`. Generic AI tells (ALL-CAPS eyebrows,
    arrow-suffix CTAs, identical shadowed card grids) are a `FAIL`.
-8. Scaffold `dev-token` login is gone when the story requires real auth.
-9. First UI story in an app installed Vitest + Testing Library + `npm test`.
-10. Listed app gates passed (`lint`, `test -- --run`, `build`). Evidence
+   Weak hierarchy, jumpy status layout, or decorative card chrome on ERP
+   screens is a `FAIL` against robust/clean design taste.
+8. Composition: the screen orchestrates; major regions live under
+   `screens/<name>/components/`. A new or heavily changed `*Screen.tsx`
+   that still inlines list + form + status helpers (~300+ lines or two+
+   visual regions in one file) is an automatic `FAIL`. Form field groups
+   must be split when more than one section exists. Cite
+   `react-story/composition.md`.
+9. Scaffold `dev-token` login is gone when the story requires real auth.
+10. First UI story in an app installed Vitest + Testing Library + `npm test`.
+11. Listed app gates passed (`lint`, `test -- --run`, `build`). Evidence
     includes command output. Browser-check notes exist for the changed
-    flow, including a screenshot self-critique against `design-taste`.
-11. Diff has no unlisted app, no Spring layering work claimed as UI evidence.
+    flow, including a screenshot self-critique against `design-taste` and
+    composition splits.
+12. Diff has no unlisted app, no Spring layering work claimed as UI evidence.
 
 ## Verdict input
 

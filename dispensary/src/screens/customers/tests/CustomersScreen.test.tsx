@@ -16,16 +16,26 @@ vi.mock('@/services/customers', async () => {
     getCustomer: vi.fn(),
     createCustomer: vi.fn(),
     updateCustomer: vi.fn(),
+    previewCustomerMerge: vi.fn(),
+    executeCustomerMerge: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { createCustomer, listCustomers, updateCustomer } from '@/services/customers';
+import {
+  createCustomer,
+  executeCustomerMerge,
+  listCustomers,
+  previewCustomerMerge,
+  updateCustomer,
+} from '@/services/customers';
 
 const listMock = vi.mocked(listCustomers);
 const createMock = vi.mocked(createCustomer);
 const updateMock = vi.mocked(updateCustomer);
+const previewMergeMock = vi.mocked(previewCustomerMerge);
+const executeMergeMock = vi.mocked(executeCustomerMerge);
 
 const sample: Customer = {
   id: 'c1',
@@ -75,6 +85,8 @@ describe('counter customers', () => {
     listMock.mockReset();
     createMock.mockReset();
     updateMock.mockReset();
+    previewMergeMock.mockReset();
+    executeMergeMock.mockReset();
   });
 
   it('loading: waits for customers', () => {
@@ -176,6 +188,47 @@ describe('counter customers', () => {
         'c1',
         expect.objectContaining({ allergies: 'Penicillin, Sulfa' }),
       );
+    });
+  });
+
+  it('success: opens merge review from selected profile', async () => {
+    const user = userEvent.setup();
+    const other: Customer = {
+      ...sample,
+      id: 'c2',
+      name: 'Ravi Dup',
+      phone: '9876500002',
+    };
+    listMock.mockResolvedValue([sample, other]);
+    previewMergeMock.mockResolvedValue({
+      mode: 'PREVIEW',
+      survivor: sample,
+      duplicate: other,
+      fields: [
+        {
+          field: 'phone',
+          status: 'CONFLICT',
+          survivorValue: sample.phone,
+          duplicateValue: other.phone,
+        },
+      ],
+      conflicts: ['phone'],
+      linkedRecords: { notificationEvents: 0 },
+    });
+    executeMergeMock.mockResolvedValue(sample);
+
+    renderPage();
+    await screen.findByRole('button', { name: 'Ravi Kumar' });
+    await user.click(screen.getByRole('button', { name: 'Ravi Kumar' }));
+    await user.click(screen.getByRole('button', { name: 'Merge duplicate' }));
+
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Merge duplicate profile' })).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText('Duplicate to deactivate'), 'c2');
+    await waitFor(() => expect(previewMergeMock).toHaveBeenCalledWith('c1', 'c2'));
+    await user.click(within(dialog).getByRole('button', { name: 'Confirm merge' }));
+    await waitFor(() => {
+      expect(executeMergeMock).toHaveBeenCalled();
     });
   });
 });

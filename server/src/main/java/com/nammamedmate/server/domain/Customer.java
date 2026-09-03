@@ -56,4 +56,13 @@ public class Customer {
 
   @Column(name = "deleted_at")
   private Instant deletedAt;
+
+  @Column(name = "merged_into_id")
+  private UUID mergedIntoId;
+
+  @Column(name = "merged_at")
+  private Instant mergedAt;
+
+  @Column(name = "merged_by_user_id")
+  private UUID mergedByUserId;
 }

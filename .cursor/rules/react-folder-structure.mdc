@@ -53,6 +53,22 @@ screens/login/
 
 Store/selector/utils files are `.ts` unless they contain JSX.
 
+## Split screens (hard)
+
+A screen **orchestrates** data and visibility. It must not own the full UI
+tree inline.
+
+- Put each visual region in `components/<kebab-name>/` (header, list, detail,
+  status banner, form section, empty state, dialog body).
+- A component does not need everything in it — compose smaller children.
+  Prefer ~120 lines of JSX per file; soft-stop at ~200; split before ~300 or
+  when two regions share one file.
+- Form field groups (contact, address, health, licence) are their own
+  components composed by a panel — not one mega-form.
+- Pure helpers and status copy go in `Screen.utils.ts`, not inside JSX files.
+- Do not ship a 400+ line `*Screen.tsx` with list + form + helpers inlined.
+  Reference: `screens/customers/` (split). Anti-pattern: monolith screen files.
+
 ## State
 
 One Redux `configureStore`. Nested react-redux Providers hide the outer store.

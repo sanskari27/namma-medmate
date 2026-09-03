@@ -15,6 +15,8 @@ export type CustomerProfilePanelProps = {
   onChange: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   onSave: (event: FormEvent) => void;
   onClose: () => void;
+  onMerge?: () => void;
+  mergeButtonRef?: { current: HTMLButtonElement | null };
 };
 
 export function CustomerProfilePanel({
@@ -27,6 +29,8 @@ export function CustomerProfilePanel({
   onChange,
   onSave,
   onClose,
+  onMerge,
+  mergeButtonRef,
 }: CustomerProfilePanelProps) {
   if (!selected) {
     return (
@@ -70,9 +74,22 @@ export function CustomerProfilePanel({
               {selected.bloodGroup ? ` · ${selected.bloodGroup}` : ''}
             </p>
           </div>
-          <Button type="button" variant="ghost" onClick={onClose}>
-            Close
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            {onMerge ? (
+              <Button
+                ref={mergeButtonRef}
+                type="button"
+                variant="outline"
+                onClick={onMerge}
+                aria-haspopup="dialog"
+              >
+                Merge duplicate
+              </Button>
+            ) : null}
+            <Button type="button" variant="ghost" onClick={onClose}>
+              Close
+            </Button>
+          </div>
         </div>
 
         <fieldset

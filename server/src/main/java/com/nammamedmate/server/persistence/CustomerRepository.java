@@ -12,6 +12,8 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
 
   Optional<Customer> findByIdAndTenantIdAndDeletedAtIsNull(UUID id, UUID tenantId);
 
+  Optional<Customer> findByIdAndTenantId(UUID id, UUID tenantId);
+
   Optional<Customer> findByTenantIdAndPhoneAndDeletedAtIsNull(UUID tenantId, String phone);
 
   List<Customer> findAllByTenantIdAndDeletedAtIsNullOrderByNameAsc(UUID tenantId);
