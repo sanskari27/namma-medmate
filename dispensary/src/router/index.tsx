@@ -17,6 +17,7 @@ import AccountScreen from '@/screens/account/AccountScreen';
 import BranchesScreen from '@/screens/branches/BranchesScreen';
 import SubscriptionScreen from '@/screens/subscription/SubscriptionScreen';
 import StubScreen from '@/screens/stub/StubScreen';
+import KioskScreen from '@/screens/kiosk/KioskScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
@@ -40,6 +41,7 @@ const router = createBrowserRouter([
           { path: ROUTES.ACCOUNT, element: <AccountScreen /> },
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
           { path: ROUTES.SUBSCRIPTION, element: <SubscriptionScreen /> },
+          { path: ROUTES.KIOSK, element: <KioskScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },
           { path: ROUTES.ROLES, element: <CounterRolesScreen /> },
           { path: ROUTES.APPROVALS, element: <SignOffRulesScreen /> },

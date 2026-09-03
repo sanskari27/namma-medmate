@@ -263,8 +263,9 @@ export default function BranchesScreen() {
             <p className="font-mono text-xs tracking-wide text-muted">Counter outlets</p>
             <h1 className="text-2xl font-semibold text-ink">Outlets</h1>
             <p className="mt-1 max-w-xl text-sm text-muted">
-              Keep each floor address, drug licence, and till pricing on this pharmacy. Kiosk is a
-              branch type only — it does not turn on self-order.
+              Keep each floor address, drug licence, and till pricing on this pharmacy. Mark an
+              outlet as Kiosk when this counter will run Pro self-order — type alone does not open
+              the kiosk until the plan and till allow it.
             </p>
           </div>
           {allowed ? (
@@ -441,7 +442,7 @@ export default function BranchesScreen() {
                 }
               >
                 <option value="RETAIL">Retail</option>
-                <option value="KIOSK">Kiosk (classification only)</option>
+                <option value="KIOSK">Kiosk (self-order on Pro)</option>
               </select>
             </div>
             <div className="grid gap-1">

@@ -8,11 +8,17 @@ import org.junit.jupiter.api.Test;
 class EffectiveModuleSetTest {
 
   @Test
+  void ac04_proOwnerReceivesKioskModule() {
+    assertThat(EffectiveModuleSet.resolve(AppUserRole.pharmacy_owner, Set.of(), PlanCode.PRO))
+        .contains(ModuleCode.KIOSK, ModuleCode.LOYALTY);
+  }
+
+  @Test
   void ac04_ownerHasEveryEntitledTenantModuleWithoutAssignments() {
     assertThat(EffectiveModuleSet.resolve(AppUserRole.pharmacy_owner, Set.of()))
         .isEqualTo(PlanModuleEntitlements.entitledTenantModules())
         .contains(ModuleCode.SALES, ModuleCode.ROLES, ModuleCode.STAFF)
-        .doesNotContain(ModuleCode.LOYALTY, ModuleCode.TENANT_KYC);
+        .doesNotContain(ModuleCode.LOYALTY, ModuleCode.KIOSK, ModuleCode.TENANT_KYC);
   }
 
   @Test
@@ -27,7 +33,7 @@ class EffectiveModuleSetTest {
     assertThat(
             EffectiveModuleSet.resolve(
                 AppUserRole.pharmacy_staff,
-                Set.of(ModuleCode.SALES, ModuleCode.CRM, ModuleCode.LOYALTY)))
+                Set.of(ModuleCode.SALES, ModuleCode.CRM, ModuleCode.LOYALTY, ModuleCode.KIOSK)))
         .containsExactlyInAnyOrder(ModuleCode.SALES, ModuleCode.CRM);
   }
 }

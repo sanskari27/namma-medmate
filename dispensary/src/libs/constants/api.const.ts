@@ -26,6 +26,11 @@ export const API = {
   SUBSCRIPTIONS_CATALOGUE: '/api/v1/subscriptions/catalogue',
   SUBSCRIPTIONS_CURRENT: '/api/v1/subscriptions/current',
   SUBSCRIPTIONS_UPGRADE: '/api/v1/subscriptions/upgrade',
+  KIOSK: '/api/v1/kiosk',
+  KIOSK_OPEN: '/api/v1/kiosk/open',
+  KIOSK_CLOSE: '/api/v1/kiosk/close',
+  KIOSK_TICKETS: '/api/v1/kiosk/tickets',
+  kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

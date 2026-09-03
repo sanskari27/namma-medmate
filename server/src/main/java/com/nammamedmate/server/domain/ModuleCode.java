@@ -11,6 +11,7 @@ public enum ModuleCode {
   ROLES(true, false),
   APPROVALS(true, false),
   LOYALTY(true, true),
+  KIOSK(true, true),
   /** Phase 2 ecommerce — neither tenant nor platform in Phase 1 (D-008). */
   ONLINE_STORE(false, false, false),
   TENANT_KYC(false, false),

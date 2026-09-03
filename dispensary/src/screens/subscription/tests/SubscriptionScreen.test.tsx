@@ -138,6 +138,7 @@ describe('pharmacy plan', () => {
     expect(screen.getByRole('heading', { name: 'Starter licence' })).toBeInTheDocument();
     expect(screen.getByText('1 of 2 outlets in use')).toBeInTheDocument();
     expect(screen.getByText('Loyalty points stay locked until Growth or Pro.')).toBeInTheDocument();
+    expect(screen.getByText('Self-order kiosk stays locked until Pro.')).toBeInTheDocument();
     expect(screen.getByText('On this plan')).toBeInTheDocument();
     expect(screen.getByText('Fits this floor’s current stalls and till keys')).toBeInTheDocument();
   });

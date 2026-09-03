@@ -20,6 +20,8 @@ export function moduleLabel(code: string): string {
       return 'Approvals';
     case 'LOYALTY':
       return 'Loyalty';
+    case 'KIOSK':
+      return 'Self-order kiosk';
     case 'ONLINE_STORE':
       return 'Online store';
     default:

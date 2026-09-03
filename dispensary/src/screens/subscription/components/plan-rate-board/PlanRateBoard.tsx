@@ -78,6 +78,7 @@ export function PlanRateBoard({ plans, current, pendingPlan, onSwitch }: PlanRat
         const price = monthly(plan.pricePaiseMonthly);
         const fit = fitsFloor(plan, current);
         const loyalty = plan.entitledModules.includes('LOYALTY');
+        const kiosk = plan.entitledModules.includes('KIOSK');
         return (
           <li key={plan.planCode}>
             <article
@@ -126,6 +127,10 @@ export function PlanRateBoard({ plans, current, pendingPlan, onSwitch }: PlanRat
                       <p className="mt-1 text-sm text-ink">
                         {loyalty ? 'Points desk open' : 'Locked'}
                       </p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-muted">Self-order kiosk</p>
+                      <p className="mt-1 text-sm text-ink">{kiosk ? 'Pro kiosk open' : 'Locked'}</p>
                     </div>
                   </div>
                   <div className="flex flex-col items-end gap-1">

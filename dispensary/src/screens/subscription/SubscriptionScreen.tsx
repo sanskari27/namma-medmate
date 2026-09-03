@@ -48,9 +48,13 @@ function hasLoyalty(modules: string[]): boolean {
   return modules.includes('LOYALTY');
 }
 
+function hasKiosk(modules: string[]): boolean {
+  return modules.includes('KIOSK');
+}
+
 function floorDesks(modules: string[]): string {
   const names = modules
-    .filter((code) => code !== 'LOYALTY')
+    .filter((code) => code !== 'LOYALTY' && code !== 'KIOSK')
     .map((code) => {
       switch (code) {
         case 'SALES':
@@ -288,6 +292,11 @@ export default function SubscriptionScreen() {
               {hasLoyalty(current.entitledModules)
                 ? 'Loyalty points desk is open on this plan.'
                 : 'Loyalty points stay locked until Growth or Pro.'}
+            </p>
+            <p className="mt-2 text-ink">
+              {hasKiosk(current.entitledModules)
+                ? 'Self-order kiosk is open on Pro for Kiosk outlets.'
+                : 'Self-order kiosk stays locked until Pro.'}
             </p>
           </div>
         </section>

@@ -46,6 +46,9 @@ public final class PlanModuleEntitlements {
     if (code == ModuleCode.LOYALTY) {
       return plan == PlanCode.GROWTH || plan == PlanCode.PRO;
     }
+    if (code == ModuleCode.KIOSK) {
+      return plan == PlanCode.PRO;
+    }
     return !code.planGated();
   }
 
