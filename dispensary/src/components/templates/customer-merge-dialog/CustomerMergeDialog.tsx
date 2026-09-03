@@ -208,9 +208,7 @@ export function CustomerMergeDialog({
                 formId={formId}
                 preview={preview}
                 resolutions={resolutions}
-                onResolve={(field, side) =>
-                  setResolutions((prev) => ({ ...prev, [field]: side }))
-                }
+                onResolve={(field, side) => setResolutions((prev) => ({ ...prev, [field]: side }))}
               />
             ) : null}
 

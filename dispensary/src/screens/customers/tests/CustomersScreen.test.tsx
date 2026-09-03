@@ -23,6 +23,19 @@ vi.mock('@/services/customers', async () => {
   };
 });
 
+vi.mock('@/services/customerFamilies', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    getFamilyForCustomer: vi.fn(),
+    getFamilyHistory: vi.fn(),
+    createCustomerFamily: vi.fn(),
+    addFamilyMember: vi.fn(),
+    removeFamilyMember: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import {
   createCustomer,
   executeCustomerMerge,
@@ -30,12 +43,20 @@ import {
   previewCustomerMerge,
   updateCustomer,
 } from '@/services/customers';
+import {
+  createCustomerFamily,
+  getFamilyForCustomer,
+  getFamilyHistory,
+} from '@/services/customerFamilies';
 
 const listMock = vi.mocked(listCustomers);
 const createMock = vi.mocked(createCustomer);
 const updateMock = vi.mocked(updateCustomer);
 const previewMergeMock = vi.mocked(previewCustomerMerge);
 const executeMergeMock = vi.mocked(executeCustomerMerge);
+const getFamilyMock = vi.mocked(getFamilyForCustomer);
+const getHistoryMock = vi.mocked(getFamilyHistory);
+const createFamilyMock = vi.mocked(createCustomerFamily);
 
 const sample: Customer = {
   id: 'c1',
@@ -87,6 +108,11 @@ describe('counter customers', () => {
     updateMock.mockReset();
     previewMergeMock.mockReset();
     executeMergeMock.mockReset();
+    getFamilyMock.mockReset();
+    getHistoryMock.mockReset();
+    createFamilyMock.mockReset();
+    getFamilyMock.mockResolvedValue(null);
+    getHistoryMock.mockResolvedValue([]);
   });
 
   it('loading: waits for customers', () => {
@@ -223,12 +249,60 @@ describe('counter customers', () => {
     await user.click(screen.getByRole('button', { name: 'Merge duplicate' }));
 
     const dialog = await screen.findByRole('dialog');
-    expect(within(dialog).getByRole('heading', { name: 'Merge duplicate profile' })).toBeInTheDocument();
+    expect(
+      within(dialog).getByRole('heading', { name: 'Merge duplicate profile' }),
+    ).toBeInTheDocument();
     await user.selectOptions(within(dialog).getByLabelText('Duplicate to deactivate'), 'c2');
     await waitFor(() => expect(previewMergeMock).toHaveBeenCalledWith('c1', 'c2'));
     await user.click(within(dialog).getByRole('button', { name: 'Confirm merge' }));
     await waitFor(() => {
       expect(executeMergeMock).toHaveBeenCalled();
     });
+  });
+
+  it('success: links a family member and shows empty collective history', async () => {
+    const user = userEvent.setup();
+    const child: Customer = {
+      ...sample,
+      id: 'c2',
+      name: 'Child Kumar',
+      phone: '9876500002',
+      allergies: null,
+      chronicConditions: null,
+    };
+    listMock.mockResolvedValue([sample, child]);
+    createFamilyMock.mockResolvedValue({
+      id: 'f1',
+      label: null,
+      members: [
+        { id: 'c1', name: sample.name, phone: sample.phone },
+        { id: 'c2', name: child.name, phone: child.phone },
+      ],
+      createdAt: '2026-09-04T00:00:00Z',
+    });
+
+    renderPage();
+    await screen.findByRole('button', { name: 'Ravi Kumar' });
+    await user.click(screen.getByRole('button', { name: 'Ravi Kumar' }));
+    expect(await screen.findByText('No family linked yet.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Link member' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).getByRole('heading', { name: 'Link family member' })).toBeInTheDocument();
+    await user.selectOptions(within(dialog).getByLabelText('Dependent to link'), 'c2');
+    await user.click(within(dialog).getByRole('button', { name: 'Link member' }));
+
+    await waitFor(() => {
+      expect(createFamilyMock).toHaveBeenCalledWith(['c1', 'c2']);
+    });
+    expect(
+      await screen.findByText('Child Kumar', { selector: 'p.font-medium' }),
+    ).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Family history')).getByText(
+        'No purchase or prescription history for this family yet.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByLabelText('Member')).toBeInTheDocument();
   });
 });

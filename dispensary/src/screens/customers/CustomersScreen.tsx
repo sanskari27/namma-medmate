@@ -1,8 +1,18 @@
-import { CustomerCreateDialog, CustomerMergeDialog } from '@templates';
-import { isApiError, listCustomers, updateCustomer, type Customer } from '@/services/customers';
+import { CustomerCreateDialog, CustomerFamilyDialog, CustomerMergeDialog } from '@templates';
+import {
+  getFamilyForCustomer,
+  getFamilyHistory,
+  isApiError,
+  removeFamilyMember,
+  type CustomerFamily,
+  type FamilyHistoryItem,
+} from '@/services/customerFamilies';
+import { listCustomers, updateCustomer, type Customer } from '@/services/customers';
 import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { CustomerFamilyHistory } from './components/customer-family-history';
+import { CustomerFamilySection } from './components/customer-family-section';
 import { CustomerListPanel } from './components/customer-list-panel';
 import { CustomerProfilePanel } from './components/customer-profile-panel';
 import { CustomersHeader } from './components/customers-header';
@@ -24,6 +34,7 @@ export default function CustomersScreen() {
   const statusId = useId();
   const addRef = useRef<HTMLButtonElement | null>(null);
   const mergeRef = useRef<HTMLButtonElement | null>(null);
+  const familyLinkRef = useRef<HTMLButtonElement | null>(null);
   const [status, setStatus] = useState<PageStatus>('loading');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState('');
@@ -31,7 +42,15 @@ export default function CustomersScreen() {
   const [form, setForm] = useState<FormState>(emptyForm);
   const [createOpen, setCreateOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
+  const [familyOpen, setFamilyOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [family, setFamily] = useState<CustomerFamily | null>(null);
+  const [familyLoading, setFamilyLoading] = useState(false);
+  const [unlinkBusy, setUnlinkBusy] = useState(false);
+  const [historyItems, setHistoryItems] = useState<FamilyHistoryItem[]>([]);
+  const [historyLoading, setHistoryLoading] = useState(false);
+  const [memberFilter, setMemberFilter] = useState('');
+  const [typeFilter, setTypeFilter] = useState('');
 
   const allowed = hasCrmAccess(user?.modules);
   const selected = customers.find((row) => row.id === selectedId) ?? null;
@@ -60,9 +79,57 @@ export default function CustomersScreen() {
     [allowed],
   );
 
+  const loadFamily = useCallback(async (customerId: string) => {
+    setFamilyLoading(true);
+    try {
+      const next = await getFamilyForCustomer(customerId);
+      setFamily(next);
+    } catch {
+      setFamily(null);
+      setStatus('failure');
+    } finally {
+      setFamilyLoading(false);
+    }
+  }, []);
+
+  const loadHistory = useCallback(async (familyId: string, memberId?: string, type?: string) => {
+    setHistoryLoading(true);
+    try {
+      const items = await getFamilyHistory(familyId, {
+        memberId: memberId || undefined,
+        type: type || undefined,
+      });
+      setHistoryItems(items);
+    } catch {
+      setHistoryItems([]);
+      setStatus('failure');
+    } finally {
+      setHistoryLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!selectedId) {
+      setFamily(null);
+      setHistoryItems([]);
+      setMemberFilter('');
+      setTypeFilter('');
+      return;
+    }
+    void loadFamily(selectedId);
+  }, [selectedId, loadFamily]);
+
+  useEffect(() => {
+    if (!family?.id) {
+      setHistoryItems([]);
+      return;
+    }
+    void loadHistory(family.id, memberFilter || undefined, typeFilter || undefined);
+  }, [family?.id, memberFilter, typeFilter, loadHistory]);
 
   function selectCustomer(customer: Customer) {
     setSelectedId(customer.id);
@@ -112,6 +179,33 @@ export default function CustomersScreen() {
   async function onSearch(event: FormEvent) {
     event.preventDefault();
     await load(query.trim() || undefined);
+  }
+
+  async function onUnlinkMember(customerId: string) {
+    if (!family) {
+      return;
+    }
+    setUnlinkBusy(true);
+    try {
+      const next = await removeFamilyMember(family.id, customerId);
+      if (next.members.length === 0) {
+        setFamily(null);
+        setHistoryItems([]);
+      } else {
+        setFamily(next);
+      }
+      setStatus('success');
+    } catch (error) {
+      if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
+        setStatus('denied');
+      } else if (isApiError(error) && error.status === 409) {
+        setStatus('conflict');
+      } else {
+        setStatus('failure');
+      }
+    } finally {
+      setUnlinkBusy(false);
+    }
   }
 
   if (!allowed) {
@@ -170,6 +264,35 @@ export default function CustomersScreen() {
           onClose={clearSelection}
           mergeButtonRef={mergeRef}
           onMerge={() => setMergeOpen(true)}
+          familySection={
+            selected ? (
+              <CustomerFamilySection
+                family={family}
+                familyLoading={familyLoading}
+                selectedCustomerId={selected.id}
+                linkButtonRef={familyLinkRef}
+                unlinkBusy={unlinkBusy}
+                onLink={() => setFamilyOpen(true)}
+                onUnlink={(id) => {
+                  void onUnlinkMember(id);
+                }}
+              />
+            ) : null
+          }
+          familyHistory={
+            selected ? (
+              <CustomerFamilyHistory
+                familyId={family?.id ?? null}
+                members={family?.members ?? []}
+                items={historyItems}
+                loading={historyLoading}
+                memberFilter={memberFilter}
+                typeFilter={typeFilter}
+                onMemberFilter={setMemberFilter}
+                onTypeFilter={setTypeFilter}
+              />
+            ) : null
+          }
         />
       </div>
 
@@ -204,6 +327,19 @@ export default function CustomersScreen() {
             selectCustomer(merged);
             setStatus('success');
           });
+        }}
+      />
+
+      <CustomerFamilyDialog
+        open={familyOpen}
+        primary={selected}
+        candidates={customers}
+        existingFamily={family}
+        onOpenChange={setFamilyOpen}
+        onCloseFocus={() => familyLinkRef.current?.focus()}
+        onLinked={(next) => {
+          setFamily(next);
+          setStatus('success');
         }}
       />
     </div>

@@ -32,8 +32,14 @@ export const API = {
   KIOSK_TICKETS: '/api/v1/kiosk/tickets',
   CUSTOMERS: '/api/v1/customers',
   CUSTOMERS_MERGE: '/api/v1/customers/merge',
+  CUSTOMER_FAMILIES: '/api/v1/customer-families',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   customer: (id: string) => `/api/v1/customers/${id}`,
+  customerFamily: (id: string) => `/api/v1/customer-families/${id}`,
+  customerFamilyMembers: (id: string) => `/api/v1/customer-families/${id}/members`,
+  customerFamilyMember: (familyId: string, customerId: string) =>
+    `/api/v1/customer-families/${familyId}/members/${customerId}`,
+  customerFamilyHistory: (id: string) => `/api/v1/customer-families/${id}/history`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

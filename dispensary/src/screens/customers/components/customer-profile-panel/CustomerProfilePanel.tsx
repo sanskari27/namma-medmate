@@ -1,7 +1,7 @@
 import { Button, Input, Label } from '@atoms';
 import type { Customer } from '@/services/customers';
 import { Users } from 'lucide-react';
-import { FormEvent } from 'react';
+import { FormEvent, type ReactNode } from 'react';
 import type { FormState } from '../../CustomersScreen.utils';
 import { formatPhone } from '../../CustomersScreen.utils';
 
@@ -17,6 +17,8 @@ export type CustomerProfilePanelProps = {
   onClose: () => void;
   onMerge?: () => void;
   mergeButtonRef?: { current: HTMLButtonElement | null };
+  familySection?: ReactNode;
+  familyHistory?: ReactNode;
 };
 
 export function CustomerProfilePanel({
@@ -31,6 +33,8 @@ export function CustomerProfilePanel({
   onClose,
   onMerge,
   mergeButtonRef,
+  familySection,
+  familyHistory,
 }: CustomerProfilePanelProps) {
   if (!selected) {
     return (
@@ -191,6 +195,9 @@ export function CustomerProfilePanel({
               </div>
             </div>
           </div>
+
+          {familySection}
+          {familyHistory}
         </fieldset>
 
         <div className="flex shrink-0 flex-wrap gap-2 border-t border-line px-4 py-3">
