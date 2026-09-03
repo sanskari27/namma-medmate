@@ -14,6 +14,7 @@ import SignOffRulesScreen from '@/screens/sign-off-rules/SignOffRulesScreen';
 import WaitingSignOffScreen from '@/screens/waiting-sign-off/WaitingSignOffScreen';
 import FloorActivityScreen from '@/screens/floor-activity/FloorActivityScreen';
 import AccountScreen from '@/screens/account/AccountScreen';
+import BranchesScreen from '@/screens/branches/BranchesScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
 
@@ -36,6 +37,7 @@ const router = createBrowserRouter([
         children: [
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.ACCOUNT, element: <AccountScreen /> },
+          { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },
           { path: ROUTES.ROLES, element: <CounterRolesScreen /> },
           { path: ROUTES.APPROVALS, element: <SignOffRulesScreen /> },

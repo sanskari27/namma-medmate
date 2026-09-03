@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.kyc;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.branch.BranchService;
 import com.nammamedmate.server.application.notification.NotificationRoutingService;
 import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AppUser;
@@ -58,6 +59,7 @@ public class KycService {
   private final TenantSubscriptionRepository tenantSubscriptionRepository;
   private final AccessQueryService accessQueryService;
   private final NotificationRoutingService notificationRoutingService;
+  private final BranchService branchService;
   private final KycFileStorage kycFileStorage;
   private final Clock clock;
 
@@ -69,6 +71,7 @@ public class KycService {
       TenantSubscriptionRepository tenantSubscriptionRepository,
       AccessQueryService accessQueryService,
       NotificationRoutingService notificationRoutingService,
+      BranchService branchService,
       KycFileStorage kycFileStorage,
       Clock clock) {
     this.tenantRepository = tenantRepository;
@@ -78,6 +81,7 @@ public class KycService {
     this.tenantSubscriptionRepository = tenantSubscriptionRepository;
     this.accessQueryService = accessQueryService;
     this.notificationRoutingService = notificationRoutingService;
+    this.branchService = branchService;
     this.kycFileStorage = kycFileStorage;
     this.clock = clock;
   }
@@ -301,6 +305,16 @@ public class KycService {
     tenant.setStatus(TenantStatus.ACTIVE);
     tenant.setUpdatedAt(now);
     ensureFreePlan(tenant.getId(), now);
+    branchService.createDefaultFromKyc(
+        tenant.getId(),
+        submission.getLegalName(),
+        submission.getAddressLine1(),
+        submission.getCity(),
+        submission.getState(),
+        submission.getPincode(),
+        submission.getContactPhone(),
+        submission.getDrugLicenseNumber(),
+        submission.getGstin());
     notifyDecision(tenant.getId(), submission.getId(), "approved");
     return toPack(submission, tenant);
   }

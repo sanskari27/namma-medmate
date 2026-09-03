@@ -29,6 +29,7 @@ export const ROUTES = {
   APPROVALS: '/approvals',
   APPROVALS_PENDING: '/approvals/pending',
   ACTIVITY: '/activity',
+  BRANCHES: '/branches',
   INVOICE_SETTINGS: '/invoice-settings',
   SUBSCRIPTION: '/subscription',
   REFER: '/refer',
@@ -122,6 +123,7 @@ export const NAV_SECTIONS = [
         hint: 'Requests waiting on the counter',
       },
       { label: 'Floor activity', path: ROUTES.ACTIVITY, hint: 'Who signed in and what they did' },
+      { label: 'Outlets', path: ROUTES.BRANCHES, hint: 'Branches at this pharmacy' },
       { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
       { label: 'Refer & Earn', path: ROUTES.REFER, hint: 'Refer another chemist' },
@@ -144,7 +146,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.APPROVALS &&
     item.path !== ROUTES.APPROVALS_PENDING &&
     item.path !== ROUTES.ACTIVITY &&
-    item.path !== ROUTES.ACCOUNT,
+    item.path !== ROUTES.ACCOUNT &&
+    item.path !== ROUTES.BRANCHES,
 ).map((item) => ({
   path: item.path,
   title: item.label,

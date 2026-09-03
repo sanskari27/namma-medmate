@@ -11,12 +11,14 @@ import type { AdminTenant } from '@/services/tenants';
 vi.mock('@/services/tenants', () => ({
   listTenants: vi.fn(),
   updateTenantStatus: vi.fn(),
+  listTenantBranches: vi.fn(),
 }));
 
-import { listTenants, updateTenantStatus } from '@/services/tenants';
+import { listTenantBranches, listTenants, updateTenantStatus } from '@/services/tenants';
 
 const listMock = vi.mocked(listTenants);
 const updateMock = vi.mocked(updateTenantStatus);
+const branchesMock = vi.mocked(listTenantBranches);
 
 const active: AdminTenant = {
   id: 't1',
@@ -53,6 +55,7 @@ describe('pharmacies lifecycle', () => {
   beforeEach(() => {
     listMock.mockReset();
     updateMock.mockReset();
+    branchesMock.mockReset();
   });
 
   it('loading: waits for tenants', () => {
@@ -133,6 +136,66 @@ describe('pharmacies lifecycle', () => {
     renderPage('admin_super');
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not load pharmacies. Try again.',
+    );
+  });
+
+  it('success: MASTER opens read-only tenant outlet file', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([active]);
+    branchesMock.mockResolvedValue([
+      {
+        id: 'b1',
+        tenantId: 't1',
+        name: 'Main Counter',
+        branchCode: 'BR01',
+        addressLine: '12 MG Road',
+        city: 'Bengaluru',
+        state: 'KA',
+        pincode: '560001',
+        contactPhone: '9876543210',
+        contactEmail: null,
+        drugLicenseNumber: 'DL-1',
+        gstin: null,
+        branchType: 'RETAIL',
+        status: 'ACTIVE',
+        openingDate: '2026-09-01',
+        defaultBranch: true,
+        linkedWarehouse: false,
+      },
+    ]);
+    renderPage('admin_super');
+    expect(await screen.findByText('Varshmaan Pharmacy')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Outlet file' }));
+    expect(await screen.findByRole('heading', { name: 'Tenant outlet file' })).toBeInTheDocument();
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Tenant outlet file loaded for support review.',
+    );
+    expect(screen.getByText('BR01')).toBeInTheDocument();
+    expect(screen.getByText('DL-1')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Save outlet' })).not.toBeInTheDocument();
+  });
+
+  it('empty: tenant outlet file with no branches', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([active]);
+    branchesMock.mockResolvedValue([]);
+    renderPage('admin_super');
+    expect(await screen.findByText('Varshmaan Pharmacy')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Outlet file' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'No outlets on file for this tenant yet.',
+    );
+  });
+
+  it('failure: outlet file load error', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([active]);
+    branchesMock.mockRejectedValue(new Error('offline'));
+    renderPage('admin_super');
+    expect(await screen.findByText('Varshmaan Pharmacy')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Outlet file' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load tenant outlets. Try again.',
     );
   });
 });

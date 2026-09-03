@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 14 |
+| done | 15 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 53 |
+| ready | 52 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -30,7 +30,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M2-S01 | M2 | server + dispensary | done | M1-S03 | — | Independent verifier PASS (ae52aec5). verified→done. Gap-close after prior FAIL (9a4a436c): DashboardLayout lock-banner tests; Login EMAIL_UNVERIFIED → unverified copy. Server: V13 tenant.status + email_verified_at + email_verification_token; TenantRegistrationService POST /api/v1/tenants/register + /verify-email; ONBOARDING afterCommit; AuthService EMAIL_UNVERIFIED; TenantAccessFilter TENANT_LOCKED; /me tenantStatus+emailVerified. Tests: TenantRegistrationTest 6, TenantSlugTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 246 BUILD SUCCESS. Dispensary: RegisterScreen /register + VerifyEmailScreen /verify-email; Login register CTA; DashboardLayout KYC lock banner; services/tenant.ts. SPA: dispensary lint+134 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173/register + /verify-email + login CTA; viridian shop-floor uniqueness. |
 | M2-S02 | M2 | server + dispensary + admin | done | M2-S01, M1-S05 | — | Independent verifier PASS (3bf4ef27). Gap-close after prior FAIL. Server: V14 kyc_submission/document/tenant_subscription; KycService; /tenants/{id}/kyc + /admin/kyc; TenantAccessFilter; Free on approve; notify. TenantKycTest (AC01–AC05 + EMAIL_UNVERIFIED + VA approve + document download) + KycRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` BUILD SUCCESS. Dispensary AccountScreen /account + banner CTA. Admin KycQueueScreen; evidence URLs use VITE_API_BASE_URL. SPA: dispensary lint+142+build; admin lint+142+build. Browser: :5173/account unlocked KYC copy; :5174/kyc empty navy queue. `make compose-config` OK. Requirements valid. |
 | M2-S03 | M2 | server + dispensary + admin | done | M2-S02 | — | Independent verifier PASS (434e13ca). verified→done. Server: TenantLifecycleService + AdminTenantController GET/POST /api/v1/admin/tenants + /{id}/status; TenantStatusTransition matrix; TenantAccessFilter cascade for SUSPENDED/EXPIRED/TERMINATED; audit TENANT_STATUS_CHANGE. Tests: TenantLifecycleTest 6, TenantLifecycleRollbackTest 2, TenantStatusTransitionTest 29. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 292 tests BUILD SUCCESS. Dispensary: DashboardLayout lock copy for SUSPENDED/EXPIRED/TERMINATED (records kept). SPA: dispensary lint+145 tests+build. Admin: PharmaciesScreen /pharmacies + services/tenants.ts; reason dialog; loading/empty/validation/denied/conflict/failure/success. SPA: admin lint+151 tests+build. Browser: :5174/pharmacies MASTER navy table + Suspend reason dialog. `make compose-config` OK. Requirements valid. |
-| M2-S04 | M2 | server + dispensary + admin | ready | M2-S02 | — | — |
+| M2-S04 | M2 | server + dispensary + admin | done | M2-S02 | — | Independent verifier PASS (bbf147e7). verified→done. Server: V15 branch_master on location; BranchService + BranchController /api/v1/branches (+ copy-settings); AdminTenantController GET /{id}/branches; KycService.approve creates default branch. Tests: BranchMasterTest 6, BranchMasterRollbackTest 2, BranchMasterDomainTest (code/hours/snapshot), TenantKycTest ac04 asserts default branch. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 306 tests BUILD SUCCESS. Dispensary: BranchesScreen /branches + services/branches.ts (loading/empty/validation/denied/conflict/failure/success). SPA: dispensary lint+156 tests+build. Admin: PharmaciesScreen Outlet file read-only panel + listTenantBranches. SPA: admin lint+154 tests+build. `make compose-config` OK. Requirements valid. Browser: IDE host could not reach API from browser; uniqueness from source (viridian Outlets vs navy Outlet file); host API smoke OWNER/MASTER branches 200. |
 | M2-S05 | M2 | server + dispensary + admin | ready | M2-S02 | D-007, D-008 closed | Unblocked 2026-09-03: branches Free1/Starter2/Growth3/Pro5 + MASTER override; online store Phase 2. |
 | M2-S06 | M2 | server + dispensary | ready | M2-S04, M4-S03, M1-S07 | — | — |
 | M2-S07 | M2 | server + dispensary | ready | M2-S04 | D-009 closed | Unblocked 2026-09-03: Phase 1 Pro self-order kiosk workflow. |

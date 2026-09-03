@@ -21,5 +21,6 @@ export const API = {
   AUDIT: '/api/v1/audit',
   TENANTS_REGISTER: '/api/v1/tenants/register',
   TENANTS_VERIFY_EMAIL: '/api/v1/tenants/verify-email',
+  BRANCHES: '/api/v1/branches',
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

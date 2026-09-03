@@ -22,6 +22,7 @@ import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.KycDocumentRepository;
 import com.nammamedmate.server.persistence.KycSubmissionRepository;
+import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.NotificationDeliveryRepository;
 import com.nammamedmate.server.persistence.NotificationEventRepository;
 import com.nammamedmate.server.persistence.NotificationRepository;
@@ -85,6 +86,7 @@ class TenantKycTest {
   @Autowired private KycSubmissionRepository kycSubmissionRepository;
   @Autowired private KycDocumentRepository kycDocumentRepository;
   @Autowired private TenantSubscriptionRepository tenantSubscriptionRepository;
+  @Autowired private LocationRepository locationRepository;
   @Autowired private UserAccessRoleRepository userAccessRoleRepository;
   @Autowired private NotificationRepository notificationRepository;
   @Autowired private NotificationDeliveryRepository notificationDeliveryRepository;
@@ -101,6 +103,7 @@ class TenantKycTest {
     kycDocumentRepository.deleteAll();
     kycSubmissionRepository.deleteAll();
     tenantSubscriptionRepository.deleteAll();
+    locationRepository.deleteAll();
     userAccessRoleRepository.deleteAll();
     userSessionRepository.deleteAll();
     appUserRepository.deleteAll();
@@ -252,6 +255,18 @@ class TenantKycTest {
     TenantSubscription subscription =
         tenantSubscriptionRepository.findByTenantId(tenant.getId()).orElseThrow();
     assertThat(subscription.getPlanCode()).isEqualTo(PlanCode.FREE);
+
+    assertThat(
+            locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(
+                tenant.getId()))
+        .hasSize(1)
+        .first()
+        .satisfies(
+            branch -> {
+              assertThat(branch.isDefaultBranch()).isTrue();
+              assertThat(branch.getAddressLine()).isEqualTo("12 MG Road");
+              assertThat(branch.getDrugLicenseNumber()).isEqualTo("KA-DL-2026-001");
+            });
 
     mockMvc
         .perform(get("/api/v1/notifications").cookie(ownerCookie))

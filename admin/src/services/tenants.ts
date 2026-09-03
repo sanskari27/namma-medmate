@@ -30,3 +30,30 @@ export async function updateTenantStatus(
   });
   return data;
 }
+
+export interface AdminBranch {
+  id: string;
+  tenantId: string;
+  name: string;
+  branchCode: string;
+  addressLine: string;
+  city: string;
+  state: string;
+  pincode: string;
+  contactPhone: string;
+  contactEmail: string | null;
+  drugLicenseNumber: string;
+  gstin: string | null;
+  branchType: string;
+  status: string;
+  openingDate: string;
+  defaultBranch: boolean;
+  linkedWarehouse: boolean;
+}
+
+export async function listTenantBranches(tenantId: string): Promise<AdminBranch[]> {
+  const { data } = await apiClient.get<{ items: AdminBranch[] }>(
+    `${API.ADMIN_TENANTS}/${tenantId}/branches`,
+  );
+  return data.items;
+}

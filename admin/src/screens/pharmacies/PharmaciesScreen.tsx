@@ -1,14 +1,21 @@
 import { Button, Label, Reveal } from '@atoms';
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@molecules';
 import { ApiError, isApiError } from '@/services/axios';
-import { listTenants, updateTenantStatus, type AdminTenant } from '@/services/tenants';
+import {
+  listTenantBranches,
+  listTenants,
+  updateTenantStatus,
+  type AdminBranch,
+  type AdminTenant,
+} from '@/services/tenants';
 import type { RootState } from '@/store';
-import { Ban, BadgeCheck, Building2, Unplug } from 'lucide-react';
+import { Ban, BadgeCheck, Building2, MapPin, Unplug } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 
 type PageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
 type DecisionStatus = 'empty' | 'validation' | 'loading' | 'denied' | 'conflict' | 'failure';
+type BranchPanelStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
 
 function isMaster(role: string | undefined): boolean {
   return role === 'admin_super';
@@ -63,18 +70,40 @@ function statusCopy(status: PageStatus): { icon: typeof Ban; text: string } | nu
   }
 }
 
+function branchPanelCopy(status: BranchPanelStatus): string | null {
+  switch (status) {
+    case 'loading':
+      return 'Loading tenant outlets…';
+    case 'empty':
+      return 'No outlets on file for this tenant yet.';
+    case 'denied':
+      return 'Your desk cannot read tenant outlets.';
+    case 'failure':
+      return 'Could not load tenant outlets. Try again.';
+    case 'success':
+      return 'Tenant outlet file loaded for support review.';
+    default:
+      return null;
+  }
+}
+
 export default function PharmaciesScreen() {
   const role = useSelector((s: RootState) => s.auth.user?.role);
   const allowed = isMaster(role);
   const statusId = useId();
   const reasonId = useId();
+  const branchStatusId = useId();
   const [items, setItems] = useState<AdminTenant[]>([]);
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [selected, setSelected] = useState<AdminTenant | null>(null);
   const [targetStatus, setTargetStatus] = useState<string | null>(null);
   const [reason, setReason] = useState('');
   const [decisionStatus, setDecisionStatus] = useState<DecisionStatus>('empty');
+  const [branchTenant, setBranchTenant] = useState<AdminTenant | null>(null);
+  const [branches, setBranches] = useState<AdminBranch[]>([]);
+  const [branchStatus, setBranchStatus] = useState<BranchPanelStatus>(null);
   const restoreRef = useRef<HTMLElement | null>(null);
+  const branchRestoreRef = useRef<HTMLElement | null>(null);
 
   const load = useCallback(async () => {
     if (!allowed) {
@@ -112,7 +141,33 @@ export default function PharmaciesScreen() {
     }
   }, [targetStatus]);
 
+  useEffect(() => {
+    if (!branchTenant) {
+      branchRestoreRef.current?.focus();
+      return;
+    }
+    branchRestoreRef.current =
+      document.activeElement instanceof HTMLElement ? document.activeElement : null;
+    setBranchStatus('loading');
+    setBranches([]);
+    void listTenantBranches(branchTenant.id)
+      .then((next) => {
+        setBranches(next);
+        setBranchStatus(next.length === 0 ? 'empty' : 'success');
+      })
+      .catch((error: unknown) => {
+        if (isApiError(error) || error instanceof ApiError) {
+          if (error.status === 403) {
+            setBranchStatus('denied');
+            return;
+          }
+        }
+        setBranchStatus('failure');
+      });
+  }, [branchTenant]);
+
   const copy = statusCopy(status);
+  const branchMessage = branchPanelCopy(branchStatus);
   const decisionMessage =
     decisionStatus === 'validation'
       ? 'Enter a reason before filing this lifecycle change.'
@@ -170,12 +225,12 @@ export default function PharmaciesScreen() {
       <div className="border-b border-line pb-4">
         <h1 className="font-serif text-xl text-ink">Pharmacies</h1>
         <p className="mt-1 text-sm text-muted">
-          Scan tenant lifecycle status and apply MASTER suspend, expire, terminate, or reactivate
-          moves with a reason.
+          Scan tenant lifecycle status, open the outlet file for support, and apply MASTER suspend,
+          expire, terminate, or reactivate moves with a reason.
         </p>
       </div>
 
-      {copy && !targetStatus ? (
+      {copy && !targetStatus && !branchTenant ? (
         <p
           id={statusId}
           role="alert"
@@ -217,11 +272,19 @@ export default function PharmaciesScreen() {
                     </span>
                   </td>
                   <td className="px-3 py-3">
-                    {row.allowedTransitions.length === 0 ? (
-                      <span className="text-muted">No transitions</span>
-                    ) : (
-                      <div className="flex flex-wrap gap-2">
-                        {row.allowedTransitions.map((next) => (
+                    <div className="flex flex-wrap gap-2">
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        onClick={() => setBranchTenant(row)}
+                      >
+                        Outlet file
+                      </Button>
+                      {row.allowedTransitions.length === 0 ? (
+                        <span className="text-muted">No transitions</span>
+                      ) : (
+                        row.allowedTransitions.map((next) => (
                           <Button
                             key={next}
                             type="button"
@@ -231,9 +294,9 @@ export default function PharmaciesScreen() {
                           >
                             {transitionLabel(next)}
                           </Button>
-                        ))}
-                      </div>
-                    )}
+                        ))
+                      )}
+                    </div>
                   </td>
                 </tr>
               ))}
@@ -275,6 +338,75 @@ export default function PharmaciesScreen() {
               </Button>
             </div>
           </form>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={branchTenant !== null} onOpenChange={(open) => !open && setBranchTenant(null)}>
+        <DialogContent aria-describedby={undefined} className="max-w-3xl">
+          <DialogTitle>Tenant outlet file</DialogTitle>
+          <DialogDescription>
+            Read-only support view of outlets for {branchTenant?.name ?? 'this tenant'}. MASTER does
+            not edit branch master here.
+          </DialogDescription>
+          {branchMessage ? (
+            <p
+              id={branchStatusId}
+              role="alert"
+              className="mt-3 flex items-start gap-2 text-sm text-ink"
+            >
+              <MapPin className="mt-0.5 size-3.5 shrink-0 text-brand" aria-hidden="true" />
+              <span>{branchMessage}</span>
+            </p>
+          ) : null}
+          {branches.length > 0 ? (
+            <div className="mt-4 overflow-x-auto border border-line">
+              <table className="w-full min-w-[32rem] border-collapse text-left text-sm">
+                <caption className="sr-only">Tenant outlets</caption>
+                <thead className="border-b border-line bg-elevated text-[11px] tracking-wide text-muted uppercase">
+                  <tr>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Code
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Outlet
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Type
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Licence
+                    </th>
+                    <th scope="col" className="px-3 py-2 font-medium">
+                      Default
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {branches.map((branch) => (
+                    <tr key={branch.id} className="border-b border-line last:border-b-0">
+                      <td className="px-3 py-2 font-mono text-[11px]">{branch.branchCode}</td>
+                      <td className="px-3 py-2">
+                        <div className="text-ink">{branch.name}</div>
+                        <div className="text-[11px] text-muted">
+                          {branch.city}, {branch.state} {branch.pincode}
+                        </div>
+                      </td>
+                      <td className="px-3 py-2">{branch.branchType}</td>
+                      <td className="px-3 py-2 font-mono text-[11px]">
+                        {branch.drugLicenseNumber}
+                      </td>
+                      <td className="px-3 py-2">{branch.defaultBranch ? 'Default' : '—'}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          ) : null}
+          <div className="mt-4 flex justify-end">
+            <Button type="button" variant="outline" onClick={() => setBranchTenant(null)}>
+              Close outlet file
+            </Button>
+          </div>
         </DialogContent>
       </Dialog>
     </Reveal>
