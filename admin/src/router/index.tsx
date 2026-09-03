@@ -16,6 +16,7 @@ import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerifica
 import SupportSessionScreen from '@/screens/support-session/SupportSessionScreen';
 import KycQueueScreen from '@/screens/kyc-queue/KycQueueScreen';
 import PharmaciesScreen from '@/screens/pharmacies/PharmaciesScreen';
+import SubscriptionsScreen from '@/screens/subscriptions/SubscriptionsScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
@@ -37,7 +38,7 @@ const router = createBrowserRouter([
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.PHARMACIES, element: <PharmaciesScreen /> },
           { path: ROUTES.KYC, element: <KycQueueScreen /> },
-          { path: ROUTES.SUBSCRIPTIONS, element: <StubScreen title="Subscriptions" /> },
+          { path: ROUTES.SUBSCRIPTIONS, element: <SubscriptionsScreen /> },
           { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
           { path: ROUTES.SUPPORT, element: <SupportSessionScreen /> },
           { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },

@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.access;
 
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AccessRole;
 import com.nammamedmate.server.domain.AccessRoleKind;
 import com.nammamedmate.server.domain.AccessRoleModule;
@@ -7,6 +8,7 @@ import com.nammamedmate.server.domain.AccessScope;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.EffectiveModuleSet;
 import com.nammamedmate.server.domain.ModuleCode;
+import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PlanModuleEntitlements;
 import com.nammamedmate.server.domain.UserAccessRole;
 import com.nammamedmate.server.persistence.AccessRoleModuleRepository;
@@ -31,16 +33,19 @@ public class AccessQueryService {
   private final AccessRoleRepository accessRoleRepository;
   private final AccessRoleModuleRepository accessRoleModuleRepository;
   private final UserAccessRoleRepository userAccessRoleRepository;
+  private final SubscriptionService subscriptionService;
 
   public AccessQueryService(
       AppUserRepository appUserRepository,
       AccessRoleRepository accessRoleRepository,
       AccessRoleModuleRepository accessRoleModuleRepository,
-      UserAccessRoleRepository userAccessRoleRepository) {
+      UserAccessRoleRepository userAccessRoleRepository,
+      SubscriptionService subscriptionService) {
     this.appUserRepository = appUserRepository;
     this.accessRoleRepository = accessRoleRepository;
     this.accessRoleModuleRepository = accessRoleModuleRepository;
     this.userAccessRoleRepository = userAccessRoleRepository;
+    this.subscriptionService = subscriptionService;
   }
 
   @Transactional(readOnly = true)
@@ -56,7 +61,7 @@ public class AccessQueryService {
             .map(ModuleCode::valueOf)
             .collect(Collectors.toCollection(LinkedHashSet::new));
     List<String> modules =
-        EffectiveModuleSet.resolve(user.getRole(), assignedModules).stream()
+        EffectiveModuleSet.resolve(user.getRole(), assignedModules, planFor(user)).stream()
             .map(Enum::name)
             .toList();
     return new AccessIdentity(assigned, modules);
@@ -70,7 +75,7 @@ public class AccessQueryService {
             .flatMap(view -> view.modules().stream())
             .map(ModuleCode::valueOf)
             .collect(Collectors.toCollection(LinkedHashSet::new));
-    return EffectiveModuleSet.resolve(user.getRole(), assignedModules);
+    return EffectiveModuleSet.resolve(user.getRole(), assignedModules, planFor(user));
   }
 
   List<AccessRoleView> assignedViews(AppUser user) {
@@ -115,23 +120,32 @@ public class AccessQueryService {
                         Collectors.toCollection(LinkedHashSet::new), List::copyOf))));
   }
 
-  List<ModuleCatalogItem> catalog(AccessScope scope) {
+  List<ModuleCatalogItem> catalog(AccessScope scope, PlanCode plan) {
     if (scope == AccessScope.PLATFORM) {
       return PlanModuleEntitlements.platformModules().stream()
           .map(code -> new ModuleCatalogItem(code.name(), true, false, null))
           .toList();
     }
+    PlanCode effective = plan == null ? PlanCode.FREE : plan;
     List<ModuleCatalogItem> items = new ArrayList<>();
     for (ModuleCode code : PlanModuleEntitlements.allTenantModules()) {
-      boolean entitled = PlanModuleEntitlements.entitledForTenant(code);
+      boolean entitled = PlanModuleEntitlements.entitledForTenant(effective, code);
       items.add(
           new ModuleCatalogItem(
               code.name(),
               entitled,
               code.planGated(),
-              code.planGated() ? "Not included in the current plan." : null));
+              code.planGated() && !entitled ? "Not included in the current plan." : null));
     }
     return items;
+  }
+
+  List<ModuleCatalogItem> catalog(AccessScope scope) {
+    return catalog(scope, PlanCode.FREE);
+  }
+
+  private PlanCode planFor(AppUser user) {
+    return subscriptionService.resolvePlan(user.getTenantId());
   }
 
   static AccessRoleView toView(AccessRole role, List<String> modules) {

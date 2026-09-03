@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.branch;
 
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchCodeGenerator;
@@ -33,6 +34,7 @@ public class BranchService {
   private final TenantRepository tenantRepository;
   private final AppUserRepository appUserRepository;
   private final BranchAssignmentService branchAssignmentService;
+  private final SubscriptionService subscriptionService;
   private final Clock clock;
 
   public BranchService(
@@ -40,11 +42,13 @@ public class BranchService {
       TenantRepository tenantRepository,
       AppUserRepository appUserRepository,
       BranchAssignmentService branchAssignmentService,
+      SubscriptionService subscriptionService,
       Clock clock) {
     this.locationRepository = locationRepository;
     this.tenantRepository = tenantRepository;
     this.appUserRepository = appUserRepository;
     this.branchAssignmentService = branchAssignmentService;
+    this.subscriptionService = subscriptionService;
     this.clock = clock;
   }
 
@@ -131,6 +135,7 @@ public class BranchService {
       Map<String, Object> pricingSettings,
       Map<String, Object> taxSettings) {
     UUID tenantId = requireOwnerTenant(principal);
+    subscriptionService.assertCanAddBranch(tenantId);
     Instant now = Instant.now(clock);
     Location branch = new Location();
     branch.setId(UUID.randomUUID());

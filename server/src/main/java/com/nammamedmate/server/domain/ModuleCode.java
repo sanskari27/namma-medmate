@@ -11,7 +11,8 @@ public enum ModuleCode {
   ROLES(true, false),
   APPROVALS(true, false),
   LOYALTY(true, true),
-  ONLINE_STORE(true, true),
+  /** Phase 2 ecommerce — neither tenant nor platform in Phase 1 (D-008). */
+  ONLINE_STORE(false, false, false),
   TENANT_KYC(false, false),
   STAFF_VERIFICATION(false, false),
   SUBSCRIPTIONS(false, false),
@@ -21,10 +22,16 @@ public enum ModuleCode {
   PLATFORM_FINANCE(false, false);
 
   private final boolean tenant;
+  private final boolean platform;
   private final boolean planGated;
 
   ModuleCode(boolean tenant, boolean planGated) {
+    this(tenant, !tenant, planGated);
+  }
+
+  ModuleCode(boolean tenant, boolean platform, boolean planGated) {
     this.tenant = tenant;
+    this.platform = platform;
     this.planGated = planGated;
   }
 
@@ -33,7 +40,7 @@ public enum ModuleCode {
   }
 
   public boolean platformModule() {
-    return !tenant;
+    return platform;
   }
 
   public boolean planGated() {

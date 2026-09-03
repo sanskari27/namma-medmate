@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.access;
 
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AccessRole;
 import com.nammamedmate.server.domain.AccessRoleEvent;
 import com.nammamedmate.server.domain.AccessRoleEventAction;
@@ -9,6 +10,8 @@ import com.nammamedmate.server.domain.AccessRolePolicy;
 import com.nammamedmate.server.domain.AccessScope;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.ModuleCode;
+import com.nammamedmate.server.domain.PlanCode;
+import com.nammamedmate.server.domain.PlanModuleEntitlements;
 import com.nammamedmate.server.domain.UserAccessRole;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AccessRoleEventRepository;
@@ -56,6 +59,7 @@ public class AccessRoleService {
   private final UserAccessRoleRepository userAccessRoleRepository;
   private final AccessRoleEventRepository accessRoleEventRepository;
   private final AccessQueryService accessQueryService;
+  private final SubscriptionService subscriptionService;
   private final Clock clock;
 
   public AccessRoleService(
@@ -65,6 +69,7 @@ public class AccessRoleService {
       UserAccessRoleRepository userAccessRoleRepository,
       AccessRoleEventRepository accessRoleEventRepository,
       AccessQueryService accessQueryService,
+      SubscriptionService subscriptionService,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessRoleRepository = accessRoleRepository;
@@ -72,6 +77,7 @@ public class AccessRoleService {
     this.userAccessRoleRepository = userAccessRoleRepository;
     this.accessRoleEventRepository = accessRoleEventRepository;
     this.accessQueryService = accessQueryService;
+    this.subscriptionService = subscriptionService;
     this.clock = clock;
   }
 
@@ -90,7 +96,7 @@ public class AccessRoleService {
                 Comparator.comparing(AccessRoleView::kind)
                     .thenComparing(AccessRoleView::name, String.CASE_INSENSITIVE_ORDER))
             .toList();
-    return new AccessRoleCatalog(views, accessQueryService.catalog(actor.scope()));
+    return new AccessRoleCatalog(views, accessQueryService.catalog(actor.scope(), planFor(actor)));
   }
 
   @Transactional
@@ -264,12 +270,21 @@ public class AccessRoleService {
     if (!AccessRolePolicy.sameScope(actor.scope(), requested)) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, SCOPE_CODE, SCOPE_MESSAGE);
     }
-    if (actor.scope() == AccessScope.TENANT && requested.stream().anyMatch(ModuleCode::planGated)) {
-      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT_CODE, PLAN_LIMIT_MESSAGE);
+    if (actor.scope() == AccessScope.TENANT) {
+      PlanCode plan = planFor(actor);
+      if (requested.stream()
+          .anyMatch(code -> !PlanModuleEntitlements.entitledForTenant(plan, code))) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT_CODE, PLAN_LIMIT_MESSAGE);
+      }
     }
     if (!AccessRolePolicy.canGrant(actor.effective(), requested)) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PRIVILEGE_CODE, PRIVILEGE_MESSAGE);
     }
+  }
+
+  private PlanCode planFor(Actor actor) {
+    return subscriptionService.resolvePlan(actor.tenantId());
   }
 
   private AccessRole mutableCustom(Actor actor, UUID roleId) {

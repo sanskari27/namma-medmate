@@ -23,6 +23,9 @@ export const API = {
   TENANTS_VERIFY_EMAIL: '/api/v1/tenants/verify-email',
   BRANCHES: '/api/v1/branches',
   SESSION_BRANCH: '/api/v1/session/branch',
+  SUBSCRIPTIONS_CATALOGUE: '/api/v1/subscriptions/catalogue',
+  SUBSCRIPTIONS_CURRENT: '/api/v1/subscriptions/current',
+  SUBSCRIPTIONS_UPGRADE: '/api/v1/subscriptions/upgrade',
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

@@ -12,5 +12,7 @@ class ModuleCatalogTest {
     assertThat(ModuleCode.PLATFORM_ROLES.platformModule()).isTrue();
     assertThat(ModuleCode.LOYALTY.planGated()).isTrue();
     assertThat(ModuleCode.SALES.planGated()).isFalse();
+    assertThat(ModuleCode.ONLINE_STORE.tenantModule()).isFalse();
+    assertThat(ModuleCode.ONLINE_STORE.platformModule()).isFalse();
   }
 }

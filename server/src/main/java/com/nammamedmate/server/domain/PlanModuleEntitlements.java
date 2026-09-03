@@ -10,16 +10,19 @@ public final class PlanModuleEntitlements {
 
   private PlanModuleEntitlements() {}
 
-  public static Set<ModuleCode> entitledTenantModules() {
-    return Arrays.stream(ModuleCode.values())
-        .filter(ModuleCode::tenantModule)
-        .filter(code -> !code.planGated())
+  public static Set<ModuleCode> entitledTenantModules(PlanCode plan) {
+    return allTenantModules().stream()
+        .filter(code -> entitledForTenant(plan, code))
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
+  /** Defaults to Free entitlements (post-KYC baseline). */
+  public static Set<ModuleCode> entitledTenantModules() {
+    return entitledTenantModules(PlanCode.FREE);
+  }
+
   public static Set<ModuleCode> gatedTenantModules() {
-    return Arrays.stream(ModuleCode.values())
-        .filter(ModuleCode::tenantModule)
+    return allTenantModules().stream()
         .filter(ModuleCode::planGated)
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
@@ -36,8 +39,19 @@ public final class PlanModuleEntitlements {
         .collect(Collectors.toCollection(LinkedHashSet::new));
   }
 
+  public static boolean entitledForTenant(PlanCode plan, ModuleCode code) {
+    if (!code.tenantModule()) {
+      return false;
+    }
+    if (code == ModuleCode.LOYALTY) {
+      return plan == PlanCode.GROWTH || plan == PlanCode.PRO;
+    }
+    return !code.planGated();
+  }
+
+  /** Defaults to Free entitlements (post-KYC baseline). */
   public static boolean entitledForTenant(ModuleCode code) {
-    return code.tenantModule() && !code.planGated();
+    return entitledForTenant(PlanCode.FREE, code);
   }
 
   public static Set<ModuleCode> unmodifiable(Set<ModuleCode> modules) {

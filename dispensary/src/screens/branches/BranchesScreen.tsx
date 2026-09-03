@@ -1,4 +1,5 @@
 import { Button, Input, Label, Reveal } from '@atoms';
+import { ROUTES } from '@/libs/constants/routes.const';
 import {
   copyBranchSettings,
   createBranch,
@@ -11,9 +12,18 @@ import type { RootState } from '@/store';
 import { AlertCircle, BadgeCheck, Building2, Copy, MapPin, Unplug } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
 
 type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+  | 'loading'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | 'quota'
+  | null;
 
 type FormState = {
   name: string;
@@ -70,6 +80,11 @@ function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text: strin
       return {
         icon: AlertCircle,
         text: 'This outlet was updated elsewhere. Refresh and try again.',
+      };
+    case 'quota':
+      return {
+        icon: AlertCircle,
+        text: 'This pharmacy has used its outlet limit. Upgrade the plan to add another outlet.',
       };
     case 'failure':
       return { icon: Unplug, text: 'Could not reach the server for outlets. Try again.' };
@@ -224,6 +239,10 @@ export default function BranchesScreen() {
           setStatus('conflict');
           return;
         }
+        if (err.code === 'PLAN_LIMIT') {
+          setStatus('quota');
+          return;
+        }
         if (err.status === 422 || err.status === 400) {
           setStatus('validation');
           return;
@@ -264,7 +283,17 @@ export default function BranchesScreen() {
           className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
         >
           <banner.icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-          <span>{banner.text}</span>
+          <span>
+            {banner.text}
+            {status === 'quota' ? (
+              <>
+                {' '}
+                <Link className="text-brand underline" to={ROUTES.SUBSCRIPTION}>
+                  Open plan for this pharmacy
+                </Link>
+              </>
+            ) : null}
+          </span>
         </div>
       ) : null}
 

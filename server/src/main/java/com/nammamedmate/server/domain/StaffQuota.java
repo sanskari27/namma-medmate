@@ -2,11 +2,18 @@ package com.nammamedmate.server.domain;
 
 public final class StaffQuota {
 
-  public static final int FREE_TOTAL_USERS = 3;
+  /**
+   * @deprecated Prefer {@link PlanLimits#maxUsers(PlanCode)}.
+   */
+  public static final int FREE_TOTAL_USERS = PlanLimits.maxUsers(PlanCode.FREE);
 
   private StaffQuota() {}
 
   public static boolean allowsAnother(long currentNonDeletedUsers) {
-    return currentNonDeletedUsers < FREE_TOTAL_USERS;
+    return PlanLimits.allowsAnotherUser(PlanCode.FREE, currentNonDeletedUsers);
+  }
+
+  public static boolean allowsAnother(PlanCode plan, long currentNonDeletedUsers) {
+    return PlanLimits.allowsAnotherUser(plan, currentNonDeletedUsers);
   }
 }

@@ -2,6 +2,7 @@ import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
+import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BranchesScreen from '@/screens/branches/BranchesScreen';
 import { ApiError } from '@/services/axios';
@@ -71,7 +72,9 @@ function renderPage(role = 'pharmacy_owner') {
   });
   return render(
     <Provider store={store}>
-      <BranchesScreen />
+      <MemoryRouter>
+        <BranchesScreen />
+      </MemoryRouter>
     </Provider>,
   );
 }
@@ -148,16 +151,27 @@ describe('counter outlets', () => {
     );
   });
 
-  it('conflict: stale update surfaces conflict copy', async () => {
+  it('quota: plan limit on create offers upgrade', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
-    updateMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    listMock.mockResolvedValue([]);
+    createMock.mockRejectedValue(new ApiError('limit', 422, 'PLAN_LIMIT'));
     renderPage();
-    expect(await screen.findByText('Main Counter')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Edit outlet' }));
+    await screen.findByRole('heading', { name: 'Outlets' });
+    await user.click(screen.getByRole('button', { name: 'Add outlet' }));
+    await user.type(screen.getByLabelText('Outlet name'), 'Second Counter');
+    await user.type(screen.getByLabelText('Drug licence number'), 'DL-2');
+    await user.type(screen.getByLabelText('Address'), '12 MG Road');
+    await user.type(screen.getByLabelText('City'), 'Bengaluru');
+    await user.type(screen.getByLabelText('State'), 'KA');
+    await user.type(screen.getByLabelText('Pincode'), '560001');
+    await user.type(screen.getByLabelText('Contact phone'), '9876543210');
     await user.click(screen.getByRole('button', { name: 'Save outlet' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This outlet was updated elsewhere. Refresh and try again.',
+      'This pharmacy has used its outlet limit. Upgrade the plan to add another outlet.',
+    );
+    expect(screen.getByRole('link', { name: 'Open plan for this pharmacy' })).toHaveAttribute(
+      'href',
+      '/subscription',
     );
   });
 });

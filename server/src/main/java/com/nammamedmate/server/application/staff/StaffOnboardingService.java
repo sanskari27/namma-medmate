@@ -1,11 +1,11 @@
 package com.nammamedmate.server.application.staff;
 
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.EmailNormalizer;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.StaffLicenseRules;
-import com.nammamedmate.server.domain.StaffQuota;
 import com.nammamedmate.server.domain.StaffRegistration;
 import com.nammamedmate.server.domain.StaffRegistrationStatus;
 import com.nammamedmate.server.domain.StaffRolePolicy;
@@ -51,6 +51,7 @@ public class StaffOnboardingService {
   private final StaffRegistrationRepository staffRegistrationRepository;
   private final TenantRepository tenantRepository;
   private final UserSessionRepository userSessionRepository;
+  private final SubscriptionService subscriptionService;
   private final PasswordEncoder passwordEncoder;
   private final Clock clock;
 
@@ -59,12 +60,14 @@ public class StaffOnboardingService {
       StaffRegistrationRepository staffRegistrationRepository,
       TenantRepository tenantRepository,
       UserSessionRepository userSessionRepository,
+      SubscriptionService subscriptionService,
       PasswordEncoder passwordEncoder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.staffRegistrationRepository = staffRegistrationRepository;
     this.tenantRepository = tenantRepository;
     this.userSessionRepository = userSessionRepository;
+    this.subscriptionService = subscriptionService;
     this.passwordEncoder = passwordEncoder;
     this.clock = clock;
   }
@@ -92,11 +95,7 @@ public class StaffOnboardingService {
     }
     if (tenantId != null) {
       tenantRepository.lockById(tenantId).orElseThrow(StaffOnboardingService::notFound);
-      long current = appUserRepository.countByTenantIdAndDeletedAtIsNull(tenantId);
-      if (!StaffQuota.allowsAnother(current)) {
-        throw new ApiException(
-            HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT_CODE, PLAN_LIMIT_MESSAGE);
-      }
+      subscriptionService.assertCanAddUser(tenantId);
     }
 
     Instant now = Instant.now(clock);

@@ -18,8 +18,11 @@ import com.nammamedmate.server.domain.KycDocument;
 import com.nammamedmate.server.domain.KycSubmission;
 import com.nammamedmate.server.domain.KycSubmissionStatus;
 import com.nammamedmate.server.domain.Location;
+import com.nammamedmate.server.domain.PlanCode;
+import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
+import com.nammamedmate.server.domain.TenantSubscription;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.KycDocumentRepository;
@@ -29,6 +32,8 @@ import com.nammamedmate.server.persistence.NotificationDeliveryRepository;
 import com.nammamedmate.server.persistence.NotificationEventRepository;
 import com.nammamedmate.server.persistence.NotificationRepository;
 import com.nammamedmate.server.persistence.NotificationSourceRepository;
+import com.nammamedmate.server.persistence.SubscriptionOverrideEventRepository;
+import com.nammamedmate.server.persistence.SubscriptionUpgradeIntentRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
@@ -84,6 +89,8 @@ class BranchMasterTest {
   @Autowired private KycSubmissionRepository kycSubmissionRepository;
   @Autowired private KycDocumentRepository kycDocumentRepository;
   @Autowired private TenantSubscriptionRepository tenantSubscriptionRepository;
+  @Autowired private SubscriptionUpgradeIntentRepository subscriptionUpgradeIntentRepository;
+  @Autowired private SubscriptionOverrideEventRepository subscriptionOverrideEventRepository;
   @Autowired private NotificationRepository notificationRepository;
   @Autowired private NotificationDeliveryRepository notificationDeliveryRepository;
   @Autowired private NotificationEventRepository notificationEventRepository;
@@ -98,6 +105,8 @@ class BranchMasterTest {
     notificationSourceRepository.deleteAll();
     kycDocumentRepository.deleteAll();
     kycSubmissionRepository.deleteAll();
+    subscriptionOverrideEventRepository.deleteAll();
+    subscriptionUpgradeIntentRepository.deleteAll();
     tenantSubscriptionRepository.deleteAll();
     userSessionRepository.deleteAll();
     locationRepository.deleteAll();
@@ -146,6 +155,7 @@ class BranchMasterTest {
   @Test
   void ac02_ac03_createGeneratesUniqueCodeAndPersistsFullFields() throws Exception {
     Tenant tenant = persistTenant("full", "Full Chemist", TenantStatus.ACTIVE);
+    persistPlan(tenant.getId(), PlanCode.STARTER);
     persistOwner(tenant.getId(), "owner@full.local");
     Cookie cookie = login("owner@full.local");
 
@@ -200,6 +210,7 @@ class BranchMasterTest {
   @Test
   void ac05_exactlyOneActiveDefaultPerTenant() throws Exception {
     Tenant tenant = persistTenant("def", "Default Chemist", TenantStatus.ACTIVE);
+    persistPlan(tenant.getId(), PlanCode.STARTER);
     persistOwner(tenant.getId(), "owner@def.local");
     Cookie cookie = login("owner@def.local");
 
@@ -275,6 +286,7 @@ class BranchMasterTest {
   @Test
   void ac06_ac07_pricingTaxDifferAndCopyIsSnapshot() throws Exception {
     Tenant tenant = persistTenant("price", "Price Chemist", TenantStatus.ACTIVE);
+    persistPlan(tenant.getId(), PlanCode.STARTER);
     persistOwner(tenant.getId(), "owner@price.local");
     Cookie cookie = login("owner@price.local");
 
@@ -502,6 +514,18 @@ class BranchMasterTest {
     tenant.setCreatedAt(T0);
     tenant.setUpdatedAt(T0);
     return tenantRepository.saveAndFlush(tenant);
+  }
+
+  private void persistPlan(UUID tenantId, PlanCode planCode) {
+    TenantSubscription subscription = new TenantSubscription();
+    subscription.setId(UUID.randomUUID());
+    subscription.setTenantId(tenantId);
+    subscription.setPlanCode(planCode);
+    subscription.setStatus(SubscriptionStatus.ACTIVE);
+    subscription.setStartedAt(T0);
+    subscription.setCreatedAt(T0);
+    subscription.setUpdatedAt(T0);
+    tenantSubscriptionRepository.saveAndFlush(subscription);
   }
 
   private AppUser persistOwner(UUID tenantId, String email) {

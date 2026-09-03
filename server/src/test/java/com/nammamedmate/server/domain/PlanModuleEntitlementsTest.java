@@ -8,12 +8,27 @@ class PlanModuleEntitlementsTest {
 
   @Test
   void ac02_freePlanExcludesLoyaltyAndOnlineStore() {
-    assertThat(PlanModuleEntitlements.entitledForTenant(ModuleCode.SALES)).isTrue();
-    assertThat(PlanModuleEntitlements.entitledForTenant(ModuleCode.ROLES)).isTrue();
-    assertThat(PlanModuleEntitlements.entitledForTenant(ModuleCode.LOYALTY)).isFalse();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.SALES)).isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.ROLES)).isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.LOYALTY))
+        .isFalse();
     assertThat(PlanModuleEntitlements.entitledForTenant(ModuleCode.ONLINE_STORE)).isFalse();
-    assertThat(PlanModuleEntitlements.gatedTenantModules())
-        .containsExactly(ModuleCode.LOYALTY, ModuleCode.ONLINE_STORE);
+    assertThat(PlanModuleEntitlements.gatedTenantModules()).containsExactly(ModuleCode.LOYALTY);
+    assertThat(PlanModuleEntitlements.allTenantModules()).doesNotContain(ModuleCode.ONLINE_STORE);
+    assertThat(PlanModuleEntitlements.platformModules()).doesNotContain(ModuleCode.ONLINE_STORE);
+    assertThat(ModuleCode.ONLINE_STORE.tenantModule()).isFalse();
+    assertThat(ModuleCode.ONLINE_STORE.platformModule()).isFalse();
+  }
+
+  @Test
+  void ac04_growthEntitlesLoyaltyWithoutOnlineStore() {
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.GROWTH, ModuleCode.LOYALTY))
+        .isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.PRO, ModuleCode.LOYALTY)).isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.STARTER, ModuleCode.LOYALTY))
+        .isFalse();
+    assertThat(PlanModuleEntitlements.entitledTenantModules(PlanCode.GROWTH))
+        .doesNotContain(ModuleCode.ONLINE_STORE);
   }
 
   @Test

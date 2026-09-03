@@ -24,4 +24,5 @@ export const API = {
   AUDIT: '/api/v1/audit',
   ADMIN_KYC: '/api/v1/admin/kyc',
   ADMIN_TENANTS: '/api/v1/admin/tenants',
+  ADMIN_SUBSCRIPTIONS: '/api/v1/admin/subscriptions',
 } as const;

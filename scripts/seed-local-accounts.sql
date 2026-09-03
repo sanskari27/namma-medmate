@@ -14,6 +14,26 @@ VALUES (
 )
 ON CONFLICT (id) DO NOTHING;
 
+INSERT INTO tenant_subscription (
+    id,
+    tenant_id,
+    plan_code,
+    status,
+    started_at,
+    created_at,
+    updated_at
+)
+VALUES (
+    gen_random_uuid(),
+    '11111111-1111-1111-1111-111111111111',
+    'FREE',
+    'ACTIVE',
+    NOW(),
+    NOW(),
+    NOW()
+)
+ON CONFLICT (tenant_id) DO NOTHING;
+
 INSERT INTO app_user (
     id,
     tenant_id,

@@ -12,32 +12,29 @@ import lombok.Getter;
 import lombok.Setter;
 
 @Entity
-@Table(name = "tenant_subscription")
+@Table(name = "subscription_upgrade_intent")
 @Getter
 @Setter
-public class TenantSubscription {
+public class SubscriptionUpgradeIntent {
 
   @Id private UUID id;
 
-  @Column(name = "tenant_id", nullable = false, unique = true)
+  @Column(name = "tenant_id", nullable = false)
   private UUID tenantId;
 
   @Enumerated(EnumType.STRING)
-  @Column(name = "plan_code", nullable = false, length = 32)
-  private PlanCode planCode;
+  @Column(name = "target_plan", nullable = false, length = 32)
+  private PlanCode targetPlan;
 
   @Enumerated(EnumType.STRING)
   @Column(nullable = false, length = 32)
-  private SubscriptionStatus status = SubscriptionStatus.ACTIVE;
+  private UpgradeIntentStatus status = UpgradeIntentStatus.PENDING;
 
-  @Column(name = "started_at", nullable = false)
-  private Instant startedAt;
+  @Column(name = "idempotency_key", nullable = false, length = 128)
+  private String idempotencyKey;
 
-  @Column(name = "expires_at")
-  private Instant expiresAt;
-
-  @Column(name = "branch_limit_override")
-  private Integer branchLimitOverride;
+  @Column(name = "applied_at")
+  private Instant appliedAt;
 
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;

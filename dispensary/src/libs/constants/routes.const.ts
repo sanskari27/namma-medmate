@@ -90,7 +90,6 @@ export const NAV_SECTIONS = [
       { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Incoming stock' },
       { label: 'Reorder / Distributor', path: ROUTES.REORDER, hint: 'What to indent next' },
       { label: 'Distributors', path: ROUTES.DISTRIBUTORS, hint: 'Supplier book' },
-      { label: 'Online Store', path: ROUTES.ONLINE_STORE, hint: 'Web catalogue for this pharmacy' },
       { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },
       { label: 'Self-Order Kiosk', path: ROUTES.KIOSK, hint: 'Kiosk at this branch' },
     ],
@@ -147,7 +146,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.APPROVALS_PENDING &&
     item.path !== ROUTES.ACTIVITY &&
     item.path !== ROUTES.ACCOUNT &&
-    item.path !== ROUTES.BRANCHES,
+    item.path !== ROUTES.BRANCHES &&
+    item.path !== ROUTES.SUBSCRIPTION,
 ).map((item) => ({
   path: item.path,
   title: item.label,
