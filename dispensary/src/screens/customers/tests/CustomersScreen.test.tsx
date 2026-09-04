@@ -50,6 +50,20 @@ vi.mock('@/services/doctors', async () => {
   };
 });
 
+vi.mock('@/services/credit', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    getCustomerCredit: vi.fn(),
+    listOutstandingCreditAccounts: vi.fn(),
+    setCustomerCreditLimit: vi.fn(),
+    settleCustomerCredit: vi.fn(),
+    chargeCustomerCredit: vi.fn(),
+    formatPaise: (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`,
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import {
   createCustomer,
   executeCustomerMerge,
@@ -64,6 +78,7 @@ import {
   getFamilyHistory,
 } from '@/services/customerFamilies';
 import { createDoctor, listDoctors, listTopReferringDoctors } from '@/services/doctors';
+import { getCustomerCredit, setCustomerCreditLimit } from '@/services/credit';
 
 const listMock = vi.mocked(listCustomers);
 const createMock = vi.mocked(createCustomer);
@@ -77,6 +92,8 @@ const createFamilyMock = vi.mocked(createCustomerFamily);
 const listDoctorsMock = vi.mocked(listDoctors);
 const listTopMock = vi.mocked(listTopReferringDoctors);
 const createDoctorMock = vi.mocked(createDoctor);
+const getCreditMock = vi.mocked(getCustomerCredit);
+const setLimitMock = vi.mocked(setCustomerCreditLimit);
 
 const sample: Customer = {
   id: 'c1',
@@ -135,11 +152,21 @@ describe('counter customers', () => {
     listDoctorsMock.mockReset();
     listTopMock.mockReset();
     createDoctorMock.mockReset();
+    getCreditMock.mockReset();
+    setLimitMock.mockReset();
     getFamilyMock.mockResolvedValue(null);
     getFamilyHistoryMock.mockResolvedValue([]);
     getHistoryMock.mockResolvedValue([]);
     listDoctorsMock.mockResolvedValue([]);
     listTopMock.mockResolvedValue([]);
+    getCreditMock.mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 0,
+      balancePaise: 0,
+      availablePaise: 0,
+      version: 0,
+      entries: [],
+    });
   });
 
   it('loading: waits for customers', () => {
@@ -483,5 +510,48 @@ describe('counter customers', () => {
     expect(
       await screen.findByText('Could not reach the server for customers. Try again.'),
     ).toBeInTheDocument();
+  });
+
+  it('success: owner sets khata limit and sees available credit', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    updateMock.mockResolvedValue(sample);
+    getCreditMock.mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 0,
+      balancePaise: 0,
+      availablePaise: 0,
+      version: 0,
+      entries: [],
+    });
+    setLimitMock.mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 50000,
+      balancePaise: 0,
+      availablePaise: 50000,
+      version: 1,
+      entries: [
+        {
+          id: 'e1',
+          type: 'LIMIT_SET',
+          amountPaise: 50000,
+          balanceAfterPaise: 0,
+          invoiceId: null,
+          settlementMode: null,
+          settlementReference: null,
+          occurredAt: '2026-09-04T05:00:00Z',
+        },
+      ],
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const khata = await screen.findByLabelText('Khata credit');
+    await user.type(screen.getByLabelText('Set limit (₹)'), '500');
+    await user.click(screen.getByRole('button', { name: 'Save limit' }));
+    await waitFor(() => {
+      expect(setLimitMock).toHaveBeenCalledWith('c1', 50000, 0);
+    });
+    expect(within(khata).getByText('Available')).toBeInTheDocument();
+    expect(within(khata).getAllByText('₹500').length).toBeGreaterThanOrEqual(1);
   });
 });

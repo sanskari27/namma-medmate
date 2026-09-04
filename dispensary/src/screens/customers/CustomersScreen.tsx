@@ -2,6 +2,7 @@ import {
   CustomerCreateDialog,
   CustomerFamilyDialog,
   CustomerMergeDialog,
+  CreditSettleDialog,
   DoctorReferenceDialog,
 } from '@templates';
 import {
@@ -20,6 +21,11 @@ import {
   type CustomerHistoryItem,
 } from '@/services/customers';
 import {
+  getCustomerCredit,
+  setCustomerCreditLimit,
+  type CustomerCredit,
+} from '@/services/credit';
+import {
   listDoctors,
   listTopReferringDoctors,
   type Doctor,
@@ -28,6 +34,7 @@ import {
 import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { CustomerCreditSection } from './components/customer-credit-section';
 import { CustomerDoctorSection } from './components/customer-doctor-section';
 import { CustomerFamilyHistory } from './components/customer-family-history';
 import { CustomerFamilySection } from './components/customer-family-section';
@@ -55,6 +62,7 @@ export default function CustomersScreen() {
   const mergeRef = useRef<HTMLButtonElement | null>(null);
   const familyLinkRef = useRef<HTMLButtonElement | null>(null);
   const doctorAddRef = useRef<HTMLButtonElement | null>(null);
+  const settleRef = useRef<HTMLButtonElement | null>(null);
   const [status, setStatus] = useState<PageStatus>('loading');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState('');
@@ -64,7 +72,9 @@ export default function CustomersScreen() {
   const [mergeOpen, setMergeOpen] = useState(false);
   const [familyOpen, setFamilyOpen] = useState(false);
   const [doctorOpen, setDoctorOpen] = useState(false);
+  const [settleOpen, setSettleOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [limitBusy, setLimitBusy] = useState(false);
   const [family, setFamily] = useState<CustomerFamily | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
@@ -78,8 +88,11 @@ export default function CustomersScreen() {
   const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [topReferring, setTopReferring] = useState<TopReferringDoctor[]>([]);
   const [doctorsLoading, setDoctorsLoading] = useState(false);
+  const [credit, setCredit] = useState<CustomerCredit | null>(null);
+  const [creditLoading, setCreditLoading] = useState(false);
 
   const allowed = hasCrmAccess(user?.modules);
+  const canSetLimit = user?.role === 'pharmacy_owner';
   const selected = customers.find((row) => row.id === selectedId) ?? null;
   const flagged = customers.filter(hasHealthFlag).length;
   const banner = statusCopy(status);
@@ -163,6 +176,19 @@ export default function CustomersScreen() {
     }
   }, []);
 
+  const loadCredit = useCallback(async (customerId: string) => {
+    setCreditLoading(true);
+    try {
+      const next = await getCustomerCredit(customerId);
+      setCredit(next);
+    } catch {
+      setCredit(null);
+      setStatus('failure');
+    } finally {
+      setCreditLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -182,11 +208,13 @@ export default function CustomersScreen() {
       setTypeFilter('');
       setPurchaseItems([]);
       setPurchaseTypeFilter('');
+      setCredit(null);
       return;
     }
     void loadFamily(selectedId);
     void loadPurchaseHistory(selectedId);
-  }, [selectedId, loadFamily, loadPurchaseHistory]);
+    void loadCredit(selectedId);
+  }, [selectedId, loadFamily, loadPurchaseHistory, loadCredit]);
 
   useEffect(() => {
     if (!family?.id) {
@@ -244,6 +272,31 @@ export default function CustomersScreen() {
   async function onSearch(event: FormEvent) {
     event.preventDefault();
     await load(query.trim() || undefined);
+  }
+
+  async function onSetLimit(limitPaise: number) {
+    if (!selectedId || !credit) {
+      return;
+    }
+    setLimitBusy(true);
+    try {
+      const next = await setCustomerCreditLimit(selectedId, limitPaise, credit.version);
+      setCredit(next);
+      setStatus('success');
+    } catch (error) {
+      if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
+        setStatus('denied');
+      } else if (isApiError(error) && (error.status === 409 || error.code === 'STALE_STATE')) {
+        setStatus('conflict');
+        void loadCredit(selectedId);
+      } else if (isApiError(error) && error.status === 400) {
+        setStatus('validation');
+      } else {
+        setStatus('failure');
+      }
+    } finally {
+      setLimitBusy(false);
+    }
   }
 
   async function onUnlinkMember(customerId: string) {
@@ -329,6 +382,21 @@ export default function CustomersScreen() {
           onClose={clearSelection}
           mergeButtonRef={mergeRef}
           onMerge={() => setMergeOpen(true)}
+          creditSection={
+            selected ? (
+              <CustomerCreditSection
+                credit={credit}
+                loading={creditLoading}
+                canSetLimit={canSetLimit}
+                limitBusy={limitBusy}
+                settleButtonRef={settleRef}
+                onSetLimit={(limitPaise) => {
+                  void onSetLimit(limitPaise);
+                }}
+                onSettle={() => setSettleOpen(true)}
+              />
+            ) : null
+          }
           purchaseHistory={
             selected ? (
               <CustomerPurchaseHistory
@@ -438,6 +506,22 @@ export default function CustomersScreen() {
           setStatus('success');
         }}
       />
+
+      {selected && credit ? (
+        <CreditSettleDialog
+          open={settleOpen}
+          customerId={selected.id}
+          customerName={selected.name}
+          balancePaise={credit.balancePaise}
+          version={credit.version}
+          onOpenChange={setSettleOpen}
+          onCloseFocus={() => settleRef.current?.focus()}
+          onSettled={() => {
+            void loadCredit(selected.id);
+            setStatus('success');
+          }}
+        />
+      ) : null}
     </div>
   );
 }
