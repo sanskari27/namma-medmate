@@ -157,7 +157,45 @@ export const emptyForm: FormState = {
   unitRows: [{ unit: 'strip', factorToBase: '10' }],
 };
 
-export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text: string } | null {
+export function statusCopy(
+  status: PageStatus,
+  view: 'floor' | 'catalogue' = 'catalogue',
+): { icon: typeof AlertCircle; text: string } | null {
+  if (view === 'floor') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading floor stock for this outlet…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No stock on this outlet yet. Receive the first batch to open a line.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Check quantity, batch number, dates, and purchase price before receiving.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Batch identity conflicts with an existing lot, or stock was updated elsewhere. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Stock received on this outlet.' };
+      default:
+        return null;
+    }
+  }
   switch (status) {
     case 'loading':
       return { icon: Package, text: 'Loading stock catalogue for this floor…' };

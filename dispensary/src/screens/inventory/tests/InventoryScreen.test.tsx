@@ -10,6 +10,7 @@ import { authReducer } from '@/store';
 import type { Product } from '@/services/products';
 import type { ProductCategory } from '@/services/productCategories';
 import type { Manufacturer } from '@/services/manufacturers';
+import type { StockBalance } from '@/services/inventory';
 
 vi.mock('@/services/products', async () => {
   const axios = await import('@/services/axios');
@@ -54,10 +55,28 @@ vi.mock('@/services/productUnits', async () => {
   };
 });
 
+vi.mock('@/services/inventory', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listStockBalances: vi.fn(),
+    listStockBatches: vi.fn(),
+    listStockMovements: vi.fn(),
+    receiveStock: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
 import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
+import {
+  listStockBalances,
+  listStockBatches,
+  listStockMovements,
+  receiveStock,
+} from '@/services/inventory';
 
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
@@ -68,6 +87,10 @@ const listManufacturersMock = vi.mocked(listManufacturers);
 const createManufacturerMock = vi.mocked(createManufacturer);
 const listUnitsMock = vi.mocked(listProductUnits);
 const replaceUnitsMock = vi.mocked(replaceProductUnits);
+const listBalancesMock = vi.mocked(listStockBalances);
+const listBatchesMock = vi.mocked(listStockBatches);
+const listMovementsMock = vi.mocked(listStockMovements);
+const receiveMock = vi.mocked(receiveStock);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -108,10 +131,10 @@ const sample: Product = {
   baseUnit: 'Tablet',
   packSize: 10,
   packUnit: 'strip',
-  packDescription: '10 tablets/strip',
+  packDescription: null,
   storageConditions: null,
   requiresColdStorage: false,
-  rackLocation: 'A-12',
+  rackLocation: 'A-01',
   reorderLevel: 20,
   reorderQuantity: 100,
   minimumStock: 10,
@@ -129,7 +152,24 @@ const sample: Product = {
   updatedAt: '2026-09-04T00:00:00Z',
 };
 
-function renderPage(modules: string[] = ['INVENTORY', 'SALES']) {
+const balance: StockBalance = {
+  balanceId: 'bal1',
+  productId: 'p1',
+  productSku: 'SKU-PARA',
+  productName: 'Paracetamol 500',
+  batchId: 'batch1',
+  batchNumber: 'LOT-AA',
+  manufacturedOn: '2026-01-15',
+  expiresOn: '2027-06-30',
+  purchasePricePaise: 12500,
+  quantity: 10,
+  version: 1,
+};
+
+function renderPage(
+  modules: string[] = ['INVENTORY', 'SALES'],
+  activeBranchId: string | null = 'br1',
+) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
@@ -143,6 +183,7 @@ function renderPage(modules: string[] = ['INVENTORY', 'SALES']) {
           tenantStatus: 'ACTIVE',
           emailVerified: true,
           modules,
+          activeBranchId,
         },
       },
     },
@@ -156,6 +197,10 @@ function renderPage(modules: string[] = ['INVENTORY', 'SALES']) {
   );
 }
 
+async function openCatalogue(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('tab', { name: 'Catalogue' }));
+}
+
 describe('floor inventory catalogue', () => {
   beforeEach(() => {
     listMock.mockReset();
@@ -167,6 +212,11 @@ describe('floor inventory catalogue', () => {
     createManufacturerMock.mockReset();
     listUnitsMock.mockReset();
     replaceUnitsMock.mockReset();
+    listBalancesMock.mockReset();
+    listBatchesMock.mockReset();
+    listMovementsMock.mockReset();
+    receiveMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
     listCategoriesMock.mockResolvedValue([category]);
     listManufacturersMock.mockResolvedValue([manufacturer]);
     listUnitsMock.mockResolvedValue({
@@ -181,15 +231,19 @@ describe('floor inventory catalogue', () => {
     });
   });
 
-  it('loading: waits for products', () => {
+  it('loading: waits for products', async () => {
+    const user = userEvent.setup();
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
+    await openCatalogue(user);
     expect(screen.getByText('Loading stock catalogue for this floor…')).toBeInTheDocument();
   });
 
   it('empty: no products yet', async () => {
+    const user = userEvent.setup();
     listMock.mockResolvedValue([]);
     renderPage();
+    await openCatalogue(user);
     expect(await screen.findByRole('heading', { name: 'Inventory' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'No products yet. Add the first SKU for this pharmacy catalogue.',
@@ -201,12 +255,15 @@ describe('floor inventory catalogue', () => {
     expect(screen.getByRole('alert')).toHaveTextContent(
       'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
     );
+    expect(listBalancesMock).not.toHaveBeenCalled();
     expect(listMock).not.toHaveBeenCalled();
   });
 
   it('denied: API FORBIDDEN', async () => {
+    const user = userEvent.setup();
     listMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
     renderPage();
+    await openCatalogue(user);
     expect(
       await screen.findByText(
         'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
@@ -215,8 +272,10 @@ describe('floor inventory catalogue', () => {
   });
 
   it('failure: server unreachable', async () => {
+    const user = userEvent.setup();
     listMock.mockRejectedValue(new ApiError('down', 500, 'SERVER_ERROR'));
     renderPage();
+    await openCatalogue(user);
     expect(
       await screen.findByText('Could not reach the server for inventory. Try again.'),
     ).toBeInTheDocument();
@@ -226,6 +285,7 @@ describe('floor inventory catalogue', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([]);
     renderPage();
+    await openCatalogue(user);
     await screen.findByRole('heading', { name: 'Inventory' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
     await user.click(screen.getByRole('button', { name: 'Create product' }));
@@ -239,6 +299,7 @@ describe('floor inventory catalogue', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([sample]);
     renderPage();
+    await openCatalogue(user);
     await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
     await screen.findByRole('heading', { name: 'Edit product' });
     const factor = screen.getAllByLabelText(/Equals how many Tablet/)[0];
@@ -256,6 +317,7 @@ describe('floor inventory catalogue', () => {
     updateMock.mockResolvedValue(sample);
     replaceUnitsMock.mockRejectedValue(new ApiError('precision', 422, 'PRECISION_LOSS'));
     renderPage();
+    await openCatalogue(user);
     await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
     await screen.findByRole('heading', { name: 'Edit product' });
     await user.click(screen.getByRole('button', { name: 'Save product' }));
@@ -272,6 +334,7 @@ describe('floor inventory catalogue', () => {
       units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
     });
     renderPage();
+    await openCatalogue(user);
     await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
     await screen.findByRole('heading', { name: 'Edit product' });
     const precision = screen.getByLabelText('Quantity precision');
@@ -292,6 +355,7 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([]);
     createMock.mockRejectedValue(new ApiError('taken', 409, 'SKU_TAKEN'));
     renderPage();
+    await openCatalogue(user);
     await screen.findByRole('heading', { name: 'Inventory' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
 
@@ -312,6 +376,7 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValueOnce([]).mockResolvedValueOnce([sample]);
     createMock.mockResolvedValue(sample);
     renderPage();
+    await openCatalogue(user);
     await screen.findByRole('heading', { name: 'Inventory' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
 
@@ -356,6 +421,7 @@ describe('floor inventory catalogue', () => {
       ],
     });
     renderPage();
+    await openCatalogue(user);
     await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
     await screen.findByRole('heading', { name: 'Edit product' });
     await user.click(screen.getByRole('button', { name: 'Add unit' }));
@@ -383,6 +449,7 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([sample]);
     updateMock.mockResolvedValue(updated);
     renderPage();
+    await openCatalogue(user);
     expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Paracetamol 500/ }));
     const nameInput = screen.getByLabelText('Name');
@@ -403,6 +470,7 @@ describe('floor inventory catalogue', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([sample]);
     renderPage();
+    await openCatalogue(user);
     await screen.findByText('Paracetamol 500');
     const search = screen.getByPlaceholderText('Name, SKU, or barcode');
     await user.clear(search);
@@ -417,6 +485,7 @@ describe('floor inventory catalogue', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([sample]);
     renderPage();
+    await openCatalogue(user);
     await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
     expect(screen.getByRole('heading', { name: 'Edit product' })).toBeInTheDocument();
     expect(screen.getByLabelText('SKU')).toHaveValue('SKU-PARA');
@@ -424,9 +493,147 @@ describe('floor inventory catalogue', () => {
   });
 
   it('discontinued badge stays on list', async () => {
+    const user = userEvent.setup();
     listMock.mockResolvedValue([{ ...sample, isDiscontinued: true }]);
     renderPage();
+    await openCatalogue(user);
     const row = await screen.findByRole('button', { name: /Paracetamol 500/ });
     expect(within(row).getByText('Discontinued')).toBeInTheDocument();
+  });
+});
+
+describe('floor stock', () => {
+  beforeEach(() => {
+    listBalancesMock.mockReset();
+    listBatchesMock.mockReset();
+    listMovementsMock.mockReset();
+    receiveMock.mockReset();
+    listMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listBatchesMock.mockResolvedValue([]);
+    listMovementsMock.mockResolvedValue([]);
+  });
+
+  it('loading: waits for balances', () => {
+    listBalancesMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    expect(screen.getByText('Loading floor stock for this outlet…')).toBeInTheDocument();
+  });
+
+  it('empty: no stock yet', async () => {
+    listBalancesMock.mockResolvedValue([]);
+    renderPage();
+    expect(
+      await screen.findByText(
+        'No stock on this outlet yet. Receive the first batch to open a line.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('success: lists stock and shows batch detail with movements', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    listBatchesMock.mockResolvedValue([
+      {
+        batchId: 'batch1',
+        productId: 'p1',
+        batchNumber: 'LOT-AA',
+        manufacturedOn: '2026-01-15',
+        expiresOn: '2027-06-30',
+        purchasePricePaise: 12500,
+        quantity: 10,
+        version: 1,
+        balanceId: 'bal1',
+      },
+    ]);
+    listMovementsMock.mockResolvedValue([
+      {
+        id: 'm1',
+        productId: 'p1',
+        batchId: 'batch1',
+        type: 'STOCK_IN',
+        quantity: 10,
+        balanceAfter: 10,
+        purchasePricePaise: 12500,
+        occurredAt: '2026-09-04T06:00:00Z',
+      },
+    ]);
+    renderPage();
+    expect(await screen.findByRole('button', { name: /LOT-AA/ })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Paracetamol 500/ }));
+    expect(await screen.findByText('Purchase ₹125.00')).toBeInTheDocument();
+    expect(screen.getByLabelText('Stock movements')).toHaveTextContent('In 10');
+  });
+
+  it('failure: balances API error', async () => {
+    listBalancesMock.mockRejectedValue(new ApiError('down', 500, 'SERVER_ERROR'));
+    renderPage();
+    expect(
+      await screen.findByText(
+        'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('conflict: receive dialog surfaces BATCH_IDENTITY_CONFLICT', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    receiveMock.mockRejectedValue(new ApiError('conflict', 409, 'BATCH_IDENTITY_CONFLICT'));
+    renderPage();
+    await screen.findByText('No stock on this outlet yet. Receive the first batch to open a line.');
+    await user.click(screen.getByRole('button', { name: 'Receive stock' }));
+    expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Product'), 'p1');
+    await user.type(screen.getByLabelText('Batch number'), 'LOT-X');
+    await user.type(screen.getByLabelText('Expiry date'), '2027-01-01');
+    await user.type(screen.getByLabelText('Purchase price (₹)'), '12.5');
+    await user.type(screen.getByLabelText('Quantity'), '5');
+    await user.click(screen.getByRole('button', { name: 'Receive' }));
+    expect(
+      await screen.findByText('Batch identity or version conflict. Check the lot and try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('validation: receive without quantity', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Receive stock' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Product'), 'p1');
+    await user.click(within(dialog).getByRole('button', { name: 'Receive' }));
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Enter a valid quantity');
+    expect(receiveMock).not.toHaveBeenCalled();
+  });
+
+  it('success: receive stock closes dialog and reloads', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValueOnce([]).mockResolvedValueOnce([balance]);
+    listMock.mockResolvedValue([sample]);
+    receiveMock.mockResolvedValue(balance);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Receive stock' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Product'), 'p1');
+    await user.type(within(dialog).getByLabelText('Batch number'), 'LOT-AA');
+    await user.type(within(dialog).getByLabelText('Manufacture date'), '2026-01-15');
+    await user.type(within(dialog).getByLabelText('Expiry date'), '2027-06-30');
+    await user.type(within(dialog).getByLabelText('Purchase price (₹)'), '125');
+    await user.type(within(dialog).getByLabelText('Quantity'), '10');
+    await user.click(within(dialog).getByRole('button', { name: 'Receive' }));
+    await waitFor(() => {
+      expect(receiveMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productId: 'p1',
+          batchNumber: 'LOT-AA',
+          quantity: 10,
+          purchasePricePaise: 12500,
+        }),
+      );
+    });
+    expect(await screen.findByText('Stock received on this outlet.')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: /LOT-AA/ })).toBeInTheDocument();
   });
 });

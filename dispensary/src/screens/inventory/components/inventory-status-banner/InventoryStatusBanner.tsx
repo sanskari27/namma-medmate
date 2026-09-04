@@ -6,14 +6,16 @@ export type InventoryStatusBannerProps = {
   status: PageStatus;
   statusId: string;
   asAlert?: boolean;
+  view?: 'floor' | 'catalogue';
 };
 
 export function InventoryStatusBanner({
   status,
   statusId,
   asAlert = false,
+  view = 'catalogue',
 }: InventoryStatusBannerProps) {
-  const banner = statusCopy(status);
+  const banner = statusCopy(status, view);
   if (!banner) {
     return null;
   }
