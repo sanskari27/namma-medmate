@@ -82,6 +82,9 @@ public class Product {
   @Column(name = "base_unit", nullable = false, length = 32)
   private ProductUnit baseUnit;
 
+  @Column(name = "quantity_precision", nullable = false)
+  private int quantityPrecision;
+
   @Column(name = "pack_size", nullable = false, precision = 12, scale = 4)
   private BigDecimal packSize;
 

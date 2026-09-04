@@ -37,17 +37,31 @@ vi.mock('@/services/medicationSafety', async () => {
   };
 });
 
+vi.mock('@/services/productUnits', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listProductUnits: vi.fn(),
+    convertProductUnit: vi.fn(),
+    replaceProductUnits: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { listCustomers } from '@/services/customers';
 import {
   assertMedicationSafetyCleared,
   evaluateMedicationSafety,
 } from '@/services/medicationSafety';
 import { listProducts } from '@/services/products';
+import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 
 const listCustomersMock = vi.mocked(listCustomers);
 const listProductsMock = vi.mocked(listProducts);
 const evaluateMock = vi.mocked(evaluateMedicationSafety);
 const assertMock = vi.mocked(assertMedicationSafetyCleared);
+const listUnitsMock = vi.mocked(listProductUnits);
+const convertMock = vi.mocked(convertProductUnit);
 
 const customer = {
   id: 'c1',
@@ -150,8 +164,25 @@ describe('PosScreen', () => {
     listProductsMock.mockReset();
     evaluateMock.mockReset();
     assertMock.mockReset();
+    listUnitsMock.mockReset();
+    convertMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA, productB]);
+    listUnitsMock.mockResolvedValue({
+      baseUnit: 'Tablet',
+      quantityPrecision: 0,
+      units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
+    });
+    convertMock.mockResolvedValue({
+      quantity: 10,
+      unit: 'Tablet',
+      baseQuantity: 10,
+      baseUnit: 'Tablet',
+      displayQuantity: 1,
+      displayUnit: 'strip',
+      conversionVersion: 1,
+      factorToBase: 10,
+    });
   });
 
   it('loading: waits for catalogue', () => {
@@ -190,6 +221,18 @@ describe('PosScreen', () => {
     await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
     await user.click(screen.getByRole('button', { name: 'Complete check' }));
     expect(screen.getByRole('alert')).toHaveTextContent('Link a customer');
+  });
+
+  it('success: draft line shows converted base quantity', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
+    expect(await screen.findByText('= 10 Tablet')).toBeInTheDocument();
+    expect(convertMock).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({ quantity: 1, fromUnit: 'strip' }),
+    );
   });
 
   it('success: allergy warning requires reason then clears', async () => {

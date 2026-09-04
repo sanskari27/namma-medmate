@@ -43,9 +43,21 @@ vi.mock('@/services/manufacturers', async () => {
   };
 });
 
+vi.mock('@/services/productUnits', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listProductUnits: vi.fn(),
+    replaceProductUnits: vi.fn(),
+    convertProductUnit: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
+import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
 
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
@@ -54,6 +66,8 @@ const listCategoriesMock = vi.mocked(listProductCategories);
 const createCategoryMock = vi.mocked(createProductCategory);
 const listManufacturersMock = vi.mocked(listManufacturers);
 const createManufacturerMock = vi.mocked(createManufacturer);
+const listUnitsMock = vi.mocked(listProductUnits);
+const replaceUnitsMock = vi.mocked(replaceProductUnits);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -151,8 +165,20 @@ describe('floor inventory catalogue', () => {
     createCategoryMock.mockReset();
     listManufacturersMock.mockReset();
     createManufacturerMock.mockReset();
+    listUnitsMock.mockReset();
+    replaceUnitsMock.mockReset();
     listCategoriesMock.mockResolvedValue([category]);
     listManufacturersMock.mockResolvedValue([manufacturer]);
+    listUnitsMock.mockResolvedValue({
+      baseUnit: 'Tablet',
+      quantityPrecision: 0,
+      units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
+    });
+    replaceUnitsMock.mockResolvedValue({
+      baseUnit: 'Tablet',
+      quantityPrecision: 0,
+      units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
+    });
   });
 
   it('loading: waits for products', () => {
@@ -204,9 +230,61 @@ describe('floor inventory catalogue', () => {
     await user.click(screen.getByRole('button', { name: 'Add product' }));
     await user.click(screen.getByRole('button', { name: 'Create product' }));
     expect(screen.getByRole('status')).toHaveTextContent(
-      'SKU, name, category, type, dosage, pack size, and units are required',
+      'Check SKU, pack size, quantity precision',
     );
     expect(createMock).not.toHaveBeenCalled();
+  });
+
+  it('validation: zero conversion factor rejected', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await screen.findByRole('heading', { name: 'Edit product' });
+    const factor = screen.getAllByLabelText(/Equals how many Tablet/)[0];
+    await user.clear(factor);
+    await user.type(factor, '0');
+    await user.click(screen.getByRole('button', { name: 'Save product' }));
+    expect(screen.getByRole('status')).toHaveTextContent('conversion factors');
+    expect(updateMock).not.toHaveBeenCalled();
+    expect(replaceUnitsMock).not.toHaveBeenCalled();
+  });
+
+  it('validation: PRECISION_LOSS from API', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    updateMock.mockResolvedValue(sample);
+    replaceUnitsMock.mockRejectedValue(new ApiError('precision', 422, 'PRECISION_LOSS'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await screen.findByRole('heading', { name: 'Edit product' });
+    await user.click(screen.getByRole('button', { name: 'Save product' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('conversion factors');
+  });
+
+  it('success: save quantity precision 2', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    updateMock.mockResolvedValue(sample);
+    replaceUnitsMock.mockResolvedValue({
+      baseUnit: 'Tablet',
+      quantityPrecision: 2,
+      units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await screen.findByRole('heading', { name: 'Edit product' });
+    const precision = screen.getByLabelText('Quantity precision');
+    await user.clear(precision);
+    await user.type(precision, '2');
+    await user.click(screen.getByRole('button', { name: 'Save product' }));
+    await waitFor(() => {
+      expect(replaceUnitsMock).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({ quantityPrecision: 2 }),
+      );
+    });
+    expect(await screen.findByText('Product saved on this floor catalogue.')).toBeInTheDocument();
   });
 
   it('conflict: duplicate SKU', async () => {
@@ -254,6 +332,49 @@ describe('floor inventory catalogue', () => {
     });
     expect(await screen.findByText('Product saved on this floor catalogue.')).toBeInTheDocument();
     expect(screen.getByText('Paracetamol 500')).toBeInTheDocument();
+    expect(replaceUnitsMock).toHaveBeenCalledWith(
+      'p1',
+      expect.objectContaining({
+        quantityPrecision: 0,
+        units: expect.arrayContaining([
+          expect.objectContaining({ unit: 'strip', factorToBase: 10 }),
+        ]),
+      }),
+    );
+  });
+
+  it('success: save alternate box conversion', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    updateMock.mockResolvedValue(sample);
+    replaceUnitsMock.mockResolvedValue({
+      baseUnit: 'Tablet',
+      quantityPrecision: 0,
+      units: [
+        { unit: 'strip', factorToBase: 10, version: 1 },
+        { unit: 'box', factorToBase: 100, version: 1 },
+      ],
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await screen.findByRole('heading', { name: 'Edit product' });
+    await user.click(screen.getByRole('button', { name: 'Add unit' }));
+    const unitSelects = screen.getAllByLabelText('Unit');
+    await user.selectOptions(unitSelects[unitSelects.length - 1], 'box');
+    const factorInputs = screen.getAllByLabelText(/Equals how many Tablet/);
+    await user.clear(factorInputs[factorInputs.length - 1]);
+    await user.type(factorInputs[factorInputs.length - 1], '100');
+    await user.click(screen.getByRole('button', { name: 'Save product' }));
+    await waitFor(() => {
+      expect(replaceUnitsMock).toHaveBeenCalledWith(
+        'p1',
+        expect.objectContaining({
+          units: expect.arrayContaining([
+            expect.objectContaining({ unit: 'box', factorToBase: 100 }),
+          ]),
+        }),
+      );
+    });
   });
 
   it('success: update selected product', async () => {

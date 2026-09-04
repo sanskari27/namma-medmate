@@ -10,6 +10,7 @@ import {
   type ProductCategory,
 } from '@/services/productCategories';
 import { createProduct, listProducts, updateProduct, type Product } from '@/services/products';
+import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
 import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -18,6 +19,7 @@ import { InventoryHeader } from './components/inventory-header';
 import { InventoryListPanel } from './components/inventory-list-panel';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
 import {
+  applyUnitsToForm,
   emptyForm,
   hasInventoryAccess,
   mapApiStatus,
@@ -26,6 +28,7 @@ import {
   validateForm,
   type FormState,
   type PageStatus,
+  type UnitRow,
 } from './InventoryScreen.utils';
 
 export default function InventoryScreen() {
@@ -92,11 +95,18 @@ export default function InventoryScreen() {
     setStatus(products.length === 0 ? 'empty' : null);
   };
 
-  const selectProduct = (product: Product) => {
+  const selectProduct = async (product: Product) => {
     setSelectedId(product.id);
     setForm(toForm(product));
     setMode('edit');
-    setStatus(null);
+    setStatus('loading');
+    try {
+      const units = await listProductUnits(product.id);
+      setForm(applyUnitsToForm(toForm(product), units));
+      setStatus(null);
+    } catch (error) {
+      setStatus(mapApiStatus(error));
+    }
   };
 
   const cancelForm = () => {
@@ -104,6 +114,10 @@ export default function InventoryScreen() {
     setSelectedId(null);
     setForm(emptyForm);
     addRef.current?.focus();
+  };
+
+  const onUnitRowsChange = (rows: UnitRow[]) => {
+    setForm((prev) => ({ ...prev, unitRows: rows }));
   };
 
   const onSave = async (event: FormEvent) => {
@@ -119,9 +133,16 @@ export default function InventoryScreen() {
         mode === 'edit' && selectedId
           ? await updateProduct(selectedId, input)
           : await createProduct(input);
+      const units = await replaceProductUnits(saved.id, {
+        quantityPrecision: Number(form.quantityPrecision),
+        units: form.unitRows.map((row) => ({
+          unit: row.unit,
+          factorToBase: Number(row.factorToBase),
+        })),
+      });
       await load(query.trim() || undefined);
       setSelectedId(saved.id);
-      setForm(toForm(saved));
+      setForm(applyUnitsToForm(toForm(saved), units));
       setMode('edit');
       setStatus('success');
     } catch (error) {
@@ -187,7 +208,7 @@ export default function InventoryScreen() {
               e.preventDefault();
               void load(query.trim() || undefined);
             }}
-            onSelect={selectProduct}
+            onSelect={(product) => void selectProduct(product)}
           />
           <InventoryFormPanel
             formId={formId}
@@ -205,6 +226,7 @@ export default function InventoryScreen() {
             categoryBusy={categoryBusy}
             manufacturerBusy={manufacturerBusy}
             onChange={onChange}
+            onUnitRowsChange={onUnitRowsChange}
             onNewCategoryNameChange={setNewCategoryName}
             onNewManufacturerNameChange={setNewManufacturerName}
             onCreateCategory={() => void onCreateCategory()}

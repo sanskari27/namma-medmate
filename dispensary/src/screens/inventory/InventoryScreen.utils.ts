@@ -13,6 +13,11 @@ import type {
 export type PageStatus =
   'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
+export type UnitRow = {
+  unit: ProductUnit;
+  factorToBase: string;
+};
+
 export type FormState = {
   sku: string;
   barcode: string;
@@ -51,6 +56,8 @@ export type FormState = {
   controlledSubstance: boolean;
   notes: string;
   isActive: boolean;
+  quantityPrecision: string;
+  unitRows: UnitRow[];
 };
 
 export const PRODUCT_TYPES: ProductType[] = ['Medicine', 'Device', 'Surgical', 'OTC', 'FMCG'];
@@ -146,6 +153,8 @@ export const emptyForm: FormState = {
   controlledSubstance: false,
   notes: '',
   isActive: true,
+  quantityPrecision: '0',
+  unitRows: [{ unit: 'strip', factorToBase: '10' }],
 };
 
 export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text: string } | null {
@@ -160,7 +169,7 @@ export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text
     case 'validation':
       return {
         icon: AlertCircle,
-        text: 'SKU, name, category, type, dosage, pack size, and units are required. Check GST/HSN and tracking flags.',
+        text: 'Check SKU, pack size, quantity precision (0–4), and conversion factors. Zero, duplicate, or base-unit conversions are rejected.',
       };
     case 'denied':
       return {
@@ -237,6 +246,25 @@ export function toForm(product: Product): FormState {
     controlledSubstance: product.controlledSubstance,
     notes: product.notes ?? '',
     isActive: product.isActive,
+    quantityPrecision: '0',
+    unitRows:
+      product.packUnit !== product.baseUnit
+        ? [{ unit: product.packUnit, factorToBase: String(product.packSize) }]
+        : [],
+  };
+}
+
+export function applyUnitsToForm(
+  form: FormState,
+  units: { quantityPrecision: number; units: Array<{ unit: ProductUnit; factorToBase: number }> },
+): FormState {
+  return {
+    ...form,
+    quantityPrecision: String(units.quantityPrecision),
+    unitRows: units.units.map((row) => ({
+      unit: row.unit,
+      factorToBase: String(row.factorToBase),
+    })),
   };
 }
 
@@ -290,6 +318,24 @@ export function validateForm(form: FormState): boolean {
   ) {
     return false;
   }
+  const precision = Number(form.quantityPrecision);
+  if (!Number.isInteger(precision) || precision < 0 || precision > 4) {
+    return false;
+  }
+  const seen = new Set<string>();
+  for (const row of form.unitRows) {
+    if (row.unit === form.baseUnit) {
+      return false;
+    }
+    if (seen.has(row.unit)) {
+      return false;
+    }
+    seen.add(row.unit);
+    const factor = Number(row.factorToBase);
+    if (!Number.isFinite(factor) || factor <= 0) {
+      return false;
+    }
+  }
   return true;
 }
 
@@ -303,7 +349,15 @@ export function mapApiStatus(error: unknown): PageStatus {
   if (error.code === 'SKU_TAKEN' || error.status === 409) {
     return 'conflict';
   }
-  if (error.code === 'VALIDATION_ERROR' || error.status === 400 || error.status === 422) {
+  if (
+    error.code === 'VALIDATION_ERROR' ||
+    error.code === 'INVALID_CONVERSION' ||
+    error.code === 'PRECISION_LOSS' ||
+    error.code === 'DUPLICATE_UNIT' ||
+    error.code === 'CIRCULAR_CONVERSION' ||
+    error.status === 400 ||
+    error.status === 422
+  ) {
     return 'validation';
   }
   return 'failure';

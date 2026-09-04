@@ -46,6 +46,8 @@ export const API = {
   MEDICATION_SAFETY_ASSERT_CLEARED: '/api/v1/medication-safety/assert-cleared',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   product: (id: string) => `/api/v1/products/${id}`,
+  productUnits: (id: string) => `/api/v1/products/${id}/units`,
+  productUnitsConvert: (id: string) => `/api/v1/products/${id}/units/convert`,
   customer: (id: string) => `/api/v1/customers/${id}`,
   customerHistory: (id: string) => `/api/v1/customers/${id}/history`,
   customerCredit: (id: string) => `/api/v1/customers/${id}/credit`,

@@ -1,14 +1,25 @@
 import { Button, Input, Label } from '@atoms';
-import type { Product } from '@/services/products';
+import { ProductUnitSelect } from '@templates';
+import type { Product, ProductUnit } from '@/services/products';
 import { Plus, Trash2 } from 'lucide-react';
+
+export type PosDraftLine = {
+  product: Product;
+  unit: ProductUnit;
+  quantity: string;
+  baseQuantity: number | null;
+  unitOptions: ProductUnit[];
+};
 
 interface PosDraftLinesProps {
   query: string;
   onQueryChange: (value: string) => void;
   catalogue: Product[];
-  draft: Product[];
+  draft: PosDraftLine[];
   onAdd: (product: Product) => void;
   onRemove: (productId: string) => void;
+  onUnitChange: (productId: string, unit: ProductUnit) => void;
+  onQuantityChange: (productId: string, quantity: string) => void;
   busy: boolean;
 }
 
@@ -19,9 +30,11 @@ export function PosDraftLines({
   draft,
   onAdd,
   onRemove,
+  onUnitChange,
+  onQuantityChange,
   busy,
 }: PosDraftLinesProps) {
-  const draftIds = new Set(draft.map((item) => item.id));
+  const draftIds = new Set(draft.map((item) => item.product.id));
   return (
     <section
       className="space-y-3 rounded border border-line bg-surface p-3"
@@ -30,7 +43,7 @@ export function PosDraftLines({
       <div>
         <h2 className="text-sm font-semibold text-ink">Draft medicines</h2>
         <p className="text-xs text-muted">
-          Add lines from this pharmacy’s catalogue. Lines are never removed by warnings.
+          Pick a sale unit; quantity converts to base stock units for this floor.
         </p>
       </div>
       <div className="space-y-2">
@@ -69,32 +82,52 @@ export function PosDraftLines({
         {draft.length === 0 ? (
           <li className="text-sm text-muted">No medicines on this draft yet.</li>
         ) : (
-          draft.map((product) => (
+          draft.map((line) => (
             <li
-              key={product.id}
-              className="flex items-start justify-between gap-2 rounded border border-line px-2 py-2 text-sm"
+              key={line.product.id}
+              className="space-y-2 rounded border border-line px-2 py-2 text-sm"
             >
-              <div>
-                <p className="font-medium text-ink">{product.name}</p>
-                <p className="font-mono text-xs text-muted">{product.sku}</p>
-                {product.composition ? (
-                  <p className="text-xs text-muted">Composition: {product.composition}</p>
-                ) : (
-                  <p className="text-xs text-warn">
-                    Composition not mapped — check may be incomplete.
-                  </p>
-                )}
+              <div className="flex items-start justify-between gap-2">
+                <div>
+                  <p className="font-medium text-ink">{line.product.name}</p>
+                  <p className="font-mono text-xs text-muted">{line.product.sku}</p>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  aria-label={`Remove ${line.product.name}`}
+                  onClick={() => onRemove(line.product.id)}
+                  disabled={busy}
+                >
+                  <Trash2 className="size-4" aria-hidden />
+                </Button>
               </div>
-              <Button
-                type="button"
-                variant="ghost"
-                size="sm"
-                aria-label={`Remove ${product.name}`}
-                onClick={() => onRemove(product.id)}
-                disabled={busy}
-              >
-                <Trash2 className="size-4" aria-hidden />
-              </Button>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <Label htmlFor={`pos-qty-${line.product.id}`}>Qty</Label>
+                  <Input
+                    id={`pos-qty-${line.product.id}`}
+                    inputMode="decimal"
+                    value={line.quantity}
+                    onChange={(event) => onQuantityChange(line.product.id, event.target.value)}
+                    disabled={busy}
+                  />
+                </div>
+                <ProductUnitSelect
+                  id={`pos-unit-${line.product.id}`}
+                  label="Sale unit"
+                  value={line.unit}
+                  options={line.unitOptions}
+                  disabled={busy}
+                  onChange={(unit) => onUnitChange(line.product.id, unit)}
+                  hint={
+                    line.baseQuantity == null
+                      ? undefined
+                      : `= ${line.baseQuantity} ${line.product.baseUnit}`
+                  }
+                />
+              </div>
             </li>
           ))
         )}

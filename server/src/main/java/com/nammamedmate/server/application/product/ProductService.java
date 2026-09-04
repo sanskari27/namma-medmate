@@ -41,6 +41,7 @@ public class ProductService {
   private final ManufacturerRepository manufacturerRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
+  private final ProductUnitService productUnitService;
   private final Clock clock;
 
   public ProductService(
@@ -49,12 +50,14 @@ public class ProductService {
       ManufacturerRepository manufacturerRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
+      ProductUnitService productUnitService,
       Clock clock) {
     this.productRepository = productRepository;
     this.productCategoryRepository = productCategoryRepository;
     this.manufacturerRepository = manufacturerRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
+    this.productUnitService = productUnitService;
     this.clock = clock;
   }
 
@@ -90,10 +93,13 @@ public class ProductService {
     Product product = new Product();
     product.setId(UUID.randomUUID());
     product.setTenantId(tenantId);
+    product.setQuantityPrecision(0);
     apply(product, normalized);
     product.setCreatedAt(now);
     product.setUpdatedAt(now);
-    return toView(productRepository.save(product));
+    Product saved = productRepository.save(product);
+    productUnitService.syncPackConversion(saved);
+    return toView(saved);
   }
 
   @Transactional
@@ -110,7 +116,9 @@ public class ProductService {
 
     apply(product, normalized);
     product.setUpdatedAt(clock.instant());
-    return toView(productRepository.save(product));
+    Product saved = productRepository.save(product);
+    productUnitService.syncPackConversion(saved);
+    return toView(saved);
   }
 
   private UUID requireInventoryAccess(AuthPrincipal principal) {

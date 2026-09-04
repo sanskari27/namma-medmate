@@ -8,6 +8,8 @@ import { InventoryClassificationFields } from '../inventory-classification-field
 import { InventoryIdentityFields } from '../inventory-identity-fields';
 import { InventoryOpsFields } from '../inventory-ops-fields';
 import { InventoryTaxPackFields } from '../inventory-tax-pack-fields';
+import { InventoryUnitConversions } from '../inventory-unit-conversions';
+import type { UnitRow } from '../../InventoryScreen.utils';
 
 export type InventoryFormPanelProps = {
   formId: string;
@@ -23,6 +25,7 @@ export type InventoryFormPanelProps = {
   categoryBusy: boolean;
   manufacturerBusy: boolean;
   onChange: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
+  onUnitRowsChange: (rows: UnitRow[]) => void;
   onNewCategoryNameChange: (value: string) => void;
   onNewManufacturerNameChange: (value: string) => void;
   onCreateCategory: () => void;
@@ -45,6 +48,7 @@ export function InventoryFormPanel({
   categoryBusy,
   manufacturerBusy,
   onChange,
+  onUnitRowsChange,
   onNewCategoryNameChange,
   onNewManufacturerNameChange,
   onCreateCategory,
@@ -118,6 +122,12 @@ export function InventoryFormPanel({
             onCreateManufacturer={onCreateManufacturer}
           />
           <InventoryTaxPackFields formId={formId} form={form} onChange={onChange} />
+          <InventoryUnitConversions
+            formId={formId}
+            form={form}
+            onChange={onChange}
+            onUnitRowsChange={onUnitRowsChange}
+          />
           <InventoryOpsFields formId={formId} form={form} onChange={onChange} />
         </fieldset>
 

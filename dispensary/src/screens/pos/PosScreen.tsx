@@ -5,13 +5,14 @@ import {
   isApiError,
   type SafetyEvaluation,
 } from '@/services/medicationSafety';
-import { listProducts, type Product } from '@/services/products';
+import { listProducts, type Product, type ProductUnit } from '@/services/products';
+import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import type { RootState } from '@/store';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { PosAckFooter } from './components/pos-ack-footer';
 import { PosCustomerPicker } from './components/pos-customer-picker';
-import { PosDraftLines } from './components/pos-draft-lines';
+import { PosDraftLines, type PosDraftLine } from './components/pos-draft-lines';
 import { PosHeader } from './components/pos-header';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosWarningPanel } from './components/pos-warning-panel';
@@ -29,10 +30,46 @@ export default function PosScreen() {
   const [customerQuery, setCustomerQuery] = useState('');
   const [productQuery, setProductQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
-  const [draft, setDraft] = useState<Product[]>([]);
+  const [draft, setDraft] = useState<PosDraftLine[]>([]);
   const [evaluation, setEvaluation] = useState<SafetyEvaluation | null>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
+
+  const productIds = draft.map((line) => line.product.id);
+
+  const refreshConversion = useCallback(
+    async (productId: string, unit: ProductUnit, quantity: string) => {
+      const qty = Number(quantity);
+      if (!Number.isFinite(qty) || qty <= 0) {
+        setDraft((current) =>
+          current.map((line) =>
+            line.product.id === productId ? { ...line, baseQuantity: null } : line,
+          ),
+        );
+        return;
+      }
+      try {
+        const converted = await convertProductUnit(productId, {
+          quantity: qty,
+          fromUnit: unit,
+        });
+        setDraft((current) =>
+          current.map((line) =>
+            line.product.id === productId
+              ? { ...line, baseQuantity: converted.baseQuantity }
+              : line,
+          ),
+        );
+      } catch {
+        setDraft((current) =>
+          current.map((line) =>
+            line.product.id === productId ? { ...line, baseQuantity: null } : line,
+          ),
+        );
+      }
+    },
+    [],
+  );
 
   const loadBootstrap = useCallback(async () => {
     if (!allowed) {
@@ -82,6 +119,41 @@ export default function PosScreen() {
     return () => window.clearTimeout(handle);
   }, [allowed, productQuery]);
 
+  const addProduct = async (product: Product) => {
+    if (draft.some((line) => line.product.id === product.id)) {
+      return;
+    }
+    let unitOptions: ProductUnit[] = [product.baseUnit];
+    let unit: ProductUnit =
+      product.packUnit !== product.baseUnit ? product.packUnit : product.baseUnit;
+    try {
+      const units = await listProductUnits(product.id);
+      unitOptions = [
+        units.baseUnit,
+        ...units.units.map((row) => row.unit).filter((u) => u !== units.baseUnit),
+      ];
+      if (!unitOptions.includes(unit)) {
+        unit = units.baseUnit;
+      }
+    } catch {
+      unitOptions = [product.baseUnit, product.packUnit].filter(
+        (value, index, all) => all.indexOf(value) === index,
+      );
+    }
+    setDraft((current) => [
+      ...current,
+      {
+        product,
+        unit,
+        quantity: '1',
+        baseQuantity: null,
+        unitOptions,
+      },
+    ]);
+    setEvaluation(null);
+    void refreshConversion(product.id, unit, '1');
+  };
+
   const runEvaluate = async () => {
     if (!selectedCustomer || draft.length === 0) {
       setStatus('validation');
@@ -90,10 +162,7 @@ export default function PosScreen() {
     setBusy(true);
     setStatus('loading');
     try {
-      const result = await evaluateMedicationSafety(
-        selectedCustomer.id,
-        draft.map((item) => item.id),
-      );
+      const result = await evaluateMedicationSafety(selectedCustomer.id, productIds);
       setEvaluation(result);
       setStatus(null);
     } catch (error) {
@@ -116,10 +185,7 @@ export default function PosScreen() {
     setBusy(true);
     try {
       if (!evaluation) {
-        const fresh = await evaluateMedicationSafety(
-          selectedCustomer.id,
-          draft.map((item) => item.id),
-        );
+        const fresh = await evaluateMedicationSafety(selectedCustomer.id, productIds);
         setEvaluation(fresh);
         if (fresh.warnings.length > 0 && !reason.trim()) {
           setStatus('validation');
@@ -128,14 +194,14 @@ export default function PosScreen() {
         }
         await assertMedicationSafetyCleared({
           customerId: selectedCustomer.id,
-          productIds: draft.map((item) => item.id),
+          productIds,
           warningKeys: fresh.warnings.map((item) => item.warningKey),
           reason: fresh.warnings.length > 0 ? reason.trim() : null,
         });
       } else {
         await assertMedicationSafetyCleared({
           customerId: selectedCustomer.id,
-          productIds: draft.map((item) => item.id),
+          productIds,
           warningKeys: warnings.map((item) => item.warningKey),
           reason: warnings.length > 0 ? reason.trim() : null,
         });
@@ -187,22 +253,36 @@ export default function PosScreen() {
             onQueryChange={setProductQuery}
             catalogue={catalogue}
             draft={draft}
-            onAdd={(product) => {
-              setDraft((current) =>
-                current.some((item) => item.id === product.id) ? current : [...current, product],
-              );
+            onAdd={(product) => void addProduct(product)}
+            onRemove={(productId) => {
+              setDraft((current) => current.filter((item) => item.product.id !== productId));
               setEvaluation(null);
             }}
-            onRemove={(productId) => {
-              setDraft((current) => current.filter((item) => item.id !== productId));
+            onUnitChange={(productId, unit) => {
+              setDraft((current) =>
+                current.map((line) => (line.product.id === productId ? { ...line, unit } : line)),
+              );
+              const line = draft.find((item) => item.product.id === productId);
+              void refreshConversion(productId, unit, line?.quantity ?? '1');
               setEvaluation(null);
+            }}
+            onQuantityChange={(productId, quantity) => {
+              setDraft((current) =>
+                current.map((line) =>
+                  line.product.id === productId ? { ...line, quantity } : line,
+                ),
+              );
+              const line = draft.find((item) => item.product.id === productId);
+              void refreshConversion(productId, line?.unit ?? 'Tablet', quantity);
             }}
             busy={busy}
           />
         </div>
         <PosWarningPanel
           evaluation={evaluation}
-          productNames={Object.fromEntries(draft.map((item) => [item.id, item.name]))}
+          productNames={Object.fromEntries(
+            draft.map((item) => [item.product.id, item.product.name]),
+          )}
         />
       </div>
       <PosAckFooter
