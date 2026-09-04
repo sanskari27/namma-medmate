@@ -1,7 +1,8 @@
 import { Button, Reveal } from '@atoms';
 import type { Ref } from 'react';
 
-export type InventoryViewMode = 'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance';
+export type InventoryViewMode =
+  'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake';
 
 const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab: string }> = {
   floor: {
@@ -34,6 +35,12 @@ const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab
       'Near-expiry warnings, low-stock transfer hints, reorder CSV, and purchase-price valuation for this outlet.',
     tab: 'Guidance',
   },
+  stocktake: {
+    eyebrow: 'Physical count',
+    blurb:
+      'Owner starts an optional count. Book qty freezes at start; staff count batches and post variances for sign-off.',
+    tab: 'Physical count',
+  },
 };
 
 export type InventoryHeaderProps = {
@@ -43,11 +50,14 @@ export type InventoryHeaderProps = {
   receiveButtonRef?: Ref<HTMLButtonElement>;
   transferButtonRef?: Ref<HTMLButtonElement>;
   adjustButtonRef?: Ref<HTMLButtonElement>;
+  stockTakeButtonRef?: Ref<HTMLButtonElement>;
   denied?: boolean;
+  canStartCount?: boolean;
   onAdd: () => void;
   onReceive: () => void;
   onTransfer: () => void;
   onAdjust: () => void;
+  onStartCount: () => void;
 };
 
 export function InventoryHeader({
@@ -57,11 +67,14 @@ export function InventoryHeader({
   receiveButtonRef,
   transferButtonRef,
   adjustButtonRef,
+  stockTakeButtonRef,
   denied = false,
+  canStartCount = false,
   onAdd,
   onReceive,
   onTransfer,
   onAdjust,
+  onStartCount,
 }: InventoryHeaderProps) {
   const copy = VIEW_COPY[view];
   const blurb = denied ? 'Stock and SKUs for this pharmacy floor.' : copy.blurb;
@@ -91,6 +104,10 @@ export function InventoryHeader({
             <Button ref={adjustButtonRef} type="button" onClick={onAdjust}>
               Record write-off
             </Button>
+          ) : view === 'stocktake' && canStartCount ? (
+            <Button ref={stockTakeButtonRef} type="button" onClick={onStartCount}>
+              Start count
+            </Button>
           ) : null}
         </div>
         {denied ? null : (
@@ -99,22 +116,22 @@ export function InventoryHeader({
             role="tablist"
             aria-label="Inventory view"
           >
-            {(['floor', 'catalogue', 'transfers', 'adjustments', 'guidance'] as const).map(
-              (mode, index) => (
-                <button
-                  key={mode}
-                  type="button"
-                  role="tab"
-                  aria-selected={view === mode}
-                  className={`${index > 0 ? 'border-l border-line ' : ''}px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
-                    view === mode ? 'bg-brand-soft font-medium text-ink' : 'bg-surface text-muted'
-                  }`}
-                  onClick={() => onViewChange(mode)}
-                >
-                  {VIEW_COPY[mode].tab}
-                </button>
-              ),
-            )}
+            {(
+              ['floor', 'catalogue', 'transfers', 'adjustments', 'stocktake', 'guidance'] as const
+            ).map((mode, index) => (
+              <button
+                key={mode}
+                type="button"
+                role="tab"
+                aria-selected={view === mode}
+                className={`${index > 0 ? 'border-l border-line ' : ''}px-3 py-1.5 text-sm focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand ${
+                  view === mode ? 'bg-brand-soft font-medium text-ink' : 'bg-surface text-muted'
+                }`}
+                onClick={() => onViewChange(mode)}
+              >
+                {VIEW_COPY[mode].tab}
+              </button>
+            ))}
           </div>
         )}
       </header>

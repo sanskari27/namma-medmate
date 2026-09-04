@@ -159,7 +159,8 @@ export const emptyForm: FormState = {
 
 export function statusCopy(
   status: PageStatus,
-  view: 'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' = 'catalogue',
+  view:
+    'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -262,6 +263,44 @@ export function statusCopy(
         };
       case 'success':
         return { icon: BadgeCheck, text: 'Write-off updated for this outlet.' };
+      default:
+        return null;
+    }
+  }
+  if (view === 'stocktake') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading physical count for this outlet…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No physical count on this outlet. Owner can start a count to freeze book qty.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Count every line with a zero-or-more quantity before posting variances.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot run a physical count. Ask the owner to grant the Inventory area.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Book qty changed during this count, or another count is already open. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return {
+          icon: BadgeCheck,
+          text: 'Physical count updated. Variances wait on Adjustments for sign-off.',
+        };
       default:
         return null;
     }

@@ -10,6 +10,7 @@ import {
   type InventoryViewMode,
 } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
+import { StockTakeWorkspace } from './components/stock-take-workspace/StockTakeWorkspace';
 import { TransferWorkspace } from './components/transfer-workspace/TransferWorkspace';
 import { hasInventoryAccess, type PageStatus } from './InventoryScreen.utils';
 
@@ -23,12 +24,14 @@ export default function InventoryScreen() {
   const receiveRef = useRef<HTMLButtonElement | null>(null);
   const transferRef = useRef<HTMLButtonElement | null>(null);
   const adjustRef = useRef<HTMLButtonElement | null>(null);
+  const stockTakeRef = useRef<HTMLButtonElement | null>(null);
 
   const [view, setView] = useState<InventoryViewMode>('floor');
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
+  const [stockTakeOpen, setStockTakeOpen] = useState(false);
   const [transferPrefillProductId, setTransferPrefillProductId] = useState<string | null>(null);
   const [createRequest, setCreateRequest] = useState(0);
 
@@ -48,6 +51,7 @@ export default function InventoryScreen() {
           setReceiveOpen(false);
           setTransferOpen(false);
           setAdjustOpen(false);
+          setStockTakeOpen(false);
           setTransferPrefillProductId(null);
           setStatus(allowed ? 'loading' : 'denied');
         }}
@@ -55,7 +59,9 @@ export default function InventoryScreen() {
         receiveButtonRef={receiveRef}
         transferButtonRef={transferRef}
         adjustButtonRef={adjustRef}
+        stockTakeButtonRef={stockTakeRef}
         denied={denied}
+        canStartCount={user?.role === 'pharmacy_owner'}
         onAdd={() => setCreateRequest((n) => n + 1)}
         onReceive={() => setReceiveOpen(true)}
         onTransfer={() => {
@@ -63,6 +69,7 @@ export default function InventoryScreen() {
           setTransferOpen(true);
         }}
         onAdjust={() => setAdjustOpen(true)}
+        onStartCount={() => setStockTakeOpen(true)}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -129,6 +136,16 @@ export default function InventoryScreen() {
             setStatus(allowed ? 'loading' : 'denied');
             setTransferOpen(true);
           }}
+        />
+      ) : null}
+      {!denied && view === 'stocktake' ? (
+        <StockTakeWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
+          startOpen={stockTakeOpen}
+          onStartOpenChange={setStockTakeOpen}
+          startButtonRef={stockTakeRef}
+          onStatusChange={onStatusChange}
         />
       ) : null}
     </div>

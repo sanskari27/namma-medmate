@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 32 |
+| done | 33 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 35 |
+| ready | 34 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -49,7 +49,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M4-S03 | M4 | server + dispensary | done | M4-S01, M4-S02 | — | Independent verifier PASS (story-verifier). Gap-close: InventoryScreen composition split (FloorStockWorkspace + CatalogueWorkspace; screen ~78 lines). Server: V27 stock_batch/balance/movement; InventoryStockService + InventoryController /api/v1/inventory balances|batches|movements|receipts|issues; session branch; AC01–AC05. Tests InventoryStockTest 6 + InventoryStockRollbackTest 2. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 429 BUILD SUCCESS. Dispensary: Floor stock/Catalogue toggle; receive dialog; services/inventory.ts; lint+289 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173/inventory → login (auth); uniqueness from source (viridian floor stock + batch/expiry/movements, not HQ clone). |
 | M4-S04 | M4 | server + dispensary | done | M4-S03 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: AC04 two-branch stock-levels + CSV; AC08 FORBIDDEN on /settings /alerts; OutletStockLevelsForm + 403/409 guidance tests; PULL+p1 transfer prefill. Server: V29 inventory_settings + branch_product_stock_level; InventoryGuidanceTest AC01–AC08 (9). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 447 BUILD SUCCESS. Dispensary: Guidance tab + POS FEFO picker; lint+311 tests+build. `make compose-config` OK. Requirements valid. |
 | M4-S05 | M4 | server + dispensary | done | M4-S03, M1-S07 | — | Independent verifier PASS (story-verifier). verified→done. Server: V30 stock_adjustment + ADJUSTMENT_IN/OUT; InventoryAdjustmentService/Applier/Controller POST/GET /api/v1/inventory/adjustments + /{id}/decide; ApprovalService listener applies stock after generic /approvals decide (idempotent adj:{id}). Tests StockAdjustmentPolicyTest, InventoryAdjustmentTest AC01–AC05 (13) + Rollback (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 466 BUILD SUCCESS (clean). Dispensary: Inventory Adjustments tab + adjustment-workspace/create-dialog/list; services/inventoryAdjustments.ts; lint+322 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173 down; host API OWNER branch → GET adjustments pending `{items:[]}`, unauth 401. Uniqueness from source (viridian write-off/till/outlet, not HQ clone). |
-| M4-S06 | M4 | server + dispensary | ready | M4-S05 | — | — |
+| M4-S06 | M4 | server + dispensary | done | M4-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V31 stock_take + stock_take_line (partial unique one OPEN per tenant+branch); StockTakeService/Controller POST/GET /api/v1/stock-takes + /{id}/counts|/post|/cancel; PHYSICAL_COUNT via InventoryAdjustmentService keys take:{id}:line:{id}; stock moves only after M4-S05 approve. Tests StockTakePolicyTest (5), StockTakeTest AC01–AC05 (6) + Rollback (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 478 BUILD SUCCESS. Dispensary: Inventory Physical count tab + stock-take-workspace/count-sheet/variance-list/history/start-dialog; services/stockTakes.ts; lint+331 tests+build. `make compose-config` OK. Browser: :5173 down; host API OWNER Drug Store 1 → GET stock-takes?scope=open `{items:[]}` 200, unauth 401. Uniqueness from source (viridian Physical count / Count this outlet / Book qty at start, not HQ clone). |
 | M4-S07 | M4 | server + dispensary | ready | M4-S03, M1-S05 | — | — |
 | M5-S01 | M5 | server + dispensary | ready | M1-S05 | — | — |
 | M5-S02 | M5 | server + dispensary | ready | M5-S01, M4-S01 | — | — |

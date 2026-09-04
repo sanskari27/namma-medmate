@@ -1,0 +1,1 @@
+export { StockTakeWorkspace } from './StockTakeWorkspace';

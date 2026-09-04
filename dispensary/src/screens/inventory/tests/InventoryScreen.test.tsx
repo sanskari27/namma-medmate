@@ -100,6 +100,19 @@ vi.mock('@/services/inventoryAdjustments', async () => {
   };
 });
 
+vi.mock('@/services/stockTakes', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listStockTakes: vi.fn(),
+    startStockTake: vi.fn(),
+    saveStockTakeCounts: vi.fn(),
+    postStockTake: vi.fn(),
+    cancelStockTake: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -131,6 +144,14 @@ import {
   listStockAdjustments,
 } from '@/services/inventoryAdjustments';
 import type { StockAdjustment } from '@/services/inventoryAdjustments';
+import {
+  cancelStockTake,
+  listStockTakes,
+  postStockTake,
+  saveStockTakeCounts,
+  startStockTake,
+} from '@/services/stockTakes';
+import type { StockTake } from '@/services/stockTakes';
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
 const updateMock = vi.mocked(updateProduct);
@@ -159,6 +180,11 @@ const dispatchTransferMock = vi.mocked(dispatchStockTransfer);
 const listAdjustmentsMock = vi.mocked(listStockAdjustments);
 const createAdjustmentMock = vi.mocked(createStockAdjustment);
 const decideAdjustmentMock = vi.mocked(decideStockAdjustment);
+const listStockTakesMock = vi.mocked(listStockTakes);
+const startStockTakeMock = vi.mocked(startStockTake);
+const saveStockTakeCountsMock = vi.mocked(saveStockTakeCounts);
+const postStockTakeMock = vi.mocked(postStockTake);
+const cancelStockTakeMock = vi.mocked(cancelStockTake);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -237,6 +263,7 @@ const balance: StockBalance = {
 function renderPage(
   modules: string[] = ['INVENTORY', 'SALES'],
   activeBranchId: string | null = 'br1',
+  role = 'pharmacy_owner',
 ) {
   const store = configureStore({
     reducer: { auth: authReducer },
@@ -245,7 +272,7 @@ function renderPage(
         user: {
           userId: 'u1',
           displayName: 'Owner',
-          role: 'pharmacy_owner',
+          role,
           tenantId: 't1',
           pinSet: true,
           tenantStatus: 'ACTIVE',
@@ -1342,6 +1369,200 @@ describe('inventory adjustments', () => {
     await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Record write-off' })).toHaveFocus();
+    });
+  });
+});
+
+describe('inventory physical count', () => {
+  const openTake: StockTake = {
+    id: 'take1',
+    branchId: 'br1',
+    status: 'OPEN',
+    startedByUserId: 'u1',
+    postedByUserId: null,
+    cancelledByUserId: null,
+    version: 1,
+    createdAt: '2026-09-05T04:00:00Z',
+    updatedAt: '2026-09-05T04:00:00Z',
+    postedAt: null,
+    lines: [
+      {
+        id: 'line1',
+        productId: 'p1',
+        productSku: 'SKU-PARA',
+        productName: 'Paracetamol 500',
+        batchId: 'batch1',
+        batchNumber: 'LOT-AA',
+        expiresOn: '2027-06-30',
+        expectedQuantity: 10,
+        countedQuantity: null,
+        countedAt: null,
+        countedByUserId: null,
+        adjustmentId: null,
+        varianceQuantity: null,
+        direction: null,
+      },
+    ],
+  };
+
+  beforeEach(() => {
+    listStockTakesMock.mockReset();
+    startStockTakeMock.mockReset();
+    saveStockTakeCountsMock.mockReset();
+    postStockTakeMock.mockReset();
+    cancelStockTakeMock.mockReset();
+    listBalancesMock.mockReset();
+    listMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    listStockTakesMock.mockResolvedValue([]);
+  });
+
+  async function openCount(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('tab', { name: 'Physical count' }));
+  }
+
+  it('loading: waits for physical count', async () => {
+    const user = userEvent.setup();
+    listStockTakesMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await openCount(user);
+    expect(screen.getByText('Loading physical count for this outlet…')).toBeInTheDocument();
+  });
+
+  it('empty: no physical count yet', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openCount(user);
+    expect(
+      await screen.findByText(
+        'No physical count on this outlet. Owner can start a count to freeze book qty.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: count API FORBIDDEN', async () => {
+    const user = userEvent.setup();
+    listStockTakesMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
+    renderPage();
+    await openCount(user);
+    expect(
+      await screen.findByText(
+        'This till login cannot run a physical count. Ask the owner to grant the Inventory area.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: staff cannot start a count', async () => {
+    const user = userEvent.setup();
+    renderPage(['INVENTORY'], 'br1', 'pharmacy_staff');
+    await openCount(user);
+    expect(screen.queryByRole('button', { name: 'Start count' })).not.toBeInTheDocument();
+    expect(await screen.findByText('No posted or abandoned counts yet.')).toBeInTheDocument();
+  });
+
+  it('failure: no active outlet', async () => {
+    const user = userEvent.setup();
+    renderPage(['INVENTORY'], null);
+    await openCount(user);
+    expect(
+      await screen.findByText(
+        'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('validation: save counts without a quantity', async () => {
+    const user = userEvent.setup();
+    listStockTakesMock.mockImplementation(async (scope) => (scope === 'open' ? [openTake] : []));
+    renderPage();
+    await openCount(user);
+    await user.click(await screen.findByRole('button', { name: 'Save counts' }));
+    expect(
+      await screen.findByText(
+        'Count every line with a zero-or-more quantity before posting variances.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('conflict: overlapping open count', async () => {
+    const user = userEvent.setup();
+    startStockTakeMock.mockRejectedValue(new ApiError('open', 409, 'OVERLAPPING_SESSION'));
+    renderPage();
+    await openCount(user);
+    await user.click(await screen.findByRole('button', { name: 'Start count' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Freeze book qty' }));
+    expect(
+      await screen.findByText(
+        'Book qty changed during this count, or another count is already open. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('success: start, count batch, and post variances', async () => {
+    const user = userEvent.setup();
+    const counted: StockTake = {
+      ...openTake,
+      lines: [
+        {
+          ...openTake.lines[0],
+          countedQuantity: 8,
+          varianceQuantity: -2,
+          direction: 'OUT',
+        },
+      ],
+    };
+    const posted: StockTake = {
+      ...counted,
+      status: 'POSTED',
+      postedAt: '2026-09-05T05:00:00Z',
+      lines: [{ ...counted.lines[0], adjustmentId: 'adj1' }],
+    };
+    startStockTakeMock.mockImplementation(async () => {
+      listStockTakesMock.mockImplementation(async (scope) => (scope === 'open' ? [openTake] : []));
+      return openTake;
+    });
+    saveStockTakeCountsMock.mockImplementation(async () => {
+      listStockTakesMock.mockImplementation(async (scope) => (scope === 'open' ? [counted] : []));
+      return counted;
+    });
+    postStockTakeMock.mockImplementation(async () => {
+      listStockTakesMock.mockImplementation(async (scope) => (scope === 'history' ? [posted] : []));
+      return posted;
+    });
+    renderPage();
+    await openCount(user);
+    await user.click(await screen.findByRole('button', { name: 'Start count' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Freeze book qty' }));
+    expect(await screen.findByText('Book qty at start')).toBeInTheDocument();
+    await user.type(await screen.findByLabelText('Counted quantity for Paracetamol 500'), '8');
+    await user.click(screen.getByRole('button', { name: 'Save counts' }));
+    await waitFor(() =>
+      expect(saveStockTakeCountsMock).toHaveBeenCalledWith('take1', [
+        { lineId: 'line1', countedQuantity: 8 },
+      ]),
+    );
+    await user.click(screen.getByRole('button', { name: 'Post variances' }));
+    await waitFor(() => expect(postStockTakeMock).toHaveBeenCalledWith('take1'));
+    expect(
+      await screen.findByText(
+        'Physical count updated. Variances wait on Adjustments for sign-off.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('restores focus to Start count after dialog cancel', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openCount(user);
+    const start = await screen.findByRole('button', { name: 'Start count' });
+    await user.click(start);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start count' })).toHaveFocus();
     });
   });
 });
