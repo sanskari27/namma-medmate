@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 26 |
+| done | 27 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 41 |
+| ready | 40 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -41,7 +41,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M3-S05 | M3 | server + dispensary | done | M3-S03 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: CreditSettleDialog success+cancel focus restore. Server: V23 credit account+ledger; CustomerCreditService/Controller; CustomerCreditTest AC01–AC04 + Rollback. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 380 BUILD SUCCESS. Dispensary: CustomerCreditSection + CreditSettleDialog + CreditScreen `/credit`; lint+242 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor khata, not HQ clone). |
 | M3-S06 | M3 | server + dispensary | done | M3-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: customize refill + loading/failure/DUPLICATE_TAG tests. Server: V24 refill+tags; CustomerRefillService/Controller; CustomerRefillTest AC01–AC03 + Rollback. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 391 BUILD SUCCESS. Dispensary: CustomerRefillSection + CustomerTagsSection + Due strip; lint+252 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor refill/tags, not HQ clone). |
 | M3-S07 | M3 | server + dispensary | ready | M3-S06, M10-S03, M8-S05 | — | — |
-| M3-S08 | M3 | server + dispensary | ready | M3-S01, M4-S01 | D-011 closed | Unblocked 2026-09-03: tenant allergy/composition warn-only; any billing role ack+audit. |
+| M3-S08 | M3 | server + dispensary | done | M3-S01, M4-S01 | D-011 closed | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: AC02 duplicate UI test; no ALL-CAPS eyebrow; product names on warnings. Server: MedicationSafety evaluate/acknowledge/assert-cleared; Allergy+DUPLICATE_COMPOSITION; NOT_CHECKED/INCOMPLETE; SALES+audit MEDICATION_SAFETY_ACKNOWLEDGE. MedicationSafetyTest AC01–AC04 + Rollback. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 409 BUILD SUCCESS. Dispensary PosScreen /pos; lint+276 tests+build. `make compose-config` OK. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor draft safety, not HQ clone). |
 | M3-S09 | M3 | server + dispensary | ready | M3-S01, M2-S05, M6-S05, M6-S07 | D-012 closed | Unblocked 2026-09-03: 1pt/₹100 paid, 1pt=₹1 max 20%, nearest, never expire. |
 | M3-S10 | M3 | server + dispensary | done | M3-S03, M3-S05 | D-002 closed | Independent verifier PASS (story-verifier). verified→done. Server: GET /api/v1/customer-families/{id}/credit aggregates per-member limits/balances + attributed ledger (no shared pool). CustomerFamilyCreditTest AC01–AC03 + isolation (7). Reuses V23 charge/settle/limit. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 398 tests BUILD SUCCESS. Dispensary: CustomerFamilyCreditSection + getFamilyCredit; settle targets member via CreditSettleDialog. SPA lint+255 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor family khata, not HQ clone). |
 | M4-S01 | M4 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V25 product_category+manufacturer+product; ProductService/Controller GET/POST/PATCH /api/v1/products; ProductCategory+Manufacturer thin CRUD; INVENTORY gate; SKU_TAKEN; HSN/GST + tracking validation. Tests ProductTest AC01–AC05 + ProductRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 404 tests BUILD SUCCESS. Dispensary: InventoryScreen /inventory (list+form sections); services products/productCategories/manufacturers; lint+267 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor catalogue, not HQ clone). |
