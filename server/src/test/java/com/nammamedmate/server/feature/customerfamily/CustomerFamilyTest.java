@@ -8,11 +8,12 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
 import com.nammamedmate.server.domain.AccessRoleKind;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.CustomerHistoryFactType;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.Tenant;
@@ -25,6 +26,7 @@ import com.nammamedmate.server.persistence.AccessRoleRepository;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerFamilyMemberRepository;
 import com.nammamedmate.server.persistence.CustomerFamilyRepository;
+import com.nammamedmate.server.persistence.CustomerHistoryFactRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
@@ -81,14 +83,17 @@ class CustomerFamilyTest {
   @Autowired private CustomerRepository customerRepository;
   @Autowired private CustomerFamilyRepository customerFamilyRepository;
   @Autowired private CustomerFamilyMemberRepository customerFamilyMemberRepository;
+  @Autowired private CustomerHistoryFactRepository customerHistoryFactRepository;
   @Autowired private UserAccessRoleRepository userAccessRoleRepository;
   @Autowired private AccessRoleEventRepository accessRoleEventRepository;
   @Autowired private AccessRoleModuleRepository accessRoleModuleRepository;
   @Autowired private AccessRoleRepository accessRoleRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private CustomerHistoryService customerHistoryService;
 
   @BeforeEach
   void wipe() {
+    customerHistoryFactRepository.deleteAll();
     customerFamilyMemberRepository.deleteAll();
     customerFamilyRepository.deleteAll();
     customerRepository.deleteAll();
@@ -200,20 +205,39 @@ class CustomerFamilyTest {
     UUID b = createCustomer(cookie, "Ravi", "9103000002");
     UUID familyId = createFamily(cookie, a, b);
 
-    MvcResult history =
-        mockMvc
-            .perform(get("/api/v1/customer-families/" + familyId + "/history").cookie(cookie))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.items").isArray())
-            .andExpect(jsonPath("$.data.items", hasSize(0)))
-            .andReturn();
+    customerHistoryService.recordFact(
+        tenant.getId(),
+        a,
+        null,
+        CustomerHistoryFactType.PURCHASE,
+        "Meera purchase",
+        null,
+        null,
+        UUID.randomUUID(),
+        5000L,
+        T0);
+    customerHistoryService.recordFact(
+        tenant.getId(),
+        b,
+        null,
+        CustomerHistoryFactType.PRESCRIPTION,
+        "Ravi Rx",
+        "RX-B",
+        null,
+        UUID.randomUUID(),
+        null,
+        T0.plusSeconds(30));
 
-    JsonNode items =
-        objectMapper
-            .readTree(history.getResponse().getContentAsString())
-            .path("data")
-            .path("items");
-    assertThat(items.isArray()).isTrue();
+    mockMvc
+        .perform(get("/api/v1/customer-families/" + familyId + "/history").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items", hasSize(2)))
+        .andExpect(
+            jsonPath("$.data.items[?(@.customerId=='" + a + "')].customerName").value("Meera"))
+        .andExpect(
+            jsonPath("$.data.items[?(@.customerId=='" + b + "')].customerName").value("Ravi"))
+        .andExpect(jsonPath("$.data.items[?(@.type=='PURCHASE')]", hasSize(1)))
+        .andExpect(jsonPath("$.data.items[?(@.type=='PRESCRIPTION')]", hasSize(1)));
 
     mockMvc
         .perform(
@@ -221,7 +245,9 @@ class CustomerFamilyTest {
                 .cookie(cookie)
                 .param("memberId", a.toString()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.items", hasSize(0)));
+        .andExpect(jsonPath("$.data.items", hasSize(1)))
+        .andExpect(jsonPath("$.data.items[0].customerId").value(a.toString()))
+        .andExpect(jsonPath("$.data.items[0].type").value("PURCHASE"));
 
     mockMvc
         .perform(get("/api/v1/customer-families/" + familyId).cookie(cookie))

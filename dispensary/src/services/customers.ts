@@ -53,6 +53,26 @@ export async function updateCustomer(id: string, input: CustomerInput): Promise<
   return data;
 }
 
+export type HistoryFactType = 'PURCHASE' | 'PRESCRIPTION';
+
+export interface CustomerHistoryItem {
+  id: string;
+  customerId: string;
+  type: HistoryFactType;
+  summary: string;
+  prescriptionReference: string | null;
+  doctorId: string | null;
+  doctorName: string | null;
+  invoiceId: string | null;
+  amountPaise: number | null;
+  occurredAt: string;
+}
+
+export async function getCustomerHistory(id: string): Promise<CustomerHistoryItem[]> {
+  const { data } = await apiClient.get<{ items: CustomerHistoryItem[] }>(API.customerHistory(id));
+  return data.items;
+}
+
 export type MergeSide = 'SURVIVOR' | 'DUPLICATE';
 
 export interface CustomerMergeField {

@@ -1,4 +1,9 @@
-import { CustomerCreateDialog, CustomerFamilyDialog, CustomerMergeDialog } from '@templates';
+import {
+  CustomerCreateDialog,
+  CustomerFamilyDialog,
+  CustomerMergeDialog,
+  DoctorReferenceDialog,
+} from '@templates';
 import {
   getFamilyForCustomer,
   getFamilyHistory,
@@ -7,14 +12,28 @@ import {
   type CustomerFamily,
   type FamilyHistoryItem,
 } from '@/services/customerFamilies';
-import { listCustomers, updateCustomer, type Customer } from '@/services/customers';
+import {
+  getCustomerHistory,
+  listCustomers,
+  updateCustomer,
+  type Customer,
+  type CustomerHistoryItem,
+} from '@/services/customers';
+import {
+  listDoctors,
+  listTopReferringDoctors,
+  type Doctor,
+  type TopReferringDoctor,
+} from '@/services/doctors';
 import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { CustomerDoctorSection } from './components/customer-doctor-section';
 import { CustomerFamilyHistory } from './components/customer-family-history';
 import { CustomerFamilySection } from './components/customer-family-section';
 import { CustomerListPanel } from './components/customer-list-panel';
 import { CustomerProfilePanel } from './components/customer-profile-panel';
+import { CustomerPurchaseHistory } from './components/customer-purchase-history';
 import { CustomersHeader } from './components/customers-header';
 import { CustomersStatusBanner } from './components/customers-status-banner';
 import {
@@ -35,6 +54,7 @@ export default function CustomersScreen() {
   const addRef = useRef<HTMLButtonElement | null>(null);
   const mergeRef = useRef<HTMLButtonElement | null>(null);
   const familyLinkRef = useRef<HTMLButtonElement | null>(null);
+  const doctorAddRef = useRef<HTMLButtonElement | null>(null);
   const [status, setStatus] = useState<PageStatus>('loading');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState('');
@@ -43,6 +63,7 @@ export default function CustomersScreen() {
   const [createOpen, setCreateOpen] = useState(false);
   const [mergeOpen, setMergeOpen] = useState(false);
   const [familyOpen, setFamilyOpen] = useState(false);
+  const [doctorOpen, setDoctorOpen] = useState(false);
   const [busy, setBusy] = useState(false);
   const [family, setFamily] = useState<CustomerFamily | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
@@ -51,6 +72,12 @@ export default function CustomersScreen() {
   const [historyLoading, setHistoryLoading] = useState(false);
   const [memberFilter, setMemberFilter] = useState('');
   const [typeFilter, setTypeFilter] = useState('');
+  const [purchaseItems, setPurchaseItems] = useState<CustomerHistoryItem[]>([]);
+  const [purchaseLoading, setPurchaseLoading] = useState(false);
+  const [purchaseTypeFilter, setPurchaseTypeFilter] = useState('');
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
+  const [topReferring, setTopReferring] = useState<TopReferringDoctor[]>([]);
+  const [doctorsLoading, setDoctorsLoading] = useState(false);
 
   const allowed = hasCrmAccess(user?.modules);
   const selected = customers.find((row) => row.id === selectedId) ?? null;
@@ -108,9 +135,44 @@ export default function CustomersScreen() {
     }
   }, []);
 
+  const loadPurchaseHistory = useCallback(async (customerId: string) => {
+    setPurchaseLoading(true);
+    try {
+      const items = await getCustomerHistory(customerId);
+      setPurchaseItems(items);
+    } catch {
+      setPurchaseItems([]);
+      setStatus('failure');
+    } finally {
+      setPurchaseLoading(false);
+    }
+  }, []);
+
+  const loadDoctors = useCallback(async () => {
+    setDoctorsLoading(true);
+    try {
+      const [nextDoctors, nextTop] = await Promise.all([listDoctors(), listTopReferringDoctors(5)]);
+      setDoctors(nextDoctors);
+      setTopReferring(nextTop);
+    } catch {
+      setDoctors([]);
+      setTopReferring([]);
+      setStatus('failure');
+    } finally {
+      setDoctorsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!allowed) {
+      return;
+    }
+    void loadDoctors();
+  }, [allowed, loadDoctors]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -118,10 +180,13 @@ export default function CustomersScreen() {
       setHistoryItems([]);
       setMemberFilter('');
       setTypeFilter('');
+      setPurchaseItems([]);
+      setPurchaseTypeFilter('');
       return;
     }
     void loadFamily(selectedId);
-  }, [selectedId, loadFamily]);
+    void loadPurchaseHistory(selectedId);
+  }, [selectedId, loadFamily, loadPurchaseHistory]);
 
   useEffect(() => {
     if (!family?.id) {
@@ -264,6 +329,27 @@ export default function CustomersScreen() {
           onClose={clearSelection}
           mergeButtonRef={mergeRef}
           onMerge={() => setMergeOpen(true)}
+          purchaseHistory={
+            selected ? (
+              <CustomerPurchaseHistory
+                items={purchaseItems}
+                loading={purchaseLoading}
+                typeFilter={purchaseTypeFilter}
+                onTypeFilter={setPurchaseTypeFilter}
+              />
+            ) : null
+          }
+          doctorSection={
+            selected ? (
+              <CustomerDoctorSection
+                doctors={doctors}
+                topReferring={topReferring}
+                loading={doctorsLoading}
+                addButtonRef={doctorAddRef}
+                onAdd={() => setDoctorOpen(true)}
+              />
+            ) : null
+          }
           familySection={
             selected ? (
               <CustomerFamilySection
@@ -339,6 +425,16 @@ export default function CustomersScreen() {
         onCloseFocus={() => familyLinkRef.current?.focus()}
         onLinked={(next) => {
           setFamily(next);
+          setStatus('success');
+        }}
+      />
+
+      <DoctorReferenceDialog
+        open={doctorOpen}
+        onOpenChange={setDoctorOpen}
+        onCloseFocus={() => doctorAddRef.current?.focus()}
+        onSaved={() => {
+          void loadDoctors();
           setStatus('success');
         }}
       />

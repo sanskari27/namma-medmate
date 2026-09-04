@@ -1,11 +1,14 @@
 package com.nammamedmate.server.application.customerfamily;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
+import com.nammamedmate.server.application.customerhistory.CustomerHistoryView;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.CustomerFamily;
 import com.nammamedmate.server.domain.CustomerFamilyMember;
+import com.nammamedmate.server.domain.CustomerHistoryFactType;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -16,8 +19,11 @@ import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -35,6 +41,7 @@ public class CustomerFamilyService {
   private final CustomerRepository customerRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
+  private final CustomerHistoryService customerHistoryService;
   private final Clock clock;
 
   public CustomerFamilyService(
@@ -43,12 +50,14 @@ public class CustomerFamilyService {
       CustomerRepository customerRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
+      CustomerHistoryService customerHistoryService,
       Clock clock) {
     this.customerFamilyRepository = customerFamilyRepository;
     this.customerFamilyMemberRepository = customerFamilyMemberRepository;
     this.customerRepository = customerRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
+    this.customerHistoryService = customerHistoryService;
     this.clock = clock;
   }
 
@@ -148,8 +157,39 @@ public class CustomerFamilyService {
             tenantId, familyId, memberId)) {
       throw notFound();
     }
-    // Purchase/prescription facts arrive with M3-S04 / M6-S05; return empty attributed list.
-    return new FamilyHistoryView(List.of());
+    List<Customer> members = loadMemberCustomers(tenantId, familyId);
+    Map<UUID, String> names = new HashMap<>();
+    List<UUID> memberIds = new ArrayList<>();
+    for (Customer member : members) {
+      memberIds.add(member.getId());
+      names.put(member.getId(), member.getName());
+    }
+    CustomerHistoryFactType factType = parseHistoryType(type);
+    CustomerHistoryView history =
+        customerHistoryService.listForCustomers(tenantId, memberIds, memberId, factType);
+    return new FamilyHistoryView(
+        history.items().stream()
+            .map(
+                item ->
+                    new FamilyHistoryView.HistoryItem(
+                        item.id(),
+                        item.customerId(),
+                        names.getOrDefault(item.customerId(), ""),
+                        item.type().name(),
+                        item.summary(),
+                        item.occurredAt()))
+            .toList());
+  }
+
+  private static CustomerHistoryFactType parseHistoryType(String type) {
+    if (type == null || type.isBlank()) {
+      return null;
+    }
+    try {
+      return CustomerHistoryFactType.valueOf(type.trim().toUpperCase(Locale.ROOT));
+    } catch (IllegalArgumentException ex) {
+      throw validationError();
+    }
   }
 
   private void saveMember(UUID tenantId, UUID familyId, UUID customerId, Instant now) {

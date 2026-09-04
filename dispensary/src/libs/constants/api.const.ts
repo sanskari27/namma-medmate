@@ -33,8 +33,12 @@ export const API = {
   CUSTOMERS: '/api/v1/customers',
   CUSTOMERS_MERGE: '/api/v1/customers/merge',
   CUSTOMER_FAMILIES: '/api/v1/customer-families',
+  DOCTORS: '/api/v1/doctors',
+  DOCTORS_TOP_REFERRING: '/api/v1/doctors/top-referring',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   customer: (id: string) => `/api/v1/customers/${id}`,
+  customerHistory: (id: string) => `/api/v1/customers/${id}/history`,
+  doctor: (id: string) => `/api/v1/doctors/${id}`,
   customerFamily: (id: string) => `/api/v1/customer-families/${id}`,
   customerFamilyMembers: (id: string) => `/api/v1/customer-families/${id}/members`,
   customerFamilyMember: (familyId: string, customerId: string) =>

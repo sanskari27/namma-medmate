@@ -4,6 +4,8 @@ import com.nammamedmate.server.application.customer.CustomerMergePreview;
 import com.nammamedmate.server.application.customer.CustomerMergeService;
 import com.nammamedmate.server.application.customer.CustomerService;
 import com.nammamedmate.server.application.customer.CustomerView;
+import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
+import com.nammamedmate.server.application.customerhistory.CustomerHistoryView;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
@@ -32,11 +34,15 @@ public class CustomerController {
 
   private final CustomerService customerService;
   private final CustomerMergeService customerMergeService;
+  private final CustomerHistoryService customerHistoryService;
 
   public CustomerController(
-      CustomerService customerService, CustomerMergeService customerMergeService) {
+      CustomerService customerService,
+      CustomerMergeService customerMergeService,
+      CustomerHistoryService customerHistoryService) {
     this.customerService = customerService;
     this.customerMergeService = customerMergeService;
+    this.customerHistoryService = customerHistoryService;
   }
 
   @GetMapping
@@ -52,6 +58,30 @@ public class CustomerController {
   public ApiResponse<CustomerResponse> get(Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(customerService.get(principal, id)));
+  }
+
+  @GetMapping("/{id}/history")
+  public ApiResponse<HistoryResponse> history(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    CustomerHistoryView view = customerHistoryService.list(principal, id);
+    return ApiResponse.ok(
+        new HistoryResponse(
+            view.items().stream()
+                .map(
+                    item ->
+                        new HistoryItemResponse(
+                            item.id(),
+                            item.customerId(),
+                            item.type().name(),
+                            item.summary(),
+                            item.prescriptionReference(),
+                            item.doctorId(),
+                            item.doctorName(),
+                            item.invoiceId(),
+                            item.amountPaise(),
+                            item.occurredAt()))
+                .toList()));
   }
 
   @PostMapping
@@ -163,6 +193,20 @@ public class CustomerController {
   }
 
   public record CustomerListResponse(List<CustomerResponse> items) {}
+
+  public record HistoryResponse(List<HistoryItemResponse> items) {}
+
+  public record HistoryItemResponse(
+      UUID id,
+      UUID customerId,
+      String type,
+      String summary,
+      String prescriptionReference,
+      UUID doctorId,
+      String doctorName,
+      UUID invoiceId,
+      Long amountPaise,
+      Instant occurredAt) {}
 
   public record CustomerResponse(
       UUID id,

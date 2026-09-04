@@ -16,6 +16,7 @@ vi.mock('@/services/customers', async () => {
     getCustomer: vi.fn(),
     createCustomer: vi.fn(),
     updateCustomer: vi.fn(),
+    getCustomerHistory: vi.fn(),
     previewCustomerMerge: vi.fn(),
     executeCustomerMerge: vi.fn(),
     ApiError: axios.ApiError,
@@ -36,9 +37,23 @@ vi.mock('@/services/customerFamilies', async () => {
   };
 });
 
+vi.mock('@/services/doctors', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listDoctors: vi.fn(),
+    listTopReferringDoctors: vi.fn(),
+    createDoctor: vi.fn(),
+    updateDoctor: vi.fn(),
+    deactivateDoctor: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import {
   createCustomer,
   executeCustomerMerge,
+  getCustomerHistory,
   listCustomers,
   previewCustomerMerge,
   updateCustomer,
@@ -48,15 +63,20 @@ import {
   getFamilyForCustomer,
   getFamilyHistory,
 } from '@/services/customerFamilies';
+import { createDoctor, listDoctors, listTopReferringDoctors } from '@/services/doctors';
 
 const listMock = vi.mocked(listCustomers);
 const createMock = vi.mocked(createCustomer);
 const updateMock = vi.mocked(updateCustomer);
 const previewMergeMock = vi.mocked(previewCustomerMerge);
 const executeMergeMock = vi.mocked(executeCustomerMerge);
+const getHistoryMock = vi.mocked(getCustomerHistory);
 const getFamilyMock = vi.mocked(getFamilyForCustomer);
-const getHistoryMock = vi.mocked(getFamilyHistory);
+const getFamilyHistoryMock = vi.mocked(getFamilyHistory);
 const createFamilyMock = vi.mocked(createCustomerFamily);
+const listDoctorsMock = vi.mocked(listDoctors);
+const listTopMock = vi.mocked(listTopReferringDoctors);
+const createDoctorMock = vi.mocked(createDoctor);
 
 const sample: Customer = {
   id: 'c1',
@@ -108,11 +128,18 @@ describe('counter customers', () => {
     updateMock.mockReset();
     previewMergeMock.mockReset();
     executeMergeMock.mockReset();
-    getFamilyMock.mockReset();
     getHistoryMock.mockReset();
+    getFamilyMock.mockReset();
+    getFamilyHistoryMock.mockReset();
     createFamilyMock.mockReset();
+    listDoctorsMock.mockReset();
+    listTopMock.mockReset();
+    createDoctorMock.mockReset();
     getFamilyMock.mockResolvedValue(null);
+    getFamilyHistoryMock.mockResolvedValue([]);
     getHistoryMock.mockResolvedValue([]);
+    listDoctorsMock.mockResolvedValue([]);
+    listTopMock.mockResolvedValue([]);
   });
 
   it('loading: waits for customers', () => {
@@ -304,5 +331,157 @@ describe('counter customers', () => {
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Member')).toBeInTheDocument();
+  });
+
+  it('empty: purchase history and doctors when none posted', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(
+      await screen.findByText('No purchase or prescription history on this profile yet.'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('No doctor references on this counter yet.')).toBeInTheDocument();
+  });
+
+  it('success: shows purchase history facts and top referring doctors', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getHistoryMock.mockResolvedValue([
+      {
+        id: 'h1',
+        customerId: 'c1',
+        type: 'PRESCRIPTION',
+        summary: 'Rx REF-88',
+        prescriptionReference: 'REF-88',
+        doctorId: 'd1',
+        doctorName: 'Dr. Mehta',
+        invoiceId: 'inv1',
+        amountPaise: null,
+        occurredAt: '2026-09-04T04:00:00Z',
+      },
+      {
+        id: 'h2',
+        customerId: 'c1',
+        type: 'PURCHASE',
+        summary: 'Sale INV-1',
+        prescriptionReference: null,
+        doctorId: null,
+        doctorName: null,
+        invoiceId: 'inv1',
+        amountPaise: 12500,
+        occurredAt: '2026-09-04T04:00:00Z',
+      },
+    ]);
+    listDoctorsMock.mockResolvedValue([
+      {
+        id: 'd1',
+        tenantId: 't1',
+        name: 'Dr. Mehta',
+        registrationNumber: 'KA-1',
+        phone: null,
+        notes: null,
+        createdAt: '2026-09-04T00:00:00Z',
+        updatedAt: '2026-09-04T00:00:00Z',
+      },
+    ]);
+    listTopMock.mockResolvedValue([
+      { id: 'd1', name: 'Dr. Mehta', registrationNumber: 'KA-1', referralCount: 3 },
+    ]);
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(await screen.findByText('Rx REF-88')).toBeInTheDocument();
+    expect(screen.getByText('Sale INV-1')).toBeInTheDocument();
+    expect(screen.getByText(/₹125/)).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Top referring doctors')).getByText('Dr. Mehta'),
+    ).toBeInTheDocument();
+    expect(screen.getByText('3 referrals')).toBeInTheDocument();
+  });
+
+  it('validation: doctor dialog requires name', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
+    expect(
+      within(dialog).getByText('Name is required for a doctor reference.'),
+    ).toBeInTheDocument();
+    expect(createDoctorMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: duplicate doctor registration', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createDoctorMock.mockRejectedValue(new ApiError('taken', 409, 'REGISTRATION_TAKEN'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Name'), 'Dr. Dup');
+    await user.type(within(dialog).getByLabelText('Registration'), 'DUP-1');
+    await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
+    expect(
+      await within(dialog).findByText('That registration number is already on file.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: adds a doctor reference', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createDoctorMock.mockResolvedValue({
+      id: 'd2',
+      tenantId: 't1',
+      name: 'Dr. Rao',
+      registrationNumber: 'KA-9',
+      phone: null,
+      notes: null,
+      createdAt: '2026-09-04T00:00:00Z',
+      updatedAt: '2026-09-04T00:00:00Z',
+    });
+    listDoctorsMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        id: 'd2',
+        tenantId: 't1',
+        name: 'Dr. Rao',
+        registrationNumber: 'KA-9',
+        phone: null,
+        notes: null,
+        createdAt: '2026-09-04T00:00:00Z',
+        updatedAt: '2026-09-04T00:00:00Z',
+      },
+    ]);
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.type(within(dialog).getByLabelText('Name'), 'Dr. Rao');
+    await user.type(within(dialog).getByLabelText('Registration'), 'KA-9');
+    await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
+    await waitFor(() => {
+      expect(createDoctorMock).toHaveBeenCalledWith({
+        name: 'Dr. Rao',
+        registrationNumber: 'KA-9',
+        phone: undefined,
+        notes: undefined,
+      });
+    });
+    expect(await screen.findByText('Dr. Rao')).toBeInTheDocument();
+  });
+
+  it('failure: purchase history load error surfaces failure banner', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getHistoryMock.mockRejectedValue(new Error('network'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(
+      await screen.findByText('Could not reach the server for customers. Try again.'),
+    ).toBeInTheDocument();
   });
 });

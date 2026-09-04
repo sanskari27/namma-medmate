@@ -19,6 +19,8 @@ export type CustomerProfilePanelProps = {
   mergeButtonRef?: { current: HTMLButtonElement | null };
   familySection?: ReactNode;
   familyHistory?: ReactNode;
+  purchaseHistory?: ReactNode;
+  doctorSection?: ReactNode;
 };
 
 export function CustomerProfilePanel({
@@ -35,6 +37,8 @@ export function CustomerProfilePanel({
   mergeButtonRef,
   familySection,
   familyHistory,
+  purchaseHistory,
+  doctorSection,
 }: CustomerProfilePanelProps) {
   if (!selected) {
     return (
@@ -196,6 +200,8 @@ export function CustomerProfilePanel({
             </div>
           </div>
 
+          {purchaseHistory}
+          {doctorSection}
           {familySection}
           {familyHistory}
         </fieldset>

@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 21 |
+| done | 22 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 46 |
+| ready | 45 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -37,7 +37,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M3-S01 | M3 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V19 customer (tenant_id, phone unique); CustomerService/Controller GET/POST/PATCH /api/v1/customers; CRM module gate; PHONE_TAKEN 409; no login fields. Tests CustomerTest (AC01–AC05), CustomerRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 345 tests BUILD SUCCESS. Dispensary: CustomersScreen + CustomerCreateDialog template; services/customers.ts; route /customers. SPA lint+193 tests+build. `make compose-config` OK. Browser: :5173 Customers list Smoke Customer; Add dialog duplicate phone → alert + Search this phone. Host API: create+PHONE_TAKEN+search 200. |
 | M3-S02 | M3 | server + dispensary | done | M3-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: tenant-scoped notification count/repoint; MergeDialogStatus + MergeConflictFields (dialog 238 lines). Server: V20 merge provenance; CustomerMergeService POST /api/v1/customers/merge PREVIEW|EXECUTE; soft-deactivate + provenance. Tests CustomerMergeTest AC01–AC05, CustomerMergeRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 351 tests BUILD SUCCESS. Dispensary: CustomerMergeDialog + CustomersScreen Merge duplicate; lint+204 tests+build. `make compose-config` OK. Requirements valid. Host API PREVIEW/EXECUTE OK; IDE browser cannot reach API. |
 | M3-S03 | M3 | server + dispensary | done | M3-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: CustomerFamilyDialog loading test. Server: V21 customer_family; CustomerFamilyService/Controller /api/v1/customer-families; CustomerFamilyTest AC01–AC05 + Rollback. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 357 BUILD SUCCESS. Dispensary: CustomerFamilyDialog + section/history; lint+213 tests+build. Host API create/history/ALREADY_IN_FAMILY OK. `make compose-config` OK. Requirements valid. |
-| M3-S04 | M3 | server + dispensary | ready | M3-S01 | — | — |
+| M3-S04 | M3 | server + dispensary | done | M3-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: DoctorTest.ac04_crmDeniedBlocksDoctorCreate; DoctorReferenceDialog tests (loading/denied/failure/conflict/success/focus). Server: V22 doctor + customer_history_fact; CustomerHistoryService/DoctorService; GET /api/v1/customers/{id}/history; /api/v1/doctors (+ top-referring); family history wired to facts. Tests CustomerHistoryTest AC01/AC04, DoctorTest AC02–AC04, Rollback, CustomerFamilyTest ac03. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 368 BUILD SUCCESS. Dispensary: CustomerPurchaseHistory + CustomerDoctorSection + DoctorReferenceDialog; lint+226 tests+build. `make compose-config` OK. Requirements valid. Browser: local :5173/:8080 unreachable from IDE host; uniqueness from source (viridian shop-floor density, doctor refs + IST history, no HQ clone). |
 | M3-S05 | M3 | server + dispensary | ready | M3-S03 | — | — |
 | M3-S06 | M3 | server + dispensary | ready | M3-S01 | — | — |
 | M3-S07 | M3 | server + dispensary | ready | M3-S06, M10-S03, M8-S05 | — | — |
