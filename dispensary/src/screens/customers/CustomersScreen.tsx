@@ -6,11 +6,13 @@ import {
   DoctorReferenceDialog,
 } from '@templates';
 import {
+  getFamilyCredit,
   getFamilyForCustomer,
   getFamilyHistory,
   isApiError,
   removeFamilyMember,
   type CustomerFamily,
+  type FamilyCredit,
   type FamilyHistoryItem,
 } from '@/services/customerFamilies';
 import {
@@ -47,6 +49,7 @@ import { useSelector } from 'react-redux';
 import { CustomerCreditSection } from './components/customer-credit-section';
 import { CustomerDoctorSection } from './components/customer-doctor-section';
 import { CustomerDueRefillsStrip } from './components/customer-due-refills-strip';
+import { CustomerFamilyCreditSection } from './components/customer-family-credit-section';
 import { CustomerFamilyHistory } from './components/customer-family-history';
 import { CustomerFamilySection } from './components/customer-family-section';
 import { CustomerListPanel } from './components/customer-list-panel';
@@ -86,10 +89,18 @@ export default function CustomersScreen() {
   const [familyOpen, setFamilyOpen] = useState(false);
   const [doctorOpen, setDoctorOpen] = useState(false);
   const [settleOpen, setSettleOpen] = useState(false);
+  const [settleTarget, setSettleTarget] = useState<{
+    customerId: string;
+    customerName: string;
+    balancePaise: number;
+    version: number;
+  } | null>(null);
   const [busy, setBusy] = useState(false);
   const [limitBusy, setLimitBusy] = useState(false);
   const [family, setFamily] = useState<CustomerFamily | null>(null);
   const [familyLoading, setFamilyLoading] = useState(false);
+  const [familyCredit, setFamilyCredit] = useState<FamilyCredit | null>(null);
+  const [familyCreditLoading, setFamilyCreditLoading] = useState(false);
   const [unlinkBusy, setUnlinkBusy] = useState(false);
   const [historyItems, setHistoryItems] = useState<FamilyHistoryItem[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
@@ -167,6 +178,19 @@ export default function CustomersScreen() {
       setStatus('failure');
     } finally {
       setHistoryLoading(false);
+    }
+  }, []);
+
+  const loadFamilyCredit = useCallback(async (familyId: string) => {
+    setFamilyCreditLoading(true);
+    try {
+      const next = await getFamilyCredit(familyId);
+      setFamilyCredit(next);
+    } catch {
+      setFamilyCredit(null);
+      setStatus('failure');
+    } finally {
+      setFamilyCreditLoading(false);
     }
   }, []);
 
@@ -276,6 +300,7 @@ export default function CustomersScreen() {
   useEffect(() => {
     if (!selectedId) {
       setFamily(null);
+      setFamilyCredit(null);
       setHistoryItems([]);
       setMemberFilter('');
       setTypeFilter('');
@@ -296,10 +321,12 @@ export default function CustomersScreen() {
   useEffect(() => {
     if (!family?.id) {
       setHistoryItems([]);
+      setFamilyCredit(null);
       return;
     }
     void loadHistory(family.id, memberFilter || undefined, typeFilter || undefined);
-  }, [family?.id, memberFilter, typeFilter, loadHistory]);
+    void loadFamilyCredit(family.id);
+  }, [family?.id, memberFilter, typeFilter, loadHistory, loadFamilyCredit]);
 
   function selectCustomer(customer: Customer) {
     setSelectedId(customer.id);
@@ -510,6 +537,7 @@ export default function CustomersScreen() {
       const next = await removeFamilyMember(family.id, customerId);
       if (next.members.length === 0) {
         setFamily(null);
+        setFamilyCredit(null);
         setHistoryItems([]);
       } else {
         setFamily(next);
@@ -608,7 +636,18 @@ export default function CustomersScreen() {
                 onSetLimit={(limitPaise) => {
                   void onSetLimit(limitPaise);
                 }}
-                onSettle={() => setSettleOpen(true)}
+                onSettle={() => {
+                  if (!selected || !credit) {
+                    return;
+                  }
+                  setSettleTarget({
+                    customerId: selected.id,
+                    customerName: selected.name,
+                    balancePaise: credit.balancePaise,
+                    version: credit.version,
+                  });
+                  setSettleOpen(true);
+                }}
               />
             ) : null
           }
@@ -682,6 +721,18 @@ export default function CustomersScreen() {
               />
             ) : null
           }
+          familyCreditSection={
+            selected && family ? (
+              <CustomerFamilyCreditSection
+                credit={familyCredit}
+                loading={familyCreditLoading}
+                onSettleMember={(member) => {
+                  setSettleTarget(member);
+                  setSettleOpen(true);
+                }}
+              />
+            ) : null
+          }
           familyHistory={
             selected ? (
               <CustomerFamilyHistory
@@ -743,6 +794,7 @@ export default function CustomersScreen() {
         onLinked={(next) => {
           setFamily(next);
           setStatus('success');
+          void loadFamilyCredit(next.id);
         }}
       />
 
@@ -756,17 +808,27 @@ export default function CustomersScreen() {
         }}
       />
 
-      {selected && credit ? (
+      {settleTarget ? (
         <CreditSettleDialog
           open={settleOpen}
-          customerId={selected.id}
-          customerName={selected.name}
-          balancePaise={credit.balancePaise}
-          version={credit.version}
-          onOpenChange={setSettleOpen}
+          customerId={settleTarget.customerId}
+          customerName={settleTarget.customerName}
+          balancePaise={settleTarget.balancePaise}
+          version={settleTarget.version}
+          onOpenChange={(open) => {
+            setSettleOpen(open);
+            if (!open) {
+              setSettleTarget(null);
+            }
+          }}
           onCloseFocus={() => settleRef.current?.focus()}
           onSettled={() => {
-            void loadCredit(selected.id);
+            if (selectedId) {
+              void loadCredit(selectedId);
+            }
+            if (family?.id) {
+              void loadFamilyCredit(family.id);
+            }
             setStatus('success');
           }}
         />

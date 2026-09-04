@@ -55,6 +55,7 @@ export const API = {
   customerFamilyMember: (familyId: string, customerId: string) =>
     `/api/v1/customer-families/${familyId}/members/${customerId}`,
   customerFamilyHistory: (id: string) => `/api/v1/customer-families/${id}/history`,
+  customerFamilyCredit: (id: string) => `/api/v1/customer-families/${id}/credit`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

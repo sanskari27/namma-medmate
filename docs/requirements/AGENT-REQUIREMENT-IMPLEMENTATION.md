@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 24 |
+| done | 25 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 43 |
+| ready | 42 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -43,7 +43,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M3-S07 | M3 | server + dispensary | ready | M3-S06, M10-S03, M8-S05 | — | — |
 | M3-S08 | M3 | server + dispensary | ready | M3-S01, M4-S01 | D-011 closed | Unblocked 2026-09-03: tenant allergy/composition warn-only; any billing role ack+audit. |
 | M3-S09 | M3 | server + dispensary | ready | M3-S01, M2-S05, M6-S05, M6-S07 | D-012 closed | Unblocked 2026-09-03: 1pt/₹100 paid, 1pt=₹1 max 20%, nearest, never expire. |
-| M3-S10 | M3 | server + dispensary | ready | M3-S03, M3-S05 | D-002 closed | Unblocked 2026-09-03: individual member limits; family combined visibility only. |
+| M3-S10 | M3 | server + dispensary | done | M3-S03, M3-S05 | D-002 closed | Independent verifier PASS (story-verifier). verified→done. Server: GET /api/v1/customer-families/{id}/credit aggregates per-member limits/balances + attributed ledger (no shared pool). CustomerFamilyCreditTest AC01–AC03 + isolation (7). Reuses V23 charge/settle/limit. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 398 tests BUILD SUCCESS. Dispensary: CustomerFamilyCreditSection + getFamilyCredit; settle targets member via CreditSettleDialog. SPA lint+255 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor family khata, not HQ clone). |
 | M4-S01 | M4 | server + dispensary | ready | M1-S05 | — | — |
 | M4-S02 | M4 | server + dispensary | ready | M4-S01 | — | — |
 | M4-S03 | M4 | server + dispensary | ready | M4-S01, M4-S02 | — | — |

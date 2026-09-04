@@ -6,12 +6,15 @@ import com.nammamedmate.server.application.customerhistory.CustomerHistoryView;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
+import com.nammamedmate.server.domain.CustomerCreditAccount;
 import com.nammamedmate.server.domain.CustomerFamily;
 import com.nammamedmate.server.domain.CustomerFamilyMember;
 import com.nammamedmate.server.domain.CustomerHistoryFactType;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
+import com.nammamedmate.server.persistence.CustomerCreditLedgerEntryRepository;
 import com.nammamedmate.server.persistence.CustomerFamilyMemberRepository;
 import com.nammamedmate.server.persistence.CustomerFamilyRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
@@ -39,6 +42,8 @@ public class CustomerFamilyService {
   private final CustomerFamilyRepository customerFamilyRepository;
   private final CustomerFamilyMemberRepository customerFamilyMemberRepository;
   private final CustomerRepository customerRepository;
+  private final CustomerCreditAccountRepository creditAccountRepository;
+  private final CustomerCreditLedgerEntryRepository creditLedgerRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final CustomerHistoryService customerHistoryService;
@@ -48,6 +53,8 @@ public class CustomerFamilyService {
       CustomerFamilyRepository customerFamilyRepository,
       CustomerFamilyMemberRepository customerFamilyMemberRepository,
       CustomerRepository customerRepository,
+      CustomerCreditAccountRepository creditAccountRepository,
+      CustomerCreditLedgerEntryRepository creditLedgerRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       CustomerHistoryService customerHistoryService,
@@ -55,6 +62,8 @@ public class CustomerFamilyService {
     this.customerFamilyRepository = customerFamilyRepository;
     this.customerFamilyMemberRepository = customerFamilyMemberRepository;
     this.customerRepository = customerRepository;
+    this.creditAccountRepository = creditAccountRepository;
+    this.creditLedgerRepository = creditLedgerRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.customerHistoryService = customerHistoryService;
@@ -179,6 +188,73 @@ public class CustomerFamilyService {
                         item.summary(),
                         item.occurredAt()))
             .toList());
+  }
+
+  @Transactional(readOnly = true)
+  public FamilyCreditView credit(AuthPrincipal principal, UUID familyId) {
+    UUID tenantId = requireCrmAccess(principal);
+    requireFamily(familyId, tenantId);
+    List<Customer> members = loadMemberCustomers(tenantId, familyId);
+    List<UUID> memberIds = members.stream().map(Customer::getId).toList();
+
+    Map<UUID, CustomerCreditAccount> accountsByCustomer = new HashMap<>();
+    if (!memberIds.isEmpty()) {
+      for (CustomerCreditAccount account :
+          creditAccountRepository.findAllByTenantIdAndCustomerIdIn(tenantId, memberIds)) {
+        accountsByCustomer.put(account.getCustomerId(), account);
+      }
+    }
+
+    long totalLimit = 0L;
+    long totalBalance = 0L;
+    long totalAvailable = 0L;
+    List<FamilyCreditView.MemberCredit> memberCredits = new ArrayList<>();
+    Map<UUID, String> names = new HashMap<>();
+    for (Customer member : members) {
+      names.put(member.getId(), member.getName());
+      CustomerCreditAccount account = accountsByCustomer.get(member.getId());
+      long limit = account == null ? 0L : account.getLimitPaise();
+      long balance = account == null ? 0L : account.getBalancePaise();
+      long available = account == null ? 0L : Math.max(0L, limit - balance);
+      long version = account == null ? 0L : account.getVersion();
+      totalLimit += limit;
+      totalBalance += balance;
+      totalAvailable += available;
+      memberCredits.add(
+          new FamilyCreditView.MemberCredit(
+              member.getId(),
+              member.getName(),
+              member.getPhone(),
+              limit,
+              balance,
+              available,
+              version));
+    }
+
+    List<FamilyCreditView.LedgerItem> entries = List.of();
+    if (!memberIds.isEmpty()) {
+      entries =
+          creditLedgerRepository
+              .findAllByTenantIdAndCustomerIdInOrderByOccurredAtDesc(tenantId, memberIds)
+              .stream()
+              .map(
+                  entry ->
+                      new FamilyCreditView.LedgerItem(
+                          entry.getId(),
+                          entry.getCustomerId(),
+                          names.getOrDefault(entry.getCustomerId(), ""),
+                          entry.getType(),
+                          entry.getAmountPaise(),
+                          entry.getBalanceAfterPaise(),
+                          entry.getInvoiceId(),
+                          entry.getSettlementMode(),
+                          entry.getSettlementReference(),
+                          entry.getOccurredAt()))
+              .toList();
+    }
+
+    return new FamilyCreditView(
+        familyId, totalLimit, totalBalance, totalAvailable, memberCredits, entries);
   }
 
   private static CustomerHistoryFactType parseHistoryType(String type) {

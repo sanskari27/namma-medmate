@@ -29,6 +29,7 @@ vi.mock('@/services/customerFamilies', async () => {
   return {
     getFamilyForCustomer: vi.fn(),
     getFamilyHistory: vi.fn(),
+    getFamilyCredit: vi.fn(),
     createCustomerFamily: vi.fn(),
     addFamilyMember: vi.fn(),
     removeFamilyMember: vi.fn(),
@@ -93,6 +94,7 @@ import {
 } from '@/services/customers';
 import {
   createCustomerFamily,
+  getFamilyCredit,
   getFamilyForCustomer,
   getFamilyHistory,
 } from '@/services/customerFamilies';
@@ -117,6 +119,7 @@ const executeMergeMock = vi.mocked(executeCustomerMerge);
 const getHistoryMock = vi.mocked(getCustomerHistory);
 const getFamilyMock = vi.mocked(getFamilyForCustomer);
 const getFamilyHistoryMock = vi.mocked(getFamilyHistory);
+const getFamilyCreditMock = vi.mocked(getFamilyCredit);
 const createFamilyMock = vi.mocked(createCustomerFamily);
 const listDoctorsMock = vi.mocked(listDoctors);
 const listTopMock = vi.mocked(listTopReferringDoctors);
@@ -185,6 +188,7 @@ describe('counter customers', () => {
     getHistoryMock.mockReset();
     getFamilyMock.mockReset();
     getFamilyHistoryMock.mockReset();
+    getFamilyCreditMock.mockReset();
     createFamilyMock.mockReset();
     listDoctorsMock.mockReset();
     listTopMock.mockReset();
@@ -201,6 +205,14 @@ describe('counter customers', () => {
     replaceTagsMock.mockReset();
     getFamilyMock.mockResolvedValue(null);
     getFamilyHistoryMock.mockResolvedValue([]);
+    getFamilyCreditMock.mockResolvedValue({
+      familyId: 'f1',
+      totalLimitPaise: 0,
+      totalBalancePaise: 0,
+      totalAvailablePaise: 0,
+      members: [],
+      entries: [],
+    });
     getHistoryMock.mockResolvedValue([]);
     listDoctorsMock.mockResolvedValue([]);
     listTopMock.mockResolvedValue([]);
@@ -383,6 +395,33 @@ describe('counter customers', () => {
       ],
       createdAt: '2026-09-04T00:00:00Z',
     });
+    getFamilyCreditMock.mockResolvedValue({
+      familyId: 'f1',
+      totalLimitPaise: 0,
+      totalBalancePaise: 0,
+      totalAvailablePaise: 0,
+      members: [
+        {
+          customerId: 'c1',
+          customerName: sample.name,
+          customerPhone: sample.phone,
+          limitPaise: 0,
+          balancePaise: 0,
+          availablePaise: 0,
+          version: 0,
+        },
+        {
+          customerId: 'c2',
+          customerName: child.name,
+          customerPhone: child.phone,
+          limitPaise: 0,
+          balancePaise: 0,
+          availablePaise: 0,
+          version: 0,
+        },
+      ],
+      entries: [],
+    });
 
     renderPage();
     await screen.findByRole('button', { name: 'Ravi Kumar' });
@@ -398,15 +437,124 @@ describe('counter customers', () => {
     await waitFor(() => {
       expect(createFamilyMock).toHaveBeenCalledWith(['c1', 'c2']);
     });
-    expect(
-      await screen.findByText('Child Kumar', { selector: 'p.font-medium' }),
-    ).toBeInTheDocument();
+    const familySection = await screen.findByLabelText('Family members');
+    expect(within(familySection).getByText('Child Kumar')).toBeInTheDocument();
     expect(
       within(screen.getByLabelText('Family history')).getByText(
         'No purchase or prescription history for this family yet.',
       ),
     ).toBeInTheDocument();
     expect(screen.getByLabelText('Member')).toBeInTheDocument();
+    expect(await screen.findByLabelText('Family khata')).toBeInTheDocument();
+    expect(
+      within(screen.getByLabelText('Family khata')).getByText('No family khata entries yet.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: family khata shows combined dues and settle targets member', async () => {
+    const user = userEvent.setup();
+    const child: Customer = {
+      ...sample,
+      id: 'c2',
+      name: 'Child Kumar',
+      phone: '9876500002',
+      allergies: null,
+      chronicConditions: null,
+    };
+    listMock.mockResolvedValue([sample, child]);
+    getFamilyMock.mockResolvedValue({
+      id: 'f1',
+      label: null,
+      members: [
+        { id: 'c1', name: sample.name, phone: sample.phone },
+        { id: 'c2', name: child.name, phone: child.phone },
+      ],
+      createdAt: '2026-09-04T00:00:00Z',
+    });
+    getFamilyCreditMock.mockResolvedValue({
+      familyId: 'f1',
+      totalLimitPaise: 50000,
+      totalBalancePaise: 9000,
+      totalAvailablePaise: 41000,
+      members: [
+        {
+          customerId: 'c1',
+          customerName: sample.name,
+          customerPhone: sample.phone,
+          limitPaise: 20000,
+          balancePaise: 5000,
+          availablePaise: 15000,
+          version: 2,
+        },
+        {
+          customerId: 'c2',
+          customerName: child.name,
+          customerPhone: child.phone,
+          limitPaise: 30000,
+          balancePaise: 4000,
+          availablePaise: 26000,
+          version: 1,
+        },
+      ],
+      entries: [
+        {
+          id: 'e1',
+          customerId: 'c1',
+          customerName: sample.name,
+          type: 'SALE_CHARGE',
+          amountPaise: 7000,
+          balanceAfterPaise: 7000,
+          invoiceId: 'inv-aaaa-bbbb',
+          settlementMode: null,
+          settlementReference: null,
+          occurredAt: '2026-09-04T05:00:00Z',
+        },
+      ],
+    });
+
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const familyKhata = await screen.findByLabelText('Family khata');
+    expect(within(familyKhata).getByText('Combined dues')).toBeInTheDocument();
+    expect(within(familyKhata).getAllByText('₹90').length).toBeGreaterThanOrEqual(1);
+    expect(within(familyKhata).getByText(/Ravi Kumar · Sale charge/)).toBeInTheDocument();
+
+    const memberSettle = within(familyKhata).getAllByRole('button', { name: 'Settle' })[1];
+    await user.click(memberSettle);
+    const settleDialog = await screen.findByRole('dialog');
+    expect(within(settleDialog).getByText(/Child Kumar/)).toBeInTheDocument();
+  });
+
+  it('failure: family khata load error surfaces failure banner', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getFamilyMock.mockResolvedValue({
+      id: 'f1',
+      label: null,
+      members: [{ id: 'c1', name: sample.name, phone: sample.phone }],
+      createdAt: '2026-09-04T00:00:00Z',
+    });
+    getFamilyCreditMock.mockRejectedValue(new Error('network'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(
+      await screen.findByText('Could not reach the server for customers. Try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('loading: family khata shows loading status', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getFamilyMock.mockResolvedValue({
+      id: 'f1',
+      label: null,
+      members: [{ id: 'c1', name: sample.name, phone: sample.phone }],
+      createdAt: '2026-09-04T00:00:00Z',
+    });
+    getFamilyCreditMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(await screen.findByText('Loading family khata…')).toBeInTheDocument();
   });
 
   it('empty: purchase history and doctors when none posted', async () => {

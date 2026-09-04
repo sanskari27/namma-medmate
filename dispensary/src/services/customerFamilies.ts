@@ -25,6 +25,38 @@ export interface FamilyHistoryItem {
   occurredAt: string;
 }
 
+export interface FamilyCreditMember {
+  customerId: string;
+  customerName: string;
+  customerPhone: string;
+  limitPaise: number;
+  balancePaise: number;
+  availablePaise: number;
+  version: number;
+}
+
+export interface FamilyCreditLedgerEntry {
+  id: string;
+  customerId: string;
+  customerName: string;
+  type: string;
+  amountPaise: number;
+  balanceAfterPaise: number;
+  invoiceId: string | null;
+  settlementMode: string | null;
+  settlementReference: string | null;
+  occurredAt: string;
+}
+
+export interface FamilyCredit {
+  familyId: string;
+  totalLimitPaise: number;
+  totalBalancePaise: number;
+  totalAvailablePaise: number;
+  members: FamilyCreditMember[];
+  entries: FamilyCreditLedgerEntry[];
+}
+
 export async function getFamilyForCustomer(customerId: string): Promise<CustomerFamily | null> {
   try {
     const { data } = await apiClient.get<CustomerFamily>(API.CUSTOMER_FAMILIES, {
@@ -78,4 +110,9 @@ export async function getFamilyHistory(
     { params },
   );
   return data.items;
+}
+
+export async function getFamilyCredit(familyId: string): Promise<FamilyCredit> {
+  const { data } = await apiClient.get<FamilyCredit>(API.customerFamilyCredit(familyId));
+  return data;
 }

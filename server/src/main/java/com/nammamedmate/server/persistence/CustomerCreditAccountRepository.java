@@ -26,4 +26,7 @@ public interface CustomerCreditAccountRepository
 
   List<CustomerCreditAccount> findAllByTenantIdAndBalancePaiseGreaterThanOrderByBalancePaiseDesc(
       UUID tenantId, long balancePaise);
+
+  List<CustomerCreditAccount> findAllByTenantIdAndCustomerIdIn(
+      UUID tenantId, List<UUID> customerIds);
 }

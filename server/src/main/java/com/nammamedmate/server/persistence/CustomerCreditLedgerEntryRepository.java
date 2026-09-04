@@ -14,4 +14,7 @@ public interface CustomerCreditLedgerEntryRepository
 
   Optional<CustomerCreditLedgerEntry> findByTenantIdAndIdempotencyKey(
       UUID tenantId, String idempotencyKey);
+
+  List<CustomerCreditLedgerEntry> findAllByTenantIdAndCustomerIdInOrderByOccurredAtDesc(
+      UUID tenantId, List<UUID> customerIds);
 }

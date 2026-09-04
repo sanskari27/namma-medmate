@@ -2,6 +2,7 @@ package com.nammamedmate.server.feature.customerfamily;
 
 import com.nammamedmate.server.application.customerfamily.CustomerFamilyService;
 import com.nammamedmate.server.application.customerfamily.CustomerFamilyView;
+import com.nammamedmate.server.application.customerfamily.FamilyCreditView;
 import com.nammamedmate.server.application.customerfamily.FamilyHistoryView;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
@@ -92,6 +93,46 @@ public class CustomerFamilyController {
                 .toList()));
   }
 
+  @GetMapping("/{id}/credit")
+  public ApiResponse<FamilyCreditResponse> credit(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    FamilyCreditView view = customerFamilyService.credit(principal, id);
+    return ApiResponse.ok(
+        new FamilyCreditResponse(
+            view.familyId(),
+            view.totalLimitPaise(),
+            view.totalBalancePaise(),
+            view.totalAvailablePaise(),
+            view.members().stream()
+                .map(
+                    m ->
+                        new MemberCreditResponse(
+                            m.customerId(),
+                            m.customerName(),
+                            m.customerPhone(),
+                            m.limitPaise(),
+                            m.balancePaise(),
+                            m.availablePaise(),
+                            m.version()))
+                .toList(),
+            view.entries().stream()
+                .map(
+                    e ->
+                        new CreditLedgerItemResponse(
+                            e.id(),
+                            e.customerId(),
+                            e.customerName(),
+                            e.type().name(),
+                            e.amountPaise(),
+                            e.balanceAfterPaise(),
+                            e.invoiceId(),
+                            e.settlementMode(),
+                            e.settlementReference(),
+                            e.occurredAt()))
+                .toList()));
+  }
+
   private FamilyResponse toResponse(CustomerFamilyView view) {
     return new FamilyResponse(
         view.id(),
@@ -117,5 +158,34 @@ public class CustomerFamilyController {
       String customerName,
       String type,
       String summary,
+      Instant occurredAt) {}
+
+  public record FamilyCreditResponse(
+      UUID familyId,
+      long totalLimitPaise,
+      long totalBalancePaise,
+      long totalAvailablePaise,
+      List<MemberCreditResponse> members,
+      List<CreditLedgerItemResponse> entries) {}
+
+  public record MemberCreditResponse(
+      UUID customerId,
+      String customerName,
+      String customerPhone,
+      long limitPaise,
+      long balancePaise,
+      long availablePaise,
+      long version) {}
+
+  public record CreditLedgerItemResponse(
+      UUID id,
+      UUID customerId,
+      String customerName,
+      String type,
+      long amountPaise,
+      long balanceAfterPaise,
+      UUID invoiceId,
+      String settlementMode,
+      String settlementReference,
       Instant occurredAt) {}
 }
