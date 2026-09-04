@@ -62,6 +62,13 @@ vi.mock('@/services/inventory', async () => {
     listStockBatches: vi.fn(),
     listStockMovements: vi.fn(),
     receiveStock: vi.fn(),
+    getInventorySettings: vi.fn(),
+    updateInventorySettings: vi.fn(),
+    getProductStockLevels: vi.fn(),
+    updateProductStockLevels: vi.fn(),
+    getInventoryAlerts: vi.fn(),
+    getInventoryValuation: vi.fn(),
+    downloadReorderReport: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -87,10 +94,17 @@ import { createProductCategory, listProductCategories } from '@/services/product
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
 import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
 import {
+  downloadReorderReport,
+  getInventoryAlerts,
+  getInventorySettings,
+  getInventoryValuation,
+  getProductStockLevels,
   listStockBalances,
   listStockBatches,
   listStockMovements,
   receiveStock,
+  updateInventorySettings,
+  updateProductStockLevels,
 } from '@/services/inventory';
 import {
   confirmStockTransfer,
@@ -113,6 +127,13 @@ const listBalancesMock = vi.mocked(listStockBalances);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listMovementsMock = vi.mocked(listStockMovements);
 const receiveMock = vi.mocked(receiveStock);
+const getAlertsMock = vi.mocked(getInventoryAlerts);
+const getSettingsMock = vi.mocked(getInventorySettings);
+const updateSettingsMock = vi.mocked(updateInventorySettings);
+const getValuationMock = vi.mocked(getInventoryValuation);
+const getLevelsMock = vi.mocked(getProductStockLevels);
+const updateLevelsMock = vi.mocked(updateProductStockLevels);
+const downloadCsvMock = vi.mocked(downloadReorderReport);
 const listTransfersMock = vi.mocked(listStockTransfers);
 const createTransferMock = vi.mocked(createStockTransfer);
 const confirmTransferMock = vi.mocked(confirmStockTransfer);
@@ -251,8 +272,19 @@ describe('floor inventory catalogue', () => {
     createTransferMock.mockReset();
     confirmTransferMock.mockReset();
     rejectTransferMock.mockReset();
+    getAlertsMock.mockReset();
+    getSettingsMock.mockReset();
+    updateSettingsMock.mockReset();
+    getValuationMock.mockReset();
+    downloadCsvMock.mockReset();
+    getLevelsMock.mockReset();
+    updateLevelsMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
     listTransfersMock.mockResolvedValue([]);
+    getAlertsMock.mockResolvedValue({ lowStock: [], nearExpiry: [] });
+    getSettingsMock.mockResolvedValue({ expiryWarnDays: 30 });
+    getValuationMock.mockResolvedValue({ totalPurchaseValuePaise: 0 });
+    downloadCsvMock.mockResolvedValue(new Blob(['sku,name\n'], { type: 'text/csv' }));
     listCategoriesMock.mockResolvedValue([category]);
     listManufacturersMock.mockResolvedValue([manufacturer]);
     listUnitsMock.mockResolvedValue({
@@ -899,5 +931,190 @@ describe('outlet transfers', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start transfer' })).toHaveFocus();
     });
+  });
+});
+
+describe('inventory guidance', () => {
+  beforeEach(() => {
+    listBalancesMock.mockReset();
+    listTransfersMock.mockReset();
+    getAlertsMock.mockReset();
+    getSettingsMock.mockReset();
+    updateSettingsMock.mockReset();
+    getValuationMock.mockReset();
+    downloadCsvMock.mockReset();
+    getLevelsMock.mockReset();
+    updateLevelsMock.mockReset();
+    createTransferMock.mockReset();
+    listMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listTransfersMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    getAlertsMock.mockResolvedValue({ lowStock: [], nearExpiry: [] });
+    getSettingsMock.mockResolvedValue({ expiryWarnDays: 30 });
+    updateSettingsMock.mockResolvedValue({ expiryWarnDays: 14 });
+    getValuationMock.mockResolvedValue({ totalPurchaseValuePaise: 20000 });
+    downloadCsvMock.mockResolvedValue(
+      new Blob(['sku,name,suggestedOrderQty\n'], { type: 'text/csv' }),
+    );
+    getLevelsMock.mockResolvedValue({ reorderLevel: 20, reorderQuantity: 100, minimumStock: 10 });
+    updateLevelsMock.mockResolvedValue({ reorderLevel: 8, reorderQuantity: 40, minimumStock: 2 });
+  });
+
+  async function openGuidance(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('tab', { name: 'Guidance' }));
+  }
+
+  it('shows loading then empty guidance', async () => {
+    const user = userEvent.setup();
+    getAlertsMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await openGuidance(user);
+    expect(
+      await screen.findByText(/Loading FEFO, expiry, and low-stock guidance/i),
+    ).toBeInTheDocument();
+  });
+
+  it('shows empty guidance when no alerts', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openGuidance(user);
+    expect(
+      await screen.findByText(/No low-stock or near-expiry lines on this outlet right now/i),
+    ).toBeInTheDocument();
+  });
+
+  it('validates expiry warn days', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openGuidance(user);
+    const input = await screen.findByLabelText(/Expiry warn days/i);
+    await user.clear(input);
+    await user.type(input, '-1');
+    await user.click(screen.getByRole('button', { name: 'Save threshold' }));
+    expect(
+      await screen.findByText(/Expiry warn days must be zero or a whole number/i),
+    ).toBeInTheDocument();
+  });
+
+  it('denies guidance without inventory module', async () => {
+    renderPage([]);
+    expect(await screen.findByText(/cannot open inventory/i)).toBeInTheDocument();
+  });
+
+  it('shows failure when alerts request fails', async () => {
+    const user = userEvent.setup();
+    getAlertsMock.mockRejectedValue(new ApiError('down', 500, 'SERVER'));
+    renderPage();
+    await openGuidance(user);
+    expect(await screen.findByText(/Could not load guidance/i)).toBeInTheDocument();
+  });
+
+  it('saves threshold and downloads reorder CSV on success', async () => {
+    const user = userEvent.setup();
+    getAlertsMock.mockResolvedValue({
+      lowStock: [
+        {
+          productId: 'p1',
+          productSku: 'SKU-PARA',
+          productName: 'Paracetamol 500',
+          onHand: 3,
+          reorderLevel: 10,
+          minimumStock: 2,
+          otherBranches: [{ branchId: 'b2', branchName: 'Warehouse', quantity: 40 }],
+        },
+      ],
+      nearExpiry: [
+        {
+          productId: 'p1',
+          productSku: 'SKU-PARA',
+          productName: 'Paracetamol 500',
+          batchId: 'batch1',
+          batchNumber: 'LOT-NEAR',
+          expiresOn: '2026-09-20',
+          quantity: 5,
+        },
+      ],
+    });
+    renderPage();
+    await openGuidance(user);
+    expect(await screen.findByText('Available at Warehouse (40)')).toBeInTheDocument();
+    expect(screen.getByText(/Near expiry — still sellable/i)).toBeInTheDocument();
+    expect(screen.getByText(/₹200\.00/)).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: 'Save threshold' }));
+    await waitFor(() => expect(updateSettingsMock).toHaveBeenCalledWith(30));
+    expect(await screen.findByText(/Guidance updated for this outlet/i)).toBeInTheDocument();
+
+    const createObjectURL = vi.fn(() => 'blob:reorder');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    await user.click(screen.getByRole('button', { name: 'Download reorder CSV' }));
+    await waitFor(() => expect(downloadCsvMock).toHaveBeenCalled());
+  });
+
+  it('starts transfer from low-stock other-branch hint', async () => {
+    const user = userEvent.setup();
+    getAlertsMock.mockResolvedValue({
+      lowStock: [
+        {
+          productId: 'p1',
+          productSku: 'SKU-PARA',
+          productName: 'Paracetamol 500',
+          onHand: 3,
+          reorderLevel: 10,
+          minimumStock: 2,
+          otherBranches: [{ branchId: 'b2', branchName: 'Warehouse', quantity: 40 }],
+        },
+      ],
+      nearExpiry: [],
+    });
+    listBalancesMock.mockResolvedValue([balance]);
+    renderPage();
+    await openGuidance(user);
+    await user.click(await screen.findByRole('button', { name: 'Start transfer' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(dialog).toBeInTheDocument();
+    expect(within(dialog).getByText(/Start outlet transfer/i)).toBeInTheDocument();
+    expect(within(dialog).getByLabelText('Direction')).toHaveValue('PULL');
+    expect(within(dialog).getByLabelText('Product to pull')).toHaveValue('p1');
+  });
+
+  it('denied: guidance API FORBIDDEN', async () => {
+    const user = userEvent.setup();
+    getAlertsMock.mockRejectedValue(new ApiError('no', 403, 'FORBIDDEN'));
+    renderPage();
+    await openGuidance(user);
+    expect(await screen.findByText(/cannot open inventory guidance/i)).toBeInTheDocument();
+  });
+
+  it('conflict: guidance surfaces STALE_STATE', async () => {
+    const user = userEvent.setup();
+    updateSettingsMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    renderPage();
+    await openGuidance(user);
+    await user.click(await screen.findByRole('button', { name: 'Save threshold' }));
+    expect(await screen.findByText(/Guidance data changed elsewhere/i)).toBeInTheDocument();
+  });
+
+  it('saves this outlet reorder independently of catalogue defaults', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openGuidance(user);
+    await user.selectOptions(await screen.findByLabelText('Product'), 'p1');
+    await waitFor(() => expect(getLevelsMock).toHaveBeenCalledWith('p1'));
+    const reorder = await screen.findByLabelText('Outlet reorder');
+    expect(reorder).toHaveValue('20');
+    await user.clear(reorder);
+    await user.type(reorder, '8');
+    await user.click(screen.getByRole('button', { name: 'Save outlet levels' }));
+    await waitFor(() =>
+      expect(updateLevelsMock).toHaveBeenCalledWith('p1', {
+        reorderLevel: 8,
+        reorderQuantity: 100,
+        minimumStock: 10,
+      }),
+    );
+    expect(await screen.findByText(/Guidance updated for this outlet/i)).toBeInTheDocument();
   });
 });

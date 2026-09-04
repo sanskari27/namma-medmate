@@ -13,4 +13,7 @@ public record StockBatchDetailView(
     long purchasePricePaise,
     BigDecimal quantity,
     long version,
-    UUID balanceId) {}
+    UUID balanceId,
+    boolean suggestedFefo,
+    boolean nearExpiry,
+    boolean expired) {}

@@ -48,7 +48,17 @@ vi.mock('@/services/productUnits', async () => {
   };
 });
 
+vi.mock('@/services/inventory', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listStockBatches: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { listCustomers } from '@/services/customers';
+import { listStockBatches } from '@/services/inventory';
 import {
   assertMedicationSafetyCleared,
   evaluateMedicationSafety,
@@ -62,6 +72,7 @@ const evaluateMock = vi.mocked(evaluateMedicationSafety);
 const assertMock = vi.mocked(assertMedicationSafetyCleared);
 const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
+const listBatchesMock = vi.mocked(listStockBatches);
 
 const customer = {
   id: 'c1',
@@ -166,8 +177,10 @@ describe('PosScreen', () => {
     assertMock.mockReset();
     listUnitsMock.mockReset();
     convertMock.mockReset();
+    listBatchesMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA, productB]);
+    listBatchesMock.mockResolvedValue([]);
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -366,5 +379,52 @@ describe('PosScreen', () => {
     expect(
       within(screen.getByLabelText('Draft lines')).getByText('Penicillin V'),
     ).toBeInTheDocument();
+  });
+
+  it('suggests FEFO batch and allows override with near-expiry warning', async () => {
+    const user = userEvent.setup();
+    listProductsMock.mockResolvedValue([{ ...productA, requiresBatchTracking: true }]);
+    listBatchesMock.mockResolvedValue([
+      {
+        batchId: 'b-early',
+        productId: 'p1',
+        batchNumber: 'LOT-EARLY',
+        manufacturedOn: '2026-01-01',
+        expiresOn: '2026-09-20',
+        purchasePricePaise: 1000,
+        quantity: 10,
+        version: 1,
+        balanceId: 'bal1',
+        suggestedFefo: true,
+        nearExpiry: true,
+        expired: false,
+      },
+      {
+        batchId: 'b-late',
+        productId: 'p1',
+        batchNumber: 'LOT-LATE',
+        manufacturedOn: '2026-02-01',
+        expiresOn: '2027-06-30',
+        purchasePricePaise: 2000,
+        quantity: 10,
+        version: 1,
+        balanceId: 'bal2',
+        suggestedFefo: false,
+        nearExpiry: false,
+        expired: false,
+      },
+    ]);
+
+    renderPage();
+    await screen.findByText('Ravi Kumar');
+    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
+
+    const batchSelect = await screen.findByLabelText(/Batch \(FEFO suggested\)/i);
+    expect(batchSelect).toHaveValue('b-early');
+    expect(screen.getByText(/Near expiry — still sellable/i)).toBeInTheDocument();
+
+    await user.selectOptions(batchSelect, 'b-late');
+    expect(batchSelect).toHaveValue('b-late');
+    expect(screen.queryByText(/Near expiry — still sellable/i)).not.toBeInTheDocument();
   });
 });

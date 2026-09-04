@@ -1,7 +1,7 @@
 import { Button, Reveal } from '@atoms';
 import type { Ref } from 'react';
 
-export type InventoryViewMode = 'floor' | 'catalogue' | 'transfers';
+export type InventoryViewMode = 'floor' | 'catalogue' | 'transfers' | 'guidance';
 
 export type InventoryHeaderProps = {
   view: InventoryViewMode;
@@ -31,14 +31,18 @@ export function InventoryHeader({
       ? 'Floor stock'
       : view === 'catalogue'
         ? 'Floor catalogue'
-        : 'Outlet transfers';
+        : view === 'transfers'
+          ? 'Outlet transfers'
+          : 'FEFO & reorder';
   const blurb = denied
     ? 'Stock and SKUs for this pharmacy floor.'
     : view === 'floor'
       ? 'Batch, expiry, and quantity on the active outlet. Receive stock to open a batch on this till.'
       : view === 'catalogue'
         ? 'Tenant product master for this pharmacy. Search by name, SKU, or barcode — discontinued packs stay on the list.'
-        : 'Push or pull stock between outlets. Receiving till confirms before stock lands on the floor.';
+        : view === 'transfers'
+          ? 'Push or pull stock between outlets. Receiving till confirms before stock lands on the floor.'
+          : 'Near-expiry warnings, low-stock transfer hints, reorder CSV, and purchase-price valuation for this outlet.';
 
   return (
     <Reveal>
@@ -57,11 +61,11 @@ export function InventoryHeader({
             <Button ref={addButtonRef} type="button" onClick={onAdd}>
               Add product
             </Button>
-          ) : (
+          ) : view === 'transfers' ? (
             <Button ref={transferButtonRef} type="button" onClick={onTransfer}>
               Start transfer
             </Button>
-          )}
+          ) : null}
         </div>
         {denied ? null : (
           <div
@@ -74,6 +78,7 @@ export function InventoryHeader({
                 ['floor', 'Floor stock'],
                 ['catalogue', 'Catalogue'],
                 ['transfers', 'Transfers'],
+                ['guidance', 'Guidance'],
               ] as const
             ).map(([mode, label], index) => (
               <button

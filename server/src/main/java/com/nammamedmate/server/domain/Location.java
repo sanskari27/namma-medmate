@@ -82,6 +82,10 @@ public class Location {
   @Column(name = "tax_settings", nullable = false, columnDefinition = "jsonb")
   private Map<String, Object> taxSettings = new LinkedHashMap<>();
 
+  @JdbcTypeCode(SqlTypes.JSON)
+  @Column(name = "inventory_settings", nullable = false, columnDefinition = "jsonb")
+  private Map<String, Object> inventorySettings = new LinkedHashMap<>();
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 

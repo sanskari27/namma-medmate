@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 30 |
+| done | 31 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 37 |
+| ready | 36 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -47,7 +47,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M4-S01 | M4 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V25 product_category+manufacturer+product; ProductService/Controller GET/POST/PATCH /api/v1/products; ProductCategory+Manufacturer thin CRUD; INVENTORY gate; SKU_TAKEN; HSN/GST + tracking validation. Tests ProductTest AC01–AC05 + ProductRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 404 tests BUILD SUCCESS. Dispensary: InventoryScreen /inventory (list+form sections); services products/productCategories/manufacturers; lint+267 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian shop-floor catalogue, not HQ clone). |
 | M4-S02 | M4 | server + dispensary | done | M4-S01 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: SALES GET/convert vs INVENTORY PUT; Inventory zero-factor + PRECISION_LOSS + precision-2 tests. Server: V26 product_unit_conversion + quantity_precision; ProductUnitService; ProductUnitConverterTest 6, ProductUnitTest AC01–AC05, ProductUnitRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 421 BUILD SUCCESS. Dispensary: productUnits + InventoryUnitConversions + ProductUnitSelect + POS draft convert; lint+282 tests+build. `make compose-config` OK. Requirements valid. Browser: local stack unreachable from IDE host; uniqueness from source (viridian floor UOM, not HQ clone). |
 | M4-S03 | M4 | server + dispensary | done | M4-S01, M4-S02 | — | Independent verifier PASS (story-verifier). Gap-close: InventoryScreen composition split (FloorStockWorkspace + CatalogueWorkspace; screen ~78 lines). Server: V27 stock_batch/balance/movement; InventoryStockService + InventoryController /api/v1/inventory balances|batches|movements|receipts|issues; session branch; AC01–AC05. Tests InventoryStockTest 6 + InventoryStockRollbackTest 2. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 429 BUILD SUCCESS. Dispensary: Floor stock/Catalogue toggle; receive dialog; services/inventory.ts; lint+289 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173/inventory → login (auth); uniqueness from source (viridian floor stock + batch/expiry/movements, not HQ clone). |
-| M4-S04 | M4 | server + dispensary | ready | M4-S03 | — | — |
+| M4-S04 | M4 | server + dispensary | done | M4-S03 | — | Independent verifier PASS (story-verifier). Gap-close after prior FAIL: AC04 two-branch stock-levels + CSV; AC08 FORBIDDEN on /settings /alerts; OutletStockLevelsForm + 403/409 guidance tests; PULL+p1 transfer prefill. Server: V29 inventory_settings + branch_product_stock_level; InventoryGuidanceTest AC01–AC08 (9). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 447 BUILD SUCCESS. Dispensary: Guidance tab + POS FEFO picker; lint+311 tests+build. `make compose-config` OK. Requirements valid. |
 | M4-S05 | M4 | server + dispensary | ready | M4-S03, M1-S07 | — | — |
 | M4-S06 | M4 | server + dispensary | ready | M4-S05 | — | — |
 | M4-S07 | M4 | server + dispensary | ready | M4-S03, M1-S05 | — | — |

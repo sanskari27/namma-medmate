@@ -15,4 +15,5 @@ public record StockBalanceView(
     LocalDate expiresOn,
     Long purchasePricePaise,
     BigDecimal quantity,
-    long version) {}
+    long version,
+    boolean nearExpiry) {}

@@ -19,6 +19,7 @@ export type TransferCreateDialogProps = {
   activeBranchId: string;
   onCreated: () => void;
   onCloseFocus?: () => void;
+  prefillProductId?: string | null;
 };
 
 export function TransferCreateDialog({
@@ -28,6 +29,7 @@ export function TransferCreateDialog({
   activeBranchId,
   onCreated,
   onCloseFocus,
+  prefillProductId = null,
 }: TransferCreateDialogProps) {
   const formId = useId();
   const statusId = `${formId}-status`;
@@ -50,10 +52,11 @@ export function TransferCreateDialog({
     if (!open) {
       return undefined;
     }
-    setDirection('PUSH');
+    const pullPrefill = Boolean(prefillProductId);
+    setDirection(pullPrefill ? 'PULL' : 'PUSH');
     setCounterpartyId(counterparts[0]?.id ?? '');
     setBalanceKey('');
-    setProductId('');
+    setProductId(prefillProductId ?? '');
     setBatchId('');
     setQuantity('');
     setBusy(false);
@@ -62,6 +65,10 @@ export function TransferCreateDialog({
       .then(([balanceItems, productItems]) => {
         setBalances(balanceItems);
         setProducts(productItems);
+        if (prefillProductId) {
+          setProductId(prefillProductId);
+          setDirection('PULL');
+        }
         setStatus(null);
         window.setTimeout(() => {
           document.getElementById(`${formId}-direction`)?.focus();
@@ -69,7 +76,7 @@ export function TransferCreateDialog({
       })
       .catch((error) => setStatus(mapTransferDialogStatus(error)));
     return undefined;
-  }, [open, formId, counterparts]);
+  }, [open, formId, counterparts, prefillProductId]);
 
   const selectedBalance = balances.find((b) => b.balanceId === balanceKey) ?? null;
   const selectedProduct = products.find((p) => p.id === productId) ?? null;

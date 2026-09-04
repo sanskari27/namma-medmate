@@ -159,7 +159,7 @@ export const emptyForm: FormState = {
 
 export function statusCopy(
   status: PageStatus,
-  view: 'floor' | 'catalogue' | 'transfers' = 'catalogue',
+  view: 'floor' | 'catalogue' | 'transfers' | 'guidance' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -227,6 +227,41 @@ export function statusCopy(
         };
       case 'success':
         return { icon: BadgeCheck, text: 'Transfer updated.' };
+      default:
+        return null;
+    }
+  }
+  if (view === 'guidance') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading FEFO, expiry, and low-stock guidance…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No low-stock or near-expiry lines on this outlet right now.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Expiry warn days must be zero or a whole number of days.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot open inventory guidance. Ask the owner to grant the Inventory area.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Guidance data changed elsewhere. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Could not load guidance for this outlet. Retry after picking a branch.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Guidance updated for this outlet.' };
       default:
         return null;
     }

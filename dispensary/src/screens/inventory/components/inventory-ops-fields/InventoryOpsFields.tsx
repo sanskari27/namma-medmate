@@ -30,7 +30,7 @@ export function InventoryOpsFields({ formId, form, onChange }: InventoryOpsField
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={`${formId}-reorder-level`}>Reorder level</Label>
+          <Label htmlFor={`${formId}-reorder-level`}>Catalogue reorder (default)</Label>
           <Input
             id={`${formId}-reorder-level`}
             value={form.reorderLevel}
@@ -40,7 +40,7 @@ export function InventoryOpsFields({ formId, form, onChange }: InventoryOpsField
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={`${formId}-reorder-qty`}>Reorder quantity</Label>
+          <Label htmlFor={`${formId}-reorder-qty`}>Catalogue reorder qty</Label>
           <Input
             id={`${formId}-reorder-qty`}
             value={form.reorderQuantity}
@@ -50,7 +50,7 @@ export function InventoryOpsFields({ formId, form, onChange }: InventoryOpsField
           />
         </div>
         <div className="grid gap-1.5">
-          <Label htmlFor={`${formId}-min-stock`}>Minimum stock</Label>
+          <Label htmlFor={`${formId}-min-stock`}>Catalogue minimum</Label>
           <Input
             id={`${formId}-min-stock`}
             value={form.minimumStock}

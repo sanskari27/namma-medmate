@@ -21,6 +21,7 @@ export type TransferWorkspaceProps = {
   createOpen: boolean;
   onCreateOpenChange: (open: boolean) => void;
   onStatusChange: (status: PageStatus) => void;
+  prefillProductId?: string | null;
 };
 
 export function TransferWorkspace({
@@ -31,6 +32,7 @@ export function TransferWorkspace({
   createOpen,
   onCreateOpenChange,
   onStatusChange,
+  prefillProductId = null,
 }: TransferWorkspaceProps) {
   const [outgoing, setOutgoing] = useState<StockTransfer[]>([]);
   const [incoming, setIncoming] = useState<StockTransfer[]>([]);
@@ -132,6 +134,7 @@ export function TransferWorkspace({
         onOpenChange={onCreateOpenChange}
         branches={branches}
         activeBranchId={activeBranchId}
+        prefillProductId={prefillProductId}
         onCreated={() => {
           void load().then(() => onStatusChange('success'));
         }}

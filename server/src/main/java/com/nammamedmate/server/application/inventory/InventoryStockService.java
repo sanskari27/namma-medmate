@@ -1,9 +1,14 @@
 package com.nammamedmate.server.application.inventory;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.notification.NotificationRoutingService;
+import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.BranchProductStockLevel;
+import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
+import com.nammamedmate.server.domain.NotificationTrigger;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.StockBatch;
@@ -11,15 +16,19 @@ import com.nammamedmate.server.domain.StockMovement;
 import com.nammamedmate.server.domain.StockMovementType;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.BranchProductStockLevelRepository;
+import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
 import com.nammamedmate.server.persistence.StockBatchRepository;
 import com.nammamedmate.server.persistence.StockMovementRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashMap;
@@ -27,6 +36,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.Set;
+import java.util.StringJoiner;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -44,6 +55,9 @@ public class InventoryStockService {
   private final StockBatchRepository stockBatchRepository;
   private final StockBalanceRepository stockBalanceRepository;
   private final StockMovementRepository stockMovementRepository;
+  private final LocationRepository locationRepository;
+  private final BranchProductStockLevelRepository branchProductStockLevelRepository;
+  private final NotificationRoutingService notificationRoutingService;
   private final Clock clock;
 
   public InventoryStockService(
@@ -53,6 +67,9 @@ public class InventoryStockService {
       StockBatchRepository stockBatchRepository,
       StockBalanceRepository stockBalanceRepository,
       StockMovementRepository stockMovementRepository,
+      LocationRepository locationRepository,
+      BranchProductStockLevelRepository branchProductStockLevelRepository,
+      NotificationRoutingService notificationRoutingService,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
@@ -60,6 +77,9 @@ public class InventoryStockService {
     this.stockBatchRepository = stockBatchRepository;
     this.stockBalanceRepository = stockBalanceRepository;
     this.stockMovementRepository = stockMovementRepository;
+    this.locationRepository = locationRepository;
+    this.branchProductStockLevelRepository = branchProductStockLevelRepository;
+    this.notificationRoutingService = notificationRoutingService;
     this.clock = clock;
   }
 
@@ -96,8 +116,10 @@ public class InventoryStockService {
 
   @Transactional(readOnly = true)
   public StockBatchesResult listBatches(AuthPrincipal principal, UUID productId) {
-    Context ctx = requireReady(principal);
+    Context ctx = requireReadyForBatches(principal);
     Product product = requireProduct(productId, ctx.tenantId());
+    int warnDays = expiryWarnDays(ctx);
+    LocalDate today = today();
     List<StockBalance> balances =
         stockBalanceRepository.findAllByTenantIdAndBranchIdAndProductId(
             ctx.tenantId(), ctx.branchId(), productId);
@@ -114,7 +136,10 @@ public class InventoryStockService {
                 0L,
                 balance.getQuantity(),
                 balance.getVersion(),
-                balance.getId()));
+                balance.getId(),
+                false,
+                false,
+                false));
         continue;
       }
       StockBatch batch =
@@ -124,6 +149,8 @@ public class InventoryStockService {
       if (batch == null) {
         continue;
       }
+      boolean expired = isExpired(batch.getExpiresOn(), today);
+      boolean near = isNearExpiry(batch.getExpiresOn(), today, warnDays);
       items.add(
           new StockBatchDetailView(
               batch.getId(),
@@ -134,12 +161,44 @@ public class InventoryStockService {
               batch.getPurchasePricePaise(),
               balance.getQuantity(),
               balance.getVersion(),
-              balance.getId()));
+              balance.getId(),
+              false,
+              near,
+              expired));
     }
     items.sort(
         Comparator.comparing(
                 (StockBatchDetailView v) -> v.expiresOn() == null ? LocalDate.MAX : v.expiresOn())
             .thenComparing(v -> v.batchNumber() == null ? "" : v.batchNumber()));
+    UUID suggestedId = null;
+    for (StockBatchDetailView item : items) {
+      if (item.batchId() != null
+          && !item.expired()
+          && item.quantity().compareTo(BigDecimal.ZERO) > 0) {
+        suggestedId = item.batchId();
+        break;
+      }
+    }
+    if (suggestedId != null) {
+      List<StockBatchDetailView> flagged = new ArrayList<>();
+      for (StockBatchDetailView item : items) {
+        flagged.add(
+            new StockBatchDetailView(
+                item.batchId(),
+                item.productId(),
+                item.batchNumber(),
+                item.manufacturedOn(),
+                item.expiresOn(),
+                item.purchasePricePaise(),
+                item.quantity(),
+                item.version(),
+                item.balanceId(),
+                Objects.equals(item.batchId(), suggestedId),
+                item.nearExpiry(),
+                item.expired()));
+      }
+      items = flagged;
+    }
     return new StockBatchesResult(items);
   }
 
@@ -247,11 +306,18 @@ public class InventoryStockService {
       if (batchId == null) {
         throw validationError();
       }
-      stockBatchRepository
-          .findByIdAndTenantId(batchId, ctx.tenantId())
-          .filter(b -> b.getProductId().equals(productId))
-          .orElseThrow(
-              () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch was not found"));
+      StockBatch batch =
+          stockBatchRepository
+              .findByIdAndTenantId(batchId, ctx.tenantId())
+              .filter(b -> b.getProductId().equals(productId))
+              .orElseThrow(
+                  () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch was not found"));
+      if (isExpired(batch.getExpiresOn(), today())) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "BATCH_EXPIRED",
+            "Expired batches cannot be issued for sale.");
+      }
     } else if (batchId != null) {
       throw validationError();
     }
@@ -299,6 +365,7 @@ public class InventoryStockService {
             key,
             now);
     stockMovementRepository.saveAndFlush(movement);
+    maybeNotifyLowStock(ctx, product);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -513,6 +580,12 @@ public class InventoryStockService {
   }
 
   private StockBalanceView toBalanceView(StockBalance balance, Product product, StockBatch batch) {
+    boolean near =
+        batch != null
+            && isNearExpiry(
+                batch.getExpiresOn(),
+                today(),
+                expiryWarnDaysForBranch(balance.getTenantId(), balance.getBranchId()));
     return new StockBalanceView(
         balance.getId(),
         product.getId(),
@@ -524,7 +597,8 @@ public class InventoryStockService {
         batch == null ? null : batch.getExpiresOn(),
         batch == null ? null : batch.getPurchasePricePaise(),
         balance.getQuantity(),
-        balance.getVersion());
+        balance.getVersion(),
+        near);
   }
 
   private StockMovementView toMovementView(StockMovement movement) {
@@ -539,8 +613,342 @@ public class InventoryStockService {
         movement.getOccurredAt());
   }
 
+  @Transactional(readOnly = true)
+  public InventorySettingsView getSettings(AuthPrincipal principal) {
+    Context ctx = requireReady(principal);
+    return new InventorySettingsView(expiryWarnDays(ctx));
+  }
+
+  @Transactional
+  public InventorySettingsView updateSettings(AuthPrincipal principal, Integer expiryWarnDays) {
+    Context ctx = requireReady(principal);
+    if (expiryWarnDays == null || expiryWarnDays < 0) {
+      throw validationError();
+    }
+    Location branch =
+        locationRepository
+            .findByIdAndTenantIdAndDeletedAtIsNull(ctx.branchId(), ctx.tenantId())
+            .orElseThrow(
+                () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Branch was not found"));
+    Map<String, Object> settings = new HashMap<>(branch.getInventorySettings());
+    settings.put("expiryWarnDays", expiryWarnDays);
+    branch.setInventorySettings(settings);
+    branch.setUpdatedAt(clock.instant());
+    locationRepository.saveAndFlush(branch);
+    return new InventorySettingsView(expiryWarnDays);
+  }
+
+  @Transactional(readOnly = true)
+  public BranchStockLevelView getStockLevels(AuthPrincipal principal, UUID productId) {
+    Context ctx = requireReady(principal);
+    Product product = requireProduct(productId, ctx.tenantId());
+    return effectiveLevels(ctx, product);
+  }
+
+  @Transactional
+  public BranchStockLevelView upsertStockLevels(
+      AuthPrincipal principal,
+      UUID productId,
+      Integer reorderLevel,
+      Integer reorderQuantity,
+      Integer minimumStock) {
+    Context ctx = requireReady(principal);
+    Product product = requireProduct(productId, ctx.tenantId());
+    if ((reorderLevel != null && reorderLevel < 0)
+        || (reorderQuantity != null && reorderQuantity < 0)
+        || (minimumStock != null && minimumStock < 0)) {
+      throw validationError();
+    }
+    Instant now = clock.instant();
+    BranchProductStockLevel row =
+        branchProductStockLevelRepository
+            .findByTenantIdAndBranchIdAndProductId(ctx.tenantId(), ctx.branchId(), product.getId())
+            .orElseGet(
+                () -> {
+                  BranchProductStockLevel created = new BranchProductStockLevel();
+                  created.setId(UUID.randomUUID());
+                  created.setTenantId(ctx.tenantId());
+                  created.setBranchId(ctx.branchId());
+                  created.setProductId(product.getId());
+                  created.setCreatedAt(now);
+                  return created;
+                });
+    row.setReorderLevel(reorderLevel);
+    row.setReorderQuantity(reorderQuantity);
+    row.setMinimumStock(minimumStock);
+    row.setUpdatedAt(now);
+    branchProductStockLevelRepository.saveAndFlush(row);
+    return new BranchStockLevelView(reorderLevel, reorderQuantity, minimumStock);
+  }
+
+  @Transactional(readOnly = true)
+  public String reorderReportCsv(AuthPrincipal principal) {
+    Context ctx = requireReady(principal);
+    StringJoiner joiner = new StringJoiner("\n");
+    joiner.add("sku,name,onHand,reorderLevel,minimumStock,reorderQuantity,suggestedOrderQty");
+    for (ReorderLine line : buildReorderLines(ctx)) {
+      joiner.add(
+          csv(line.sku())
+              + ","
+              + csv(line.name())
+              + ","
+              + line.onHand().toPlainString()
+              + ","
+              + nullToEmpty(line.reorderLevel())
+              + ","
+              + nullToEmpty(line.minimumStock())
+              + ","
+              + nullToEmpty(line.reorderQuantity())
+              + ","
+              + line.suggestedOrderQty());
+    }
+    return joiner.toString() + "\n";
+  }
+
+  @Transactional(readOnly = true)
+  public StockValuationView valuation(AuthPrincipal principal) {
+    Context ctx = requireReady(principal);
+    List<StockBalance> balances =
+        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(
+            ctx.tenantId(), ctx.branchId());
+    Map<UUID, StockBatch> batches = loadBatches(ctx.tenantId(), balances);
+    long total = 0L;
+    for (StockBalance balance : balances) {
+      if (balance.getBatchId() == null) {
+        continue;
+      }
+      StockBatch batch = batches.get(balance.getBatchId());
+      if (batch == null) {
+        continue;
+      }
+      total +=
+          balance
+              .getQuantity()
+              .multiply(BigDecimal.valueOf(batch.getPurchasePricePaise()))
+              .setScale(0, RoundingMode.HALF_UP)
+              .longValueExact();
+    }
+    return new StockValuationView(total);
+  }
+
+  @Transactional(readOnly = true)
+  public InventoryAlertsView alerts(AuthPrincipal principal) {
+    Context ctx = requireReady(principal);
+    int warnDays = expiryWarnDays(ctx);
+    LocalDate today = today();
+    List<InventoryAlertsView.LowStockAlertView> low = new ArrayList<>();
+    for (ReorderLine line : buildReorderLines(ctx)) {
+      List<InventoryAlertsView.OtherBranchStockView> others = new ArrayList<>();
+      for (Location branch :
+          locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(
+              ctx.tenantId())) {
+        if (branch.getId().equals(ctx.branchId())) {
+          continue;
+        }
+        BigDecimal qty =
+            stockBalanceRepository
+                .findAllByTenantIdAndBranchIdAndProductId(
+                    ctx.tenantId(), branch.getId(), line.productId())
+                .stream()
+                .map(StockBalance::getQuantity)
+                .reduce(BigDecimal.ZERO, BigDecimal::add);
+        if (qty.compareTo(BigDecimal.ZERO) > 0) {
+          others.add(
+              new InventoryAlertsView.OtherBranchStockView(branch.getId(), branch.getName(), qty));
+        }
+      }
+      low.add(
+          new InventoryAlertsView.LowStockAlertView(
+              line.productId(),
+              line.sku(),
+              line.name(),
+              line.onHand(),
+              line.reorderLevel(),
+              line.minimumStock(),
+              others));
+    }
+
+    List<InventoryAlertsView.NearExpiryAlertView> near = new ArrayList<>();
+    List<StockBalance> balances =
+        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(
+            ctx.tenantId(), ctx.branchId());
+    Map<UUID, Product> products = loadProducts(ctx.tenantId(), balances);
+    Map<UUID, StockBatch> batches = loadBatches(ctx.tenantId(), balances);
+    for (StockBalance balance : balances) {
+      if (balance.getBatchId() == null || balance.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+        continue;
+      }
+      StockBatch batch = batches.get(balance.getBatchId());
+      Product product = products.get(balance.getProductId());
+      if (batch == null || product == null) {
+        continue;
+      }
+      if (isExpired(batch.getExpiresOn(), today)
+          || !isNearExpiry(batch.getExpiresOn(), today, warnDays)) {
+        continue;
+      }
+      near.add(
+          new InventoryAlertsView.NearExpiryAlertView(
+              product.getId(),
+              product.getSku(),
+              product.getName(),
+              batch.getId(),
+              batch.getBatchNumber(),
+              batch.getExpiresOn(),
+              balance.getQuantity()));
+    }
+    return new InventoryAlertsView(low, near);
+  }
+
+  private List<ReorderLine> buildReorderLines(Context ctx) {
+    Map<UUID, BranchProductStockLevel> overrides = new HashMap<>();
+    for (BranchProductStockLevel level :
+        branchProductStockLevelRepository.findAllByTenantIdAndBranchId(
+            ctx.tenantId(), ctx.branchId())) {
+      overrides.put(level.getProductId(), level);
+    }
+    List<StockBalance> balances =
+        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(
+            ctx.tenantId(), ctx.branchId());
+    Map<UUID, BigDecimal> onHandByProduct = new HashMap<>();
+    for (StockBalance balance : balances) {
+      onHandByProduct.merge(balance.getProductId(), balance.getQuantity(), BigDecimal::add);
+    }
+    List<ReorderLine> lines = new ArrayList<>();
+    for (Product product : productRepository.findAllByTenantIdOrderByNameAsc(ctx.tenantId())) {
+      BranchStockLevelView levels = effectiveLevels(product, overrides.get(product.getId()));
+      BigDecimal onHand = onHandByProduct.getOrDefault(product.getId(), BigDecimal.ZERO);
+      if (!isLowStock(onHand, levels)) {
+        continue;
+      }
+      int suggested = suggestedOrderQty(onHand, levels);
+      lines.add(
+          new ReorderLine(
+              product.getId(),
+              product.getSku(),
+              product.getName(),
+              onHand,
+              levels.reorderLevel(),
+              levels.minimumStock(),
+              levels.reorderQuantity(),
+              suggested));
+    }
+    return lines;
+  }
+
+  private void maybeNotifyLowStock(Context ctx, Product product) {
+    BranchStockLevelView levels = effectiveLevels(ctx, product);
+    BigDecimal onHand =
+        stockBalanceRepository
+            .findAllByTenantIdAndBranchIdAndProductId(
+                ctx.tenantId(), ctx.branchId(), product.getId())
+            .stream()
+            .map(StockBalance::getQuantity)
+            .reduce(BigDecimal.ZERO, BigDecimal::add);
+    if (!isLowStock(onHand, levels)) {
+      return;
+    }
+    notificationRoutingService.route(
+        new RouteCommand(
+            "low-stock:" + ctx.tenantId() + ":" + ctx.branchId() + ":" + product.getId(),
+            NotificationTrigger.LOW_STOCK,
+            ctx.tenantId(),
+            ctx.branchId(),
+            product.getId(),
+            null,
+            null,
+            null));
+  }
+
+  private BranchStockLevelView effectiveLevels(Context ctx, Product product) {
+    return effectiveLevels(
+        product,
+        branchProductStockLevelRepository
+            .findByTenantIdAndBranchIdAndProductId(ctx.tenantId(), ctx.branchId(), product.getId())
+            .orElse(null));
+  }
+
+  private static BranchStockLevelView effectiveLevels(
+      Product product, BranchProductStockLevel override) {
+    if (override != null) {
+      return new BranchStockLevelView(
+          override.getReorderLevel(), override.getReorderQuantity(), override.getMinimumStock());
+    }
+    return new BranchStockLevelView(
+        product.getReorderLevel(), product.getReorderQuantity(), product.getMinimumStock());
+  }
+
+  private static boolean isLowStock(BigDecimal onHand, BranchStockLevelView levels) {
+    if (levels.reorderLevel() != null
+        && onHand.compareTo(BigDecimal.valueOf(levels.reorderLevel())) <= 0) {
+      return true;
+    }
+    return levels.minimumStock() != null
+        && onHand.compareTo(BigDecimal.valueOf(levels.minimumStock())) <= 0;
+  }
+
+  private static int suggestedOrderQty(BigDecimal onHand, BranchStockLevelView levels) {
+    if (levels.reorderQuantity() != null && levels.reorderQuantity() > 0) {
+      return levels.reorderQuantity();
+    }
+    if (levels.reorderLevel() == null) {
+      return 0;
+    }
+    int gap = levels.reorderLevel() - onHand.setScale(0, RoundingMode.UP).intValue();
+    return Math.max(gap, 0);
+  }
+
+  private int expiryWarnDays(Context ctx) {
+    return expiryWarnDaysForBranch(ctx.tenantId(), ctx.branchId());
+  }
+
+  private int expiryWarnDaysForBranch(UUID tenantId, UUID branchId) {
+    return locationRepository
+        .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
+        .map(InventoryStockService::readExpiryWarnDays)
+        .orElse(30);
+  }
+
+  private static int readExpiryWarnDays(Location branch) {
+    Object value =
+        branch.getInventorySettings() == null
+            ? null
+            : branch.getInventorySettings().get("expiryWarnDays");
+    if (value instanceof Number number) {
+      return Math.max(number.intValue(), 0);
+    }
+    return 30;
+  }
+
+  private LocalDate today() {
+    return LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+  }
+
+  private static boolean isExpired(LocalDate expiresOn, LocalDate today) {
+    return expiresOn != null && expiresOn.isBefore(today);
+  }
+
+  private static boolean isNearExpiry(LocalDate expiresOn, LocalDate today, int warnDays) {
+    if (expiresOn == null || isExpired(expiresOn, today)) {
+      return false;
+    }
+    return !expiresOn.isAfter(today.plusDays(warnDays));
+  }
+
+  private static String csv(String value) {
+    String raw = value == null ? "" : value.replace("\"", "\"\"");
+    if (raw.contains(",") || raw.contains("\"") || raw.contains("\n")) {
+      return "\"" + raw + "\"";
+    }
+    return raw;
+  }
+
+  private static String nullToEmpty(Integer value) {
+    return value == null ? "" : value.toString();
+  }
+
   private Context requireReady(AuthPrincipal principal) {
-    UUID tenantId = requireInventoryAccess(principal);
+    UUID tenantId = requireModuleAccess(principal, Set.of(ModuleCode.INVENTORY));
     UUID branchId = principal.activeBranchId();
     if (branchId == null) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
@@ -548,7 +956,16 @@ public class InventoryStockService {
     return new Context(tenantId, branchId, principal.userId());
   }
 
-  private UUID requireInventoryAccess(AuthPrincipal principal) {
+  private Context requireReadyForBatches(AuthPrincipal principal) {
+    UUID tenantId = requireModuleAccess(principal, Set.of(ModuleCode.INVENTORY, ModuleCode.SALES));
+    UUID branchId = principal.activeBranchId();
+    if (branchId == null) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
+    }
+    return new Context(tenantId, branchId, principal.userId());
+  }
+
+  private UUID requireModuleAccess(AuthPrincipal principal, Set<ModuleCode> allowed) {
     if (principal == null || principal.tenantId() == null) {
       throw forbidden();
     }
@@ -561,7 +978,7 @@ public class InventoryStockService {
             .findById(principal.userId())
             .filter(row -> row.getDeletedAt() == null)
             .orElseThrow(InventoryStockService::forbidden);
-    if (!accessQueryService.effectiveModules(user).contains(ModuleCode.INVENTORY)) {
+    if (allowed.stream().noneMatch(accessQueryService.effectiveModules(user)::contains)) {
       throw forbidden();
     }
     return principal.tenantId();
@@ -624,4 +1041,14 @@ public class InventoryStockService {
   }
 
   private record Context(UUID tenantId, UUID branchId, UUID userId) {}
+
+  private record ReorderLine(
+      UUID productId,
+      String sku,
+      String name,
+      BigDecimal onHand,
+      Integer reorderLevel,
+      Integer minimumStock,
+      Integer reorderQuantity,
+      int suggestedOrderQty) {}
 }

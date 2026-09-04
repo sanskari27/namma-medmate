@@ -3,6 +3,7 @@ import { useCallback, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CatalogueWorkspace } from './components/catalogue-workspace/CatalogueWorkspace';
 import { FloorStockWorkspace } from './components/floor-stock-workspace/FloorStockWorkspace';
+import { GuidanceWorkspace } from './components/guidance-workspace/GuidanceWorkspace';
 import {
   InventoryHeader,
   type InventoryViewMode,
@@ -25,6 +26,7 @@ export default function InventoryScreen() {
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [transferPrefillProductId, setTransferPrefillProductId] = useState<string | null>(null);
   const [createRequest, setCreateRequest] = useState(0);
 
   const onStatusChange = useCallback((next: PageStatus) => {
@@ -42,6 +44,7 @@ export default function InventoryScreen() {
           setView(next);
           setReceiveOpen(false);
           setTransferOpen(false);
+          setTransferPrefillProductId(null);
           setStatus(allowed ? 'loading' : 'denied');
         }}
         addButtonRef={addRef}
@@ -50,7 +53,10 @@ export default function InventoryScreen() {
         denied={denied}
         onAdd={() => setCreateRequest((n) => n + 1)}
         onReceive={() => setReceiveOpen(true)}
-        onTransfer={() => setTransferOpen(true)}
+        onTransfer={() => {
+          setTransferPrefillProductId(null);
+          setTransferOpen(true);
+        }}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -87,8 +93,26 @@ export default function InventoryScreen() {
           branches={branches}
           transferButtonRef={transferRef}
           createOpen={transferOpen}
-          onCreateOpenChange={setTransferOpen}
+          onCreateOpenChange={(open) => {
+            setTransferOpen(open);
+            if (!open) {
+              setTransferPrefillProductId(null);
+            }
+          }}
           onStatusChange={onStatusChange}
+          prefillProductId={transferPrefillProductId}
+        />
+      ) : null}
+      {!denied && view === 'guidance' ? (
+        <GuidanceWorkspace
+          allowed={allowed}
+          onStatusChange={onStatusChange}
+          onStartTransfer={(productId) => {
+            setTransferPrefillProductId(productId);
+            setView('transfers');
+            setStatus(allowed ? 'loading' : 'denied');
+            setTransferOpen(true);
+          }}
         />
       ) : null}
     </div>

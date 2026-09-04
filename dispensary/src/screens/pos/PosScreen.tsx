@@ -1,4 +1,5 @@
 import { listCustomers, type Customer } from '@/services/customers';
+import { listStockBatches } from '@/services/inventory';
 import {
   assertMedicationSafetyCleared,
   evaluateMedicationSafety,
@@ -140,6 +141,21 @@ export default function PosScreen() {
         (value, index, all) => all.indexOf(value) === index,
       );
     }
+    let batches: PosDraftLine['batches'] = [];
+    let batchId: string | null = null;
+    let nearExpiry = false;
+    if (product.requiresBatchTracking) {
+      try {
+        batches = await listStockBatches(product.id);
+        const suggested =
+          batches.find((b) => b.suggestedFefo && b.batchId && !b.expired) ??
+          batches.find((b) => b.batchId && !b.expired && b.quantity > 0);
+        batchId = suggested?.batchId ?? null;
+        nearExpiry = suggested?.nearExpiry === true;
+      } catch {
+        batches = [];
+      }
+    }
     setDraft((current) => [
       ...current,
       {
@@ -148,6 +164,9 @@ export default function PosScreen() {
         quantity: '1',
         baseQuantity: null,
         unitOptions,
+        batches,
+        batchId,
+        nearExpiry,
       },
     ]);
     setEvaluation(null);
@@ -274,6 +293,21 @@ export default function PosScreen() {
               );
               const line = draft.find((item) => item.product.id === productId);
               void refreshConversion(productId, line?.unit ?? 'Tablet', quantity);
+            }}
+            onBatchChange={(productId, batchId) => {
+              setDraft((current) =>
+                current.map((line) => {
+                  if (line.product.id !== productId) {
+                    return line;
+                  }
+                  const batch = line.batches.find((item) => item.batchId === batchId);
+                  return {
+                    ...line,
+                    batchId,
+                    nearExpiry: batch?.nearExpiry === true,
+                  };
+                }),
+              );
             }}
             busy={busy}
           />

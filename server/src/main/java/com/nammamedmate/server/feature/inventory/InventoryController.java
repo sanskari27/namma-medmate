@@ -1,13 +1,18 @@
 package com.nammamedmate.server.feature.inventory;
 
+import com.nammamedmate.server.application.inventory.BranchStockLevelView;
+import com.nammamedmate.server.application.inventory.InventoryAlertsView;
+import com.nammamedmate.server.application.inventory.InventorySettingsView;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
 import com.nammamedmate.server.application.inventory.StockBalanceView;
 import com.nammamedmate.server.application.inventory.StockBatchDetailView;
 import com.nammamedmate.server.application.inventory.StockMovementView;
+import com.nammamedmate.server.application.inventory.StockValuationView;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.DecimalMin;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -16,10 +21,14 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
@@ -70,6 +79,102 @@ public class InventoryController {
                 .toList()));
   }
 
+  @GetMapping("/settings")
+  public ApiResponse<SettingsResponse> getSettings(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InventorySettingsView view = inventoryStockService.getSettings(principal);
+    return ApiResponse.ok(new SettingsResponse(view.expiryWarnDays()));
+  }
+
+  @PutMapping("/settings")
+  public ApiResponse<SettingsResponse> updateSettings(
+      Authentication authentication, @Valid @RequestBody SettingsRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InventorySettingsView view =
+        inventoryStockService.updateSettings(principal, request.expiryWarnDays());
+    return ApiResponse.ok(new SettingsResponse(view.expiryWarnDays()));
+  }
+
+  @GetMapping("/products/{productId}/stock-levels")
+  public ApiResponse<StockLevelsResponse> getStockLevels(
+      Authentication authentication, @PathVariable UUID productId) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    BranchStockLevelView view = inventoryStockService.getStockLevels(principal, productId);
+    return ApiResponse.ok(
+        new StockLevelsResponse(view.reorderLevel(), view.reorderQuantity(), view.minimumStock()));
+  }
+
+  @PutMapping("/products/{productId}/stock-levels")
+  public ApiResponse<StockLevelsResponse> upsertStockLevels(
+      Authentication authentication,
+      @PathVariable UUID productId,
+      @Valid @RequestBody StockLevelsRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    BranchStockLevelView view =
+        inventoryStockService.upsertStockLevels(
+            principal,
+            productId,
+            request.reorderLevel(),
+            request.reorderQuantity(),
+            request.minimumStock());
+    return ApiResponse.ok(
+        new StockLevelsResponse(view.reorderLevel(), view.reorderQuantity(), view.minimumStock()));
+  }
+
+  @GetMapping(value = "/reorder-report", produces = "text/csv")
+  public ResponseEntity<String> reorderReport(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    String csv = inventoryStockService.reorderReportCsv(principal);
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"reorder-report.csv\"")
+        .contentType(new MediaType("text", "csv"))
+        .body(csv);
+  }
+
+  @GetMapping("/valuation")
+  public ApiResponse<ValuationResponse> valuation(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    StockValuationView view = inventoryStockService.valuation(principal);
+    return ApiResponse.ok(new ValuationResponse(view.totalPurchaseValuePaise()));
+  }
+
+  @GetMapping("/alerts")
+  public ApiResponse<AlertsResponse> alerts(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InventoryAlertsView view = inventoryStockService.alerts(principal);
+    return ApiResponse.ok(
+        new AlertsResponse(
+            view.lowStock().stream()
+                .map(
+                    item ->
+                        new LowStockResponse(
+                            item.productId(),
+                            item.productSku(),
+                            item.productName(),
+                            item.onHand(),
+                            item.reorderLevel(),
+                            item.minimumStock(),
+                            item.otherBranches().stream()
+                                .map(
+                                    o ->
+                                        new OtherBranchResponse(
+                                            o.branchId(), o.branchName(), o.quantity()))
+                                .toList()))
+                .toList(),
+            view.nearExpiry().stream()
+                .map(
+                    item ->
+                        new NearExpiryResponse(
+                            item.productId(),
+                            item.productSku(),
+                            item.productName(),
+                            item.batchId(),
+                            item.batchNumber(),
+                            item.expiresOn(),
+                            item.quantity()))
+                .toList()));
+  }
+
   @PostMapping("/receipts")
   public ApiResponse<BalanceResponse> receive(
       Authentication authentication, @Valid @RequestBody ReceiptRequest request) {
@@ -115,7 +220,8 @@ public class InventoryController {
         view.expiresOn(),
         view.purchasePricePaise(),
         view.quantity(),
-        view.version());
+        view.version(),
+        view.nearExpiry());
   }
 
   private static BatchResponse toBatchResponse(StockBatchDetailView view) {
@@ -128,7 +234,10 @@ public class InventoryController {
         view.purchasePricePaise(),
         view.quantity(),
         view.version(),
-        view.balanceId());
+        view.balanceId(),
+        view.suggestedFefo(),
+        view.nearExpiry(),
+        view.expired());
   }
 
   private static MovementResponse toMovementResponse(StockMovementView view) {
@@ -156,7 +265,8 @@ public class InventoryController {
       LocalDate expiresOn,
       Long purchasePricePaise,
       BigDecimal quantity,
-      long version) {}
+      long version,
+      boolean nearExpiry) {}
 
   public record BatchListResponse(List<BatchResponse> items) {}
 
@@ -169,7 +279,10 @@ public class InventoryController {
       long purchasePricePaise,
       BigDecimal quantity,
       long version,
-      UUID balanceId) {}
+      UUID balanceId,
+      boolean suggestedFefo,
+      boolean nearExpiry,
+      boolean expired) {}
 
   public record MovementListResponse(List<MovementResponse> items) {}
 
@@ -182,6 +295,43 @@ public class InventoryController {
       BigDecimal balanceAfter,
       Long purchasePricePaise,
       Instant occurredAt) {}
+
+  public record SettingsResponse(int expiryWarnDays) {}
+
+  public record SettingsRequest(@NotNull @Min(0) Integer expiryWarnDays) {}
+
+  public record StockLevelsResponse(
+      Integer reorderLevel, Integer reorderQuantity, Integer minimumStock) {}
+
+  public record StockLevelsRequest(
+      @Min(0) Integer reorderLevel,
+      @Min(0) Integer reorderQuantity,
+      @Min(0) Integer minimumStock) {}
+
+  public record ValuationResponse(long totalPurchaseValuePaise) {}
+
+  public record AlertsResponse(
+      List<LowStockResponse> lowStock, List<NearExpiryResponse> nearExpiry) {}
+
+  public record LowStockResponse(
+      UUID productId,
+      String productSku,
+      String productName,
+      BigDecimal onHand,
+      Integer reorderLevel,
+      Integer minimumStock,
+      List<OtherBranchResponse> otherBranches) {}
+
+  public record OtherBranchResponse(UUID branchId, String branchName, BigDecimal quantity) {}
+
+  public record NearExpiryResponse(
+      UUID productId,
+      String productSku,
+      String productName,
+      UUID batchId,
+      String batchNumber,
+      LocalDate expiresOn,
+      BigDecimal quantity) {}
 
   public record ReceiptRequest(
       @NotNull UUID productId,

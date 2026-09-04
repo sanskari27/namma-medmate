@@ -6,7 +6,7 @@ export type InventoryStatusBannerProps = {
   status: PageStatus;
   statusId: string;
   asAlert?: boolean;
-  view?: 'floor' | 'catalogue' | 'transfers';
+  view?: 'floor' | 'catalogue' | 'transfers' | 'guidance';
 };
 
 export function InventoryStatusBanner({

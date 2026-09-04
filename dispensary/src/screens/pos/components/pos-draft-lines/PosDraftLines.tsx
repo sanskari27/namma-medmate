@@ -1,5 +1,6 @@
 import { Button, Input, Label } from '@atoms';
 import { ProductUnitSelect } from '@templates';
+import type { StockBatchDetail } from '@/services/inventory';
 import type { Product, ProductUnit } from '@/services/products';
 import { Plus, Trash2 } from 'lucide-react';
 
@@ -9,6 +10,9 @@ export type PosDraftLine = {
   quantity: string;
   baseQuantity: number | null;
   unitOptions: ProductUnit[];
+  batches: StockBatchDetail[];
+  batchId: string | null;
+  nearExpiry: boolean;
 };
 
 interface PosDraftLinesProps {
@@ -20,6 +24,7 @@ interface PosDraftLinesProps {
   onRemove: (productId: string) => void;
   onUnitChange: (productId: string, unit: ProductUnit) => void;
   onQuantityChange: (productId: string, quantity: string) => void;
+  onBatchChange: (productId: string, batchId: string) => void;
   busy: boolean;
 }
 
@@ -32,6 +37,7 @@ export function PosDraftLines({
   onRemove,
   onUnitChange,
   onQuantityChange,
+  onBatchChange,
   busy,
 }: PosDraftLinesProps) {
   const draftIds = new Set(draft.map((item) => item.product.id));
@@ -43,7 +49,7 @@ export function PosDraftLines({
       <div>
         <h2 className="text-sm font-semibold text-ink">Draft medicines</h2>
         <p className="text-xs text-muted">
-          Pick a sale unit; quantity converts to base stock units for this floor.
+          Pick a sale unit; FEFO suggests a batch — override when billing another lot.
         </p>
       </div>
       <div className="space-y-2">
@@ -82,54 +88,87 @@ export function PosDraftLines({
         {draft.length === 0 ? (
           <li className="text-sm text-muted">No medicines on this draft yet.</li>
         ) : (
-          draft.map((line) => (
-            <li
-              key={line.product.id}
-              className="space-y-2 rounded border border-line px-2 py-2 text-sm"
-            >
-              <div className="flex items-start justify-between gap-2">
-                <div>
-                  <p className="font-medium text-ink">{line.product.name}</p>
-                  <p className="font-mono text-xs text-muted">{line.product.sku}</p>
-                </div>
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="sm"
-                  aria-label={`Remove ${line.product.name}`}
-                  onClick={() => onRemove(line.product.id)}
-                  disabled={busy}
-                >
-                  <Trash2 className="size-4" aria-hidden />
-                </Button>
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <Label htmlFor={`pos-qty-${line.product.id}`}>Qty</Label>
-                  <Input
-                    id={`pos-qty-${line.product.id}`}
-                    inputMode="decimal"
-                    value={line.quantity}
-                    onChange={(event) => onQuantityChange(line.product.id, event.target.value)}
+          draft.map((line) => {
+            const sellable = line.batches.filter((b) => b.batchId && !b.expired && b.quantity > 0);
+            return (
+              <li
+                key={line.product.id}
+                className="space-y-2 rounded border border-line px-2 py-2 text-sm"
+              >
+                <div className="flex items-start justify-between gap-2">
+                  <div>
+                    <p className="font-medium text-ink">{line.product.name}</p>
+                    <p className="font-mono text-xs text-muted">{line.product.sku}</p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    aria-label={`Remove ${line.product.name}`}
+                    onClick={() => onRemove(line.product.id)}
                     disabled={busy}
+                  >
+                    <Trash2 className="size-4" aria-hidden />
+                  </Button>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div className="space-y-1">
+                    <Label htmlFor={`pos-qty-${line.product.id}`}>Qty</Label>
+                    <Input
+                      id={`pos-qty-${line.product.id}`}
+                      inputMode="decimal"
+                      value={line.quantity}
+                      onChange={(event) => onQuantityChange(line.product.id, event.target.value)}
+                      disabled={busy}
+                    />
+                  </div>
+                  <ProductUnitSelect
+                    id={`pos-unit-${line.product.id}`}
+                    label="Sale unit"
+                    value={line.unit}
+                    options={line.unitOptions}
+                    disabled={busy}
+                    onChange={(unit) => onUnitChange(line.product.id, unit)}
+                    hint={
+                      line.baseQuantity == null
+                        ? undefined
+                        : `= ${line.baseQuantity} ${line.product.baseUnit}`
+                    }
                   />
                 </div>
-                <ProductUnitSelect
-                  id={`pos-unit-${line.product.id}`}
-                  label="Sale unit"
-                  value={line.unit}
-                  options={line.unitOptions}
-                  disabled={busy}
-                  onChange={(unit) => onUnitChange(line.product.id, unit)}
-                  hint={
-                    line.baseQuantity == null
-                      ? undefined
-                      : `= ${line.baseQuantity} ${line.product.baseUnit}`
-                  }
-                />
-              </div>
-            </li>
-          ))
+                {line.product.requiresBatchTracking ? (
+                  <div className="space-y-1">
+                    <Label htmlFor={`pos-batch-${line.product.id}`}>Batch (FEFO suggested)</Label>
+                    <select
+                      id={`pos-batch-${line.product.id}`}
+                      className="h-9 w-full rounded border border-line bg-canvas px-2 text-sm text-ink focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+                      value={line.batchId ?? ''}
+                      onChange={(event) => onBatchChange(line.product.id, event.target.value)}
+                      disabled={busy || sellable.length === 0}
+                    >
+                      {sellable.length === 0 ? (
+                        <option value="">No sellable batch</option>
+                      ) : (
+                        sellable.map((batch) => (
+                          <option key={batch.batchId!} value={batch.batchId!}>
+                            {batch.batchNumber}
+                            {batch.expiresOn ? ` · exp ${batch.expiresOn}` : ''}
+                            {batch.suggestedFefo ? ' · FEFO' : ''}
+                            {batch.nearExpiry ? ' · near expiry' : ''}
+                          </option>
+                        ))
+                      )}
+                    </select>
+                    {line.nearExpiry ? (
+                      <p className="text-xs text-warn" role="status">
+                        Near expiry — still sellable. Override batch if needed.
+                      </p>
+                    ) : null}
+                  </div>
+                ) : null}
+              </li>
+            );
+          })
         )}
       </ul>
     </section>

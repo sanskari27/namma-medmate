@@ -248,6 +248,7 @@ public class BranchService {
     Instant now = Instant.now(clock);
     target.setPricingSettings(BranchSettingsSnapshot.copy(source.getPricingSettings()));
     target.setTaxSettings(BranchSettingsSnapshot.copy(source.getTaxSettings()));
+    target.setInventorySettings(BranchSettingsSnapshot.copy(source.getInventorySettings()));
     target.setUpdatedAt(now);
     return toView(locationRepository.save(target));
   }
@@ -289,6 +290,7 @@ public class BranchService {
     branch.setLinkedWarehouse(false);
     branch.setPricingSettings(defaultPricing());
     branch.setTaxSettings(defaultTax(state));
+    branch.setInventorySettings(defaultInventory());
     branch.setCreatedAt(now);
     branch.setUpdatedAt(now);
     return locationRepository.save(branch);
@@ -358,6 +360,9 @@ public class BranchService {
         pricingSettings == null ? defaultPricing() : BranchSettingsSnapshot.copy(pricingSettings));
     branch.setTaxSettings(
         taxSettings == null ? defaultTax(state) : BranchSettingsSnapshot.copy(taxSettings));
+    if (branch.getInventorySettings() == null || branch.getInventorySettings().isEmpty()) {
+      branch.setInventorySettings(defaultInventory());
+    }
   }
 
   private Location requireBranch(UUID branchId, UUID tenantId) {
@@ -444,6 +449,12 @@ public class BranchService {
     tax.put("defaultGstRateBps", 1200);
     tax.put("taxState", state == null ? "" : state);
     return tax;
+  }
+
+  private static Map<String, Object> defaultInventory() {
+    Map<String, Object> inventory = new LinkedHashMap<>();
+    inventory.put("expiryWarnDays", 30);
+    return inventory;
   }
 
   private static String required(String value, String field) {
