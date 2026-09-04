@@ -1,6 +1,7 @@
 import type { RootState } from '@/store';
 import { useCallback, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { AdjustmentWorkspace } from './components/adjustment-workspace/AdjustmentWorkspace';
 import { CatalogueWorkspace } from './components/catalogue-workspace/CatalogueWorkspace';
 import { FloorStockWorkspace } from './components/floor-stock-workspace/FloorStockWorkspace';
 import { GuidanceWorkspace } from './components/guidance-workspace/GuidanceWorkspace';
@@ -21,11 +22,13 @@ export default function InventoryScreen() {
   const addRef = useRef<HTMLButtonElement | null>(null);
   const receiveRef = useRef<HTMLButtonElement | null>(null);
   const transferRef = useRef<HTMLButtonElement | null>(null);
+  const adjustRef = useRef<HTMLButtonElement | null>(null);
 
   const [view, setView] = useState<InventoryViewMode>('floor');
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [receiveOpen, setReceiveOpen] = useState(false);
   const [transferOpen, setTransferOpen] = useState(false);
+  const [adjustOpen, setAdjustOpen] = useState(false);
   const [transferPrefillProductId, setTransferPrefillProductId] = useState<string | null>(null);
   const [createRequest, setCreateRequest] = useState(0);
 
@@ -44,12 +47,14 @@ export default function InventoryScreen() {
           setView(next);
           setReceiveOpen(false);
           setTransferOpen(false);
+          setAdjustOpen(false);
           setTransferPrefillProductId(null);
           setStatus(allowed ? 'loading' : 'denied');
         }}
         addButtonRef={addRef}
         receiveButtonRef={receiveRef}
         transferButtonRef={transferRef}
+        adjustButtonRef={adjustRef}
         denied={denied}
         onAdd={() => setCreateRequest((n) => n + 1)}
         onReceive={() => setReceiveOpen(true)}
@@ -57,6 +62,7 @@ export default function InventoryScreen() {
           setTransferPrefillProductId(null);
           setTransferOpen(true);
         }}
+        onAdjust={() => setAdjustOpen(true)}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -101,6 +107,16 @@ export default function InventoryScreen() {
           }}
           onStatusChange={onStatusChange}
           prefillProductId={transferPrefillProductId}
+        />
+      ) : null}
+      {!denied && view === 'adjustments' ? (
+        <AdjustmentWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
+          adjustButtonRef={adjustRef}
+          createOpen={adjustOpen}
+          onCreateOpenChange={setAdjustOpen}
+          onStatusChange={onStatusChange}
         />
       ) : null}
       {!denied && view === 'guidance' ? (

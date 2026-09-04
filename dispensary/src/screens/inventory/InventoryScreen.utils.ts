@@ -159,7 +159,7 @@ export const emptyForm: FormState = {
 
 export function statusCopy(
   status: PageStatus,
-  view: 'floor' | 'catalogue' | 'transfers' | 'guidance' = 'catalogue',
+  view: 'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -227,6 +227,41 @@ export function statusCopy(
         };
       case 'success':
         return { icon: BadgeCheck, text: 'Transfer updated.' };
+      default:
+        return null;
+    }
+  }
+  if (view === 'adjustments') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading stock write-offs for this outlet…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No write-offs yet. Record damage, expiry, theft, count, or sample removal.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Check reason, quantity, and on-hand stock before recording a write-off.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot record write-offs. Ask the owner to grant the Inventory area.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'This write-off was decided elsewhere. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Write-off updated for this outlet.' };
       default:
         return null;
     }
@@ -313,6 +348,18 @@ export function statusIconClass(status: PageStatus): string {
 
 export function hasInventoryAccess(modules: string[] | undefined): boolean {
   return modules?.includes('INVENTORY') === true;
+}
+
+export const ADJUSTMENT_REASONS = [
+  { value: 'DAMAGE_BREAKAGE', label: 'Damage / breakage' },
+  { value: 'EXPIRY_WRITE_OFF', label: 'Expiry write-off' },
+  { value: 'THEFT_LOSS', label: 'Theft / loss' },
+  { value: 'PHYSICAL_COUNT', label: 'Physical-count correction' },
+  { value: 'SAMPLE_FREE_GOODS', label: 'Sample / free goods' },
+] as const;
+
+export function adjustmentReasonLabel(reason: string): string {
+  return ADJUSTMENT_REASONS.find((row) => row.value === reason)?.label ?? reason;
 }
 
 export function toForm(product: Product): FormState {

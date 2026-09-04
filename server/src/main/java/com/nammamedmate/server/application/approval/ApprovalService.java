@@ -54,6 +54,7 @@ public class ApprovalService {
   private final NotificationRoutingService notificationRoutingService;
   private final AuditService auditService;
   private final Clock clock;
+  private final List<ApprovalDecisionListener> decisionListeners;
 
   public ApprovalService(
       ApprovalRuleRepository approvalRuleRepository,
@@ -66,7 +67,8 @@ public class ApprovalService {
       AccessQueryService accessQueryService,
       NotificationRoutingService notificationRoutingService,
       AuditService auditService,
-      Clock clock) {
+      Clock clock,
+      List<ApprovalDecisionListener> decisionListeners) {
     this.approvalRuleRepository = approvalRuleRepository;
     this.approvalRequestRepository = approvalRequestRepository;
     this.approvalDecisionRepository = approvalDecisionRepository;
@@ -78,6 +80,7 @@ public class ApprovalService {
     this.notificationRoutingService = notificationRoutingService;
     this.auditService = auditService;
     this.clock = clock;
+    this.decisionListeners = decisionListeners == null ? List.of() : List.copyOf(decisionListeners);
   }
 
   @Transactional(readOnly = true)
@@ -357,6 +360,9 @@ public class ApprovalService {
         "APPROVAL_DECISION",
         command.outcome().name(),
         "{\"requestId\":\"" + request.getId() + "\",\"actorUserId\":\"" + actor.userId() + "\"}");
+    for (ApprovalDecisionListener listener : decisionListeners) {
+      listener.onDecided(request.getId(), command.outcome(), actor.userId(), now);
+    }
     return new ApprovalRequestView(
         request.getId(),
         request.getTenantId(),

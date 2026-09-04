@@ -4,5 +4,7 @@ public enum StockMovementType {
   STOCK_IN,
   STOCK_OUT,
   TRANSFER_OUT,
-  TRANSFER_IN
+  TRANSFER_IN,
+  ADJUSTMENT_IN,
+  ADJUSTMENT_OUT
 }

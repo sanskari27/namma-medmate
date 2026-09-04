@@ -49,6 +49,7 @@ export const API = {
   INVENTORY_REORDER_REPORT: '/api/v1/inventory/reorder-report',
   INVENTORY_VALUATION: '/api/v1/inventory/valuation',
   INVENTORY_ALERTS: '/api/v1/inventory/alerts',
+  INVENTORY_ADJUSTMENTS: '/api/v1/inventory/adjustments',
   STOCK_TRANSFERS: '/api/v1/stock-transfers',
   MEDICATION_SAFETY_EVALUATE: '/api/v1/medication-safety/evaluate',
   MEDICATION_SAFETY_ACKNOWLEDGE: '/api/v1/medication-safety/acknowledge',
@@ -60,6 +61,8 @@ export const API = {
   inventoryProductBatches: (productId: string) => `/api/v1/inventory/products/${productId}/batches`,
   inventoryProductStockLevels: (productId: string) =>
     `/api/v1/inventory/products/${productId}/stock-levels`,
+  inventoryAdjustment: (id: string) => `/api/v1/inventory/adjustments/${id}`,
+  inventoryAdjustmentDecide: (id: string) => `/api/v1/inventory/adjustments/${id}/decide`,
   stockTransfer: (id: string) => `/api/v1/stock-transfers/${id}`,
   stockTransferDispatch: (id: string) => `/api/v1/stock-transfers/${id}/dispatch`,
   stockTransferConfirm: (id: string) => `/api/v1/stock-transfers/${id}/confirm`,

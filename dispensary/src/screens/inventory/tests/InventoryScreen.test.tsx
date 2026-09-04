@@ -89,6 +89,17 @@ vi.mock('@/services/stockTransfers', async () => {
   };
 });
 
+vi.mock('@/services/inventoryAdjustments', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listStockAdjustments: vi.fn(),
+    createStockAdjustment: vi.fn(),
+    decideStockAdjustment: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -114,6 +125,12 @@ import {
   rejectStockTransfer,
 } from '@/services/stockTransfers';
 import type { StockTransfer } from '@/services/stockTransfers';
+import {
+  createStockAdjustment,
+  decideStockAdjustment,
+  listStockAdjustments,
+} from '@/services/inventoryAdjustments';
+import type { StockAdjustment } from '@/services/inventoryAdjustments';
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
 const updateMock = vi.mocked(updateProduct);
@@ -139,6 +156,9 @@ const createTransferMock = vi.mocked(createStockTransfer);
 const confirmTransferMock = vi.mocked(confirmStockTransfer);
 const rejectTransferMock = vi.mocked(rejectStockTransfer);
 const dispatchTransferMock = vi.mocked(dispatchStockTransfer);
+const listAdjustmentsMock = vi.mocked(listStockAdjustments);
+const createAdjustmentMock = vi.mocked(createStockAdjustment);
+const decideAdjustmentMock = vi.mocked(decideStockAdjustment);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -281,6 +301,7 @@ describe('floor inventory catalogue', () => {
     updateLevelsMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
     listTransfersMock.mockResolvedValue([]);
+    listAdjustmentsMock.mockResolvedValue([]);
     getAlertsMock.mockResolvedValue({ lowStock: [], nearExpiry: [] });
     getSettingsMock.mockResolvedValue({ expiryWarnDays: 30 });
     getValuationMock.mockResolvedValue({ totalPurchaseValuePaise: 0 });
@@ -738,6 +759,7 @@ describe('outlet transfers', () => {
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
     listTransfersMock.mockResolvedValue([]);
+    listAdjustmentsMock.mockResolvedValue([]);
     listMock.mockResolvedValue([sample]);
   });
 
@@ -949,6 +971,7 @@ describe('inventory guidance', () => {
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
     listTransfersMock.mockResolvedValue([]);
+    listAdjustmentsMock.mockResolvedValue([]);
     listMock.mockResolvedValue([sample]);
     getAlertsMock.mockResolvedValue({ lowStock: [], nearExpiry: [] });
     getSettingsMock.mockResolvedValue({ expiryWarnDays: 30 });
@@ -1116,5 +1139,209 @@ describe('inventory guidance', () => {
       }),
     );
     expect(await screen.findByText(/Guidance updated for this outlet/i)).toBeInTheDocument();
+  });
+});
+
+describe('inventory adjustments', () => {
+  const pending: StockAdjustment = {
+    id: 'adj1',
+    productId: 'p1',
+    productSku: 'SKU-PARA',
+    productName: 'Paracetamol 500',
+    batchId: 'batch1',
+    batchNumber: 'LOT-AA',
+    reason: 'DAMAGE_BREAKAGE',
+    quantity: 2,
+    direction: 'OUT',
+    status: 'PENDING',
+    requesterUserId: 'u1',
+    approverUserId: null,
+    approvalRequestId: 'apr1',
+    version: 1,
+    createdAt: '2026-09-04T09:00:00Z',
+    decidedAt: null,
+  };
+
+  beforeEach(() => {
+    listBalancesMock.mockReset();
+    listAdjustmentsMock.mockReset();
+    createAdjustmentMock.mockReset();
+    decideAdjustmentMock.mockReset();
+    listMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listAdjustmentsMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+  });
+
+  async function openAdjustments(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('tab', { name: 'Adjustments' }));
+  }
+
+  it('loading: waits for write-offs', async () => {
+    const user = userEvent.setup();
+    listAdjustmentsMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await openAdjustments(user);
+    expect(screen.getByText('Loading stock write-offs for this outlet…')).toBeInTheDocument();
+  });
+
+  it('empty: no write-offs yet', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openAdjustments(user);
+    expect(
+      await screen.findByText(
+        'No write-offs yet. Record damage, expiry, theft, count, or sample removal.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: inventory module missing', async () => {
+    renderPage([]);
+    expect(
+      await screen.findByText(
+        'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: adjustments API FORBIDDEN', async () => {
+    const user = userEvent.setup();
+    listAdjustmentsMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
+    renderPage();
+    await openAdjustments(user);
+    expect(
+      await screen.findByText(
+        'This till login cannot record write-offs. Ask the owner to grant the Inventory area.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('failure: no active outlet', async () => {
+    const user = userEvent.setup();
+    renderPage(['INVENTORY'], null);
+    await openAdjustments(user);
+    expect(
+      await screen.findByText(
+        'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('validation: record write-off without quantity', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    renderPage();
+    await openAdjustments(user);
+    await user.click(await screen.findByRole('button', { name: 'Record write-off' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Stock line on this till'), 'bal1');
+    await user.click(within(dialog).getByRole('button', { name: 'Send for sign-off' }));
+    expect(within(dialog).getByRole('status')).toHaveTextContent(
+      'Pick a stock line, an approved reason, and a quantity that is on the shelf.',
+    );
+    expect(createAdjustmentMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: approve surfaces STALE_STATE', async () => {
+    const user = userEvent.setup();
+    listAdjustmentsMock.mockImplementation(async (scope) => (scope === 'pending' ? [pending] : []));
+    decideAdjustmentMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    renderPage();
+    await openAdjustments(user);
+    expect(await screen.findByText(/Paracetamol 500/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Approve write-off' }));
+    expect(
+      await screen.findByText('This write-off was decided elsewhere. Refresh and try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: approve write-off', async () => {
+    const user = userEvent.setup();
+    let approved = false;
+    listAdjustmentsMock.mockImplementation(async (scope) => {
+      if (scope === 'pending') {
+        return approved ? [] : [pending];
+      }
+      return approved ? [{ ...pending, status: 'APPROVED', approverUserId: 'u1' }] : [];
+    });
+    decideAdjustmentMock.mockImplementation(async () => {
+      approved = true;
+      return { ...pending, status: 'APPROVED', approverUserId: 'u1', version: 2 };
+    });
+    renderPage();
+    await openAdjustments(user);
+    await user.click(await screen.findByRole('button', { name: 'Approve write-off' }));
+    await waitFor(() =>
+      expect(decideAdjustmentMock).toHaveBeenCalledWith('adj1', {
+        outcome: 'APPROVED',
+        expectedVersion: 1,
+      }),
+    );
+    expect(await screen.findByText('Write-off updated for this outlet.')).toBeInTheDocument();
+  });
+
+  it('success: reject write-off', async () => {
+    const user = userEvent.setup();
+    let rejected = false;
+    listAdjustmentsMock.mockImplementation(async (scope) => {
+      if (scope === 'pending') {
+        return rejected ? [] : [pending];
+      }
+      return rejected ? [{ ...pending, status: 'REJECTED' }] : [];
+    });
+    decideAdjustmentMock.mockImplementation(async () => {
+      rejected = true;
+      return { ...pending, status: 'REJECTED', version: 2 };
+    });
+    renderPage();
+    await openAdjustments(user);
+    await user.click(await screen.findByRole('button', { name: 'Reject' }));
+    await waitFor(() =>
+      expect(decideAdjustmentMock).toHaveBeenCalledWith('adj1', {
+        outcome: 'REJECTED',
+        expectedVersion: 1,
+      }),
+    );
+    expect(await screen.findByText('Write-off updated for this outlet.')).toBeInTheDocument();
+  });
+
+  it('success: record write-off stays pending until approved', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    createAdjustmentMock.mockResolvedValue(pending);
+    renderPage();
+    await openAdjustments(user);
+    await user.click(await screen.findByRole('button', { name: 'Record write-off' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Stock line on this till'), 'bal1');
+    await user.type(within(dialog).getByLabelText('Quantity'), '2');
+    await user.click(within(dialog).getByRole('button', { name: 'Send for sign-off' }));
+    await waitFor(() =>
+      expect(createAdjustmentMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          productId: 'p1',
+          batchId: 'batch1',
+          reason: 'DAMAGE_BREAKAGE',
+          quantity: 2,
+          direction: 'OUT',
+        }),
+      ),
+    );
+    expect(await screen.findByText('Write-off updated for this outlet.')).toBeInTheDocument();
+  });
+
+  it('restores focus to Record write-off after dialog cancel', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    renderPage();
+    await openAdjustments(user);
+    const start = await screen.findByRole('button', { name: 'Record write-off' });
+    await user.click(start);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Record write-off' })).toHaveFocus();
+    });
   });
 });
