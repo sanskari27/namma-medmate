@@ -13,7 +13,11 @@ export function CreditStatusBanner({ status, statusId }: CreditStatusBannerProps
   }
   const alert = status === 'denied' || status === 'conflict' || status === 'failure';
   const Icon =
-    status === 'success' ? BadgeCheck : status === 'loading' || status === 'empty' ? Wallet : AlertCircle;
+    status === 'success'
+      ? BadgeCheck
+      : status === 'loading' || status === 'empty'
+        ? Wallet
+        : AlertCircle;
   return (
     <div
       id={statusId}

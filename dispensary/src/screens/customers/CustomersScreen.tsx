@@ -20,11 +20,21 @@ import {
   type Customer,
   type CustomerHistoryItem,
 } from '@/services/customers';
+import { getCustomerCredit, setCustomerCreditLimit, type CustomerCredit } from '@/services/credit';
 import {
-  getCustomerCredit,
-  setCustomerCreditLimit,
-  type CustomerCredit,
-} from '@/services/credit';
+  createCustomerRefill,
+  createTenantTag,
+  deleteCustomerRefill,
+  listCustomerRefills,
+  listCustomerTags,
+  listDueRefills,
+  listTenantTags,
+  replaceCustomerTags,
+  updateCustomerRefill,
+  type CustomerRefill,
+  type CustomerTag,
+  type DueRefill,
+} from '@/services/customerRefills';
 import {
   listDoctors,
   listTopReferringDoctors,
@@ -36,11 +46,14 @@ import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'reac
 import { useSelector } from 'react-redux';
 import { CustomerCreditSection } from './components/customer-credit-section';
 import { CustomerDoctorSection } from './components/customer-doctor-section';
+import { CustomerDueRefillsStrip } from './components/customer-due-refills-strip';
 import { CustomerFamilyHistory } from './components/customer-family-history';
 import { CustomerFamilySection } from './components/customer-family-section';
 import { CustomerListPanel } from './components/customer-list-panel';
 import { CustomerProfilePanel } from './components/customer-profile-panel';
 import { CustomerPurchaseHistory } from './components/customer-purchase-history';
+import { CustomerRefillSection } from './components/customer-refill-section';
+import { CustomerTagsSection } from './components/customer-tags-section';
 import { CustomersHeader } from './components/customers-header';
 import { CustomersStatusBanner } from './components/customers-status-banner';
 import {
@@ -90,6 +103,15 @@ export default function CustomersScreen() {
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [credit, setCredit] = useState<CustomerCredit | null>(null);
   const [creditLoading, setCreditLoading] = useState(false);
+  const [refills, setRefills] = useState<CustomerRefill[]>([]);
+  const [refillsLoading, setRefillsLoading] = useState(false);
+  const [refillBusy, setRefillBusy] = useState(false);
+  const [dueRefills, setDueRefills] = useState<DueRefill[]>([]);
+  const [dueLoading, setDueLoading] = useState(false);
+  const [tagCatalog, setTagCatalog] = useState<CustomerTag[]>([]);
+  const [customerTags, setCustomerTags] = useState<CustomerTag[]>([]);
+  const [tagsLoading, setTagsLoading] = useState(false);
+  const [tagBusy, setTagBusy] = useState(false);
 
   const allowed = hasCrmAccess(user?.modules);
   const canSetLimit = user?.role === 'pharmacy_owner';
@@ -189,6 +211,55 @@ export default function CustomersScreen() {
     }
   }, []);
 
+  const loadRefills = useCallback(async (customerId: string) => {
+    setRefillsLoading(true);
+    try {
+      const items = await listCustomerRefills(customerId);
+      setRefills(items);
+    } catch {
+      setRefills([]);
+      setStatus('failure');
+    } finally {
+      setRefillsLoading(false);
+    }
+  }, []);
+
+  const loadDueRefills = useCallback(async () => {
+    setDueLoading(true);
+    try {
+      const items = await listDueRefills();
+      setDueRefills(items);
+    } catch {
+      setDueRefills([]);
+      setStatus('failure');
+    } finally {
+      setDueLoading(false);
+    }
+  }, []);
+
+  const loadTagCatalog = useCallback(async () => {
+    try {
+      const items = await listTenantTags();
+      setTagCatalog(items);
+    } catch {
+      setTagCatalog([]);
+      setStatus('failure');
+    }
+  }, []);
+
+  const loadCustomerTags = useCallback(async (customerId: string) => {
+    setTagsLoading(true);
+    try {
+      const items = await listCustomerTags(customerId);
+      setCustomerTags(items);
+    } catch {
+      setCustomerTags([]);
+      setStatus('failure');
+    } finally {
+      setTagsLoading(false);
+    }
+  }, []);
+
   useEffect(() => {
     void load();
   }, [load]);
@@ -198,7 +269,9 @@ export default function CustomersScreen() {
       return;
     }
     void loadDoctors();
-  }, [allowed, loadDoctors]);
+    void loadDueRefills();
+    void loadTagCatalog();
+  }, [allowed, loadDoctors, loadDueRefills, loadTagCatalog]);
 
   useEffect(() => {
     if (!selectedId) {
@@ -209,12 +282,16 @@ export default function CustomersScreen() {
       setPurchaseItems([]);
       setPurchaseTypeFilter('');
       setCredit(null);
+      setRefills([]);
+      setCustomerTags([]);
       return;
     }
     void loadFamily(selectedId);
     void loadPurchaseHistory(selectedId);
     void loadCredit(selectedId);
-  }, [selectedId, loadFamily, loadPurchaseHistory, loadCredit]);
+    void loadRefills(selectedId);
+    void loadCustomerTags(selectedId);
+  }, [selectedId, loadFamily, loadPurchaseHistory, loadCredit, loadRefills, loadCustomerTags]);
 
   useEffect(() => {
     if (!family?.id) {
@@ -299,6 +376,131 @@ export default function CustomersScreen() {
     }
   }
 
+  function mapRefillError(error: unknown) {
+    if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
+      setStatus('denied');
+    } else if (
+      isApiError(error) &&
+      (error.status === 409 ||
+        error.code === 'STALE_STATE' ||
+        error.code === 'DUPLICATE_REFILL' ||
+        error.code === 'DUPLICATE_TAG' ||
+        error.code === 'TAG_IN_USE')
+    ) {
+      setStatus('conflict');
+    } else if (isApiError(error) && error.status === 400) {
+      setStatus('validation');
+    } else {
+      setStatus('failure');
+    }
+  }
+
+  async function onAddRefill(input: {
+    medicineName: string;
+    intervalDays?: number;
+    nextDueOn?: string;
+  }) {
+    if (!selectedId) {
+      return;
+    }
+    if (!input.medicineName.trim()) {
+      setStatus('validation');
+      return;
+    }
+    setRefillBusy(true);
+    try {
+      await createCustomerRefill(selectedId, input);
+      await loadRefills(selectedId);
+      await loadDueRefills();
+      setStatus('success');
+    } catch (error) {
+      mapRefillError(error);
+      if (isApiError(error) && error.code === 'STALE_STATE') {
+        void loadRefills(selectedId);
+      }
+    } finally {
+      setRefillBusy(false);
+    }
+  }
+
+  async function onUpdateRefill(
+    refillId: string,
+    input: { intervalDays: number; nextDueOn: string; expectedVersion: number },
+  ) {
+    if (!selectedId) {
+      return;
+    }
+    setRefillBusy(true);
+    try {
+      await updateCustomerRefill(selectedId, refillId, input);
+      await loadRefills(selectedId);
+      await loadDueRefills();
+      setStatus('success');
+    } catch (error) {
+      mapRefillError(error);
+      if (isApiError(error) && (error.status === 409 || error.code === 'STALE_STATE')) {
+        void loadRefills(selectedId);
+      }
+    } finally {
+      setRefillBusy(false);
+    }
+  }
+
+  async function onRemoveRefill(refillId: string) {
+    if (!selectedId) {
+      return;
+    }
+    setRefillBusy(true);
+    try {
+      await deleteCustomerRefill(selectedId, refillId);
+      await loadRefills(selectedId);
+      await loadDueRefills();
+      setStatus('success');
+    } catch (error) {
+      mapRefillError(error);
+    } finally {
+      setRefillBusy(false);
+    }
+  }
+
+  async function onCreateTag(name: string) {
+    if (!name.trim()) {
+      setStatus('validation');
+      return;
+    }
+    setTagBusy(true);
+    try {
+      const created = await createTenantTag(name.trim());
+      setTagCatalog((prev) =>
+        [...prev, created].sort((a, b) =>
+          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
+        ),
+      );
+      setStatus('success');
+    } catch (error) {
+      mapRefillError(error);
+    } finally {
+      setTagBusy(false);
+    }
+  }
+
+  async function onReplaceTags(tagIds: string[]) {
+    if (!selectedId) {
+      return;
+    }
+    setTagBusy(true);
+    try {
+      const next = await replaceCustomerTags(selectedId, tagIds);
+      setCustomerTags(next);
+      setStatus('success');
+    } catch (error) {
+      mapRefillError(error);
+      void loadCustomerTags(selectedId);
+    } finally {
+      setTagBusy(false);
+    }
+  }
+
   async function onUnlinkMember(customerId: string) {
     if (!family) {
       return;
@@ -357,6 +559,19 @@ export default function CustomersScreen() {
         ) : null}
 
         <CustomersStatusBanner status={status} statusId={statusId} />
+
+        <CustomerDueRefillsStrip
+          items={dueRefills}
+          loading={dueLoading}
+          onSelectCustomer={(customerId) => {
+            const row = customers.find((c) => c.id === customerId);
+            if (row) {
+              selectCustomer(row);
+            } else {
+              setSelectedId(customerId);
+            }
+          }}
+        />
       </div>
 
       <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
@@ -394,6 +609,40 @@ export default function CustomersScreen() {
                   void onSetLimit(limitPaise);
                 }}
                 onSettle={() => setSettleOpen(true)}
+              />
+            ) : null
+          }
+          refillSection={
+            selected ? (
+              <CustomerRefillSection
+                refills={refills}
+                loading={refillsLoading}
+                busy={refillBusy}
+                onAdd={(input) => {
+                  void onAddRefill(input);
+                }}
+                onUpdate={(refillId, input) => {
+                  void onUpdateRefill(refillId, input);
+                }}
+                onRemove={(refillId) => {
+                  void onRemoveRefill(refillId);
+                }}
+              />
+            ) : null
+          }
+          tagsSection={
+            selected ? (
+              <CustomerTagsSection
+                catalog={tagCatalog}
+                assigned={customerTags}
+                loading={tagsLoading}
+                busy={tagBusy}
+                onCreateTag={(name) => {
+                  void onCreateTag(name);
+                }}
+                onReplace={(tagIds) => {
+                  void onReplaceTags(tagIds);
+                }}
               />
             ) : null
           }

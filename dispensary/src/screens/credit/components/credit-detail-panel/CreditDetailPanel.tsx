@@ -10,11 +10,7 @@ export type CreditDetailPanelProps = {
   onSettle: () => void;
 };
 
-export function CreditDetailPanel({
-  account,
-  settleButtonRef,
-  onSettle,
-}: CreditDetailPanelProps) {
+export function CreditDetailPanel({ account, settleButtonRef, onSettle }: CreditDetailPanelProps) {
   if (!account) {
     return (
       <section
@@ -42,14 +38,11 @@ export function CreditDetailPanel({
       <div className="flex flex-wrap items-start justify-between gap-3 border-b border-line px-4 py-3">
         <div>
           <h2 className="font-sans text-base font-semibold text-ink">{account.customerName}</h2>
-          <p className="mt-0.5 font-mono text-xs tabular-nums text-muted">{account.customerPhone}</p>
+          <p className="mt-0.5 font-mono text-xs tabular-nums text-muted">
+            {account.customerPhone}
+          </p>
         </div>
-        <Button
-          ref={settleButtonRef}
-          type="button"
-          onClick={onSettle}
-          aria-haspopup="dialog"
-        >
+        <Button ref={settleButtonRef} type="button" onClick={onSettle} aria-haspopup="dialog">
           Settle
         </Button>
       </div>

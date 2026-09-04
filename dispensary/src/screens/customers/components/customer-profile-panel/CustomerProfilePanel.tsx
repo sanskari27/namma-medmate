@@ -22,6 +22,8 @@ export type CustomerProfilePanelProps = {
   purchaseHistory?: ReactNode;
   doctorSection?: ReactNode;
   creditSection?: ReactNode;
+  refillSection?: ReactNode;
+  tagsSection?: ReactNode;
 };
 
 export function CustomerProfilePanel({
@@ -41,6 +43,8 @@ export function CustomerProfilePanel({
   purchaseHistory,
   doctorSection,
   creditSection,
+  refillSection,
+  tagsSection,
 }: CustomerProfilePanelProps) {
   if (!selected) {
     return (
@@ -203,6 +207,8 @@ export function CustomerProfilePanel({
           </div>
 
           {creditSection}
+          {refillSection}
+          {tagsSection}
           {purchaseHistory}
           {doctorSection}
           {familySection}

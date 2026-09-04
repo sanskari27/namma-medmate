@@ -64,6 +64,25 @@ vi.mock('@/services/credit', async () => {
   };
 });
 
+vi.mock('@/services/customerRefills', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listCustomerRefills: vi.fn(),
+    listDueRefills: vi.fn(),
+    createCustomerRefill: vi.fn(),
+    updateCustomerRefill: vi.fn(),
+    deleteCustomerRefill: vi.fn(),
+    listTenantTags: vi.fn(),
+    createTenantTag: vi.fn(),
+    deleteTenantTag: vi.fn(),
+    listCustomerTags: vi.fn(),
+    replaceCustomerTags: vi.fn(),
+    formatDueDate: (isoDate: string) => isoDate,
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import {
   createCustomer,
   executeCustomerMerge,
@@ -79,6 +98,16 @@ import {
 } from '@/services/customerFamilies';
 import { createDoctor, listDoctors, listTopReferringDoctors } from '@/services/doctors';
 import { getCustomerCredit, setCustomerCreditLimit } from '@/services/credit';
+import {
+  createCustomerRefill,
+  createTenantTag,
+  listCustomerRefills,
+  listCustomerTags,
+  listDueRefills,
+  listTenantTags,
+  replaceCustomerTags,
+  updateCustomerRefill,
+} from '@/services/customerRefills';
 
 const listMock = vi.mocked(listCustomers);
 const createMock = vi.mocked(createCustomer);
@@ -94,6 +123,14 @@ const listTopMock = vi.mocked(listTopReferringDoctors);
 const createDoctorMock = vi.mocked(createDoctor);
 const getCreditMock = vi.mocked(getCustomerCredit);
 const setLimitMock = vi.mocked(setCustomerCreditLimit);
+const listRefillsMock = vi.mocked(listCustomerRefills);
+const listDueMock = vi.mocked(listDueRefills);
+const createRefillMock = vi.mocked(createCustomerRefill);
+const updateRefillMock = vi.mocked(updateCustomerRefill);
+const listTenantTagsMock = vi.mocked(listTenantTags);
+const listCustomerTagsMock = vi.mocked(listCustomerTags);
+const createTagMock = vi.mocked(createTenantTag);
+const replaceTagsMock = vi.mocked(replaceCustomerTags);
 
 const sample: Customer = {
   id: 'c1',
@@ -154,6 +191,14 @@ describe('counter customers', () => {
     createDoctorMock.mockReset();
     getCreditMock.mockReset();
     setLimitMock.mockReset();
+    listRefillsMock.mockReset();
+    listDueMock.mockReset();
+    createRefillMock.mockReset();
+    updateRefillMock.mockReset();
+    listTenantTagsMock.mockReset();
+    listCustomerTagsMock.mockReset();
+    createTagMock.mockReset();
+    replaceTagsMock.mockReset();
     getFamilyMock.mockResolvedValue(null);
     getFamilyHistoryMock.mockResolvedValue([]);
     getHistoryMock.mockResolvedValue([]);
@@ -167,6 +212,10 @@ describe('counter customers', () => {
       version: 0,
       entries: [],
     });
+    listRefillsMock.mockResolvedValue([]);
+    listDueMock.mockResolvedValue([]);
+    listTenantTagsMock.mockResolvedValue([]);
+    listCustomerTagsMock.mockResolvedValue([]);
   });
 
   it('loading: waits for customers', () => {
@@ -553,5 +602,210 @@ describe('counter customers', () => {
     });
     expect(within(khata).getByText('Available')).toBeInTheDocument();
     expect(within(khata).getAllByText('₹500').length).toBeGreaterThanOrEqual(1);
+  });
+
+  it('empty: due refills strip when none due', async () => {
+    listMock.mockResolvedValue([sample]);
+    listDueMock.mockResolvedValue([]);
+    renderPage();
+    expect(await screen.findByLabelText('Due refills')).toHaveTextContent(
+      'No refill due on the floor today.',
+    );
+  });
+
+  it('success: add refill schedule on customer profile', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createRefillMock.mockResolvedValue({
+      id: 'r1',
+      customerId: 'c1',
+      medicineName: 'Metformin 500',
+      intervalDays: 30,
+      nextDueOn: '2026-10-04',
+      version: 0,
+      updatedAt: '2026-09-04T06:00:00Z',
+    });
+    listRefillsMock.mockResolvedValueOnce([]).mockResolvedValueOnce([
+      {
+        id: 'r1',
+        customerId: 'c1',
+        medicineName: 'Metformin 500',
+        intervalDays: 30,
+        nextDueOn: '2026-10-04',
+        version: 0,
+        updatedAt: '2026-09-04T06:00:00Z',
+      },
+    ]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const section = await screen.findByLabelText('Refill schedules');
+    expect(
+      within(section).getByText('No refill schedules for this customer yet.'),
+    ).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Medicine'), 'Metformin 500');
+    await user.click(screen.getByRole('button', { name: 'Add refill' }));
+    await waitFor(() => {
+      expect(createRefillMock).toHaveBeenCalledWith('c1', {
+        medicineName: 'Metformin 500',
+        intervalDays: undefined,
+        nextDueOn: undefined,
+      });
+    });
+    expect(await within(section).findByText('Metformin 500')).toBeInTheDocument();
+  });
+
+  it('conflict: duplicate refill medicine surfaces conflict', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createRefillMock.mockRejectedValue(
+      new ApiError('A refill schedule already exists for this medicine', 409, 'DUPLICATE_REFILL'),
+    );
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await screen.findByLabelText('Refill schedules');
+    await user.type(screen.getByLabelText('Medicine'), 'Aspirin');
+    await user.click(screen.getByRole('button', { name: 'Add refill' }));
+    expect(
+      await screen.findByText(
+        'That change conflicts with existing floor data — duplicate phone, refill, or tag. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('success: create and assign tenant tag', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createTagMock.mockResolvedValue({
+      id: 'tag1',
+      name: 'diabetic',
+      createdAt: '2026-09-04T06:00:00Z',
+    });
+    replaceTagsMock.mockResolvedValue([
+      { id: 'tag1', name: 'diabetic', createdAt: '2026-09-04T06:00:00Z' },
+    ]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const tags = await screen.findByLabelText('Customer tags');
+    await user.type(screen.getByLabelText('New tag'), 'diabetic');
+    await user.click(screen.getByRole('button', { name: 'Add tag' }));
+    await waitFor(() => {
+      expect(createTagMock).toHaveBeenCalledWith('diabetic');
+    });
+    const toggle = await within(tags).findByRole('button', { name: 'diabetic' });
+    await user.click(toggle);
+    await waitFor(() => {
+      expect(replaceTagsMock).toHaveBeenCalledWith('c1', ['tag1']);
+    });
+  });
+
+  it('validation: blank medicine does not call create refill', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await screen.findByLabelText('Refill schedules');
+    expect(screen.getByRole('button', { name: 'Add refill' })).toBeDisabled();
+    expect(createRefillMock).not.toHaveBeenCalled();
+  });
+
+  it('success: customize refill interval and due date', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    listRefillsMock
+      .mockResolvedValueOnce([
+        {
+          id: 'r1',
+          customerId: 'c1',
+          medicineName: 'Metformin 500',
+          intervalDays: 30,
+          nextDueOn: '2026-10-04',
+          version: 0,
+          updatedAt: '2026-09-04T06:00:00Z',
+        },
+      ])
+      .mockResolvedValueOnce([
+        {
+          id: 'r1',
+          customerId: 'c1',
+          medicineName: 'Metformin 500',
+          intervalDays: 14,
+          nextDueOn: '2026-08-01',
+          version: 1,
+          updatedAt: '2026-09-04T07:00:00Z',
+        },
+      ]);
+    updateRefillMock.mockResolvedValue({
+      id: 'r1',
+      customerId: 'c1',
+      medicineName: 'Metformin 500',
+      intervalDays: 14,
+      nextDueOn: '2026-08-01',
+      version: 1,
+      updatedAt: '2026-09-04T07:00:00Z',
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const section = await screen.findByLabelText('Refill schedules');
+    expect(within(section).getByText('Metformin 500')).toBeInTheDocument();
+    await user.click(within(section).getByRole('button', { name: 'Customize' }));
+    const days = within(section).getAllByLabelText('Days')[0];
+    await user.clear(days);
+    await user.type(days, '14');
+    const due = within(section).getAllByLabelText('Next due')[0];
+    await user.clear(due);
+    await user.type(due, '2026-08-01');
+    await user.click(within(section).getByRole('button', { name: 'Save' }));
+    await waitFor(() => {
+      expect(updateRefillMock).toHaveBeenCalledWith('c1', 'r1', {
+        intervalDays: 14,
+        nextDueOn: '2026-08-01',
+        expectedVersion: 0,
+      });
+    });
+  });
+
+  it('loading: due refills strip while fetch pending', async () => {
+    listMock.mockResolvedValue([sample]);
+    listDueMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    expect(await screen.findByLabelText('Due refills')).toHaveTextContent('Checking due refills…');
+  });
+
+  it('loading: refill schedules while customer selected', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    listRefillsMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(await screen.findByText('Loading refill schedules…')).toBeInTheDocument();
+  });
+
+  it('failure: refill list error surfaces failure banner', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    listRefillsMock.mockRejectedValue(new Error('network'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    expect(
+      await screen.findByText('Could not reach the server for customers. Try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('conflict: duplicate tag name surfaces conflict', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    createTagMock.mockRejectedValue(
+      new ApiError('A tag with this name already exists', 409, 'DUPLICATE_TAG'),
+    );
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await screen.findByLabelText('Customer tags');
+    await user.type(screen.getByLabelText('New tag'), 'senior');
+    await user.click(screen.getByRole('button', { name: 'Add tag' }));
+    expect(
+      await screen.findByText(
+        'That change conflicts with existing floor data — duplicate phone, refill, or tag. Refresh and try again.',
+      ),
+    ).toBeInTheDocument();
   });
 });

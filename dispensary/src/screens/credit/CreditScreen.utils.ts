@@ -1,12 +1,5 @@
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export function hasCrmAccess(modules: string[] | undefined): boolean {
   return Boolean(modules?.includes('CRM'));

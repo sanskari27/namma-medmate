@@ -50,7 +50,7 @@ export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text
     case 'conflict':
       return {
         icon: AlertCircle,
-        text: 'A customer with this phone already exists. Search the list or open that profile.',
+        text: 'That change conflicts with existing floor data — duplicate phone, refill, or tag. Refresh and try again.',
       };
     case 'failure':
       return { icon: Unplug, text: 'Could not reach the server for customers. Try again.' };

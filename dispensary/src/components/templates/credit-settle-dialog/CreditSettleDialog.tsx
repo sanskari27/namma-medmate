@@ -96,7 +96,9 @@ export function CreditSettleDialog({
         setStatus('denied');
       } else if (
         isApiError(error) &&
-        (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'IDEMPOTENCY_CONFLICT')
+        (error.status === 409 ||
+          error.code === 'STALE_STATE' ||
+          error.code === 'IDEMPOTENCY_CONFLICT')
       ) {
         setStatus('conflict');
       } else if (

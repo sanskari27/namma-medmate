@@ -101,7 +101,9 @@ describe('CreditScreen', () => {
     const user = userEvent.setup();
     listMock
       .mockResolvedValueOnce([sample])
-      .mockResolvedValueOnce([{ ...sample, balancePaise: 7000, availablePaise: 43000, version: 3 }]);
+      .mockResolvedValueOnce([
+        { ...sample, balancePaise: 7000, availablePaise: 43000, version: 3 },
+      ]);
     settleMock.mockResolvedValue({
       customerId: 'c1',
       limitPaise: 50000,
@@ -119,7 +121,9 @@ describe('CreditScreen', () => {
     await user.type(screen.getByLabelText('Amount (₹)'), '50');
     await user.click(screen.getByRole('button', { name: 'Post settlement' }));
     await waitFor(() => expect(settleMock).toHaveBeenCalled());
-    expect(await screen.findByText('Settlement posted. Outstanding list updated.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Settlement posted. Outstanding list updated.'),
+    ).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
@@ -133,7 +137,9 @@ describe('CreditScreen', () => {
     await user.type(screen.getByLabelText('Amount (₹)'), '50');
     await user.click(screen.getByRole('button', { name: 'Post settlement' }));
     expect(
-      await screen.findByText('Khata balance changed on another till. Close and open settle again.'),
+      await screen.findByText(
+        'Khata balance changed on another till. Close and open settle again.',
+      ),
     ).toBeInTheDocument();
   });
 

@@ -34,9 +34,7 @@ export default function CreditScreen() {
       setItems(next);
       setStatus(next.length === 0 ? 'empty' : null);
       setSelectedId((prev) =>
-        prev && next.some((row) => row.customerId === prev)
-          ? prev
-          : (next[0]?.customerId ?? null),
+        prev && next.some((row) => row.customerId === prev) ? prev : (next[0]?.customerId ?? null),
       );
     } catch (error) {
       if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
