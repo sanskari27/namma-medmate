@@ -1,0 +1,1 @@
+export { InventoryIdentityFields } from './InventoryIdentityFields';

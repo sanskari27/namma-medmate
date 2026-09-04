@@ -1,0 +1,53 @@
+package com.nammamedmate.server.application.product;
+
+import com.nammamedmate.server.domain.DosageForm;
+import com.nammamedmate.server.domain.ProductRoute;
+import com.nammamedmate.server.domain.ProductType;
+import com.nammamedmate.server.domain.ProductUnit;
+import com.nammamedmate.server.domain.ScheduleClassification;
+import java.math.BigDecimal;
+import java.time.Instant;
+import java.util.UUID;
+
+public record ProductView(
+    UUID id,
+    UUID tenantId,
+    String sku,
+    String barcode,
+    String name,
+    String genericName,
+    String brandName,
+    UUID manufacturerId,
+    UUID categoryId,
+    ProductType productType,
+    DosageForm dosageForm,
+    String therapeuticClass,
+    String composition,
+    String strength,
+    ProductRoute route,
+    boolean prescriptionRequired,
+    ScheduleClassification scheduleClassification,
+    String hsnCode,
+    BigDecimal gstRate,
+    ProductUnit baseUnit,
+    BigDecimal packSize,
+    ProductUnit packUnit,
+    String packDescription,
+    String storageConditions,
+    boolean requiresColdStorage,
+    String rackLocation,
+    Integer reorderLevel,
+    Integer reorderQuantity,
+    Integer minimumStock,
+    boolean discontinued,
+    boolean returnable,
+    boolean taxable,
+    String taxCategory,
+    boolean requiresBatchTracking,
+    boolean requiresExpiryTracking,
+    boolean requiresSerialTracking,
+    boolean controlledSubstance,
+    String notes,
+    boolean active,
+    Instant createdAt,
+    Instant updatedAt) {}

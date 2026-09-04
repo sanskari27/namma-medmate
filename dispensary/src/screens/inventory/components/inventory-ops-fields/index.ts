@@ -1,0 +1,1 @@
+export { InventoryOpsFields } from './InventoryOpsFields';
