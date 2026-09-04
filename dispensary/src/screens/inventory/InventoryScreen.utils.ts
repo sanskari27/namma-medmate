@@ -159,7 +159,7 @@ export const emptyForm: FormState = {
 
 export function statusCopy(
   status: PageStatus,
-  view: 'floor' | 'catalogue' = 'catalogue',
+  view: 'floor' | 'catalogue' | 'transfers' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -192,6 +192,41 @@ export function statusCopy(
         };
       case 'success':
         return { icon: BadgeCheck, text: 'Stock received on this outlet.' };
+      default:
+        return null;
+    }
+  }
+  if (view === 'transfers') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading outlet transfers…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No transfers yet. Start a push or pull between outlets.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Check outlet, quantity, and available stock before starting a transfer.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot manage transfers. Ask the owner to grant the Inventory area.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Transfer state changed elsewhere. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Transfer updated.' };
       default:
         return null;
     }

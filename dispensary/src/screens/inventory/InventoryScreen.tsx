@@ -8,19 +8,23 @@ import {
   type InventoryViewMode,
 } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
+import { TransferWorkspace } from './components/transfer-workspace/TransferWorkspace';
 import { hasInventoryAccess, type PageStatus } from './InventoryScreen.utils';
 
 export default function InventoryScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasInventoryAccess(user?.modules);
   const activeBranchId = user?.activeBranchId ?? null;
+  const branches = user?.branches ?? [];
   const statusId = useId();
   const addRef = useRef<HTMLButtonElement | null>(null);
   const receiveRef = useRef<HTMLButtonElement | null>(null);
+  const transferRef = useRef<HTMLButtonElement | null>(null);
 
   const [view, setView] = useState<InventoryViewMode>('floor');
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [receiveOpen, setReceiveOpen] = useState(false);
+  const [transferOpen, setTransferOpen] = useState(false);
   const [createRequest, setCreateRequest] = useState(0);
 
   const onStatusChange = useCallback((next: PageStatus) => {
@@ -37,13 +41,16 @@ export default function InventoryScreen() {
         onViewChange={(next) => {
           setView(next);
           setReceiveOpen(false);
+          setTransferOpen(false);
           setStatus(allowed ? 'loading' : 'denied');
         }}
         addButtonRef={addRef}
         receiveButtonRef={receiveRef}
+        transferButtonRef={transferRef}
         denied={denied}
         onAdd={() => setCreateRequest((n) => n + 1)}
         onReceive={() => setReceiveOpen(true)}
+        onTransfer={() => setTransferOpen(true)}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -71,6 +78,17 @@ export default function InventoryScreen() {
           addButtonRef={addRef}
           onStatusChange={onStatusChange}
           createRequest={createRequest}
+        />
+      ) : null}
+      {!denied && view === 'transfers' ? (
+        <TransferWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
+          branches={branches}
+          transferButtonRef={transferRef}
+          createOpen={transferOpen}
+          onCreateOpenChange={setTransferOpen}
+          onStatusChange={onStatusChange}
         />
       ) : null}
     </div>

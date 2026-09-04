@@ -67,6 +67,21 @@ vi.mock('@/services/inventory', async () => {
   };
 });
 
+vi.mock('@/services/stockTransfers', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listStockTransfers: vi.fn(),
+    getStockTransfer: vi.fn(),
+    createStockTransfer: vi.fn(),
+    dispatchStockTransfer: vi.fn(),
+    confirmStockTransfer: vi.fn(),
+    rejectStockTransfer: vi.fn(),
+    cancelStockTransfer: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -77,7 +92,14 @@ import {
   listStockMovements,
   receiveStock,
 } from '@/services/inventory';
-
+import {
+  confirmStockTransfer,
+  createStockTransfer,
+  dispatchStockTransfer,
+  listStockTransfers,
+  rejectStockTransfer,
+} from '@/services/stockTransfers';
+import type { StockTransfer } from '@/services/stockTransfers';
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
 const updateMock = vi.mocked(updateProduct);
@@ -91,6 +113,11 @@ const listBalancesMock = vi.mocked(listStockBalances);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listMovementsMock = vi.mocked(listStockMovements);
 const receiveMock = vi.mocked(receiveStock);
+const listTransfersMock = vi.mocked(listStockTransfers);
+const createTransferMock = vi.mocked(createStockTransfer);
+const confirmTransferMock = vi.mocked(confirmStockTransfer);
+const rejectTransferMock = vi.mocked(rejectStockTransfer);
+const dispatchTransferMock = vi.mocked(dispatchStockTransfer);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -184,6 +211,10 @@ function renderPage(
           emailVerified: true,
           modules,
           activeBranchId,
+          branches: [
+            { id: 'br1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' },
+            { id: 'br2', name: 'Annexe', branchCode: 'BR02', status: 'ACTIVE' },
+          ],
         },
       },
     },
@@ -216,7 +247,12 @@ describe('floor inventory catalogue', () => {
     listBatchesMock.mockReset();
     listMovementsMock.mockReset();
     receiveMock.mockReset();
+    listTransfersMock.mockReset();
+    createTransferMock.mockReset();
+    confirmTransferMock.mockReset();
+    rejectTransferMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    listTransfersMock.mockResolvedValue([]);
     listCategoriesMock.mockResolvedValue([category]);
     listManufacturersMock.mockResolvedValue([manufacturer]);
     listUnitsMock.mockResolvedValue({
@@ -635,5 +671,233 @@ describe('floor stock', () => {
     });
     expect(await screen.findByText('Stock received on this outlet.')).toBeInTheDocument();
     expect(await screen.findByRole('button', { name: /LOT-AA/ })).toBeInTheDocument();
+  });
+});
+
+describe('outlet transfers', () => {
+  const incoming: StockTransfer = {
+    id: 'xfer1',
+    fromBranchId: 'br1',
+    toBranchId: 'br2',
+    direction: 'PUSH',
+    status: 'IN_TRANSIT',
+    lines: [
+      {
+        id: 'line1',
+        productId: 'p1',
+        productSku: 'SKU-PARA',
+        productName: 'Paracetamol 500',
+        batchId: 'batch1',
+        quantity: 4,
+      },
+    ],
+    version: 0,
+    createdAt: '2026-09-04T08:00:00Z',
+    updatedAt: '2026-09-04T08:00:00Z',
+  };
+
+  beforeEach(() => {
+    listBalancesMock.mockReset();
+    listTransfersMock.mockReset();
+    createTransferMock.mockReset();
+    confirmTransferMock.mockReset();
+    rejectTransferMock.mockReset();
+    dispatchTransferMock.mockReset();
+    listMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listTransfersMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+  });
+
+  async function openTransfers(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('tab', { name: 'Transfers' }));
+  }
+
+  it('loading: waits for transfers', async () => {
+    const user = userEvent.setup();
+    listTransfersMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await openTransfers(user);
+    expect(screen.getByText('Loading outlet transfers…')).toBeInTheDocument();
+  });
+
+  it('empty: no transfers yet', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openTransfers(user);
+    expect(
+      await screen.findByText('No transfers yet. Start a push or pull between outlets.'),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: inventory module missing', async () => {
+    renderPage([]);
+    expect(
+      await screen.findByText(
+        'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('failure: no active outlet', async () => {
+    const user = userEvent.setup();
+    renderPage(['INVENTORY'], null);
+    await openTransfers(user);
+    expect(
+      await screen.findByText(
+        'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('validation: start transfer without quantity', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    renderPage();
+    await openTransfers(user);
+    await user.click(await screen.findByRole('button', { name: 'Start transfer' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Stock line on this till'), 'bal1');
+    await user.click(within(dialog).getByRole('button', { name: 'Start transfer' }));
+    expect(within(dialog).getByRole('status')).toHaveTextContent('Pick another outlet');
+    expect(createTransferMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: confirm surfaces STALE_STATE', async () => {
+    const user = userEvent.setup();
+    const waiting = { ...incoming, toBranchId: 'br1', fromBranchId: 'br2' };
+    listTransfersMock.mockImplementation(async (scope) => {
+      if (scope === 'incoming') {
+        return [waiting];
+      }
+      return [];
+    });
+    confirmTransferMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    renderPage();
+    await openTransfers(user);
+    expect(await screen.findByText(/Paracetamol 500/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirm receipt' }));
+    expect(
+      await screen.findByText('Transfer state changed elsewhere. Refresh and try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: confirm receipt', async () => {
+    const user = userEvent.setup();
+    const waiting = { ...incoming, toBranchId: 'br1', fromBranchId: 'br2' };
+    let confirmed = false;
+    listTransfersMock.mockImplementation(async (scope) => {
+      if (scope === 'incoming') {
+        return confirmed ? [] : [waiting];
+      }
+      if (scope === 'history' && confirmed) {
+        return [{ ...waiting, status: 'COMPLETED' }];
+      }
+      return [];
+    });
+    confirmTransferMock.mockImplementation(async () => {
+      confirmed = true;
+      return { ...waiting, status: 'COMPLETED' };
+    });
+    renderPage();
+    await openTransfers(user);
+    expect(await screen.findByText(/Paracetamol 500/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Confirm receipt' }));
+    await waitFor(() => expect(confirmTransferMock).toHaveBeenCalledWith('xfer1'));
+    expect(await screen.findByText('Transfer updated.')).toBeInTheDocument();
+  });
+
+  it('success: start push transfer', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    createTransferMock.mockResolvedValue({
+      ...incoming,
+      status: 'IN_TRANSIT',
+      fromBranchId: 'br1',
+      toBranchId: 'br2',
+    });
+    listTransfersMock.mockResolvedValue([]);
+    renderPage();
+    await openTransfers(user);
+    await user.click(await screen.findByRole('button', { name: 'Start transfer' }));
+    const dialog = await screen.findByRole('dialog');
+    await user.selectOptions(within(dialog).getByLabelText('Stock line on this till'), 'bal1');
+    await user.type(within(dialog).getByLabelText('Quantity'), '2');
+    await user.click(within(dialog).getByRole('button', { name: 'Start transfer' }));
+    await waitFor(() =>
+      expect(createTransferMock).toHaveBeenCalledWith(
+        expect.objectContaining({
+          direction: 'PUSH',
+          counterpartyBranchId: 'br2',
+          lines: [expect.objectContaining({ productId: 'p1', batchId: 'batch1', quantity: 2 })],
+        }),
+      ),
+    );
+    expect(await screen.findByText('Transfer updated.')).toBeInTheDocument();
+  });
+
+  it('success: reject incoming transfer', async () => {
+    const user = userEvent.setup();
+    const waiting = { ...incoming, toBranchId: 'br1', fromBranchId: 'br2' };
+    let rejected = false;
+    listTransfersMock.mockImplementation(async (scope) => {
+      if (scope === 'incoming') {
+        return rejected ? [] : [waiting];
+      }
+      if (scope === 'history' && rejected) {
+        return [{ ...waiting, status: 'REJECTED' }];
+      }
+      return [];
+    });
+    rejectTransferMock.mockImplementation(async () => {
+      rejected = true;
+      return { ...waiting, status: 'REJECTED' };
+    });
+    renderPage();
+    await openTransfers(user);
+    await user.click(await screen.findByRole('button', { name: 'Reject' }));
+    await waitFor(() => expect(rejectTransferMock).toHaveBeenCalledWith('xfer1'));
+    expect(await screen.findByText('Transfer updated.')).toBeInTheDocument();
+  });
+
+  it('success: dispatch pull request', async () => {
+    const user = userEvent.setup();
+    const pull: StockTransfer = {
+      ...incoming,
+      direction: 'PULL',
+      status: 'REQUESTED',
+      fromBranchId: 'br1',
+      toBranchId: 'br2',
+    };
+    let dispatched = false;
+    listTransfersMock.mockImplementation(async (scope) => {
+      if (scope === 'outgoing') {
+        return dispatched ? [] : [pull];
+      }
+      return [];
+    });
+    dispatchTransferMock.mockImplementation(async () => {
+      dispatched = true;
+      return { ...pull, status: 'IN_TRANSIT' };
+    });
+    renderPage();
+    await openTransfers(user);
+    await user.click(await screen.findByRole('button', { name: 'Dispatch' }));
+    await waitFor(() => expect(dispatchTransferMock).toHaveBeenCalledWith('xfer1'));
+    expect(await screen.findByText('Transfer updated.')).toBeInTheDocument();
+  });
+
+  it('restores focus to Start transfer after dialog cancel', async () => {
+    const user = userEvent.setup();
+    listBalancesMock.mockResolvedValue([balance]);
+    renderPage();
+    await openTransfers(user);
+    const start = await screen.findByRole('button', { name: 'Start transfer' });
+    await user.click(start);
+    const dialog = await screen.findByRole('dialog');
+    await user.click(within(dialog).getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Start transfer' })).toHaveFocus();
+    });
   });
 });
