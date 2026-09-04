@@ -5,6 +5,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 
+import com.nammamedmate.server.AbstractIntegrationTest;
 import com.nammamedmate.server.application.notification.NotificationDraft;
 import com.nammamedmate.server.application.notification.NotificationRecorder;
 import com.nammamedmate.server.application.notification.NotificationRoutingService;
@@ -26,36 +27,12 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
-@ActiveProfiles("test")
-@Testcontainers
-class NotificationRoutingRollbackTest {
+class NotificationRoutingRollbackTest extends AbstractIntegrationTest {
 
   private static final Instant T0 = Instant.parse("2026-09-01T08:00:00Z");
-
-  @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine")
-          .withDatabaseName("nammamedmate_rollback")
-          .withUsername("postgres")
-          .withPassword("postgres");
-
-  @DynamicPropertySource
-  static void datasource(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-    registry.add("spring.datasource.username", POSTGRES::getUsername);
-    registry.add("spring.datasource.password", POSTGRES::getPassword);
-  }
 
   @MockBean private NotificationRecorder recorder;
 

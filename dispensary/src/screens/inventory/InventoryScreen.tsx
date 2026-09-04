@@ -3,6 +3,7 @@ import { useCallback, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { AdjustmentWorkspace } from './components/adjustment-workspace/AdjustmentWorkspace';
 import { CatalogueWorkspace } from './components/catalogue-workspace/CatalogueWorkspace';
+import { ControlledStockWorkspace } from './components/controlled-stock-workspace/ControlledStockWorkspace';
 import { FloorStockWorkspace } from './components/floor-stock-workspace/FloorStockWorkspace';
 import { GuidanceWorkspace } from './components/guidance-workspace/GuidanceWorkspace';
 import {
@@ -145,6 +146,13 @@ export default function InventoryScreen() {
           startOpen={stockTakeOpen}
           onStartOpenChange={setStockTakeOpen}
           startButtonRef={stockTakeRef}
+          onStatusChange={onStatusChange}
+        />
+      ) : null}
+      {!denied && view === 'controlled' ? (
+        <ControlledStockWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
           onStatusChange={onStatusChange}
         />
       ) : null}

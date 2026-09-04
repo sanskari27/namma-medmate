@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.inventory;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.compliance.ControlledStockRecorder;
 import com.nammamedmate.server.application.notification.NotificationRoutingService;
 import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AppUser;
@@ -58,6 +59,7 @@ public class InventoryStockService {
   private final LocationRepository locationRepository;
   private final BranchProductStockLevelRepository branchProductStockLevelRepository;
   private final NotificationRoutingService notificationRoutingService;
+  private final ControlledStockRecorder controlledStockRecorder;
   private final Clock clock;
 
   public InventoryStockService(
@@ -70,6 +72,7 @@ public class InventoryStockService {
       LocationRepository locationRepository,
       BranchProductStockLevelRepository branchProductStockLevelRepository,
       NotificationRoutingService notificationRoutingService,
+      ControlledStockRecorder controlledStockRecorder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
@@ -80,6 +83,7 @@ public class InventoryStockService {
     this.locationRepository = locationRepository;
     this.branchProductStockLevelRepository = branchProductStockLevelRepository;
     this.notificationRoutingService = notificationRoutingService;
+    this.controlledStockRecorder = controlledStockRecorder;
     this.clock = clock;
   }
 
@@ -278,6 +282,7 @@ public class InventoryStockService {
             key,
             now);
     stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -365,6 +370,7 @@ public class InventoryStockService {
             key,
             now);
     stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
     maybeNotifyLowStock(ctx, product);
     return loadBalanceView(ctx, balance.getId());
   }

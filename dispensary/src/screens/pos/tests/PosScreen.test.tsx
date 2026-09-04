@@ -57,7 +57,29 @@ vi.mock('@/services/inventory', async () => {
   };
 });
 
+vi.mock('@/services/doctors', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listDoctors: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
+vi.mock('@/services/controlledStock', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    verifyControlledStock: vi.fn(),
+    listControlledStock: vi.fn(),
+    downloadControlledStockExport: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
+import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers } from '@/services/customers';
+import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import {
   assertMedicationSafetyCleared,
@@ -73,6 +95,8 @@ const assertMock = vi.mocked(assertMedicationSafetyCleared);
 const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
+const listDoctorsMock = vi.mocked(listDoctors);
+const verifyControlledMock = vi.mocked(verifyControlledStock);
 
 const customer = {
   id: 'c1',
@@ -142,7 +166,32 @@ const productB = {
   composition: 'Penicillin',
 };
 
-function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
+const doctor = {
+  id: 'd1',
+  tenantId: 't1',
+  name: 'Dr. Mehta',
+  registrationNumber: 'KA-1001',
+  phone: null,
+  notes: null,
+  createdAt: '2026-09-04T00:00:00Z',
+  updatedAt: '2026-09-04T00:00:00Z',
+};
+
+const productH1 = {
+  ...productA,
+  id: 'p-h1',
+  sku: 'SKU-H1',
+  name: 'Alprazolam',
+  scheduleClassification: 'H1' as const,
+  controlledSubstance: true,
+  prescriptionRequired: true,
+};
+
+function renderPage(
+  modules: string[] = ['SALES', 'CRM', 'INVENTORY'],
+  role = 'pharmacy_owner',
+  roles: { id: string; name: string; code: string | null; kind: string }[] = [],
+) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
@@ -150,12 +199,13 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
         user: {
           userId: 'u1',
           displayName: 'Owner',
-          role: 'pharmacy_owner',
+          role,
           tenantId: 't1',
           pinSet: true,
           tenantStatus: 'ACTIVE',
           emailVerified: true,
           modules,
+          roles,
         },
       },
     },
@@ -178,8 +228,16 @@ describe('PosScreen', () => {
     listUnitsMock.mockReset();
     convertMock.mockReset();
     listBatchesMock.mockReset();
+    listDoctorsMock.mockReset();
+    verifyControlledMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA, productB]);
+    listDoctorsMock.mockResolvedValue([doctor]);
+    verifyControlledMock.mockResolvedValue({
+      allowed: true,
+      controlledProductIds: [],
+      schedules: {},
+    });
     listBatchesMock.mockResolvedValue([]);
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
@@ -426,5 +484,68 @@ describe('PosScreen', () => {
     await user.selectOptions(batchSelect, 'b-late');
     expect(batchSelect).toHaveValue('b-late');
     expect(screen.queryByText(/Near expiry — still sellable/i)).not.toBeInTheDocument();
+  });
+
+  it('denied: cashier cannot dispense Schedule H1', async () => {
+    const user = userEvent.setup();
+    listProductsMock.mockResolvedValue([productH1]);
+    renderPage(['SALES', 'CRM'], 'pharmacy_staff', [
+      { id: 'r1', name: 'Cashier', code: 'cashier', kind: 'PREDEFINED' },
+    ]);
+    await screen.findByText('Alprazolam');
+    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
+    expect(await screen.findByLabelText('Schedule dispense')).toBeInTheDocument();
+    expect(screen.getByText(/Cashier-only logins cannot dispense/i)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: 'Complete check' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('cashier-only');
+    expect(verifyControlledMock).not.toHaveBeenCalled();
+  });
+
+  it('validation: Schedule pack needs prescriber and Prescription checked', async () => {
+    const user = userEvent.setup();
+    listProductsMock.mockResolvedValue([productH1]);
+    renderPage();
+    await screen.findByText('Alprazolam');
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
+    await user.click(screen.getByRole('button', { name: 'Complete check' }));
+    expect(screen.getByRole('alert')).toHaveTextContent('prescriber');
+    expect(verifyControlledMock).not.toHaveBeenCalled();
+  });
+
+  it('success: pharmacist verifies prescription then completes', async () => {
+    const user = userEvent.setup();
+    listProductsMock.mockResolvedValue([productH1]);
+    evaluateMock.mockResolvedValue({
+      checkStatus: 'CHECKED',
+      checkLabel: null,
+      productsChecked: 1,
+      warnings: [],
+    });
+    assertMock.mockResolvedValue({ cleared: true });
+    verifyControlledMock.mockResolvedValue({
+      allowed: true,
+      controlledProductIds: ['p-h1'],
+      schedules: { 'p-h1': 'H1' },
+    });
+    renderPage(['SALES', 'INVENTORY', 'CRM'], 'pharmacy_staff', [
+      { id: 'r2', name: 'Pharmacist', code: 'pharmacist', kind: 'PREDEFINED' },
+    ]);
+    await screen.findByText('Alprazolam');
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
+    await user.selectOptions(screen.getByLabelText('Prescriber'), 'd1');
+    await user.click(screen.getByLabelText('Prescription checked'));
+    await user.click(screen.getByRole('button', { name: 'Complete check' }));
+    await waitFor(() => {
+      expect(verifyControlledMock).toHaveBeenCalledWith({
+        customerId: 'c1',
+        doctorId: 'd1',
+        prescriptionVerified: true,
+        productIds: ['p-h1'],
+      });
+    });
+    expect(await screen.findByRole('status')).toHaveTextContent('Safety review recorded');
   });
 });

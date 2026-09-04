@@ -2,7 +2,7 @@ import { Button, Reveal } from '@atoms';
 import type { Ref } from 'react';
 
 export type InventoryViewMode =
-  'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake';
+  'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake' | 'controlled';
 
 const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab: string }> = {
   floor: {
@@ -40,6 +40,12 @@ const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab
     blurb:
       'Owner starts an optional count. Book qty freezes at start; staff count batches and post variances for sign-off.',
     tab: 'Physical count',
+  },
+  controlled: {
+    eyebrow: 'Schedule register',
+    blurb:
+      'H, H1, X, and NDPS movements on this outlet. Export the inspector NDPS sheet or a general CSV.',
+    tab: 'Schedule register',
   },
 };
 
@@ -117,7 +123,15 @@ export function InventoryHeader({
             aria-label="Inventory view"
           >
             {(
-              ['floor', 'catalogue', 'transfers', 'adjustments', 'stocktake', 'guidance'] as const
+              [
+                'floor',
+                'catalogue',
+                'transfers',
+                'adjustments',
+                'stocktake',
+                'controlled',
+                'guidance',
+              ] as const
             ).map((mode, index) => (
               <button
                 key={mode}

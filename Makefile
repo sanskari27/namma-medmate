@@ -93,3 +93,10 @@ typecheck-admin: ## Typecheck admin (tsc)
 compose-config: ## Validate compose files
 	$(COMPOSE) -f compose.yaml config
 	$(COMPOSE) -f compose.prod.yaml config
+
+.PHONY: story-loop
+N ?=
+MODEL ?= cursor-grok-4.6-high
+story-loop: ## Fresh implement-next-story agents, at most N times (required: N=3)
+	@[[ -n "$(N)" ]] || { echo "usage: make story-loop N=3"; exit 1; }
+	MODEL=$(MODEL) ./scripts/story-loop.sh $(N)

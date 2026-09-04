@@ -5,6 +5,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
+import com.nammamedmate.server.AbstractIntegrationTest;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.EmailDeliveryStatus;
@@ -30,42 +31,15 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Testcontainers
-class ResendWebhookTest {
+class ResendWebhookTest extends AbstractIntegrationTest {
 
   private static final Instant T0 = Instant.parse("2026-09-01T08:00:00Z");
   private static final String PROVIDER_ID = "49a3999c-0ce1-4ea6-ab68-afcd6dc2e794";
-
-  @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine")
-          .withDatabaseName("nammamedmate_resend_webhook")
-          .withUsername("postgres")
-          .withPassword("postgres");
-
-  @DynamicPropertySource
-  static void datasource(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-    registry.add("spring.datasource.username", POSTGRES::getUsername);
-    registry.add("spring.datasource.password", POSTGRES::getPassword);
-    registry.add("app.resend.webhook-secret", () -> "test-webhook-secret");
-  }
 
   @Autowired private MockMvc mockMvc;
   @Autowired private TransactionalEmailRepository emailRepository;

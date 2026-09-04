@@ -68,6 +68,14 @@ public class AccessQueryService {
   }
 
   @Transactional(readOnly = true)
+  public boolean hasAssignedRoleCode(AppUser user, String code) {
+    if (user == null || code == null || code.isBlank()) {
+      return false;
+    }
+    return assignedViews(user).stream().anyMatch(view -> code.equals(view.code()));
+  }
+
+  @Transactional(readOnly = true)
   public Set<ModuleCode> effectiveModules(AppUser user) {
     List<AccessRoleView> assigned = assignedViews(user);
     Set<ModuleCode> assignedModules =

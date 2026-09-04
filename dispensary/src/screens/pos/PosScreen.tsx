@@ -1,4 +1,6 @@
+import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers, type Customer } from '@/services/customers';
+import { listDoctors, type Doctor } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import {
   assertMedicationSafetyCleared,
@@ -12,31 +14,43 @@ import type { RootState } from '@/store';
 import { useCallback, useEffect, useId, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { PosAckFooter } from './components/pos-ack-footer';
+import { PosControlledGate } from './components/pos-controlled-gate';
 import { PosCustomerPicker } from './components/pos-customer-picker';
 import { PosDraftLines, type PosDraftLine } from './components/pos-draft-lines';
 import { PosHeader } from './components/pos-header';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosWarningPanel } from './components/pos-warning-panel';
-import { hasSalesAccess, mapApiStatus, type PageStatus } from './PosScreen.utils';
+import {
+  canDispenseControlled,
+  hasSalesAccess,
+  isControlledProduct,
+  mapApiStatus,
+  type PageStatus,
+} from './PosScreen.utils';
 
 export default function PosScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasSalesAccess(user?.modules);
+  const canDispense = canDispenseControlled(user?.role, user?.roles);
   const titleId = useId();
   const statusId = useId();
 
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [customers, setCustomers] = useState<Customer[]>([]);
+  const [doctors, setDoctors] = useState<Doctor[]>([]);
   const [catalogue, setCatalogue] = useState<Product[]>([]);
   const [customerQuery, setCustomerQuery] = useState('');
   const [productQuery, setProductQuery] = useState('');
   const [selectedCustomer, setSelectedCustomer] = useState<Customer | null>(null);
+  const [selectedDoctorId, setSelectedDoctorId] = useState('');
+  const [prescriptionVerified, setPrescriptionVerified] = useState(false);
   const [draft, setDraft] = useState<PosDraftLine[]>([]);
   const [evaluation, setEvaluation] = useState<SafetyEvaluation | null>(null);
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
 
   const productIds = draft.map((line) => line.product.id);
+  const controlledDraft = draft.some((line) => isControlledProduct(line.product));
 
   const refreshConversion = useCallback(
     async (productId: string, unit: ProductUnit, quantity: string) => {
@@ -79,9 +93,14 @@ export default function PosScreen() {
     }
     setStatus('loading');
     try {
-      const [customerItems, productItems] = await Promise.all([listCustomers(), listProducts()]);
+      const [customerItems, productItems, doctorItems] = await Promise.all([
+        listCustomers(),
+        listProducts(),
+        listDoctors().catch(() => [] as Doctor[]),
+      ]);
       setCustomers(customerItems);
       setCatalogue(productItems);
+      setDoctors(doctorItems);
       setStatus(productItems.length === 0 ? 'empty' : null);
     } catch (error) {
       setStatus(
@@ -196,6 +215,16 @@ export default function PosScreen() {
       setStatus('validation');
       return;
     }
+    if (controlledDraft) {
+      if (!canDispense) {
+        setStatus('denied');
+        return;
+      }
+      if (!selectedDoctorId || !prescriptionVerified) {
+        setStatus('validation');
+        return;
+      }
+    }
     const warnings = evaluation?.warnings ?? [];
     if (warnings.length > 0 && !reason.trim()) {
       setStatus('validation');
@@ -203,6 +232,14 @@ export default function PosScreen() {
     }
     setBusy(true);
     try {
+      if (controlledDraft && selectedCustomer && selectedDoctorId) {
+        await verifyControlledStock({
+          customerId: selectedCustomer.id,
+          doctorId: selectedDoctorId,
+          prescriptionVerified,
+          productIds,
+        });
+      }
       if (!evaluation) {
         const fresh = await evaluateMedicationSafety(selectedCustomer.id, productIds);
         setEvaluation(fresh);
@@ -267,6 +304,17 @@ export default function PosScreen() {
             }}
             busy={busy}
           />
+          {controlledDraft ? (
+            <PosControlledGate
+              doctors={doctors}
+              selectedDoctorId={selectedDoctorId}
+              onDoctorChange={setSelectedDoctorId}
+              prescriptionVerified={prescriptionVerified}
+              onPrescriptionVerifiedChange={setPrescriptionVerified}
+              canDispense={canDispense}
+              busy={busy}
+            />
+          ) : null}
           <PosDraftLines
             query={productQuery}
             onQueryChange={setProductQuery}

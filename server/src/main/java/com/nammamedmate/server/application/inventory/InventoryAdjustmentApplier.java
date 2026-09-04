@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.inventory;
 import com.nammamedmate.server.application.approval.ApprovalDecisionListener;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.compliance.ControlledStockRecorder;
 import com.nammamedmate.server.domain.ApprovalDecisionOutcome;
 import com.nammamedmate.server.domain.StockAdjustment;
 import com.nammamedmate.server.domain.StockAdjustmentDirection;
@@ -33,6 +34,7 @@ public class InventoryAdjustmentApplier implements ApprovalDecisionListener {
   private final StockBatchRepository stockBatchRepository;
   private final StockMovementRepository stockMovementRepository;
   private final AuditService auditService;
+  private final ControlledStockRecorder controlledStockRecorder;
   private final Clock clock;
 
   public InventoryAdjustmentApplier(
@@ -41,12 +43,14 @@ public class InventoryAdjustmentApplier implements ApprovalDecisionListener {
       StockBatchRepository stockBatchRepository,
       StockMovementRepository stockMovementRepository,
       AuditService auditService,
+      ControlledStockRecorder controlledStockRecorder,
       Clock clock) {
     this.stockAdjustmentRepository = stockAdjustmentRepository;
     this.stockBalanceRepository = stockBalanceRepository;
     this.stockBatchRepository = stockBatchRepository;
     this.stockMovementRepository = stockMovementRepository;
     this.auditService = auditService;
+    this.controlledStockRecorder = controlledStockRecorder;
     this.clock = clock;
   }
 
@@ -125,6 +129,7 @@ public class InventoryAdjustmentApplier implements ApprovalDecisionListener {
     movement.setOccurredAt(now);
     movement.setCreatedAt(now);
     stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
   }
 
   private StockBalance lockOrCreateBalance(StockAdjustment adjustment) {

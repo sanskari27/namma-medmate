@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.inventory;
 import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.compliance.ControlledStockRecorder;
 import com.nammamedmate.server.application.notification.NotificationRoutingService;
 import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AppUser;
@@ -72,6 +73,7 @@ public class StockTransferService {
   private final StockTransferLineRepository stockTransferLineRepository;
   private final AuditService auditService;
   private final NotificationRoutingService notificationRoutingService;
+  private final ControlledStockRecorder controlledStockRecorder;
   private final Clock clock;
 
   public StockTransferService(
@@ -86,6 +88,7 @@ public class StockTransferService {
       StockTransferLineRepository stockTransferLineRepository,
       AuditService auditService,
       NotificationRoutingService notificationRoutingService,
+      ControlledStockRecorder controlledStockRecorder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
@@ -98,6 +101,7 @@ public class StockTransferService {
     this.stockTransferLineRepository = stockTransferLineRepository;
     this.auditService = auditService;
     this.notificationRoutingService = notificationRoutingService;
+    this.controlledStockRecorder = controlledStockRecorder;
     this.clock = clock;
   }
 
@@ -386,20 +390,22 @@ public class StockTransferService {
       balance.setUpdatedAt(now);
       stockBalanceRepository.saveAndFlush(balance);
       Long price = purchasePrice(tenantId, line.getBatchId());
-      stockMovementRepository.saveAndFlush(
-          newMovement(
-              tenantId,
-              fromBranchId,
-              userId,
-              line.getProductId(),
-              line.getBatchId(),
-              balance.getId(),
-              StockMovementType.TRANSFER_OUT,
-              line.getQuantity(),
-              next,
-              price,
-              "xfer-out:" + transferId + ":" + line.getId(),
-              now));
+      StockMovement movement =
+          stockMovementRepository.saveAndFlush(
+              newMovement(
+                  tenantId,
+                  fromBranchId,
+                  userId,
+                  line.getProductId(),
+                  line.getBatchId(),
+                  balance.getId(),
+                  StockMovementType.TRANSFER_OUT,
+                  line.getQuantity(),
+                  next,
+                  price,
+                  "xfer-out:" + transferId + ":" + line.getId(),
+                  now));
+      controlledStockRecorder.record(movement);
     }
   }
 
@@ -419,20 +425,22 @@ public class StockTransferService {
       balance.setUpdatedAt(now);
       stockBalanceRepository.saveAndFlush(balance);
       Long price = purchasePrice(tenantId, line.getBatchId());
-      stockMovementRepository.saveAndFlush(
-          newMovement(
-              tenantId,
-              toBranchId,
-              userId,
-              line.getProductId(),
-              line.getBatchId(),
-              balance.getId(),
-              StockMovementType.TRANSFER_IN,
-              line.getQuantity(),
-              next,
-              price,
-              "xfer-in:" + transferId + ":" + line.getId(),
-              now));
+      StockMovement movement =
+          stockMovementRepository.saveAndFlush(
+              newMovement(
+                  tenantId,
+                  toBranchId,
+                  userId,
+                  line.getProductId(),
+                  line.getBatchId(),
+                  balance.getId(),
+                  StockMovementType.TRANSFER_IN,
+                  line.getQuantity(),
+                  next,
+                  price,
+                  "xfer-in:" + transferId + ":" + line.getId(),
+                  now));
+      controlledStockRecorder.record(movement);
     }
   }
 
@@ -452,20 +460,22 @@ public class StockTransferService {
       balance.setUpdatedAt(now);
       stockBalanceRepository.saveAndFlush(balance);
       Long price = purchasePrice(tenantId, line.getBatchId());
-      stockMovementRepository.saveAndFlush(
-          newMovement(
-              tenantId,
-              fromBranchId,
-              userId,
-              line.getProductId(),
-              line.getBatchId(),
-              balance.getId(),
-              StockMovementType.TRANSFER_IN,
-              line.getQuantity(),
-              next,
-              price,
-              "xfer-restore:" + transferId + ":" + line.getId(),
-              now));
+      StockMovement movement =
+          stockMovementRepository.saveAndFlush(
+              newMovement(
+                  tenantId,
+                  fromBranchId,
+                  userId,
+                  line.getProductId(),
+                  line.getBatchId(),
+                  balance.getId(),
+                  StockMovementType.TRANSFER_IN,
+                  line.getQuantity(),
+                  next,
+                  price,
+                  "xfer-restore:" + transferId + ":" + line.getId(),
+                  now));
+      controlledStockRecorder.record(movement);
     }
   }
 

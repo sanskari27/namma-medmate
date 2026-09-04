@@ -12,6 +12,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.AbstractIntegrationTest;
 import com.nammamedmate.server.application.email.AdapterSendRequest;
 import com.nammamedmate.server.application.email.AdapterSendResult;
 import com.nammamedmate.server.domain.AppUser;
@@ -40,43 +41,17 @@ import org.junit.jupiter.api.Test;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mockito;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
-import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.test.context.ActiveProfiles;
-import org.springframework.test.context.DynamicPropertyRegistry;
-import org.springframework.test.context.DynamicPropertySource;
 import org.springframework.test.web.servlet.MockMvc;
-import org.testcontainers.containers.PostgreSQLContainer;
-import org.testcontainers.junit.jupiter.Container;
-import org.testcontainers.junit.jupiter.Testcontainers;
 
-@SpringBootTest
-@AutoConfigureMockMvc
-@ActiveProfiles("test")
-@Testcontainers
-class AuthPasswordTest {
+class AuthPasswordTest extends AbstractIntegrationTest {
 
   private static final String PASSWORD = "counter-pass-1";
   private static final String NEXT_PASSWORD = "counter-pass-2";
   private static final String THIRD_PASSWORD = "counter-pass-3";
   private static final Pattern TOKEN_IN_URL = Pattern.compile("token=([^\\s<&\"]+)");
-
-  @Container
-  static final PostgreSQLContainer<?> POSTGRES =
-      new PostgreSQLContainer<>("postgres:16-alpine")
-          .withDatabaseName("nammamedmate_password")
-          .withUsername("postgres")
-          .withPassword("postgres");
-
-  @DynamicPropertySource
-  static void datasource(DynamicPropertyRegistry registry) {
-    registry.add("spring.datasource.url", POSTGRES::getJdbcUrl);
-    registry.add("spring.datasource.username", POSTGRES::getUsername);
-    registry.add("spring.datasource.password", POSTGRES::getPassword);
-  }
 
   @MockBean private ResendEmailAdapter resendEmailAdapter;
 

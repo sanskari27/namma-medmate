@@ -160,7 +160,13 @@ export const emptyForm: FormState = {
 export function statusCopy(
   status: PageStatus,
   view:
-    'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake' = 'catalogue',
+    | 'floor'
+    | 'catalogue'
+    | 'transfers'
+    | 'adjustments'
+    | 'guidance'
+    | 'stocktake'
+    | 'controlled' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -301,6 +307,41 @@ export function statusCopy(
           icon: BadgeCheck,
           text: 'Physical count updated. Variances wait on Adjustments for sign-off.',
         };
+      default:
+        return null;
+    }
+  }
+  if (view === 'controlled') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading the Schedule register for this outlet…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No Schedule H, H1, X, or NDPS movements on this outlet yet.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Check the schedule filter, then try the export again.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till login cannot open the Schedule register. Ask the owner to grant Inventory.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Register export scope changed. Stay on this outlet and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Schedule register exported for this outlet.' };
       default:
         return null;
     }
@@ -540,7 +581,7 @@ export function mapApiStatus(error: unknown): PageStatus {
   if (error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
-  if (error.code === 'SKU_TAKEN' || error.status === 409) {
+  if (error.code === 'SKU_TAKEN' || error.status === 409 || error.code === 'NOT_FOUND') {
     return 'conflict';
   }
   if (

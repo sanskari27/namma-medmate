@@ -113,6 +113,17 @@ vi.mock('@/services/stockTakes', async () => {
   };
 });
 
+vi.mock('@/services/controlledStock', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listControlledStock: vi.fn(),
+    downloadControlledStockExport: vi.fn(),
+    verifyControlledStock: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -152,6 +163,9 @@ import {
   startStockTake,
 } from '@/services/stockTakes';
 import type { StockTake } from '@/services/stockTakes';
+import { downloadControlledStockExport, listControlledStock } from '@/services/controlledStock';
+import type { ControlledStockLine } from '@/services/controlledStock';
+
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
 const updateMock = vi.mocked(updateProduct);
@@ -185,6 +199,8 @@ const startStockTakeMock = vi.mocked(startStockTake);
 const saveStockTakeCountsMock = vi.mocked(saveStockTakeCounts);
 const postStockTakeMock = vi.mocked(postStockTake);
 const cancelStockTakeMock = vi.mocked(cancelStockTake);
+const listControlledStockMock = vi.mocked(listControlledStock);
+const downloadControlledExportMock = vi.mocked(downloadControlledStockExport);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -1564,5 +1580,120 @@ describe('inventory physical count', () => {
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'Start count' })).toHaveFocus();
     });
+  });
+});
+
+describe('schedule register', () => {
+  const line: ControlledStockLine = {
+    id: 'reg1',
+    stockMovementId: 'mv1',
+    productId: 'p1',
+    productName: 'Alprazolam',
+    sku: 'SKU-H1',
+    scheduleClassification: 'H1',
+    batchId: 'b1',
+    batchNumber: 'LOT-H1',
+    expiresOn: '2027-01-01',
+    quantity: 10,
+    balanceAfter: 10,
+    movementType: 'STOCK_IN',
+    createdByUserId: 'u1',
+    occurredAt: '2026-09-04T10:00:00Z',
+  };
+
+  beforeEach(() => {
+    listControlledStockMock.mockReset();
+    downloadControlledExportMock.mockReset();
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    listControlledStockMock.mockResolvedValue([]);
+  });
+
+  async function openRegister(user: ReturnType<typeof userEvent.setup>) {
+    await user.click(screen.getByRole('tab', { name: 'Schedule register' }));
+  }
+
+  it('loading: waits for schedule register', async () => {
+    const user = userEvent.setup();
+    listControlledStockMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await openRegister(user);
+    expect(screen.getByText('Loading the Schedule register for this outlet…')).toBeInTheDocument();
+  });
+
+  it('empty: no controlled movements', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await openRegister(user);
+    expect(
+      await screen.findByText('No Schedule H, H1, X, or NDPS movements on this outlet yet.'),
+    ).toBeInTheDocument();
+  });
+
+  it('denied: register API FORBIDDEN', async () => {
+    const user = userEvent.setup();
+    listControlledStockMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
+    renderPage();
+    await openRegister(user);
+    expect(
+      await screen.findByText(
+        'This till login cannot open the Schedule register. Ask the owner to grant Inventory.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('failure: no active outlet', async () => {
+    const user = userEvent.setup();
+    renderPage(['INVENTORY'], null);
+    await openRegister(user);
+    expect(
+      await screen.findByText(
+        'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('conflict: altered export scope', async () => {
+    const user = userEvent.setup();
+    listControlledStockMock.mockResolvedValue([line]);
+    downloadControlledExportMock.mockRejectedValue(new ApiError('Not found', 404, 'NOT_FOUND'));
+    renderPage();
+    await openRegister(user);
+    await screen.findByText('Alprazolam');
+    await user.click(screen.getByRole('button', { name: 'Download general CSV' }));
+    expect(
+      await screen.findByText('Register export scope changed. Stay on this outlet and try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('validation: bad schedule filter', async () => {
+    const user = userEvent.setup();
+    listControlledStockMock.mockRejectedValue(new ApiError('Invalid', 400, 'VALIDATION_ERROR'));
+    renderPage();
+    await openRegister(user);
+    expect(
+      await screen.findByText('Check the schedule filter, then try the export again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: lists movement and exports NDPS sheet', async () => {
+    const user = userEvent.setup();
+    listControlledStockMock.mockResolvedValue([line]);
+    downloadControlledExportMock.mockResolvedValue(
+      new Blob(['date_ist,particulars\n'], { type: 'text/csv' }),
+    );
+    const createObjectURL = vi.fn(() => 'blob:ndps');
+    const revokeObjectURL = vi.fn();
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
+    renderPage();
+    await openRegister(user);
+    expect(await screen.findByText('Alprazolam')).toBeInTheDocument();
+    expect(screen.getByText('STOCK_IN')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Download NDPS sheet' }));
+    await waitFor(() => expect(downloadControlledExportMock).toHaveBeenCalledWith('ndps', {}));
+    expect(
+      await screen.findByText('Schedule register exported for this outlet.'),
+    ).toBeInTheDocument();
+    vi.unstubAllGlobals();
   });
 });
