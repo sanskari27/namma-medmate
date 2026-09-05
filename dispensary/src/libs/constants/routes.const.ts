@@ -25,6 +25,7 @@ export const ROUTES = {
   ACCOUNTANT: '/accountant',
   ACCOUNT: '/account',
   LICENSES: '/licenses',
+  CONTROLLED_REGISTER: '/controlled-register',
   EMPLOYEES: '/employees',
   USERS: '/users',
   ROLES: '/roles',
@@ -112,6 +113,11 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Account', path: ROUTES.ACCOUNT, hint: 'Pharmacy account' },
       { label: 'Licences', path: ROUTES.LICENSES, hint: 'Drug, GST, FSSAI and pharmacist papers' },
+      {
+        label: 'NDPS sale book',
+        path: ROUTES.CONTROLLED_REGISTER,
+        hint: 'Who this outlet sold Schedule stock to',
+      },
       { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
       { label: 'Staff accounts', path: ROUTES.USERS, hint: 'Who can sign in at this pharmacy' },
       { label: 'Floor roles', path: ROUTES.ROLES, hint: 'What each staff login can access' },
@@ -151,6 +157,7 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.ACTIVITY &&
     item.path !== ROUTES.ACCOUNT &&
     item.path !== ROUTES.LICENSES &&
+    item.path !== ROUTES.CONTROLLED_REGISTER &&
     item.path !== ROUTES.BRANCHES &&
     item.path !== ROUTES.SUBSCRIPTION &&
     item.path !== ROUTES.KIOSK &&

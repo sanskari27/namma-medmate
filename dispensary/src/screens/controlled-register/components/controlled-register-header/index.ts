@@ -1,0 +1,1 @@
+export { ControlledRegisterHeader } from './ControlledRegisterHeader';

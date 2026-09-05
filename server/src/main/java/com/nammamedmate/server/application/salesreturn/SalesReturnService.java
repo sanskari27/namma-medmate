@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.salesreturn;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.compliance.ControlledSaleRecorder;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.customercredit.CustomerCreditService;
@@ -66,6 +67,7 @@ public class SalesReturnService {
   private final CustomerCreditService customerCreditService;
   private final LoyaltyService loyaltyService;
   private final AuditService auditService;
+  private final ControlledSaleRecorder controlledSaleRecorder;
   private final Clock clock;
 
   public SalesReturnService(
@@ -82,6 +84,7 @@ public class SalesReturnService {
       CustomerCreditService customerCreditService,
       LoyaltyService loyaltyService,
       AuditService auditService,
+      ControlledSaleRecorder controlledSaleRecorder,
       Clock clock) {
     this.salesReturnRepository = salesReturnRepository;
     this.salesReturnLineRepository = salesReturnLineRepository;
@@ -96,6 +99,7 @@ public class SalesReturnService {
     this.customerCreditService = customerCreditService;
     this.loyaltyService = loyaltyService;
     this.auditService = auditService;
+    this.controlledSaleRecorder = controlledSaleRecorder;
     this.clock = clock;
   }
 
@@ -201,6 +205,7 @@ public class SalesReturnService {
       lines.add(line);
     }
     salesReturnLineRepository.saveAllAndFlush(lines);
+    controlledSaleRecorder.recordReturn(prepared.invoice(), lines, now);
 
     if (prepared.refundMode() == SalesReturnRefundMode.CREDIT_NOTE) {
       customerCreditService.postCreditNote(
