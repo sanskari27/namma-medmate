@@ -35,4 +35,19 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
 
   List<SalesInvoice> findByTenantIdAndBranchIdAndStatusOrderByCreatedAtDesc(
       UUID tenantId, UUID branchId, SalesInvoiceStatus status);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query(
+      """
+      select i from SalesInvoice i
+      where i.tenantId = :tenantId
+        and i.customerId = :customerId
+        and i.status = :status
+        and i.loyaltyPendingTaxablePaise > 0
+      order by i.completedAt asc
+      """)
+  List<SalesInvoice> lockCompletedWithPendingLoyalty(
+      @Param("tenantId") UUID tenantId,
+      @Param("customerId") UUID customerId,
+      @Param("status") SalesInvoiceStatus status);
 }

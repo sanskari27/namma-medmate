@@ -7,6 +7,7 @@ import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
 import { PosHoldList } from './components/pos-hold-list';
+import { PosLoyaltyPanel } from './components/pos-loyalty-panel';
 import { PosOfferPanel } from './components/pos-offer-panel';
 import { PosPrescriptionPanel } from './components/pos-prescription-panel';
 import { PosStatusBanner } from './components/pos-status-banner';
@@ -136,19 +137,33 @@ export default function PosScreen() {
             busy={till.busy}
           />
           {till.invoice ? (
-            <PosTenderPanel
-              tender={till.tender}
-              preview={till.tenderPreview}
-              totalPaise={till.invoice.totalPaise}
-              walkIn={till.walkIn}
-              hasCustomer={Boolean(till.selectedCustomer)}
-              availablePaise={till.creditAvailablePaise}
-              collected={till.collected}
-              disabled={till.draft.length === 0}
-              busy={till.busy}
-              onChange={till.setTender}
-              onCollect={till.runCollect}
-            />
+            <>
+              <PosLoyaltyPanel
+                visible={Boolean(till.selectedCustomer) && till.loyaltyEntitled && !till.walkIn}
+                loading={till.loyaltyLoading}
+                loadFailed={till.loyaltyFailed}
+                balancePoints={till.loyalty?.balancePoints ?? 0}
+                redeemPoints={till.redeemPoints}
+                totalPaise={till.invoice.totalPaise}
+                collected={till.collected}
+                disabled={till.draft.length === 0}
+                busy={till.busy}
+                onChange={till.setRedeemPoints}
+              />
+              <PosTenderPanel
+                tender={till.tender}
+                preview={till.tenderPreview}
+                totalPaise={till.invoice.totalPaise}
+                walkIn={till.walkIn}
+                hasCustomer={Boolean(till.selectedCustomer)}
+                availablePaise={till.creditAvailablePaise}
+                collected={till.collected}
+                disabled={till.draft.length === 0}
+                busy={till.busy}
+                onChange={till.setTender}
+                onCollect={till.runCollect}
+              />
+            </>
           ) : null}
           <PosWarningPanel
             evaluation={till.evaluation}

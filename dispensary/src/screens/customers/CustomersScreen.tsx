@@ -24,6 +24,10 @@ import {
 } from '@/services/customers';
 import { getCustomerCredit, setCustomerCreditLimit, type CustomerCredit } from '@/services/credit';
 import {
+  getCustomerLoyalty,
+  type CustomerLoyalty,
+} from '@/services/loyalty';
+import {
   createCustomerRefill,
   createTenantTag,
   deleteCustomerRefill,
@@ -47,6 +51,7 @@ import type { RootState } from '@/store';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import { CustomerCreditSection } from './components/customer-credit-section';
+import { CustomerLoyaltySection } from './components/customer-loyalty-section';
 import { CustomerDoctorSection } from './components/customer-doctor-section';
 import { CustomerDueRefillsStrip } from './components/customer-due-refills-strip';
 import { CustomerFamilyCreditSection } from './components/customer-family-credit-section';
@@ -63,6 +68,7 @@ import {
   emptyForm,
   hasCrmAccess,
   hasHealthFlag,
+  hasLoyaltyAccess,
   statusCopy,
   toForm,
   toInput,
@@ -79,6 +85,7 @@ export default function CustomersScreen() {
   const familyLinkRef = useRef<HTMLButtonElement | null>(null);
   const doctorAddRef = useRef<HTMLButtonElement | null>(null);
   const settleRef = useRef<HTMLButtonElement | null>(null);
+  const loyaltyAdjustRef = useRef<HTMLButtonElement | null>(null);
   const [status, setStatus] = useState<PageStatus>('loading');
   const [customers, setCustomers] = useState<Customer[]>([]);
   const [query, setQuery] = useState('');
@@ -114,6 +121,8 @@ export default function CustomersScreen() {
   const [doctorsLoading, setDoctorsLoading] = useState(false);
   const [credit, setCredit] = useState<CustomerCredit | null>(null);
   const [creditLoading, setCreditLoading] = useState(false);
+  const [loyalty, setLoyalty] = useState<CustomerLoyalty | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
   const [refills, setRefills] = useState<CustomerRefill[]>([]);
   const [refillsLoading, setRefillsLoading] = useState(false);
   const [refillBusy, setRefillBusy] = useState(false);
@@ -126,6 +135,8 @@ export default function CustomersScreen() {
 
   const allowed = hasCrmAccess(user?.modules);
   const canSetLimit = user?.role === 'pharmacy_owner';
+  const canAdjustLoyalty = user?.role === 'pharmacy_owner';
+  const loyaltyEntitled = hasLoyaltyAccess(user?.modules);
   const selected = customers.find((row) => row.id === selectedId) ?? null;
   const flagged = customers.filter(hasHealthFlag).length;
   const banner = statusCopy(status);
@@ -235,6 +246,19 @@ export default function CustomersScreen() {
     }
   }, []);
 
+  const loadLoyalty = useCallback(async (customerId: string) => {
+    setLoyaltyLoading(true);
+    try {
+      const next = await getCustomerLoyalty(customerId);
+      setLoyalty(next);
+    } catch {
+      setLoyalty(null);
+      setStatus('failure');
+    } finally {
+      setLoyaltyLoading(false);
+    }
+  }, []);
+
   const loadRefills = useCallback(async (customerId: string) => {
     setRefillsLoading(true);
     try {
@@ -307,6 +331,7 @@ export default function CustomersScreen() {
       setPurchaseItems([]);
       setPurchaseTypeFilter('');
       setCredit(null);
+      setLoyalty(null);
       setRefills([]);
       setCustomerTags([]);
       return;
@@ -314,9 +339,18 @@ export default function CustomersScreen() {
     void loadFamily(selectedId);
     void loadPurchaseHistory(selectedId);
     void loadCredit(selectedId);
+    void loadLoyalty(selectedId);
     void loadRefills(selectedId);
     void loadCustomerTags(selectedId);
-  }, [selectedId, loadFamily, loadPurchaseHistory, loadCredit, loadRefills, loadCustomerTags]);
+  }, [
+    selectedId,
+    loadFamily,
+    loadPurchaseHistory,
+    loadCredit,
+    loadLoyalty,
+    loadRefills,
+    loadCustomerTags,
+  ]);
 
   useEffect(() => {
     if (!family?.id) {
@@ -647,6 +681,23 @@ export default function CustomersScreen() {
                     version: credit.version,
                   });
                   setSettleOpen(true);
+                }}
+              />
+            ) : null
+          }
+          loyaltySection={
+            selected ? (
+              <CustomerLoyaltySection
+                loyalty={loyalty}
+                loading={loyaltyLoading}
+                entitled={loyaltyEntitled}
+                canAdjust={canAdjustLoyalty}
+                adjustButtonRef={loyaltyAdjustRef}
+                onAdjusted={() => {
+                  if (selectedId) {
+                    void loadLoyalty(selectedId);
+                  }
+                  setStatus('success');
                 }}
               />
             ) : null

@@ -236,6 +236,7 @@ public class SalesInvoiceController {
                     request.expectedTotalPaise(),
                     request.changePaise(),
                     request.idempotencyKey(),
+                    request.redeemPoints(),
                     request.payments().stream()
                         .map(
                             payment ->
@@ -306,6 +307,11 @@ public class SalesInvoiceController {
         view.amountPaidPaise(),
         view.amountDuePaise(),
         view.changePaise(),
+        view.loyaltyRedeemPoints(),
+        view.loyaltyRedeemPaise(),
+        view.loyaltyEarnedPoints(),
+        view.loyaltyTaxablePaise(),
+        view.loyaltyPendingTaxablePaise(),
         view.completedAt(),
         view.payments() == null
             ? List.of()
@@ -408,6 +414,7 @@ public class SalesInvoiceController {
       @NotNull Long expectedTotalPaise,
       Long changePaise,
       @NotBlank @Size(max = 128) String idempotencyKey,
+      Integer redeemPoints,
       @NotEmpty List<@Valid PaymentRequest> payments) {}
 
   public record PaymentRequest(
@@ -449,6 +456,11 @@ public class SalesInvoiceController {
       long amountPaidPaise,
       long amountDuePaise,
       long changePaise,
+      long loyaltyRedeemPoints,
+      long loyaltyRedeemPaise,
+      long loyaltyEarnedPoints,
+      long loyaltyTaxablePaise,
+      long loyaltyPendingTaxablePaise,
       Instant completedAt,
       List<PaymentResponse> payments,
       List<LineResponse> lines,

@@ -65,6 +65,18 @@ vi.mock('@/services/credit', async () => {
   };
 });
 
+vi.mock('@/services/loyalty', async () => {
+  const axios = await import('@/services/axios');
+  const actual = await vi.importActual<typeof import('@/services/loyalty')>('@/services/loyalty');
+  return {
+    ...actual,
+    getCustomerLoyalty: vi.fn(),
+    adjustCustomerLoyalty: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 vi.mock('@/services/customerRefills', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -100,6 +112,7 @@ import {
 } from '@/services/customerFamilies';
 import { createDoctor, listDoctors, listTopReferringDoctors } from '@/services/doctors';
 import { getCustomerCredit, setCustomerCreditLimit } from '@/services/credit';
+import { getCustomerLoyalty } from '@/services/loyalty';
 import {
   createCustomerRefill,
   createTenantTag,
@@ -126,6 +139,7 @@ const listTopMock = vi.mocked(listTopReferringDoctors);
 const createDoctorMock = vi.mocked(createDoctor);
 const getCreditMock = vi.mocked(getCustomerCredit);
 const setLimitMock = vi.mocked(setCustomerCreditLimit);
+const getLoyaltyMock = vi.mocked(getCustomerLoyalty);
 const listRefillsMock = vi.mocked(listCustomerRefills);
 const listDueMock = vi.mocked(listDueRefills);
 const createRefillMock = vi.mocked(createCustomerRefill);
@@ -195,6 +209,7 @@ describe('counter customers', () => {
     createDoctorMock.mockReset();
     getCreditMock.mockReset();
     setLimitMock.mockReset();
+    getLoyaltyMock.mockReset();
     listRefillsMock.mockReset();
     listDueMock.mockReset();
     createRefillMock.mockReset();
@@ -221,6 +236,12 @@ describe('counter customers', () => {
       limitPaise: 0,
       balancePaise: 0,
       availablePaise: 0,
+      version: 0,
+      entries: [],
+    });
+    getLoyaltyMock.mockResolvedValue({
+      customerId: 'c1',
+      balancePoints: 0,
       version: 0,
       entries: [],
     });
@@ -955,5 +976,51 @@ describe('counter customers', () => {
         'That change conflicts with existing floor data — duplicate phone, refill, or tag. Refresh and try again.',
       ),
     ).toBeInTheDocument();
+  });
+
+  it('success: selected patient shows running points on the profile', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getLoyaltyMock.mockResolvedValue({
+      customerId: 'c1',
+      balancePoints: 21,
+      version: 1,
+      entries: [
+        {
+          id: 'le1',
+          type: 'EARN',
+          points: 21,
+          deltaPoints: 21,
+          balanceAfterPoints: 21,
+          invoiceId: 'inv-1',
+          salesReturnId: null,
+          taxablePaise: 210000,
+          reason: null,
+          occurredAt: '2026-09-04T05:30:00Z',
+        },
+      ],
+    });
+    renderPage(['CRM', 'SALES', 'LOYALTY']);
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const points = await screen.findByLabelText('Points');
+    expect(within(points).getByText('21 pts')).toBeInTheDocument();
+    expect(within(points).getByText('Earned')).toBeInTheDocument();
+    expect(within(points).getByRole('button', { name: 'Adjust points' })).toBeInTheDocument();
+  });
+
+  it('denied: plan without loyalty still shows frozen points copy', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    getLoyaltyMock.mockResolvedValue({
+      customerId: 'c1',
+      balancePoints: 8,
+      version: 1,
+      entries: [],
+    });
+    renderPage(['CRM', 'SALES']);
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    const points = await screen.findByLabelText('Points');
+    expect(within(points).getByText(/Not on this plan/)).toBeInTheDocument();
+    expect(within(points).getByText('8 pts')).toBeInTheDocument();
   });
 });

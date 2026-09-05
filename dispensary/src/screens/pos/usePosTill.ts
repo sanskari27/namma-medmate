@@ -1,5 +1,12 @@
 import { getCustomerCredit } from '@/services/credit';
 import { verifyControlledStock } from '@/services/controlledStock';
+import {
+  collectiblePaise,
+  getCustomerLoyalty,
+  maxRedeemPoints,
+  parseRedeemPoints,
+  type CustomerLoyalty,
+} from '@/services/loyalty';
 import { listCustomers, type Customer } from '@/services/customers';
 import { listDoctors, type Doctor } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
@@ -30,6 +37,7 @@ import {
   canDispenseControlled,
   collectStatusHint,
   emptyTender,
+  hasLoyaltyAccess,
   hasSalesAccess,
   invoiceTotals,
   isControlledProduct,
@@ -46,6 +54,7 @@ import {
 export function usePosTill() {
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasSalesAccess(user?.modules);
+  const loyaltyEntitled = hasLoyaltyAccess(user?.modules);
   const canDispense = canDispenseControlled(user?.role, user?.roles);
   const idempotencyKey = useRef(crypto.randomUUID());
   const completeKey = useRef(crypto.randomUUID());
@@ -77,10 +86,36 @@ export function usePosTill() {
   const [tender, setTender] = useState<TenderDraft>(emptyTender);
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const [creditAvailablePaise, setCreditAvailablePaise] = useState<number | null>(null);
+  const [loyalty, setLoyalty] = useState<CustomerLoyalty | null>(null);
+  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
+  const [loyaltyFailed, setLoyaltyFailed] = useState(false);
+  const [redeemPoints, setRedeemPoints] = useState('');
 
   const productIds = draft.map((line) => line.product.id);
   const controlledDraft = draft.some((line) => isControlledProduct(line.product));
   const prescriptionDraft = draft.some((line) => isPrescriptionProduct(line.product));
+
+  const refreshLoyalty = (customerId: string | null) => {
+    setRedeemPoints('');
+    if (!customerId || !loyaltyEntitled) {
+      setLoyalty(null);
+      setLoyaltyLoading(false);
+      setLoyaltyFailed(false);
+      return;
+    }
+    setLoyaltyLoading(true);
+    setLoyaltyFailed(false);
+    void getCustomerLoyalty(customerId)
+      .then((next) => {
+        setLoyalty(next);
+        setLoyaltyLoading(false);
+      })
+      .catch(() => {
+        setLoyalty(null);
+        setLoyaltyLoading(false);
+        setLoyaltyFailed(true);
+      });
+  };
 
   const patchLine = (productId: string, patch: Partial<PosDraftLine>) => {
     setDraft((current) =>
@@ -269,6 +304,10 @@ export function usePosTill() {
     setTaxReason('');
     setTender(emptyTender());
     setCreditAvailablePaise(null);
+    setLoyalty(null);
+    setLoyaltyLoading(false);
+    setLoyaltyFailed(false);
+    setRedeemPoints('');
     setProductQuery('');
     setCustomerQuery('');
     idempotencyKey.current = crypto.randomUUID();
@@ -305,8 +344,10 @@ export function usePosTill() {
       void getCustomerCredit(linked.id)
         .then((credit) => setCreditAvailablePaise(credit.availablePaise))
         .catch(() => setCreditAvailablePaise(null));
+      refreshLoyalty(linked.id);
     } else {
       setCreditAvailablePaise(null);
+      refreshLoyalty(null);
     }
     const next: PosDraftLine[] = [];
     for (const line of saved.lines) {
@@ -623,7 +664,34 @@ export function usePosTill() {
       setStatusHint(collectStatusHint('validation'));
       return;
     }
-    const preview = previewTender(invoice.totalPaise, tender);
+    const points = parseRedeemPoints(redeemPoints);
+    if (points == null) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation', 'REDEEM_LIMIT'));
+      return;
+    }
+    if (points > 0 && (walkIn || !selectedCustomer)) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation', 'LOYALTY_REQUIRES_CUSTOMER'));
+      return;
+    }
+    if (points > 0 && !loyaltyEntitled) {
+      setStatus('denied');
+      setStatusHint(collectStatusHint('denied', 'PLAN_LIMIT'));
+      return;
+    }
+    if (points > maxRedeemPoints(invoice.totalPaise)) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation', 'REDEEM_LIMIT'));
+      return;
+    }
+    if (points > (loyalty?.balancePoints ?? 0)) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation', 'INSUFFICIENT_POINTS'));
+      return;
+    }
+    const duePaise = collectiblePaise(invoice.totalPaise, points);
+    const preview = previewTender(duePaise, tender);
     if (preview.invalid || preview.parts.length === 0) {
       setStatus('validation');
       setStatusHint(collectStatusHint('validation'));
@@ -673,6 +741,7 @@ export function usePosTill() {
         changePaise: preview.changePaise,
         idempotencyKey: completeKey.current,
         payments: preview.parts,
+        redeemPoints: points,
       });
       setInvoice(collected);
       setStatus('success');
@@ -744,8 +813,19 @@ export function usePosTill() {
     showReason: Boolean(evaluation && evaluation.warnings.length > 0),
     statusHint,
     tender,
-    tenderPreview: previewTender(invoice?.totalPaise ?? totals.totalPaise, tender),
+    tenderPreview: previewTender(
+      collectiblePaise(
+        invoice?.totalPaise ?? totals.totalPaise,
+        parseRedeemPoints(redeemPoints) ?? 0,
+      ),
+      tender,
+    ),
     creditAvailablePaise,
+    loyalty,
+    loyaltyLoading,
+    loyaltyFailed,
+    loyaltyEntitled,
+    redeemPoints,
     collected: invoice?.status === 'COMPLETED',
     setBusy,
     setStatus,
@@ -755,6 +835,7 @@ export function usePosTill() {
     setTender: (patch: Partial<TenderDraft>) => {
       setTender((current) => ({ ...current, ...patch }));
     },
+    setRedeemPoints,
     selectCustomer: (customer: Customer) => {
       setSelectedCustomer(customer);
       setWalkIn(false);
@@ -764,12 +845,14 @@ export function usePosTill() {
       void getCustomerCredit(customer.id)
         .then((credit) => setCreditAvailablePaise(credit.availablePaise))
         .catch(() => setCreditAvailablePaise(null));
+      refreshLoyalty(customer.id);
     },
     clearCustomer: () => {
       setSelectedCustomer(null);
       setWalkIn(false);
       setEvaluation(null);
       setCreditAvailablePaise(null);
+      refreshLoyalty(null);
     },
     skipWalkIn: () => {
       setSelectedCustomer(null);
@@ -777,6 +860,7 @@ export function usePosTill() {
       setEvaluation(null);
       setCreditAvailablePaise(null);
       setTender((current) => ({ ...current, creditRupees: '' }));
+      refreshLoyalty(null);
       setStatus(null);
       window.setTimeout(() => document.getElementById('pos-product-search')?.focus(), 0);
     },

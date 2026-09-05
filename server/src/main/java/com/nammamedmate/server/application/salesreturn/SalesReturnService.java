@@ -5,6 +5,7 @@ import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.customercredit.CustomerCreditService;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
+import com.nammamedmate.server.application.loyalty.LoyaltyService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.ModuleCode;
@@ -63,6 +64,7 @@ public class SalesReturnService {
   private final AccessQueryService accessQueryService;
   private final InventoryStockService inventoryStockService;
   private final CustomerCreditService customerCreditService;
+  private final LoyaltyService loyaltyService;
   private final AuditService auditService;
   private final Clock clock;
 
@@ -78,6 +80,7 @@ public class SalesReturnService {
       AccessQueryService accessQueryService,
       InventoryStockService inventoryStockService,
       CustomerCreditService customerCreditService,
+      LoyaltyService loyaltyService,
       AuditService auditService,
       Clock clock) {
     this.salesReturnRepository = salesReturnRepository;
@@ -91,6 +94,7 @@ public class SalesReturnService {
     this.accessQueryService = accessQueryService;
     this.inventoryStockService = inventoryStockService;
     this.customerCreditService = customerCreditService;
+    this.loyaltyService = loyaltyService;
     this.auditService = auditService;
     this.clock = clock;
   }
@@ -207,6 +211,9 @@ public class SalesReturnService {
           prepared.invoice().getId(),
           "sales-return-credit:" + returnId);
     }
+
+    loyaltyService.reverseForReturn(
+        principal, prepared.invoice(), returnId, prepared.refundTotalPaise());
 
     audit(principal, returnId);
     return toView(row, lines);

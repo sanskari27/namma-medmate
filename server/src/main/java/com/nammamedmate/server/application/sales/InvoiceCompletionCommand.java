@@ -8,6 +8,7 @@ public record InvoiceCompletionCommand(
     Long expectedTotalPaise,
     Long changePaise,
     String idempotencyKey,
+    Integer redeemPoints,
     List<Payment> payments) {
 
   public record Payment(PaymentMode mode, Long amountPaise, String reference) {}

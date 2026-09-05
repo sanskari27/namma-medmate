@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.customercredit;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.loyalty.LoyaltyService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
@@ -34,6 +35,7 @@ public class CustomerCreditService {
   private final CustomerRepository customerRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
+  private final LoyaltyService loyaltyService;
   private final Clock clock;
 
   public CustomerCreditService(
@@ -42,12 +44,14 @@ public class CustomerCreditService {
       CustomerRepository customerRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
+      LoyaltyService loyaltyService,
       Clock clock) {
     this.accountRepository = accountRepository;
     this.ledgerRepository = ledgerRepository;
     this.customerRepository = customerRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
+    this.loyaltyService = loyaltyService;
     this.clock = clock;
   }
 
@@ -295,6 +299,8 @@ public class CustomerCreditService {
         normalizedKey,
         principal.userId(),
         now);
+    loyaltyService.earnOnSettlement(
+        principal, tenantId, customerId, amountPaise, normalizedKey);
     return toView(account, ledgerEntries(tenantId, customerId));
   }
 
