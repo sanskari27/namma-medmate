@@ -219,6 +219,10 @@ export function usePosTill() {
             setRxLookupStatus('conflict');
             return;
           }
+          if (isApiError(error) && error.code === 'ARCHIVED_REFERENCE') {
+            setRxLookupStatus('denied');
+            return;
+          }
           setRxLookupStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
         });
     }, 200);

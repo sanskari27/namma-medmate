@@ -36,6 +36,9 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
   List<SalesInvoice> findByTenantIdAndBranchIdAndStatusOrderByCreatedAtDesc(
       UUID tenantId, UUID branchId, SalesInvoiceStatus status);
 
+  List<SalesInvoice> findByTenantIdAndPrescriptionReferenceAndStatusOrderByCompletedAtAsc(
+      UUID tenantId, String prescriptionReference, SalesInvoiceStatus status);
+
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(
       """

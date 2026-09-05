@@ -196,6 +196,7 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'RX_REQUIRED' ||
     error.code === 'OVER_FULFILLMENT' ||
     error.code === 'FOREIGN_REFERENCE' ||
+    error.code === 'ARCHIVED_REFERENCE' ||
     error.code === 'PRESCRIBED_REQUIRED'
   ) {
     return 'validation';

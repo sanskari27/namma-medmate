@@ -1,0 +1,1 @@
+export { PrescriptionDetailPanel } from './PrescriptionDetailPanel';

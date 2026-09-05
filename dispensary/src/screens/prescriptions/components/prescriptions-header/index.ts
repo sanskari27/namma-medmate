@@ -1,0 +1,1 @@
+export { PrescriptionsHeader } from './PrescriptionsHeader';

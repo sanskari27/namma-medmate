@@ -75,12 +75,7 @@ export const NAV_SECTIONS = [
       },
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
       { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
-      {
-        label: 'Prescriptions',
-        path: ROUTES.PRESCRIPTIONS,
-        hint: 'Rx waiting at this counter',
-        badge: { count: 3, label: '3 prescriptions waiting' },
-      },
+      { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Credit / Khata', path: ROUTES.CREDIT, hint: 'Khata balances' },
       { label: 'CRM / Patients', path: ROUTES.CRM, hint: 'Patient records at this pharmacy' },
@@ -173,6 +168,7 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.INVENTORY &&
     item.path !== ROUTES.SALES &&
     item.path !== ROUTES.RETURNS &&
+    item.path !== ROUTES.PRESCRIPTIONS &&
     item.path !== ROUTES.DISTRIBUTORS &&
     item.path !== ROUTES.PURCHASES &&
     item.path !== ROUTES.OFFERS,

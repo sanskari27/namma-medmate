@@ -228,9 +228,7 @@ describe('dispensary counter rail', () => {
       'page',
     );
     expect(within(nav).getByRole('link', { name: 'Orders, 1 held bill' })).toBeInTheDocument();
-    expect(
-      within(nav).getByRole('link', { name: 'Prescriptions, 3 prescriptions waiting' }),
-    ).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Prescriptions' })).toBeInTheDocument();
 
     await user.click(within(nav).getByRole('link', { name: 'Sales' }));
     expect(within(nav).getByRole('link', { name: 'Sales' })).toHaveAttribute(
