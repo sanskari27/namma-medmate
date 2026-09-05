@@ -177,5 +177,6 @@ describe('pharmacy licences', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
     expect(await screen.findByRole('status')).toHaveTextContent('Licence filed.');
     expect(screen.getByText('KA-DL-100')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'File a licence' })).toHaveFocus();
   });
 });

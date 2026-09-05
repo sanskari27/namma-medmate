@@ -124,5 +124,6 @@ describe('HQ licence expiry', () => {
     );
     expect(screen.getByText('KA-DL-100')).toBeInTheDocument();
     expect(screen.getByText('Drug licence')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Rescan platform' })).toHaveFocus();
   });
 });
