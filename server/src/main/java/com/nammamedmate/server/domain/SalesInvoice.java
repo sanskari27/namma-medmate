@@ -110,6 +110,21 @@ public class SalesInvoice {
   @Column(name = "change_paise", nullable = false)
   private long changePaise;
 
+  @Column(name = "loyalty_redeem_points", nullable = false)
+  private long loyaltyRedeemPoints;
+
+  @Column(name = "loyalty_redeem_paise", nullable = false)
+  private long loyaltyRedeemPaise;
+
+  @Column(name = "loyalty_earned_points", nullable = false)
+  private long loyaltyEarnedPoints;
+
+  @Column(name = "loyalty_taxable_paise", nullable = false)
+  private long loyaltyTaxablePaise;
+
+  @Column(name = "loyalty_pending_taxable_paise", nullable = false)
+  private long loyaltyPendingTaxablePaise;
+
   @Column(name = "completed_at")
   private Instant completedAt;
 

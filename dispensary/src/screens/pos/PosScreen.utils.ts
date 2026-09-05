@@ -35,6 +35,10 @@ export function hasSalesAccess(modules: string[] | undefined): boolean {
   return Boolean(modules?.includes('SALES'));
 }
 
+export function hasLoyaltyAccess(modules: string[] | undefined): boolean {
+  return Boolean(modules?.includes('LOYALTY'));
+}
+
 export function canDispenseControlled(
   role: string | undefined,
   roles: { code: string | null }[] | undefined,
@@ -148,7 +152,12 @@ export function resumeStatusHint(
 }
 
 export function mapApiStatus(error: { status?: number; code?: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN' || error.code === 'PHARMACIST_REQUIRED') {
+  if (
+    error.status === 403 ||
+    error.code === 'FORBIDDEN' ||
+    error.code === 'PHARMACIST_REQUIRED' ||
+    error.code === 'PLAN_LIMIT'
+  ) {
     return 'denied';
   }
   if (
@@ -181,6 +190,9 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'INVALID_CHANGE' ||
     error.code === 'CREDIT_LIMIT_EXCEEDED' ||
     error.code === 'KHATA_REQUIRES_CUSTOMER' ||
+    error.code === 'INSUFFICIENT_POINTS' ||
+    error.code === 'REDEEM_LIMIT' ||
+    error.code === 'LOYALTY_REQUIRES_CUSTOMER' ||
     error.code === 'RX_REQUIRED' ||
     error.code === 'OVER_FULFILLMENT' ||
     error.code === 'FOREIGN_REFERENCE' ||
@@ -395,12 +407,24 @@ export function previewTender(totalPaise: number, tender: TenderDraft): TenderPr
 }
 
 export function collectStatusHint(status: PageStatus, code?: string | null): string | null {
+  if (status === 'denied' && code === 'PLAN_LIMIT') {
+    return 'Not on this plan. Points stay on the patient until Growth or Pro is back.';
+  }
   if (status === 'validation') {
     if (code === 'CREDIT_LIMIT_EXCEEDED') {
       return 'Khata is over the approved limit. Reduce khata or take cash, UPI, card, or bank.';
     }
     if (code === 'KHATA_REQUIRES_CUSTOMER') {
       return 'Link a patient before putting this bill on khata.';
+    }
+    if (code === 'INSUFFICIENT_POINTS') {
+      return 'This patient does not have enough points for that redeem.';
+    }
+    if (code === 'REDEEM_LIMIT') {
+      return 'Points can cover at most 20% of this bill.';
+    }
+    if (code === 'LOYALTY_REQUIRES_CUSTOMER') {
+      return 'Link a patient before using points.';
     }
     return 'Tender must cover this bill. Add the rest or put it on khata for a linked patient.';
   }

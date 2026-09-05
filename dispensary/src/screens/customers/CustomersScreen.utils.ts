@@ -93,6 +93,10 @@ export function hasCrmAccess(modules: string[] | undefined): boolean {
   return modules?.includes('CRM') === true;
 }
 
+export function hasLoyaltyAccess(modules: string[] | undefined): boolean {
+  return modules?.includes('LOYALTY') === true;
+}
+
 export function hasHealthFlag(customer: Customer): boolean {
   return Boolean(customer.allergies?.trim() || customer.chronicConditions?.trim());
 }

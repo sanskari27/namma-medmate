@@ -87,6 +87,11 @@ export interface SalesInvoice {
   amountPaidPaise: number;
   amountDuePaise: number;
   changePaise: number;
+  loyaltyRedeemPoints?: number;
+  loyaltyRedeemPaise?: number;
+  loyaltyEarnedPoints?: number;
+  loyaltyTaxablePaise?: number;
+  loyaltyPendingTaxablePaise?: number;
   completedAt: string | null;
   payments: SalesInvoicePayment[];
   lines: SalesInvoiceLine[];
@@ -216,6 +221,7 @@ export interface InvoiceCompleteInput {
   changePaise: number;
   idempotencyKey: string;
   payments: { mode: PaymentMode; amountPaise: number; reference: string | null }[];
+  redeemPoints?: number;
 }
 
 export async function completeSalesInvoice(

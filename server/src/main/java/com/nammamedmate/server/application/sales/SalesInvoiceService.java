@@ -9,6 +9,8 @@ import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.customercredit.CustomerCreditService;
 import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
+import com.nammamedmate.server.application.loyalty.LoyaltyCompleteResult;
+import com.nammamedmate.server.application.loyalty.LoyaltyService;
 import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.offer.OfferEvaluator;
 import com.nammamedmate.server.application.product.ProductUnitConverter;
@@ -28,6 +30,7 @@ import com.nammamedmate.server.domain.InvoicePaymentPolicy;
 import com.nammamedmate.server.domain.InvoicePolicy;
 import com.nammamedmate.server.domain.InvoicePrescriptionPolicy;
 import com.nammamedmate.server.domain.Location;
+import com.nammamedmate.server.domain.LoyaltyPolicy;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.ProductUnit;
@@ -103,6 +106,7 @@ public class SalesInvoiceService {
   private final ApprovalRequestRepository approvalRequestRepository;
   private final AuditService auditService;
   private final CustomerCreditService customerCreditService;
+  private final LoyaltyService loyaltyService;
   private final InventoryStockService inventoryStockService;
   private final CustomerHistoryService customerHistoryService;
   private final OfferEvaluator offerEvaluator;
@@ -128,6 +132,7 @@ public class SalesInvoiceService {
       ApprovalRequestRepository approvalRequestRepository,
       AuditService auditService,
       CustomerCreditService customerCreditService,
+      LoyaltyService loyaltyService,
       InventoryStockService inventoryStockService,
       CustomerHistoryService customerHistoryService,
       OfferEvaluator offerEvaluator,
@@ -151,6 +156,7 @@ public class SalesInvoiceService {
     this.approvalRequestRepository = approvalRequestRepository;
     this.auditService = auditService;
     this.customerCreditService = customerCreditService;
+    this.loyaltyService = loyaltyService;
     this.inventoryStockService = inventoryStockService;
     this.customerHistoryService = customerHistoryService;
     this.offerEvaluator = offerEvaluator;
@@ -559,6 +565,12 @@ public class SalesInvoiceService {
     List<SalesInvoiceLine> lines = linesOf(invoice);
     assertFloorStock(lines, ctx);
     long changePaise = command.changePaise() == null ? 0L : command.changePaise();
+    long redeemPoints = command.redeemPoints() == null ? 0L : command.redeemPoints();
+    if (redeemPoints < 0L) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    long redeemPaise = LoyaltyPolicy.redeemPaise(redeemPoints);
+    long collectible = invoice.getTotalPaise() - redeemPaise;
     List<InvoicePaymentPolicy.Part> parts = new ArrayList<>();
     for (InvoiceCompletionCommand.Payment payment : command.payments()) {
       if (payment == null || payment.mode() == null || payment.amountPaise() == null) {
@@ -571,8 +583,12 @@ public class SalesInvoiceService {
               InvoicePaymentPolicy.optionalReference(payment.reference())));
     }
     InvoicePaymentPolicy.Allocation allocation =
-        InvoicePaymentPolicy.allocate(invoice.getTotalPaise(), changePaise, parts);
+        InvoicePaymentPolicy.allocate(collectible, changePaise, parts);
     InvoicePaymentPolicy.requireKhataCustomer(allocation.amountDuePaise(), invoice.getCustomerId());
+    long paidExcludingKhata = collectible - allocation.amountDuePaise();
+    LoyaltyCompleteResult loyalty =
+        loyaltyService.applyOnComplete(
+            principal, invoice, lines, redeemPoints, paidExcludingKhata, key);
     applyPrescriptionFulfillment(principal, invoice, lines);
     issueSaleStock(principal, invoice, lines, ctx);
     if (allocation.amountDuePaise() > 0L) {
@@ -603,6 +619,11 @@ public class SalesInvoiceService {
     invoice.setAmountPaidPaise(allocation.amountPaidPaise());
     invoice.setAmountDuePaise(allocation.amountDuePaise());
     invoice.setChangePaise(allocation.changePaise());
+    invoice.setLoyaltyRedeemPoints(loyalty.redeemPoints());
+    invoice.setLoyaltyRedeemPaise(loyalty.redeemPaise());
+    invoice.setLoyaltyEarnedPoints(loyalty.earnedPoints());
+    invoice.setLoyaltyTaxablePaise(loyalty.taxablePaise());
+    invoice.setLoyaltyPendingTaxablePaise(loyalty.pendingTaxablePaise());
     invoice.setCompleteIdempotencyKey(key);
     invoice.setCompletedAt(now);
     invoice.setVersion(invoice.getVersion() + 1);
@@ -1050,6 +1071,11 @@ public class SalesInvoiceService {
         invoice.getAmountPaidPaise(),
         invoice.getAmountDuePaise(),
         invoice.getChangePaise(),
+        invoice.getLoyaltyRedeemPoints(),
+        invoice.getLoyaltyRedeemPaise(),
+        invoice.getLoyaltyEarnedPoints(),
+        invoice.getLoyaltyTaxablePaise(),
+        invoice.getLoyaltyPendingTaxablePaise(),
         invoice.getCompletedAt(),
         paymentsOf(invoice).stream()
             .map(
@@ -1136,6 +1162,11 @@ public class SalesInvoiceService {
         base.amountPaidPaise(),
         base.amountDuePaise(),
         base.changePaise(),
+        base.loyaltyRedeemPoints(),
+        base.loyaltyRedeemPaise(),
+        base.loyaltyEarnedPoints(),
+        base.loyaltyTaxablePaise(),
+        base.loyaltyPendingTaxablePaise(),
         base.completedAt(),
         base.payments(),
         base.lines(),
