@@ -10,6 +10,8 @@ class PlanModuleEntitlementsTest {
   void ac02_freePlanExcludesLoyaltyAndOnlineStore() {
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.SALES)).isTrue();
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.ROLES)).isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.COMPLIANCE))
+        .isTrue();
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.LOYALTY))
         .isFalse();
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.KIOSK)).isFalse();

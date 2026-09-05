@@ -17,7 +17,7 @@ class EffectiveModuleSetTest {
   void ac04_ownerHasEveryEntitledTenantModuleWithoutAssignments() {
     assertThat(EffectiveModuleSet.resolve(AppUserRole.pharmacy_owner, Set.of()))
         .isEqualTo(PlanModuleEntitlements.entitledTenantModules())
-        .contains(ModuleCode.SALES, ModuleCode.ROLES, ModuleCode.STAFF)
+        .contains(ModuleCode.SALES, ModuleCode.ROLES, ModuleCode.STAFF, ModuleCode.COMPLIANCE)
         .doesNotContain(ModuleCode.LOYALTY, ModuleCode.KIOSK, ModuleCode.TENANT_KYC);
   }
 

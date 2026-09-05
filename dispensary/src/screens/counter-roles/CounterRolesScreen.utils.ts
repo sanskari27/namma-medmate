@@ -12,6 +12,8 @@ export function moduleLabel(code: string): string {
       return 'Accounts';
     case 'REPORTING':
       return 'Reports';
+    case 'COMPLIANCE':
+      return 'Register book';
     case 'STAFF':
       return 'Staff accounts';
     case 'ROLES':

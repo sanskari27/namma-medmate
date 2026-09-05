@@ -14,6 +14,8 @@ class ModuleCatalogTest {
     assertThat(ModuleCode.KIOSK.planGated()).isTrue();
     assertThat(ModuleCode.KIOSK.tenantModule()).isTrue();
     assertThat(ModuleCode.SALES.planGated()).isFalse();
+    assertThat(ModuleCode.COMPLIANCE.tenantModule()).isTrue();
+    assertThat(ModuleCode.COMPLIANCE.planGated()).isFalse();
     assertThat(ModuleCode.ONLINE_STORE.tenantModule()).isFalse();
     assertThat(ModuleCode.ONLINE_STORE.platformModule()).isFalse();
   }

@@ -1,0 +1,1 @@
+export { RegistersBookList } from './RegistersBookList';
