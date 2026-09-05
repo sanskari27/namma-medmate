@@ -106,7 +106,7 @@ export function apiStatusHint(code: string | null): string | null {
 }
 
 export function rupeesToPaise(value: string): number | null {
-  const cleaned = value.trim().replaceAll(',', '');
+  const cleaned = value.trim().replace(/,/g, '');
   if (!cleaned) {
     return null;
   }
@@ -130,7 +130,7 @@ export function formValid(form: FormState): boolean {
   return Boolean(form.categoryId && rupeesToPaise(form.amountRupees) && form.occurredOn);
 }
 
-export function formatPaise(paise: number): string {
+export function formatOccurredOn(value: string): string {
   if (!value) {
     return '—';
   }

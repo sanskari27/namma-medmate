@@ -45,6 +45,7 @@ class ExpensePolicyTest {
 
   @Test
   void ac05_closedPeriodIsNotConfigured() {
-    assertThatCode(() -> ExpensePolicy.assertPeriodOpen(TODAY.minusYears(2))).doesNotThrowAnyException();
+    assertThatCode(() -> ExpensePolicy.assertPeriodOpen(TODAY.minusYears(2)))
+        .doesNotThrowAnyException();
   }
 }

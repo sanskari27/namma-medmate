@@ -8,8 +8,7 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface ExpenseEvidenceRepository extends JpaRepository<ExpenseEvidence, UUID> {
 
-  Optional<ExpenseEvidence> findByIdAndTenantIdAndExpenseId(
-      UUID id, UUID tenantId, UUID expenseId);
+  Optional<ExpenseEvidence> findByIdAndTenantIdAndExpenseId(UUID id, UUID tenantId, UUID expenseId);
 
   List<ExpenseEvidence> findAllByTenantIdAndExpenseIdOrderByUploadedAtAsc(
       UUID tenantId, UUID expenseId);

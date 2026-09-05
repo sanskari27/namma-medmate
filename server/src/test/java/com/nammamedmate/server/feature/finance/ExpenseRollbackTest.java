@@ -123,7 +123,8 @@ class ExpenseRollbackTest extends AbstractIntegrationTest {
     mockMvc
         .perform(
             multipart("/api/v1/finance/expenses/" + id + "/evidence")
-                .file(new MockMultipartFile("evidence", "notes.txt", "text/plain", "nope".getBytes()))
+                .file(
+                    new MockMultipartFile("evidence", "notes.txt", "text/plain", "nope".getBytes()))
                 .cookie(cookie))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.code").value("UNSUPPORTED_FILE"));

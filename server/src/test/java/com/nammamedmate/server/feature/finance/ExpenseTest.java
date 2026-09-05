@@ -121,7 +121,10 @@ class ExpenseTest extends AbstractIntegrationTest {
             .andReturn();
     UUID id =
         UUID.fromString(
-            objectMapper.readTree(created.getResponse().getContentAsString()).path("data").path("id")
+            objectMapper
+                .readTree(created.getResponse().getContentAsString())
+                .path("data")
+                .path("id")
                 .asText());
     Expense row = expenseRepository.findByIdAndTenantId(id, fx.tenantId()).orElseThrow();
     assertThat(row.getAmountPaise()).isEqualTo(250050L);
@@ -150,8 +153,7 @@ class ExpenseTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
                     createJson(elecId, 40000, OCCURRED, "Annex power", "annex-power")
-                        .replace(
-                            "\"branchId\":null", "\"branchId\":\"" + annex.getId() + "\"")))
+                        .replace("\"branchId\":null", "\"branchId\":\"" + annex.getId() + "\"")))
         .andExpect(status().isOk());
 
     mockMvc
@@ -173,7 +175,8 @@ class ExpenseTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.items[*].branchId", hasItem(fx.branchId().toString())));
 
     mockMvc
-        .perform(get("/api/v1/finance/expenses/totals").param("scope", "tenant").cookie(fx.cookie()))
+        .perform(
+            get("/api/v1/finance/expenses/totals").param("scope", "tenant").cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.totalPaise").value(140000))
         .andExpect(jsonPath("$.data.byBranch", hasSize(2)))
@@ -280,7 +283,10 @@ class ExpenseTest extends AbstractIntegrationTest {
             .andExpect(status().isOk())
             .andReturn();
     String firstId =
-        objectMapper.readTree(first.getResponse().getContentAsString()).path("data").path("id")
+        objectMapper
+            .readTree(first.getResponse().getContentAsString())
+            .path("data")
+            .path("id")
             .asText();
     mockMvc
         .perform(
@@ -353,8 +359,10 @@ class ExpenseTest extends AbstractIntegrationTest {
     Cookie accountant = login("books@iso.local");
     selectBranch(accountant, fx.branchId());
     mockMvc
-        .perform(get("/api/v1/finance/expenses").param("branchId", annex.getId().toString())
-            .cookie(accountant))
+        .perform(
+            get("/api/v1/finance/expenses")
+                .param("branchId", annex.getId().toString())
+                .cookie(accountant))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("NOT_FOUND"));
 

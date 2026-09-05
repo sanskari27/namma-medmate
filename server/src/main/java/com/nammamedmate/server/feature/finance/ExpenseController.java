@@ -99,7 +99,8 @@ public class ExpenseController {
             view.byBranch().stream()
                 .map(
                     item ->
-                        new BranchTotalResponse(item.branchId(), item.branchName(), item.totalPaise()))
+                        new BranchTotalResponse(
+                            item.branchId(), item.branchName(), item.totalPaise()))
                 .toList()));
   }
 
@@ -123,7 +124,8 @@ public class ExpenseController {
       @Valid @RequestBody UpsertExpenseRequest request) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
-        toExpense(expenseService.update(principal, id, toCommand(request, request.expectedVersion()))));
+        toExpense(
+            expenseService.update(principal, id, toCommand(request, request.expectedVersion()))));
   }
 
   @PostMapping(path = "/expenses/{id}/evidence", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
@@ -163,7 +165,8 @@ public class ExpenseController {
   }
 
   private CategoryResponse toCategory(ExpenseCategoryView view) {
-    return new CategoryResponse(view.id(), view.tenantId(), view.code(), view.label(), view.system());
+    return new CategoryResponse(
+        view.id(), view.tenantId(), view.code(), view.label(), view.system());
   }
 
   private ExpenseResponse toExpense(ExpenseView view) {
@@ -208,7 +211,8 @@ public class ExpenseController {
 
   public record CategoryListResponse(List<CategoryResponse> items) {}
 
-  public record CategoryResponse(UUID id, UUID tenantId, String code, String label, boolean system) {}
+  public record CategoryResponse(
+      UUID id, UUID tenantId, String code, String label, boolean system) {}
 
   public record ExpenseListResponse(List<ExpenseResponse> items) {}
 
@@ -237,7 +241,8 @@ public class ExpenseController {
       List<CategoryTotalResponse> byCategory,
       List<BranchTotalResponse> byBranch) {}
 
-  public record CategoryTotalResponse(UUID categoryId, String code, String label, long totalPaise) {}
+  public record CategoryTotalResponse(
+      UUID categoryId, String code, String label, long totalPaise) {}
 
   public record BranchTotalResponse(UUID branchId, String branchName, long totalPaise) {}
 }

@@ -141,7 +141,10 @@ public class ExpenseService {
       byCategory.merge(
           row.getCategoryId(),
           new ExpenseTotalsView.CategoryTotal(
-              row.getCategoryId(), row.getCategoryCode(), row.getCategoryLabel(), row.getAmountPaise()),
+              row.getCategoryId(),
+              row.getCategoryCode(),
+              row.getCategoryLabel(),
+              row.getAmountPaise()),
           (left, right) ->
               new ExpenseTotalsView.CategoryTotal(
                   left.categoryId(),
@@ -170,7 +173,9 @@ public class ExpenseService {
   public ExpenseView get(AuthPrincipal principal, UUID id) {
     Context ctx = requireFinance(principal);
     Expense row =
-        expenseRepository.findByIdAndTenantId(id, ctx.tenantId()).orElseThrow(ExpensePolicy::notFound);
+        expenseRepository
+            .findByIdAndTenantId(id, ctx.tenantId())
+            .orElseThrow(ExpensePolicy::notFound);
     requireAccessibleBranch(principal, ctx, row.getBranchId());
     return toView(row, branchName(ctx.tenantId(), row.getBranchId()));
   }
@@ -219,7 +224,9 @@ public class ExpenseService {
     Context ctx = requireFinance(principal);
     ensureSystemCategories();
     Expense row =
-        expenseRepository.findByIdAndTenantId(id, ctx.tenantId()).orElseThrow(ExpensePolicy::notFound);
+        expenseRepository
+            .findByIdAndTenantId(id, ctx.tenantId())
+            .orElseThrow(ExpensePolicy::notFound);
     requireAccessibleBranch(principal, ctx, row.getBranchId());
     ExpensePolicy.requireVersion(row.getVersion(), command.expectedVersion());
     UUID branchId =

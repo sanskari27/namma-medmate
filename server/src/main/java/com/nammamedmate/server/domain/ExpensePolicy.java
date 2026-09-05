@@ -59,9 +59,7 @@ public final class ExpensePolicy {
   public static LocalDate requireOccurredOn(LocalDate occurredOn, LocalDate today) {
     if (occurredOn == null || occurredOn.isAfter(today)) {
       throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY,
-          INVALID_DATE,
-          "Occurred date must be today or earlier.");
+          HttpStatus.UNPROCESSABLE_ENTITY, INVALID_DATE, "Occurred date must be today or earlier.");
     }
     return occurredOn;
   }
@@ -77,7 +75,9 @@ public final class ExpensePolicy {
     }
     if (SYSTEM_CODES.contains(normalized)) {
       throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY, CATEGORY_TAKEN, "That category is already on the books.");
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          CATEGORY_TAKEN,
+          "That category is already on the books.");
     }
     if (!CUSTOM_CODE.matcher(normalized).matches()) {
       throw new ApiException(
@@ -140,7 +140,9 @@ public final class ExpensePolicy {
 
   public static ApiException noActiveBranch() {
     return new ApiException(
-        HttpStatus.UNPROCESSABLE_ENTITY, NO_ACTIVE_BRANCH, "Select an outlet before recording spend.");
+        HttpStatus.UNPROCESSABLE_ENTITY,
+        NO_ACTIVE_BRANCH,
+        "Select an outlet before recording spend.");
   }
 
   public static ApiException invalidCategory() {
