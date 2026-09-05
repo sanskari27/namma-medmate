@@ -219,4 +219,26 @@ describe('shop spend', () => {
     await waitFor(() => expect(categoryCreateMock).toHaveBeenCalled());
     expect(await screen.findByRole('status')).toHaveTextContent('Category added to the shop books.');
   });
+
+  it('owner all outlets consolidates tenant totals', async () => {
+    const user = userEvent.setup();
+    const tenantTotals: ExpenseTotals = {
+      totalPaise: 280000,
+      byCategory: [{ categoryId: 'cat-rent', code: 'RENT', label: 'Rent', totalPaise: 280000 }],
+      byBranch: [
+        { branchId: 'b1', branchName: 'Main', totalPaise: 150000 },
+        { branchId: 'b2', branchName: 'Annex', totalPaise: 130000 },
+      ],
+    };
+    listMock.mockResolvedValue([sample]);
+    totalsMock.mockResolvedValueOnce(rentTotals).mockResolvedValue(tenantTotals);
+    renderPage();
+    expect(await screen.findByText(/This outlet:/)).toHaveTextContent('₹1,500.00');
+    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
+    await waitFor(() =>
+      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' })),
+    );
+    expect(totalsMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' }));
+    expect(await screen.findByText(/All outlets:/)).toHaveTextContent('₹2,800.00');
+  });
 });

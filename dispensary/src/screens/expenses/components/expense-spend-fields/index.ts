@@ -1,0 +1,1 @@
+export { ExpenseSpendFields } from './ExpenseSpendFields';
