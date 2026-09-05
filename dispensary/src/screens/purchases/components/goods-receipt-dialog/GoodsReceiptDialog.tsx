@@ -153,6 +153,7 @@ export function GoodsReceiptDialog({
             canSave={status !== 'empty'}
             lines={detail?.lines ?? []}
             drafts={drafts}
+            receipts={detail?.receipts ?? []}
             onReferenceChange={setReference}
             onDraftChange={onDraftChange}
             onCancel={close}

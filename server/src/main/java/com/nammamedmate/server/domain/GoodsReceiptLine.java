@@ -6,6 +6,7 @@ import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import java.util.UUID;
 import lombok.Getter;
 import lombok.Setter;
@@ -50,4 +51,22 @@ public class GoodsReceiptLine {
 
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
+
+  @Column(name = "accepted_quantity", precision = 19, scale = 6)
+  private BigDecimal acceptedQuantity;
+
+  @Column(name = "rejected_quantity", precision = 19, scale = 6)
+  private BigDecimal rejectedQuantity;
+
+  @Column(name = "batch_number", length = 64)
+  private String batchNumber;
+
+  @Column(name = "manufactured_on")
+  private LocalDate manufacturedOn;
+
+  @Column(name = "expires_on")
+  private LocalDate expiresOn;
+
+  @Column(name = "stock_movement_id")
+  private UUID stockMovementId;
 }

@@ -39,6 +39,10 @@ export function hasPending(lines: GoodsReceiptOutstandingLine[]): boolean {
   return lines.some((line) => toNumber(line.remainingQuantity) > 0);
 }
 
+export function receiptQcStatus(status: string): string {
+  return status === 'CHECKED' ? 'Checked' : 'Pending pharmacist check';
+}
+
 export function draftsFromLines(lines: GoodsReceiptOutstandingLine[]): ReceiptLineDraft[] {
   return lines.map((line) => ({
     purchaseOrderLineId: line.purchaseOrderLineId,

@@ -60,6 +60,7 @@ export const API = {
   COMPLIANCE_CONTROLLED_STOCK_EXPORT: '/api/v1/compliance/controlled-stock/export',
   SUPPLIERS: '/api/v1/suppliers',
   PURCHASE_ORDERS: '/api/v1/purchase-orders',
+  GOODS_RECEIPTS: '/api/v1/goods-receipts',
   PURCHASE_ORDERS_REORDER_PREVIEW: '/api/v1/purchase-orders/reorder-preview',
   PURCHASE_ORDERS_FROM_REORDER: '/api/v1/purchase-orders/from-reorder',
   PURCHASE_ORDERS_BULK: '/api/v1/purchase-orders/bulk',
@@ -106,6 +107,8 @@ export const API = {
   purchaseOrderClose: (id: string) => `/api/v1/purchase-orders/${id}/close`,
   purchaseOrderCancel: (id: string) => `/api/v1/purchase-orders/${id}/cancel`,
   purchaseOrderReceipts: (id: string) => `/api/v1/purchase-orders/${id}/receipts`,
+  goodsReceipt: (id: string) => `/api/v1/goods-receipts/${id}`,
+  goodsReceiptQualityCheck: (id: string) => `/api/v1/goods-receipts/${id}/quality-check`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

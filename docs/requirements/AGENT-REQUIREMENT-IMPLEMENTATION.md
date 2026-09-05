@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 38 |
+| done | 39 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 29 |
+| ready | 28 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -55,7 +55,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M5-S02 | M5 | server + dispensary | done | M5-S01, M4-S01 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: line queries tenant+branch; New indent focus restore + CLOSED freeze tests. Server: V34 purchase_order/line/version; PurchaseOrderService/Controller `/api/v1/purchase-orders` CRUD+issue/close/cancel+versions; SupplierService.branchProcurement uses real POs. Tests PurchaseOrderPolicyTest 6, PurchaseOrderTest AC01–AC05, PurchaseOrderRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 514 BUILD SUCCESS. Dispensary: PurchasesScreen `/purchases` + purchaseOrders.ts; lint+367 tests+build. `make compose-config` OK. Browser: :5173 connection refused; uniqueness from source (viridian Outlet orders / New indent / one stockist). |
 | M5-S03 | M5 | server + dispensary | done | M5-S02, M4-S04, M2-S05 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: AC06 annex GET 404, preview ids null + annex branchId, same key+A fingerprint 409 STALE_STATE, branch A run/PO unchanged. Server: V35 purchase_order_reorder_run; GET `/api/v1/purchase-orders/reorder-preview` + POST `/from-reorder`; Pro POST `/bulk` ISSUE\|CANCEL + GET `/analytics`. Tests ReorderToDraftPolicyTest, ReorderToDraftTest 6 (AC01–AC06), ReorderToDraftRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 526 tests BUILD SUCCESS. Dispensary: viridian Draft from reorder + Pro issue-selected + stockist spend; loading/empty/validation/denied/conflict/failure/success; screen 91 lines. SPA lint+375 tests+build (vitest maxWorkers 2). `make compose-config` OK. Requirements valid. Browser: :5173 connection refused; uniqueness from source (shop-floor reorder drafts, not HQ). |
 | M5-S04 | M5 | server + dispensary | done | M5-S02 | — | Independent verifier PASS (story-verifier). verified→done. Server: V36 goods_receipt+line PENDING_QC; GET/POST /api/v1/purchase-orders/{id}/receipts; GoodsReceiptService PO lock; no stock_balance/movement. Tests GoodsReceiptPolicyTest, GoodsReceiptTest AC01–AC05, GoodsReceiptRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 538 BUILD SUCCESS. Dispensary: Record delivery on ISSUED indent; ordered/previously received/current/remaining/mismatch; GoodsReceiptDialog+Panel+LineRow. SPA lint+388 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173 refused; uniqueness from source (viridian challan/outstanding, not HQ). |
-| M5-S05 | M5 | server + dispensary | ready | M5-S04, M4-S03 | — | — |
+| M5-S05 | M5 | server + dispensary | done | M5-S04, M4-S03 | — | Independent verifier PASS (story-verifier). verified→done. Server: V37 QC columns; GET/POST `/api/v1/goods-receipts` + `/{id}/quality-check`; QualityCheckService/Policy; pharmacist or OWNER only (`PHARMACIST_REQUIRED`); visual+checklist; partial accept stocks via InventoryStockService.receive key `qc:{receiptId}:{lineId}`; rejected qty persisted only (no M5-S06 return). Tests QualityCheckPolicyTest (6), QualityCheckTest AC01–AC05, QualityCheckRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 550 tests BUILD SUCCESS. Dispensary: Inventory Quality check tab + QualityCheckWorkspace children (list/checklist/lines/outcome/confirm); purchases GRN Pending pharmacist check vs Checked. SPA lint+398 tests+build. `make compose-config` OK. Browser: :5173 refused; uniqueness from source (viridian inspect-this-delivery, not HQ clone). |
 | M5-S06 | M5 | server + dispensary | ready | M5-S05 | — | — |
 | M6-S01 | M6 | server + dispensary | ready | M4-S03, M1-S06 | — | — |
 | M6-S02 | M6 | server + dispensary | ready | M6-S01, M1-S07 | — | — |

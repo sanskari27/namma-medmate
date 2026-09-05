@@ -166,7 +166,8 @@ export function statusCopy(
     | 'adjustments'
     | 'guidance'
     | 'stocktake'
-    | 'controlled' = 'catalogue',
+    | 'controlled'
+    | 'qc' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -342,6 +343,44 @@ export function statusCopy(
         };
       case 'success':
         return { icon: BadgeCheck, text: 'Schedule register exported for this outlet.' };
+      default:
+        return null;
+    }
+  }
+  if (view === 'qc') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading deliveries waiting for a pharmacist check…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No deliveries waiting for a pharmacist check.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Accepted and rejected qty must add up to received, and accepting needs visual plus checklist.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'Only a pharmacist or owner can accept this delivery onto the floor.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'This delivery was already checked. Refresh and open it again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return {
+          icon: BadgeCheck,
+          text: 'Accepted onto the floor. Rejected packs stay off the shelf.',
+        };
       default:
         return null;
     }

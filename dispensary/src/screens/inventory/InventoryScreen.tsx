@@ -11,6 +11,7 @@ import {
   type InventoryViewMode,
 } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
+import { QualityCheckWorkspace } from './components/quality-check-workspace';
 import { StockTakeWorkspace } from './components/stock-take-workspace/StockTakeWorkspace';
 import { TransferWorkspace } from './components/transfer-workspace/TransferWorkspace';
 import { hasInventoryAccess, type PageStatus } from './InventoryScreen.utils';
@@ -151,6 +152,13 @@ export default function InventoryScreen() {
       ) : null}
       {!denied && view === 'controlled' ? (
         <ControlledStockWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
+          onStatusChange={onStatusChange}
+        />
+      ) : null}
+      {!denied && view === 'qc' ? (
+        <QualityCheckWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
           onStatusChange={onStatusChange}

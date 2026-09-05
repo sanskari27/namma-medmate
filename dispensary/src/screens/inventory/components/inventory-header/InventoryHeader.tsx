@@ -2,7 +2,14 @@ import { Button, Reveal } from '@atoms';
 import type { Ref } from 'react';
 
 export type InventoryViewMode =
-  'floor' | 'catalogue' | 'transfers' | 'adjustments' | 'guidance' | 'stocktake' | 'controlled';
+  | 'floor'
+  | 'catalogue'
+  | 'transfers'
+  | 'adjustments'
+  | 'guidance'
+  | 'stocktake'
+  | 'controlled'
+  | 'qc';
 
 const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab: string }> = {
   floor: {
@@ -46,6 +53,12 @@ const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab
     blurb:
       'H, H1, X, and NDPS movements on this outlet. Export the inspector NDPS sheet or a general CSV.',
     tab: 'Schedule register',
+  },
+  qc: {
+    eyebrow: 'Quality check',
+    blurb:
+      'Inspect this delivery before it hits the floor. Accept onto stock; rejected packs stay off the shelf.',
+    tab: 'Quality check',
   },
 };
 
@@ -125,6 +138,7 @@ export function InventoryHeader({
             {(
               [
                 'floor',
+                'qc',
                 'catalogue',
                 'transfers',
                 'adjustments',

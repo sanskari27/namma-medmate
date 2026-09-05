@@ -41,6 +41,29 @@ const outstanding: GoodsReceipts = {
   receipts: [],
 };
 
+const recorded: GoodsReceipts = {
+  ...outstanding,
+  lines: [{ ...outstanding.lines[0], receivedQuantity: 10, remainingQuantity: 0 }],
+  receipts: [
+    {
+      id: 'g1',
+      receiptNumber: 'GRN/2026-27/BR01/00001',
+      receiptReference: 'CH-1',
+      status: 'PENDING_QC',
+      createdAt: '2026-09-04T10:00:00Z',
+      lines: [],
+    },
+    {
+      id: 'g2',
+      receiptNumber: 'GRN/2026-27/BR01/00002',
+      receiptReference: 'CH-2',
+      status: 'CHECKED',
+      createdAt: '2026-09-05T04:00:00Z',
+      lines: [],
+    },
+  ],
+};
+
 function renderDialog(onCloseFocus = vi.fn()) {
   return render(
     <div>
@@ -79,6 +102,14 @@ describe('goods receipt dialog', () => {
     expect(
       await screen.findByText('Nothing is still pending on this indent. All packs are in.'),
     ).toBeInTheDocument();
+  });
+
+  it('shows pending QC versus checked status on recorded deliveries', async () => {
+    listMock.mockResolvedValue(recorded);
+    renderDialog();
+    expect(await screen.findByText(/CH-1/)).toBeInTheDocument();
+    expect(screen.getByText('Pending pharmacist check')).toBeInTheDocument();
+    expect(screen.getByText('Checked')).toBeInTheDocument();
   });
 
   it('validation: challan ref and a qty that fits remaining are required', async () => {

@@ -49,4 +49,28 @@ public class GoodsReceipt {
 
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
+
+  @Column(name = "checked_at")
+  private Instant checkedAt;
+
+  @Column(name = "checked_by_user_id")
+  private UUID checkedByUserId;
+
+  @Column(name = "visual_inspection_passed")
+  private Boolean visualInspectionPassed;
+
+  @Column(name = "packaging_intact")
+  private Boolean packagingIntact;
+
+  @Column(name = "label_matches")
+  private Boolean labelMatches;
+
+  @Column(name = "batch_readable")
+  private Boolean batchReadable;
+
+  @Column(name = "no_damage")
+  private Boolean noDamage;
+
+  @Column(name = "qc_idempotency_key", length = 128)
+  private String qcIdempotencyKey;
 }

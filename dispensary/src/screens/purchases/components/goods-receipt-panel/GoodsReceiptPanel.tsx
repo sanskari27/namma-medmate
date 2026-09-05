@@ -1,7 +1,8 @@
 import { Button, Input, Label } from '@atoms';
-import type { GoodsReceiptOutstandingLine } from '@/services/purchaseOrders';
+import type { GoodsReceipt, GoodsReceiptOutstandingLine } from '@/services/purchaseOrders';
 import type { FormEvent } from 'react';
 import type { ReceiptLineDraft } from '../../GoodsReceipt.utils';
+import { receiptQcStatus } from '../../GoodsReceipt.utils';
 import { GoodsReceiptLineRow } from '../goods-receipt-line-row';
 
 export type GoodsReceiptPanelProps = {
@@ -13,6 +14,7 @@ export type GoodsReceiptPanelProps = {
   canSave: boolean;
   lines: GoodsReceiptOutstandingLine[];
   drafts: ReceiptLineDraft[];
+  receipts?: GoodsReceipt[];
   onReferenceChange: (value: string) => void;
   onDraftChange: (purchaseOrderLineId: string, patch: Partial<ReceiptLineDraft>) => void;
   onCancel: () => void;
@@ -28,6 +30,7 @@ export function GoodsReceiptPanel({
   canSave,
   lines,
   drafts,
+  receipts = [],
   onReferenceChange,
   onDraftChange,
   onCancel,
@@ -39,6 +42,16 @@ export function GoodsReceiptPanel({
         <p className="font-mono text-sm text-ink">{poNumber}</p>
         <p className="text-sm text-muted">{stockistName}</p>
       </div>
+      {receipts.length > 0 ? (
+        <ul className="grid gap-1 border border-line bg-canvas px-3 py-2 text-sm">
+          {receipts.map((receipt) => (
+            <li key={receipt.id}>
+              <span className="font-mono text-ink">{receipt.receiptNumber}</span>{' '}
+              {receipt.receiptReference} — <span>{receiptQcStatus(receipt.status)}</span>
+            </li>
+          ))}
+        </ul>
+      ) : null}
       <div className="grid gap-1">
         <Label htmlFor={`${formId}-ref`}>Challan / invoice ref</Label>
         <Input

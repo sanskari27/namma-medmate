@@ -124,6 +124,17 @@ vi.mock('@/services/controlledStock', async () => {
   };
 });
 
+vi.mock('@/services/goodsReceipts', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listBranchGoodsReceipts: vi.fn(),
+    getGoodsReceipt: vi.fn(),
+    submitQualityCheck: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -165,6 +176,7 @@ import {
 import type { StockTake } from '@/services/stockTakes';
 import { downloadControlledStockExport, listControlledStock } from '@/services/controlledStock';
 import type { ControlledStockLine } from '@/services/controlledStock';
+import { listBranchGoodsReceipts } from '@/services/goodsReceipts';
 
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
@@ -201,6 +213,7 @@ const postStockTakeMock = vi.mocked(postStockTake);
 const cancelStockTakeMock = vi.mocked(cancelStockTake);
 const listControlledStockMock = vi.mocked(listControlledStock);
 const downloadControlledExportMock = vi.mocked(downloadControlledStockExport);
+const listGoodsReceiptsMock = vi.mocked(listBranchGoodsReceipts);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -280,6 +293,7 @@ function renderPage(
   modules: string[] = ['INVENTORY', 'SALES'],
   activeBranchId: string | null = 'br1',
   role = 'pharmacy_owner',
+  roles: { id: string; name: string; code: string | null; kind: string }[] = [],
 ) {
   const store = configureStore({
     reducer: { auth: authReducer },
@@ -294,6 +308,7 @@ function renderPage(
           tenantStatus: 'ACTIVE',
           emailVerified: true,
           modules,
+          roles,
           activeBranchId,
           branches: [
             { id: 'br1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' },
@@ -576,7 +591,7 @@ describe('floor inventory catalogue', () => {
   });
 
   it('success: update selected product', async () => {
-    const user = userEvent.setup();
+    const user = userEvent.setup({ delay: null });
     const updated = { ...sample, name: 'Paracetamol 650', rackLocation: 'B-01' };
     listMock.mockResolvedValue([sample]);
     updateMock.mockResolvedValue(updated);
@@ -1695,5 +1710,19 @@ describe('schedule register', () => {
       await screen.findByText('Schedule register exported for this outlet.'),
     ).toBeInTheDocument();
     vi.unstubAllGlobals();
+  });
+});
+
+describe('quality check tab', () => {
+  it('offers a Quality check tab on the floor inventory screen', async () => {
+    listGoodsReceiptsMock.mockResolvedValue([]);
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    const user = userEvent.setup({ delay: null });
+    await user.click(screen.getByRole('tab', { name: 'Quality check' }));
+    expect(
+      await screen.findByText('No deliveries waiting for a pharmacist check.'),
+    ).toBeInTheDocument();
   });
 });

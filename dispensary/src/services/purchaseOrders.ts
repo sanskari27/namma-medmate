@@ -201,7 +201,7 @@ export async function getPurchaseOrderAnalytics(): Promise<PurchaseOrderAnalytic
   return data;
 }
 
-export type GoodsReceiptStatus = 'PENDING_QC';
+export type GoodsReceiptStatus = 'PENDING_QC' | 'CHECKED';
 
 export interface GoodsReceiptLine {
   purchaseOrderLineId: string;
