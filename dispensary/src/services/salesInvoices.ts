@@ -141,6 +141,11 @@ export async function listSalesInvoices(query?: { status?: SalesInvoiceStatus })
   return data;
 }
 
+export async function getSalesInvoice(id: string): Promise<SalesInvoice> {
+  const { data } = await apiClient.get<SalesInvoice>(API.salesInvoice(id));
+  return data;
+}
+
 export async function holdSalesInvoice(
   id: string,
   input: { expectedVersion: number },

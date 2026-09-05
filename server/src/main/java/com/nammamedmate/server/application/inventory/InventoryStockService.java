@@ -11,6 +11,7 @@ import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.NotificationTrigger;
 import com.nammamedmate.server.domain.Product;
+import com.nammamedmate.server.domain.SalesReturnPolicy;
 import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.StockBatch;
 import com.nammamedmate.server.domain.StockMovement;
@@ -486,6 +487,67 @@ public class InventoryStockService {
     return loadBalanceView(ctx, balance.getId());
   }
 
+  @Transactional
+  public StockBalanceView restockFromSalesReturn(
+      AuthPrincipal principal,
+      UUID productId,
+      UUID batchId,
+      BigDecimal quantity,
+      String idempotencyKey) {
+    Context ctx = requireReadyForSale(principal);
+    Product product = requireProduct(productId, ctx.tenantId());
+    BigDecimal qty = requirePositiveQuantity(quantity, product.getQuantityPrecision());
+    String key = requireIdempotencyKey(idempotencyKey);
+
+    Optional<StockMovement> existing =
+        stockMovementRepository.findByTenantIdAndIdempotencyKey(ctx.tenantId(), key);
+    if (existing.isPresent()) {
+      StockMovement prior = existing.get();
+      assertIdempotentSalesReturn(prior, productId, batchId, qty);
+      return loadBalanceView(ctx, prior.getBalanceId());
+    }
+
+    StockBatch batch = null;
+    if (product.isRequiresBatchTracking()) {
+      if (batchId == null) {
+        throw validationError();
+      }
+      batch =
+          stockBatchRepository
+              .findByIdAndTenantId(batchId, ctx.tenantId())
+              .filter(b -> b.getProductId().equals(productId))
+              .orElseThrow(
+                  () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch was not found"));
+      SalesReturnPolicy.assertBatchNotExpired(batch.getExpiresOn(), today());
+    } else if (batchId != null) {
+      throw validationError();
+    }
+
+    StockBalance balance = lockOrCreateBalance(ctx, productId, batchId, null);
+    Instant now = clock.instant();
+    BigDecimal next = balance.getQuantity().add(qty);
+    balance.setQuantity(next);
+    balance.setVersion(balance.getVersion() + 1);
+    balance.setUpdatedAt(now);
+    stockBalanceRepository.saveAndFlush(balance);
+
+    StockMovement movement =
+        newMovement(
+            ctx,
+            productId,
+            batchId,
+            balance.getId(),
+            StockMovementType.SALES_RETURN,
+            qty,
+            next,
+            batch == null ? null : batch.getPurchasePricePaise(),
+            key,
+            now);
+    stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
+    return loadBalanceView(ctx, balance.getId());
+  }
+
   private UUID resolveBatchForReceipt(
       Context ctx,
       Product product,
@@ -626,6 +688,16 @@ public class InventoryStockService {
   private void assertIdempotentPurchaseReturn(
       StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
     if (prior.getType() != StockMovementType.PURCHASE_RETURN
+        || !prior.getProductId().equals(productId)
+        || prior.getQuantity().compareTo(qty) != 0
+        || !Objects.equals(prior.getBatchId(), batchId)) {
+      throw idempotencyConflict();
+    }
+  }
+
+  private void assertIdempotentSalesReturn(
+      StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
+    if (prior.getType() != StockMovementType.SALES_RETURN
         || !prior.getProductId().equals(productId)
         || prior.getQuantity().compareTo(qty) != 0
         || !Objects.equals(prior.getBatchId(), batchId)) {
