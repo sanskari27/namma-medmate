@@ -46,9 +46,21 @@ infrastructure → security, config, external adapters
 
 ## Gate
 
+During TDD, run only the new test classes:
+
+```sh
+cd server && ./mvnw -Dtest=ThisStoryTest,ThisStoryRollbackTest,ThisStoryPolicyTest test
+```
+
+Once those pass, run the listed full gate **once** before the verifier:
+
 ```sh
 cd server && ./mvnw spotless:check test
 ```
 
+Do not loop the full suite after every compile, and do not re-run it after a
+verifier FAIL unless that FAIL was missing/red/stale gate evidence or the
+fix changed shared code outside this story's new tests.
+
 Return server files, failing-then-passing test names, isolation evidence, and
-this exact command output. Skip this skill entirely when `server` is not listed.
+the full-gate command output. Skip this skill entirely when `server` is not listed.

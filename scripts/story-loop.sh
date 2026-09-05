@@ -305,7 +305,11 @@ If the tracker already has a row in_progress, finish that story only.
 Otherwise select the first dependency-ready story and implement it.
 
 Write a short plan to logs/current-story.md first (story id on line 1), then build it.
-Run the listed story gates and independent verification.
+Implement in this agent. Do not spawn story-implementer or requirement-orchestrator.
+Run listed full gates once, sequentially (server then SPA). Do not run Maven and npm test at the same time.
+The only nested agent is story-verifier, spawned once after a pre-verify self-check. It reviews evidence and must not re-run those gates.
+On verifier FAIL, fix only reported gaps and re-run delta tests, not the full Maven/npm suites.
+If the local UI/API is down, skip browser retries; uniqueness from source is enough.
 Do not run make format. Do not commit. Do not push. Do not start a second story.
 Stop after this story is done, or after a real blocker.
 EOF

@@ -5,7 +5,8 @@ description: Review-only verification of a Namma MedMate dispensary or admin sto
 
 # Verify React slice
 
-Review only. Do not edit code or tracker status.
+Review only. Do not edit code or tracker status. Do not run listed SPA
+`lint`, `test -- --run`, or `build` gates.
 
 Skip this skill when neither `dispensary` nor `admin` is in the story `apps`
 list. Apply once per listed SPA against [dispensary.md](../react-story/dispensary.md)
@@ -37,8 +38,10 @@ or [admin.md](../react-story/admin.md).
    `react-story/composition.md`.
 9. Scaffold `dev-token` login is gone when the story requires real auth.
 10. First UI story in an app installed Vitest + Testing Library + `npm test`.
-11. Listed app gates passed (`lint`, `test -- --run`, `build`). Evidence
-    includes command output. Browser-check notes exist for the changed
+11. Implementer evidence includes that SPA's `lint`, `test -- --run`, and
+    `build` output. **Cite it; do not re-run.** Missing, stale versus the
+    current diff, or unsuccessful output is a FAIL — tell the implementer
+    to run those commands once. Browser-check notes exist for the changed
     flow, including a screenshot self-critique against `design-taste` and
     composition splits.
 12. Diff has no unlisted app, no Spring layering work claimed as UI evidence.

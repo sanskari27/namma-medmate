@@ -26,9 +26,12 @@ Alternative states are `blocked` and `deferred`. Only one story may be
 3. Inspect existing callers and reuse current code.
 4. Write failing tests for every acceptance criterion.
 5. Implement the smallest complete vertical slice.
-6. Run all gates for touched targets.
-7. Ask the independent story verifier for a verdict.
-8. Update tracker evidence; mark `done` only after `PASS`.
+6. Run all gates for touched targets **once** after story tests are green.
+7. Ask the independent story verifier for a verdict. The verifier reviews
+   evidence and must not re-run listed full gates.
+8. On FAIL, patch only listed gaps and re-run **delta tests** (not another
+   full Maven/npm suite unless gate evidence was missing/red/stale). Update
+   tracker evidence; mark `done` only after `PASS`.
 
 ## Non-negotiable product boundaries
 
@@ -41,6 +44,9 @@ Alternative states are `blocked` and `deferred`. Only one story may be
 - Schema changes use new Flyway migrations only.
 
 ## Target gates
+
+The implementer runs listed gates **once** before verify. Independent review
+cites that output and must not re-run them.
 
 - Server: `cd server && ./mvnw spotless:check test`
 - Dispensary: `cd dispensary && npm run lint && npm run test -- --run && npm run build`

@@ -21,6 +21,11 @@ Stack skills (dispatched from story frontmatter `apps`):
 - `server` → `spring-story` / `verify-spring`
 - `dispensary` and/or `admin` → `react-story` / `verify-react` (once per SPA)
 
+Implementer runs listed full gates once, sequentially, before verify. Do not
+spawn `story-implementer` from the loop agent. `story-verifier` reviews
+evidence and must not re-run Maven/npm suites. After a FAIL, patch and
+delta-test; do not loop `./mvnw spotless:check test`.
+
 Work on one vertical story at a time. Never implement blocked or deferred work,
 skip tests, invent product decisions, bypass tenant/branch scope, or claim a
 story is done without an independent verifier `PASS`.

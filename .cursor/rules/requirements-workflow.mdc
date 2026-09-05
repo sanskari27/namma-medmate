@@ -15,5 +15,7 @@ alwaysApply: false
 - Keep exactly one story `in_progress`.
 - Implement the complete vertical slice in every app listed in frontmatter.
 - Write failing tests before runtime code and map evidence to every AC.
-- Mark `done` only after all target gates and independent verifier `PASS`.
+- Mark `done` only after listed full-gate evidence and independent verifier `PASS`.
+  The verifier reviews that evidence and must not re-run listed full gates.
+  After a FAIL, patch gaps and re-run delta tests, not another full suite.
 - Do not add behavior not traceable to the selected story and product source.

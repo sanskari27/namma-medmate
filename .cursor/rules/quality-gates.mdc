@@ -5,7 +5,13 @@ alwaysApply: true
 
 # Quality gates
 
-Run only relevant targets, but never omit a target listed by the story:
+Do not omit a listed app. Missing tooling is implementation work, not a skip.
+
+## Listed full gates (implementer, once)
+
+After the slice is green on story tests, run each listed target **once**,
+**sequentially** (server, then SPA), immediately before the first verify.
+Do not start Maven and the SPA test suite at the same time.
 
 - Server: `cd server && ./mvnw spotless:check test`.
 - Dispensary: `cd dispensary && npm run lint && npm run test -- --run && npm run build`.
@@ -14,6 +20,22 @@ Run only relevant targets, but never omit a target listed by the story:
 - Requirements metadata: `node --test scripts/validate-requirements.test.mjs`
   then `node scripts/validate-requirements.mjs`.
 
-If a required command is missing, adding it and its tests is implementation
-work; missing tooling is not permission to skip a gate. Do not mark `done`
-while a target gate is red. Record exact commands and results in tracker evidence.
+Record exact commands and results in tracker evidence.
+
+## Independent review
+
+`verify-spring`, `verify-react`, and `story-verifier` cite that output. They
+must not re-run listed full gates. If output is missing, stale versus the
+diff, or not success, FAIL and tell the implementer to run the listed gate
+once — do not run it during review.
+
+## After a verifier FAIL
+
+Fix only reported gaps. Re-run **delta tests** for the failing ACs / changed
+test files (`./mvnw -Dtest=ThisStory* test` or `npm run test -- --run <file>`).
+Re-run `spotless:check` or app `lint` only when the FAIL was format/lint.
+Re-run listed **full** gates only when the FAIL was missing/red/stale gate
+evidence, or the fix changed shared code outside this story's new tests.
+
+Do not mark `done` while a listed full gate is red or absent from implementer
+evidence.

@@ -5,7 +5,8 @@ description: Review-only verification of a Namma MedMate server story slice agai
 
 # Verify Spring slice
 
-Review only. Do not edit code or tracker status.
+Review only. Do not edit code or tracker status. Do not run
+`./mvnw spotless:check test` or any other listed full gate.
 
 Skip this skill when `server` is not in the story `apps` list.
 
@@ -20,7 +21,10 @@ Skip this skill when `server` is not in the story `apps` list.
    the story. Client claims are untrusted.
 7. Schema change is a new Flyway migration; applied migrations are untouched.
 8. Money is paise; timestamps are UTC. Secrets are not logged.
-9. `cd server && ./mvnw spotless:check test` passed; output is in evidence.
+9. Implementer evidence includes `cd server && ./mvnw spotless:check test`
+   output with BUILD SUCCESS. **Cite it; do not re-run.** Missing, stale
+   versus the current diff, or unsuccessful output is a FAIL — tell the
+   implementer to run that command once.
 10. Diff has no React work, other-app imports, or unlisted server behavior.
 
 ## Verdict input

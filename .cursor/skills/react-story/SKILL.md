@@ -84,19 +84,35 @@ Ship **robust, clean** operational UI — not decorative dashboards.
 
 ## Browser check
 
-Exercise the changed flow in the browser before claiming the UI slice done.
-Screenshot the result, critique density, hierarchy, contrast, composition
+Probe the changed flow once (`:5173` dispensary, `:5174` admin, API `:8080`).
+If the stack is unreachable, stop: record uniqueness from source (tokens,
+copy, composition splits) and do not retry browser MCP.
+
+If it is up, screenshot, critique density, hierarchy, contrast, composition
 splits, and generic tells. Fix, then re-screenshot. A single screenshot is
 not evidence.
 
 ## Gates
 
-For each listed SPA:
+During TDD, run only the new/changed test files:
+
+```sh
+cd dispensary && npm run test -- --run src/screens/<name>/tests/<file>.test.tsx
+```
+
+Once those pass, run listed SPA gates **once** before the verifier:
 
 ```sh
 cd dispensary && npm run lint && npm run test -- --run && npm run build
 cd admin && npm run lint && npm run test -- --run && npm run build
 ```
+
+If the full `npm run test` times out, retry **once**. Do not keep re-running
+the full SPA suite. Prefer the story test files, then one full attempt.
+After a verifier FAIL, re-run only the changed test files (plus `lint` if
+the FAIL was lint), not another full `lint`/`test`/`build`, unless the FAIL
+was missing/red/stale gate evidence or the fix changed shared code outside
+this story's new tests.
 
 Run only the apps in `apps`. Return per-app files (list each new child
 component), failing-then-passing tests, state/a11y coverage, uniqueness

@@ -108,7 +108,8 @@ src/
 - Production: `compose.prod.yaml` on EC2 with private RDS and ElastiCache.
 - The Spring `local` profile must never target RDS or ElastiCache.
 
-Run every gate for each story target:
+The implementer runs every listed gate for the story **once** before verify.
+Independent review cites that output and must not re-run these commands:
 
 ```sh
 cd server && ./mvnw spotless:check test

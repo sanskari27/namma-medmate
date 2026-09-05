@@ -25,3 +25,6 @@ Write failing JUnit 5 tests before runtime code. Prefer existing test style in
 
 Name tests after the AC or rule they prove. A passing health check is not
 evidence for a new endpoint.
+
+While red/green, run only those new classes (`./mvnw -Dtest=ThisStory* test`).
+The listed full Maven gate runs once after they pass, not after every compile.
