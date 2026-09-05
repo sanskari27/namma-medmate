@@ -298,6 +298,7 @@ describe('counter returns', () => {
       reason: 'Wrong strength',
       lines: [{ salesInvoiceLineId: 'line-1', quantity: 1 }],
     });
+    await waitFor(() => expect(screen.getByLabelText('Collected bill number')).toHaveFocus());
   });
 
   it('validation: over-return from the server', async () => {

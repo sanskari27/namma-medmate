@@ -68,10 +68,15 @@ export function useReturnsPage() {
     void load();
   }, [load]);
 
+  function focusBillField() {
+    queueMicrotask(() => document.getElementById('return-bill')?.focus());
+  }
+
   async function findBill() {
     if (!query.trim()) {
       setStatus('validation');
       setStatusHint('Type a collected bill number first.');
+      focusBillField();
       return;
     }
     setBusy(true);
@@ -171,6 +176,7 @@ export function useReturnsPage() {
       setStatus('success');
       setStatusHint(null);
       await load('success');
+      focusBillField();
     } catch (error) {
       setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
       setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
