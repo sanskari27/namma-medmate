@@ -58,6 +58,7 @@ export const API = {
   COMPLIANCE_CONTROLLED_STOCK: '/api/v1/compliance/controlled-stock',
   COMPLIANCE_CONTROLLED_STOCK_VERIFY: '/api/v1/compliance/controlled-stock/verify',
   COMPLIANCE_CONTROLLED_STOCK_EXPORT: '/api/v1/compliance/controlled-stock/export',
+  SUPPLIERS: '/api/v1/suppliers',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   product: (id: string) => `/api/v1/products/${id}`,
   productUnits: (id: string) => `/api/v1/products/${id}/units`,
@@ -93,6 +94,7 @@ export const API = {
     `/api/v1/customer-families/${familyId}/members/${customerId}`,
   customerFamilyHistory: (id: string) => `/api/v1/customer-families/${id}/history`,
   customerFamilyCredit: (id: string) => `/api/v1/customer-families/${id}/credit`,
+  supplier: (id: string) => `/api/v1/suppliers/${id}`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

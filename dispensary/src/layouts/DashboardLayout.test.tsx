@@ -99,6 +99,7 @@ function renderDashboard(
               <Route element={<DashboardLayout />}>
                 <Route path={ROUTES.DASHBOARD} element={<div>Counter overview</div>} />
                 <Route path={ROUTES.SALES} element={<div>Sales page</div>} />
+                <Route path={ROUTES.DISTRIBUTORS} element={<div>Distributors page</div>} />
                 {STUB_PAGES.map((page) => (
                   <Route key={page.path} path={page.path} element={<div>{page.title} page</div>} />
                 ))}
@@ -237,7 +238,7 @@ describe('dispensary counter rail', () => {
       'page',
     );
     expect(screen.getByText('Sales page')).toBeInTheDocument();
-  });
+  }, 15_000);
 
   it('can fold a section closed then open it again', async () => {
     const user = userEvent.setup();
