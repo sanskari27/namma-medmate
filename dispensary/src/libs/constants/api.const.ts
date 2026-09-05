@@ -145,6 +145,12 @@ export const API = {
   PRESCRIPTION_REFERENCES_SCAN: '/api/v1/prescription-references/scan',
   prescriptionReference: (id: string) => `/api/v1/prescription-references/${id}`,
   prescriptionReferenceArchive: (id: string) => `/api/v1/prescription-references/${id}/archive`,
+  EXPENSE_CATEGORIES: '/api/v1/finance/expense-categories',
+  EXPENSES: '/api/v1/finance/expenses',
+  EXPENSES_TOTALS: '/api/v1/finance/expenses/totals',
+  expense: (id: string) => `/api/v1/finance/expenses/${id}`,
+  expenseEvidence: (id: string, evidenceId: string) =>
+    `/api/v1/finance/expenses/${id}/evidence/${evidenceId}`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
   COMPLIANCE_LICENSES: '/api/v1/compliance/licenses',
