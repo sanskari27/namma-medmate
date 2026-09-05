@@ -113,7 +113,8 @@ class ControlledSaleRegisterRollbackTest extends AbstractIntegrationTest {
   private Cookie loginOwner(String tag) throws Exception {
     Tenant tenant = persistTenant(tag, "Roll " + tag);
     persistPlan(tenant.getId());
-    persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner, "Anika Owner");
+    persistUser(
+        tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner, "Anika Owner");
     persistBranch(tenant.getId());
     return login("owner@" + tag + ".local");
   }

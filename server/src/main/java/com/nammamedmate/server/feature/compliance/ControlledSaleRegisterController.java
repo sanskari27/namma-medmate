@@ -43,14 +43,7 @@ public class ControlledSaleRegisterController {
         new RegisterResponse(
             controlledSaleRegisterService
                 .list(
-                    principal,
-                    branchId,
-                    schedule,
-                    productId,
-                    patientId,
-                    pharmacistUserId,
-                    from,
-                    to)
+                    principal, branchId, schedule, productId, patientId, pharmacistUserId, from, to)
                 .items()
                 .stream()
                 .map(ControlledSaleRegisterController::toLine)
@@ -81,9 +74,7 @@ public class ControlledSaleRegisterController {
             from,
             to);
     String filename =
-        "ndps".equalsIgnoreCase(format)
-            ? "ndps-sale-register.csv"
-            : "controlled-sale-register.csv";
+        "ndps".equalsIgnoreCase(format) ? "ndps-sale-register.csv" : "controlled-sale-register.csv";
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + filename + "\"")
         .contentType(new MediaType("text", "csv"))

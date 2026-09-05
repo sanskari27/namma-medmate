@@ -22,8 +22,7 @@ class ControlledSalePolicyTest {
   @Test
   void cashierCannotViewOrExport() {
     assertThat(ControlledSalePolicy.canView(AppUserRole.pharmacy_staff, false)).isFalse();
-    assertThatThrownBy(
-            () -> ControlledSalePolicy.requireViewer(AppUserRole.pharmacy_staff, false))
+    assertThatThrownBy(() -> ControlledSalePolicy.requireViewer(AppUserRole.pharmacy_staff, false))
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(ControlledSalePolicy.FORBIDDEN);

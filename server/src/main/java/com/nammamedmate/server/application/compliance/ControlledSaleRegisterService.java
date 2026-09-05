@@ -114,9 +114,7 @@ public class ControlledSaleRegisterService {
       throw ControlledSalePolicy.forbidden();
     }
     AppUser user =
-        appUserRepository
-            .findById(principal.userId())
-            .orElseThrow(ControlledSalePolicy::forbidden);
+        appUserRepository.findById(principal.userId()).orElseThrow(ControlledSalePolicy::forbidden);
     if (user.getDeletedAt() != null || !principal.tenantId().equals(user.getTenantId())) {
       throw ControlledSalePolicy.forbidden();
     }

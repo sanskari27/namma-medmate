@@ -75,8 +75,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     UUID doctorId = createDoctor(fx.cookie(), "Dr Rao", "KA-2001");
 
     sellOtc(fx, otc, "otc-skip");
-    UUID invoiceId =
-        sellControlled(fx, controlled, customerId, doctorId, "RX-NDPS-1", "csr-ac01");
+    UUID invoiceId = sellControlled(fx, controlled, customerId, doctorId, "RX-NDPS-1", "csr-ac01");
 
     mockMvc
         .perform(get("/api/v1/compliance/controlled-register").cookie(fx.cookie()))
@@ -126,8 +125,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     Stocked controlled = stocked(fx, "H1-RET", "Tramadol", true, true);
     UUID customerId = createCustomer(fx.cookie(), "Meera Patient", "9431000002");
     UUID doctorId = createDoctor(fx.cookie(), "Dr Shah", "KA-2002");
-    UUID invoiceId =
-        sellControlled(fx, controlled, customerId, doctorId, "RX-RET-1", "csr-ac02");
+    UUID invoiceId = sellControlled(fx, controlled, customerId, doctorId, "RX-RET-1", "csr-ac02");
     UUID lineId = lineId(fx, invoiceId);
 
     mockMvc
@@ -214,7 +212,8 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(
             header()
-                .string("Content-Disposition", "attachment; filename=\"controlled-sale-register.csv\""))
+                .string(
+                    "Content-Disposition", "attachment; filename=\"controlled-sale-register.csv\""))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("Kiran Patient")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("RX-X-4")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("SALE")));
@@ -226,7 +225,8 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
                 .param("format", "ndps"))
         .andExpect(status().isOk())
         .andExpect(
-            header().string("Content-Disposition", "attachment; filename=\"ndps-sale-register.csv\""))
+            header()
+                .string("Content-Disposition", "attachment; filename=\"ndps-sale-register.csv\""))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("date_ist")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("Kiran Patient")))
         .andExpect(content().string(org.hamcrest.Matchers.containsString("issue_qty")));
@@ -337,12 +337,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
   }
 
   private UUID sellControlled(
-      Fixture fx,
-      Stocked product,
-      UUID customerId,
-      UUID doctorId,
-      String rx,
-      String key)
+      Fixture fx, Stocked product, UUID customerId, UUID doctorId, String rx, String key)
       throws Exception {
     UUID invoiceId =
         idOf(
@@ -352,8 +347,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
                         .cookie(fx.cookie())
                         .contentType(MediaType.APPLICATION_JSON)
                         .content(
-                            draftJson(
-                                customerId, doctorId, rx, true, product, "1", "30", key)))
+                            draftJson(customerId, doctorId, rx, true, product, "1", "30", key)))
                 .andExpect(status().isOk())
                 .andReturn());
     mockMvc
@@ -571,7 +565,8 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     Tenant tenant = persistTenant(tag, "Sale " + tag);
     persistPlan(tenant.getId());
     AppUser owner =
-        persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner, ownerName);
+        persistUser(
+            tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner, ownerName);
     Location branch = persistBranch(tenant.getId());
     Cookie cookie = login(owner.getEmail());
     mockMvc
