@@ -2,11 +2,14 @@ package com.nammamedmate.server.application.sales;
 
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.EinvoiceApplicability;
+import com.nammamedmate.server.domain.EinvoiceStatus;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
+import com.nammamedmate.server.domain.ScheduleClassification;
 import com.nammamedmate.server.domain.TaxJurisdiction;
 import java.math.BigDecimal;
 import java.time.Instant;
@@ -51,6 +54,9 @@ public record SalesInvoiceView(
     long loyaltyEarnedPoints,
     long loyaltyTaxablePaise,
     long loyaltyPendingTaxablePaise,
+    EinvoiceApplicability einvoiceApplicability,
+    EinvoiceStatus einvoiceStatus,
+    String einvoiceIrn,
     Instant completedAt,
     List<PaymentView> payments,
     List<LineView> lines,
@@ -94,5 +100,7 @@ public record SalesInvoiceView(
       OfferKind offerKind,
       Integer offerPriority,
       long offerBenefitPaise,
-      String offerExplanation) {}
+      String offerExplanation,
+      ScheduleClassification scheduleClassification,
+      boolean controlledSubstance) {}
 }

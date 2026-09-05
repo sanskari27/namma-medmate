@@ -1,12 +1,14 @@
 import { useId } from 'react';
 import { PosAckFooter } from './components/pos-ack-footer';
 import { PosBillDiscount } from './components/pos-bill-discount';
+import { PosConnectivityOverlay } from './components/pos-connectivity-overlay';
 import { PosCustomerPicker } from './components/pos-customer-picker';
 import { PosDiscountApproval } from './components/pos-discount-approval';
 import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
 import { PosHoldList } from './components/pos-hold-list';
+import { PosInvoiceOutput } from './components/pos-invoice-output';
 import { PosLoyaltyPanel } from './components/pos-loyalty-panel';
 import { PosOfferPanel } from './components/pos-offer-panel';
 import { PosPrescriptionPanel } from './components/pos-prescription-panel';
@@ -14,6 +16,7 @@ import { PosStatusBanner } from './components/pos-status-banner';
 import { PosTenderPanel } from './components/pos-tender-panel';
 import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
 import { PosWarningPanel } from './components/pos-warning-panel';
+import { usePosConnectivity } from './usePosConnectivity';
 import { usePosHold } from './usePosHold';
 import { usePosOffers } from './usePosOffers';
 import { usePosTill } from './usePosTill';
@@ -22,6 +25,7 @@ export default function PosScreen() {
   const titleId = useId();
   const statusId = useId();
   const till = usePosTill();
+  const connectivity = usePosConnectivity();
   const hold = usePosHold({
     allowed: till.allowed,
     invoice: till.invoice,
@@ -158,10 +162,18 @@ export default function PosScreen() {
                 hasCustomer={Boolean(till.selectedCustomer)}
                 availablePaise={till.creditAvailablePaise}
                 collected={till.collected}
-                disabled={till.draft.length === 0}
+                disabled={till.draft.length === 0 || connectivity.offline}
                 busy={till.busy}
                 onChange={till.setTender}
                 onCollect={till.runCollect}
+              />
+              <PosInvoiceOutput
+                invoiceId={till.invoice?.id ?? null}
+                invoiceNumber={till.invoice?.invoiceNumber ?? null}
+                collected={till.collected}
+                walkIn={till.walkIn}
+                customerEmail={till.selectedCustomer?.email ?? null}
+                disabled={connectivity.offline}
               />
             </>
           ) : null}
@@ -196,13 +208,14 @@ export default function PosScreen() {
         onComplete={till.runComplete}
         onSave={till.runSave}
         onHold={hold.runHold}
-        evaluateDisabled={till.draft.length === 0}
-        completeDisabled={till.draft.length === 0}
-        saveDisabled={till.draft.length === 0}
-        holdDisabled={till.collected}
+        evaluateDisabled={till.draft.length === 0 || connectivity.offline}
+        completeDisabled={till.draft.length === 0 || connectivity.offline}
+        saveDisabled={till.draft.length === 0 || connectivity.offline}
+        holdDisabled={till.collected || connectivity.offline}
         busy={till.busy}
         showReason={till.showReason}
       />
+      <PosConnectivityOverlay open={connectivity.offline} />
     </div>
   );
 }

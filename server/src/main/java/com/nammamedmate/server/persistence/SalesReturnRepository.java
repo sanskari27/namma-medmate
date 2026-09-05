@@ -14,4 +14,7 @@ public interface SalesReturnRepository extends JpaRepository<SalesReturn, UUID> 
       UUID tenantId, UUID branchId, String idempotencyKey);
 
   List<SalesReturn> findAllByTenantIdAndBranchIdOrderByCreatedAtDesc(UUID tenantId, UUID branchId);
+
+  List<SalesReturn> findAllByTenantIdAndBranchIdAndSalesInvoiceIdOrderByCreatedAtAsc(
+      UUID tenantId, UUID branchId, UUID salesInvoiceId);
 }

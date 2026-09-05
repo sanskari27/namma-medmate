@@ -101,6 +101,10 @@ vi.mock('@/services/salesInvoices', async () => {
     resumeSalesInvoice: vi.fn(),
     listInvoiceOffers: vi.fn(),
     applyInvoiceOffers: vi.fn(),
+    pingSalesInvoiceHealth: vi.fn().mockResolvedValue({ status: 'UP' }),
+    downloadInvoicePdf: vi.fn(),
+    emailInvoiceCopy: vi.fn(),
+    openInvoicePdf: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };

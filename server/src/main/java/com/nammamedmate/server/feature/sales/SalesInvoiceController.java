@@ -2,7 +2,10 @@ package com.nammamedmate.server.feature.sales;
 
 import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.sales.InvoiceCompletionCommand;
+import com.nammamedmate.server.application.sales.InvoiceCopyView;
 import com.nammamedmate.server.application.sales.InvoiceHoldCommand;
+import com.nammamedmate.server.application.sales.InvoiceOutputService;
+import com.nammamedmate.server.application.sales.InvoicePdfBytes;
 import com.nammamedmate.server.application.sales.InvoicePricingCommand;
 import com.nammamedmate.server.application.sales.InvoiceRevalidation;
 import com.nammamedmate.server.application.sales.InvoiceTaxAdjustmentCommand;
@@ -11,12 +14,16 @@ import com.nammamedmate.server.application.sales.SalesInvoiceService;
 import com.nammamedmate.server.application.sales.SalesInvoiceView;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.EinvoiceApplicability;
+import com.nammamedmate.server.domain.EinvoiceStatus;
+import com.nammamedmate.server.domain.EmailDeliveryStatus;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
 import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
+import com.nammamedmate.server.domain.ScheduleClassification;
 import com.nammamedmate.server.domain.TaxJurisdiction;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -31,7 +38,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -47,9 +57,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class SalesInvoiceController {
 
   private final SalesInvoiceService salesInvoiceService;
+  private final InvoiceOutputService invoiceOutputService;
 
-  public SalesInvoiceController(SalesInvoiceService salesInvoiceService) {
+  public SalesInvoiceController(
+      SalesInvoiceService salesInvoiceService, InvoiceOutputService invoiceOutputService) {
     this.salesInvoiceService = salesInvoiceService;
+    this.invoiceOutputService = invoiceOutputService;
+  }
+
+  @GetMapping("/health")
+  public ApiResponse<InvoiceHealthResponse> health(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        new InvoiceHealthResponse(invoiceOutputService.health(principal).status()));
   }
 
   @GetMapping
@@ -68,6 +88,25 @@ public class SalesInvoiceController {
       Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(salesInvoiceService.get(principal, id)));
+  }
+
+  @GetMapping(value = "/{id}/pdf", produces = MediaType.APPLICATION_PDF_VALUE)
+  public ResponseEntity<byte[]> pdf(Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InvoicePdfBytes pdf = invoiceOutputService.pdf(principal, id);
+    return ResponseEntity.ok()
+        .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + pdf.filename() + "\"")
+        .contentType(MediaType.APPLICATION_PDF)
+        .body(pdf.content());
+  }
+
+  @PostMapping("/{id}/email-copy")
+  public ApiResponse<InvoiceCopyResponse> emailCopy(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InvoiceCopyView view = invoiceOutputService.emailCopy(principal, id);
+    return ApiResponse.ok(
+        new InvoiceCopyResponse(view.id(), view.status(), view.replayed(), view.invoiceNumber()));
   }
 
   @GetMapping("/{id}/offers")
@@ -312,6 +351,9 @@ public class SalesInvoiceController {
         view.loyaltyEarnedPoints(),
         view.loyaltyTaxablePaise(),
         view.loyaltyPendingTaxablePaise(),
+        view.einvoiceApplicability(),
+        view.einvoiceStatus(),
+        view.einvoiceIrn(),
         view.completedAt(),
         view.payments() == null
             ? List.of()
@@ -358,7 +400,9 @@ public class SalesInvoiceController {
                         line.offerKind(),
                         line.offerPriority(),
                         line.offerBenefitPaise(),
-                        line.offerExplanation()))
+                        line.offerExplanation(),
+                        line.scheduleClassification(),
+                        line.controlledSubstance()))
             .toList(),
         view.createdAt(),
         view.updatedAt(),
@@ -461,6 +505,9 @@ public class SalesInvoiceController {
       long loyaltyEarnedPoints,
       long loyaltyTaxablePaise,
       long loyaltyPendingTaxablePaise,
+      EinvoiceApplicability einvoiceApplicability,
+      EinvoiceStatus einvoiceStatus,
+      String einvoiceIrn,
       Instant completedAt,
       List<PaymentResponse> payments,
       List<LineResponse> lines,
@@ -504,10 +551,17 @@ public class SalesInvoiceController {
       OfferKind offerKind,
       Integer offerPriority,
       long offerBenefitPaise,
-      String offerExplanation) {}
+      String offerExplanation,
+      ScheduleClassification scheduleClassification,
+      boolean controlledSubstance) {}
 
   public record InvoiceOfferListResponse(List<InvoiceOfferItemResponse> items) {}
 
   public record InvoiceOfferItemResponse(
       UUID id, String name, OfferKind kind, int priority, String explanation, long benefitPaise) {}
+
+  public record InvoiceHealthResponse(String status) {}
+
+  public record InvoiceCopyResponse(
+      UUID id, EmailDeliveryStatus status, boolean replayed, String invoiceNumber) {}
 }

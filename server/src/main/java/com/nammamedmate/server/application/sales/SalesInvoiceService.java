@@ -24,6 +24,8 @@ import com.nammamedmate.server.domain.ControlledStockPolicy;
 import com.nammamedmate.server.domain.CustomerHistoryFactType;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.EinvoiceApplicability;
+import com.nammamedmate.server.domain.EinvoiceStatus;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.InvoiceHoldPolicy;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
@@ -110,6 +112,7 @@ public class SalesInvoiceService {
   private final InventoryStockService inventoryStockService;
   private final CustomerHistoryService customerHistoryService;
   private final OfferEvaluator offerEvaluator;
+  private final InvoiceComplianceSnapshotter invoiceComplianceSnapshotter;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -136,6 +139,7 @@ public class SalesInvoiceService {
       InventoryStockService inventoryStockService,
       CustomerHistoryService customerHistoryService,
       OfferEvaluator offerEvaluator,
+      InvoiceComplianceSnapshotter invoiceComplianceSnapshotter,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -160,6 +164,7 @@ public class SalesInvoiceService {
     this.inventoryStockService = inventoryStockService;
     this.customerHistoryService = customerHistoryService;
     this.offerEvaluator = offerEvaluator;
+    this.invoiceComplianceSnapshotter = invoiceComplianceSnapshotter;
     this.clock = clock;
   }
 
@@ -626,9 +631,11 @@ public class SalesInvoiceService {
     invoice.setLoyaltyPendingTaxablePaise(loyalty.pendingTaxablePaise());
     invoice.setCompleteIdempotencyKey(key);
     invoice.setCompletedAt(now);
+    invoiceComplianceSnapshotter.apply(invoice, lines);
     invoice.setVersion(invoice.getVersion() + 1);
     invoice.setUpdatedAt(now);
     try {
+      salesInvoiceLineRepository.saveAll(lines);
       salesInvoiceRepository.saveAndFlush(invoice);
     } catch (DataIntegrityViolationException ex) {
       throw new ApiException(
@@ -885,6 +892,8 @@ public class SalesInvoiceService {
       line.setLineTaxablePaise(row.money().taxablePaise());
       line.setLineTaxPaise(row.money().taxPaise());
       line.setLineTotalPaise(row.money().totalPaise());
+      line.setScheduleClassification(row.product().getScheduleClassification());
+      line.setControlledSubstance(row.product().isControlledSubstance());
       line.setSortOrder(row.sortOrder());
       line.setCreatedAt(now);
       saved.add(salesInvoiceLineRepository.save(line));
@@ -1076,6 +1085,13 @@ public class SalesInvoiceService {
         invoice.getLoyaltyEarnedPoints(),
         invoice.getLoyaltyTaxablePaise(),
         invoice.getLoyaltyPendingTaxablePaise(),
+        invoice.getEinvoiceApplicability() == null
+            ? EinvoiceApplicability.NOT_APPLICABLE
+            : invoice.getEinvoiceApplicability(),
+        invoice.getEinvoiceStatus() == null
+            ? EinvoiceStatus.NOT_SUBMITTED
+            : invoice.getEinvoiceStatus(),
+        invoice.getEinvoiceIrn(),
         invoice.getCompletedAt(),
         paymentsOf(invoice).stream()
             .map(
@@ -1120,7 +1136,9 @@ public class SalesInvoiceService {
                         line.getOfferKind(),
                         line.getOfferPriority(),
                         line.getOfferBenefitPaise(),
-                        line.getOfferExplanation()))
+                        line.getOfferExplanation(),
+                        line.getScheduleClassification(),
+                        line.isControlledSubstance()))
             .toList(),
         invoice.getCreatedAt(),
         invoice.getUpdatedAt(),
@@ -1167,6 +1185,9 @@ public class SalesInvoiceService {
         base.loyaltyEarnedPoints(),
         base.loyaltyTaxablePaise(),
         base.loyaltyPendingTaxablePaise(),
+        base.einvoiceApplicability(),
+        base.einvoiceStatus(),
+        base.einvoiceIrn(),
         base.completedAt(),
         base.payments(),
         base.lines(),

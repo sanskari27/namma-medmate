@@ -436,3 +436,28 @@ export function collectStatusHint(status: PageStatus, code?: string | null): str
   }
   return null;
 }
+
+export function invoiceOutputHint(status: PageStatus, code?: string | null): string | null {
+  if (status === 'loading') {
+    return 'Preparing the A4 bill…';
+  }
+  if (status === 'empty') {
+    return 'Collect this bill to print the A4 invoice.';
+  }
+  if (status === 'validation' || code === 'CUSTOMER_EMAIL_REQUIRED') {
+    return 'This patient has no email on file. Add one before sending a bill copy.';
+  }
+  if (status === 'denied') {
+    return 'This till cannot print Sales bills.';
+  }
+  if (status === 'conflict') {
+    return 'This bill changed. Refresh, then print again.';
+  }
+  if (status === 'failure') {
+    return 'Could not prepare this A4 bill. Check the line and try again.';
+  }
+  if (status === 'success') {
+    return code === 'email' ? 'Bill copy queued for this patient.' : 'A4 bill ready.';
+  }
+  return null;
+}
