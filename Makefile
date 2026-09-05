@@ -15,12 +15,15 @@ COMPOSE_FILE      ?= compose.yaml
 help: ## Show this help
 	@awk 'BEGIN {FS = ":.*##"} /^[a-zA-Z0-9_-]+:.*##/ {printf "  %-20s %s\n", $$1, $$2}' $(MAKEFILE_LIST)
 
-.PHONY: clone-db db-tunnel
+.PHONY: clone-db db-tunnel flyway-fix
 clone-db: ## Clone prod Postgres into local dev (ARGS=--yes --keep-dump, SOURCE=s3)
 	./scripts/clone-prod-db.sh $(ARGS)
 
 db-tunnel: ## SSM port-forward localhost:15432 -> prod RDS
 	./scripts/tunnel-prod-db.sh
+
+flyway-fix: ## Fix local Flyway checksum mismatch (ARGS=status|repair|replay)
+	./scripts/flyway-local-fix.sh $(ARGS)
 
 .PHONY: deps dev up down logs
 deps: ## Start local Postgres + Redis

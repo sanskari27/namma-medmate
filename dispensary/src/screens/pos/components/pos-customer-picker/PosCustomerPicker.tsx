@@ -6,8 +6,10 @@ interface PosCustomerPickerProps {
   onQueryChange: (value: string) => void;
   customers: Customer[];
   selected: Customer | null;
+  walkIn: boolean;
   onSelect: (customer: Customer) => void;
   onClear: () => void;
+  onWalkIn: () => void;
   busy: boolean;
 }
 
@@ -16,20 +18,22 @@ export function PosCustomerPicker({
   onQueryChange,
   customers,
   selected,
+  walkIn,
   onSelect,
   onClear,
+  onWalkIn,
   busy,
 }: PosCustomerPickerProps) {
   return (
     <section className="space-y-3 rounded border border-line bg-surface p-3" aria-label="Customer">
       <div className="flex items-end justify-between gap-2">
         <div>
-          <h2 className="text-sm font-semibold text-ink">Linked customer</h2>
-          <p className="text-xs text-muted">Required before completing a draft with medicines.</p>
+          <h2 className="text-sm font-semibold text-ink">Patient at the till</h2>
+          <p className="text-xs text-muted">Asked every bill — skip for a walk-in sale.</p>
         </div>
-        {selected ? (
+        {selected || walkIn ? (
           <Button type="button" variant="ghost" size="sm" onClick={onClear} disabled={busy}>
-            Clear
+            Change
           </Button>
         ) : null}
       </div>
@@ -43,9 +47,14 @@ export function PosCustomerPicker({
             <p className="mt-1 text-xs text-muted">No allergies recorded.</p>
           )}
         </div>
+      ) : walkIn ? (
+        <div className="rounded border border-line bg-canvas px-3 py-2 text-sm text-ink">
+          <p className="font-medium">Walk-in</p>
+          <p className="text-xs text-muted">No patient file on this draft.</p>
+        </div>
       ) : (
         <div className="space-y-2">
-          <Label htmlFor="pos-customer-search">Search customer</Label>
+          <Label htmlFor="pos-customer-search">Search patient</Label>
           <Input
             id="pos-customer-search"
             value={query}
@@ -67,6 +76,9 @@ export function PosCustomerPicker({
               </li>
             ))}
           </ul>
+          <Button type="button" variant="outline" size="sm" onClick={onWalkIn} disabled={busy}>
+            Skip — walk-in
+          </Button>
         </div>
       )}
     </section>

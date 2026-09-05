@@ -6,8 +6,10 @@ interface PosAckFooterProps {
   onReasonChange: (value: string) => void;
   onEvaluate: () => void;
   onComplete: () => void;
+  onSave: () => void;
   evaluateDisabled: boolean;
   completeDisabled: boolean;
+  saveDisabled: boolean;
   busy: boolean;
   showReason: boolean;
 }
@@ -17,8 +19,10 @@ export function PosAckFooter({
   onReasonChange,
   onEvaluate,
   onComplete,
+  onSave,
   evaluateDisabled,
   completeDisabled,
+  saveDisabled,
   busy,
   showReason,
 }: PosAckFooterProps) {
@@ -52,8 +56,16 @@ export function PosAckFooter({
         >
           Check draft
         </Button>
-        <Button type="button" onClick={onComplete} disabled={completeDisabled || busy}>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={onComplete}
+          disabled={completeDisabled || busy}
+        >
           Complete check
+        </Button>
+        <Button type="button" onClick={onSave} disabled={saveDisabled || busy}>
+          Save bill
         </Button>
       </div>
     </footer>

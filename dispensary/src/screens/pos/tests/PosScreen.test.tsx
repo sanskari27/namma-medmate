@@ -273,16 +273,14 @@ describe('PosScreen', () => {
 
   it('denied: till without Sales', () => {
     renderPage(['CRM']);
-    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot run Sales safety checks');
+    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
     expect(listProductsMock).not.toHaveBeenCalled();
   });
 
   it('failure: bootstrap error', async () => {
     listProductsMock.mockRejectedValue(new Error('network'));
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not reach medication safety checks',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save this bill');
   });
 
   it('validation: complete without customer or reason', async () => {
@@ -291,7 +289,7 @@ describe('PosScreen', () => {
     await screen.findByText('Penicillin V');
     await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
     await user.click(screen.getByRole('button', { name: 'Complete check' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Link a customer');
+    expect(screen.getByRole('alert')).toHaveTextContent('linked customer');
   });
 
   it('success: draft line shows converted base quantity', async () => {
@@ -376,7 +374,7 @@ describe('PosScreen', () => {
     await user.click(screen.getByRole('button', { name: 'Check draft' }));
     await user.click(screen.getByRole('button', { name: 'Complete check' }));
 
-    expect(await screen.findByRole('alert')).toHaveTextContent('Draft warnings changed');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Draft warnings');
   });
 
   it('shows duplicate composition warning for same-therapy draft lines', async () => {

@@ -3,6 +3,7 @@ import { ProductUnitSelect } from '@templates';
 import type { StockBatchDetail } from '@/services/inventory';
 import type { Product, ProductUnit } from '@/services/products';
 import { Plus, Trash2 } from 'lucide-react';
+import { PosLinePricing } from '../pos-line-pricing';
 
 export type PosDraftLine = {
   product: Product;
@@ -13,6 +14,9 @@ export type PosDraftLine = {
   batches: StockBatchDetail[];
   batchId: string | null;
   nearExpiry: boolean;
+  mrpRupees: string;
+  sellingRupees: string;
+  discountRupees: string;
 };
 
 interface PosDraftLinesProps {
@@ -25,6 +29,9 @@ interface PosDraftLinesProps {
   onUnitChange: (productId: string, unit: ProductUnit) => void;
   onQuantityChange: (productId: string, quantity: string) => void;
   onBatchChange: (productId: string, batchId: string) => void;
+  onMrpChange: (productId: string, value: string) => void;
+  onSellingChange: (productId: string, value: string) => void;
+  onDiscountChange: (productId: string, value: string) => void;
   busy: boolean;
 }
 
@@ -38,6 +45,9 @@ export function PosDraftLines({
   onUnitChange,
   onQuantityChange,
   onBatchChange,
+  onMrpChange,
+  onSellingChange,
+  onDiscountChange,
   busy,
 }: PosDraftLinesProps) {
   const draftIds = new Set(draft.map((item) => item.product.id));
@@ -49,7 +59,7 @@ export function PosDraftLines({
       <div>
         <h2 className="text-sm font-semibold text-ink">Draft medicines</h2>
         <p className="text-xs text-muted">
-          Pick a sale unit; FEFO suggests a batch — override when billing another lot.
+          Pick a sale unit and batch, then enter MRP and selling for this till.
         </p>
       </div>
       <div className="space-y-2">
@@ -166,6 +176,17 @@ export function PosDraftLines({
                     ) : null}
                   </div>
                 ) : null}
+                <PosLinePricing
+                  productId={line.product.id}
+                  productName={line.product.name}
+                  mrpRupees={line.mrpRupees}
+                  sellingRupees={line.sellingRupees}
+                  discountRupees={line.discountRupees}
+                  onMrpChange={(value) => onMrpChange(line.product.id, value)}
+                  onSellingChange={(value) => onSellingChange(line.product.id, value)}
+                  onDiscountChange={(value) => onDiscountChange(line.product.id, value)}
+                  busy={busy}
+                />
               </li>
             );
           })

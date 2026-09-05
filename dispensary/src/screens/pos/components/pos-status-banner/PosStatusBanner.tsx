@@ -3,10 +3,11 @@ import { statusCopy, type PageStatus } from '../../PosScreen.utils';
 interface PosStatusBannerProps {
   status: PageStatus;
   statusId: string;
+  invoiceNumber?: string | null;
 }
 
-export function PosStatusBanner({ status, statusId }: PosStatusBannerProps) {
-  const copy = statusCopy(status);
+export function PosStatusBanner({ status, statusId, invoiceNumber }: PosStatusBannerProps) {
+  const copy = statusCopy(status, invoiceNumber);
   if (!copy) {
     return <div id={statusId} className="min-h-5" aria-live="polite" />;
   }

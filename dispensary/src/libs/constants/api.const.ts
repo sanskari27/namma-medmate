@@ -67,6 +67,7 @@ export const API = {
   PURCHASE_ORDERS_FROM_REORDER: '/api/v1/purchase-orders/from-reorder',
   PURCHASE_ORDERS_BULK: '/api/v1/purchase-orders/bulk',
   PURCHASE_ORDERS_ANALYTICS: '/api/v1/purchase-orders/analytics',
+  SALES_INVOICES: '/api/v1/sales/invoices',
   kioskTicketCancel: (id: string) => `/api/v1/kiosk/tickets/${id}/cancel`,
   product: (id: string) => `/api/v1/products/${id}`,
   productUnits: (id: string) => `/api/v1/products/${id}/units`,
@@ -114,6 +115,7 @@ export const API = {
   purchaseOrderReceipts: (id: string) => `/api/v1/purchase-orders/${id}/receipts`,
   goodsReceipt: (id: string) => `/api/v1/goods-receipts/${id}`,
   goodsReceiptQualityCheck: (id: string) => `/api/v1/goods-receipts/${id}/quality-check`,
+  salesInvoice: (id: string) => `/api/v1/sales/invoices/${id}`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;
