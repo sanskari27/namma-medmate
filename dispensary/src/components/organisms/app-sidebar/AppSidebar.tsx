@@ -94,6 +94,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.EXPENSES]: Banknote,
   [ROUTES.ACCOUNTANT]: Calculator,
   [ROUTES.ACCOUNT]: CircleUser,
+  [ROUTES.LICENSES]: FileText,
   [ROUTES.EMPLOYEES]: IdCard,
   [ROUTES.USERS]: UserCog,
   [ROUTES.ROLES]: KeyRound,

@@ -82,6 +82,7 @@ function renderInbox() {
             <Routes>
               <Route path={ROUTES.DASHBOARD} element={<HqInboxBell />} />
               <Route path={ROUTES.KYC} element={<div>KYC page</div>} />
+              <Route path={ROUTES.LICENCE_EXPIRY} element={<div>Licence expiry page</div>} />
               <Route path={ROUTES.SUBSCRIPTIONS} element={<div>Subscriptions page</div>} />
               <Route path={ROUTES.PHARMACIES} element={<div>Pharmacies page</div>} />
             </Routes>
@@ -254,7 +255,7 @@ describe('admin HQ inbox', () => {
     expect(await screen.findByText('Subscriptions page')).toBeInTheDocument();
   });
 
-  it('success: a license signal walks to the pharmacy file', async () => {
+  it('success: a license signal walks to licence expiry', async () => {
     const user = userEvent.setup();
     const licenseRow = {
       id: 'hq-lic',
@@ -274,15 +275,15 @@ describe('admin HQ inbox', () => {
       totalItems: 1,
     });
     openMock.mockResolvedValue({
-      href: '/pharmacies',
+      href: '/licence-expiry',
       sourceType: 'license_expiry',
       sourceId: 'src-lic',
     });
     renderInbox();
     await user.click(screen.getByRole('button', { name: /hq inbox/i }));
-    expect(await screen.findByText('Opens pharmacy file')).toBeInTheDocument();
+    expect(await screen.findByText('Opens licence expiry')).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'Open tenant file' }));
-    expect(await screen.findByText('Pharmacies page')).toBeInTheDocument();
+    expect(await screen.findByText('Licence expiry page')).toBeInTheDocument();
   });
 
   it('file as read persists without preference controls', async () => {

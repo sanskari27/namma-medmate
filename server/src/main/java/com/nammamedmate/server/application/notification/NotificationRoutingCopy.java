@@ -65,19 +65,19 @@ final class NotificationRoutingCopy {
       case LICENSE_EXPIRY ->
           new Content(
               "license_expiry",
-              "/subscription",
-              "/pharmacies",
+              "/licenses",
+              "/licence-expiry",
               "License expiring",
-              "A pharmacy license is nearing expiry. Open subscription to review.",
+              "A pharmacy license is nearing expiry. Open licences to renew it.",
               "License expiring",
-              "A tenant or branch license is nearing expiry. Open the pharmacy file.");
+              "A tenant or branch license is nearing expiry. Open licence expiry.");
       case STAFF_LICENSE ->
           new Content(
               "staff_license",
-              "/employees",
+              "/licenses",
               null,
               "Staff license expiring",
-              "A staff license is nearing expiry. Open employees to renew it.",
+              "A staff license is nearing expiry. Open licences to renew it.",
               null,
               null);
       case CREDIT_DUE ->

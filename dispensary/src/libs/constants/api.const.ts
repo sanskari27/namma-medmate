@@ -138,4 +138,9 @@ export const API = {
   SALES_PRESCRIPTIONS: '/api/v1/sales/prescriptions',
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
+  COMPLIANCE_LICENSES: '/api/v1/compliance/licenses',
+  COMPLIANCE_LICENSES_DUE: '/api/v1/compliance/licenses/due',
+  licenseRenew: (id: string) => `/api/v1/compliance/licenses/${id}/renew`,
+  licenseEvidence: (id: string, evidenceId: string) =>
+    `/api/v1/compliance/licenses/${id}/evidence/${evidenceId}`,
 } as const;

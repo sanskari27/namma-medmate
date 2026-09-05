@@ -1,0 +1,1 @@
+export { LicenseDueStrip } from './LicenseDueStrip';

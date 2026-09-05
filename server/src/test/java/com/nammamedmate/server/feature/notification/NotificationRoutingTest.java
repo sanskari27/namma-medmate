@@ -170,9 +170,9 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
     assertThat(inboxUserIds()).containsExactlyInAnyOrder(fx.owner.getId(), fx.master.getId());
     Notification ownerNote = notificationFor(fx.owner.getId());
     Notification masterNote = notificationFor(fx.master.getId());
-    assertThat(ownerNote.getHref()).isEqualTo("/subscription");
+    assertThat(ownerNote.getHref()).isEqualTo("/licenses");
     assertThat(ownerNote.getTenantId()).isEqualTo(fx.tenant.getId());
-    assertThat(masterNote.getHref()).isEqualTo("/pharmacies");
+    assertThat(masterNote.getHref()).isEqualTo("/licence-expiry");
     assertThat(masterNote.getTenantId()).isNull();
   }
 
