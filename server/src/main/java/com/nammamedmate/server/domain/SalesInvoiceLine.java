@@ -61,6 +61,25 @@ public class SalesInvoiceLine {
   @Column(name = "prescribed_quantity", precision = 19, scale = 6)
   private BigDecimal prescribedQuantity;
 
+  @Column(name = "offer_id")
+  private UUID offerId;
+
+  @Column(name = "offer_name", length = 120)
+  private String offerName;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "offer_kind", length = 16)
+  private OfferKind offerKind;
+
+  @Column(name = "offer_priority")
+  private Integer offerPriority;
+
+  @Column(name = "offer_benefit_paise", nullable = false)
+  private long offerBenefitPaise;
+
+  @Column(name = "offer_explanation", length = 500)
+  private String offerExplanation;
+
   @Column(name = "mrp_paise", nullable = false)
   private long mrpPaise;
 

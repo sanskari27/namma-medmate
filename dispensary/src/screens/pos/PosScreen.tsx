@@ -7,12 +7,14 @@ import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
 import { PosHoldList } from './components/pos-hold-list';
+import { PosOfferPanel } from './components/pos-offer-panel';
 import { PosPrescriptionPanel } from './components/pos-prescription-panel';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosTenderPanel } from './components/pos-tender-panel';
 import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
 import { PosWarningPanel } from './components/pos-warning-panel';
 import { usePosHold } from './usePosHold';
+import { usePosOffers } from './usePosOffers';
 import { usePosTill } from './usePosTill';
 
 export default function PosScreen() {
@@ -28,6 +30,15 @@ export default function PosScreen() {
     setStatusHint: till.setStatusHint,
     hydrateInvoice: till.hydrateInvoice,
     clearOpenBill: till.clearOpenBill,
+  });
+  const offers = usePosOffers({
+    allowed: till.allowed,
+    invoice: till.invoice,
+    busy: till.busy,
+    setBusy: till.setBusy,
+    setStatus: till.setStatus,
+    setStatusHint: till.setStatusHint,
+    hydrateInvoice: till.hydrateInvoice,
   });
 
   if (!till.allowed) {
@@ -104,6 +115,13 @@ export default function PosScreen() {
             loading={hold.loading}
             busy={till.busy}
             onResume={hold.runResume}
+          />
+          <PosOfferPanel
+            items={offers.items}
+            loading={offers.loading}
+            busy={till.busy}
+            invoice={till.invoice}
+            onApply={offers.runApply}
           />
           <PosGstBreakdown totals={till.totals} saved={Boolean(till.invoice)} />
           <PosBillDiscount

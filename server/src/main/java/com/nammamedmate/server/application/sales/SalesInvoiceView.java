@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.sales;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
@@ -82,5 +83,11 @@ public record SalesInvoiceView(
       long lineTaxablePaise,
       long lineTaxPaise,
       long lineTotalPaise,
-      BigDecimal prescribedQuantity) {}
+      BigDecimal prescribedQuantity,
+      UUID offerId,
+      String offerName,
+      OfferKind offerKind,
+      Integer offerPriority,
+      long offerBenefitPaise,
+      String offerExplanation) {}
 }

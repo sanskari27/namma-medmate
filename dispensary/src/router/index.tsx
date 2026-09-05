@@ -22,6 +22,7 @@ import InventoryScreen from '@/screens/inventory/InventoryScreen';
 import PosScreen from '@/screens/pos/PosScreen';
 import DistributorsScreen from '@/screens/distributors/DistributorsScreen';
 import PurchasesScreen from '@/screens/purchases/PurchasesScreen';
+import OffersScreen from '@/screens/offers/OffersScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
@@ -52,6 +53,7 @@ const router = createBrowserRouter([
           { path: ROUTES.SALES, element: <PosScreen /> },
           { path: ROUTES.DISTRIBUTORS, element: <DistributorsScreen /> },
           { path: ROUTES.PURCHASES, element: <PurchasesScreen /> },
+          { path: ROUTES.OFFERS, element: <OffersScreen /> },
           { path: ROUTES.SUBSCRIPTION, element: <SubscriptionScreen /> },
           { path: ROUTES.KIOSK, element: <KioskScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },

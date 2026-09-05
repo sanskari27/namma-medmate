@@ -160,7 +160,9 @@ public final class InvoicePolicy {
     long remainingSum = 0L;
     for (LinePriceInput line : lines) {
       long gross = lineGross(line.quantity(), line.sellingPricePaise());
-      long lineDiscount = lineDiscountPaise(gross, line.discountType(), line.discountValue());
+      long lineDiscount =
+          lineDiscountPaise(gross, line.discountType(), line.discountValue())
+              + Math.max(0L, line.offerBenefitPaise());
       if (lineDiscount > gross) {
         throw excessive();
       }
@@ -409,7 +411,18 @@ public final class InvoicePolicy {
       long sellingPricePaise,
       DiscountType discountType,
       long discountValue,
-      BigDecimal gstRate) {}
+      BigDecimal gstRate,
+      long offerBenefitPaise) {
+
+    public LinePriceInput(
+        BigDecimal quantity,
+        long sellingPricePaise,
+        DiscountType discountType,
+        long discountValue,
+        BigDecimal gstRate) {
+      this(quantity, sellingPricePaise, discountType, discountValue, gstRate, 0L);
+    }
+  }
 
   public record PricedLine(
       long grossPaise,

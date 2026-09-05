@@ -47,6 +47,12 @@ export interface SalesInvoiceLine {
   lineTaxPaise: number;
   lineTotalPaise: number;
   prescribedQuantity?: number | string | null;
+  offerId?: string | null;
+  offerName?: string | null;
+  offerKind?: 'BOGO' | 'SEASONAL' | 'BUNDLE' | null;
+  offerPriority?: number | null;
+  offerBenefitPaise?: number;
+  offerExplanation?: string | null;
 }
 
 export interface SalesInvoice {
@@ -230,5 +236,27 @@ export async function getPrescriptionFulfillment(
     API.SALES_PRESCRIPTIONS,
     { params: { reference, customerId } },
   );
+  return data;
+}
+
+export interface InvoiceOfferItem {
+  id: string;
+  name: string;
+  kind: 'BOGO' | 'SEASONAL' | 'BUNDLE';
+  priority: number;
+  explanation: string;
+  benefitPaise: number;
+}
+
+export async function listInvoiceOffers(id: string): Promise<{ items: InvoiceOfferItem[] }> {
+  const { data } = await apiClient.get<{ items: InvoiceOfferItem[] }>(API.salesInvoiceOffers(id));
+  return data;
+}
+
+export async function applyInvoiceOffers(
+  id: string,
+  input: { expectedVersion: number },
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceOffers(id), input);
   return data;
 }
