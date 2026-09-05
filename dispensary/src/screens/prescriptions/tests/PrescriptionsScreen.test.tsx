@@ -197,6 +197,42 @@ describe('Rx file', () => {
     expect(archiveMock).toHaveBeenCalledWith('rx-1', 0);
   });
 
+  it('distinguishes Active from Archived on the Rx file', async () => {
+    const user = userEvent.setup();
+    const archivedRow: PrescriptionReference = {
+      ...archived,
+      id: 'rx-arch',
+      prescriptionReference: 'RX-ARCH',
+    };
+    listMock.mockImplementation(async (status) => {
+      if (status === 'ARCHIVED') {
+        return { items: [archivedRow] };
+      }
+      return { items: [active] };
+    });
+    getMock.mockImplementation(async (id) => {
+      if (id === 'rx-arch') {
+        return archivedRow;
+      }
+      return detailed;
+    });
+    renderPage();
+    expect(await screen.findByText('RX-90')).toBeInTheDocument();
+    expect(screen.queryByText('RX-ARCH')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Archived' }));
+    expect(await screen.findByText('RX-ARCH')).toBeInTheDocument();
+    expect(screen.queryByText('RX-90')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /RX-ARCH/ }));
+    const detail = await screen.findByRole('region', { name: 'Rx detail' });
+    expect(detail).toHaveTextContent('Archived');
+    expect(detail).toHaveTextContent('Filled — nothing left on this Rx');
+    expect(detail).toHaveTextContent('INV/2026-27/BR01/00009');
+    expect(screen.getByText('History only. This Rx cannot go on a new bill.')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: 'Active' }));
+    expect(await screen.findByText('RX-90')).toBeInTheDocument();
+    expect(screen.queryByText('RX-ARCH')).not.toBeInTheDocument();
+  });
+
   it('pharmacist can open the Rx file', async () => {
     listMock.mockResolvedValue({ items: [active] });
     renderPage('pharmacy_staff', [
