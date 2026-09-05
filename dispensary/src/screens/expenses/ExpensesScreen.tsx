@@ -12,7 +12,12 @@ export default function ExpensesScreen() {
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
       <ExpensesHeader addButtonRef={page.addRef} denied={!page.allowed} onAdd={page.startCreate} />
-      <ExpensesStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
+      <ExpensesStatusBanner
+        status={page.status}
+        statusId={page.statusId}
+        hint={page.statusHint}
+        spendState={page.spendState}
+      />
       {page.allowed ? (
         <>
           <ExpensesFilterBar
@@ -22,16 +27,19 @@ export default function ExpensesScreen() {
             from={page.from}
             to={page.to}
             scope={page.scope}
+            spendState={page.spendState}
             onCategory={page.setFilterCategoryId}
             onFrom={page.setFrom}
             onTo={page.setTo}
             onScope={page.setScope}
+            onSpendState={page.setSpendState}
           />
           <ExpensesTotalsStrip totals={page.totals} allOutlets={page.scope === 'tenant'} />
           <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
             <ExpensesListPanel
               items={page.items}
               selectedId={page.creating ? null : (page.selected?.id ?? null)}
+              spendState={page.spendState}
               onSelect={page.selectExpense}
             />
             {page.creating || page.selected ? (

@@ -50,6 +50,16 @@ class ApprovalPolicyTest {
   }
 
   @Test
+  void ac01_financeExpenseIsNotAnApprovalAction() {
+    assertThatThrownBy(() -> ApprovalPolicy.rejectFinanceExpenseRouting(ModuleCode.FINANCE))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(ApprovalPolicy.APPROVAL_NOT_REQUIRED);
+    ApprovalPolicy.rejectFinanceExpenseRouting(ModuleCode.SALES);
+    ApprovalPolicy.rejectFinanceExpenseRouting(ModuleCode.INVENTORY);
+  }
+
+  @Test
   void retentionIsNinetyDays() {
     Instant now = Instant.parse("2026-09-03T00:00:00Z");
     Instant old = Instant.parse("2026-05-01T00:00:00Z");

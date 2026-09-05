@@ -12,6 +12,8 @@ export type PageStatus =
 
 export type OutletScope = 'session' | 'tenant';
 
+export type SpendState = 'POSTED' | 'PENDING' | 'REJECTED';
+
 export type FormState = {
   categoryId: string;
   amountRupees: string;
@@ -39,7 +41,11 @@ export function hasFinanceAccess(role: string | undefined, modules: string[] | u
   return modules?.includes('FINANCE') === true;
 }
 
-export function statusCopy(status: PageStatus, hint?: string | null): string | null {
+export function statusCopy(
+  status: PageStatus,
+  hint?: string | null,
+  spendState: SpendState = 'POSTED',
+): string | null {
   if (hint) {
     return hint;
   }
@@ -47,6 +53,12 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'loading':
       return 'Loading shop spend for this outlet…';
     case 'empty':
+      if (spendState === 'PENDING') {
+        return 'Spend posts as you record it — nothing waits on sign-off.';
+      }
+      if (spendState === 'REJECTED') {
+        return 'Phase 1 does not reject spend.';
+      }
       return 'No spend on the books. Record rent, power, salaries, or miscellaneous.';
     case 'validation':
       return 'Category, amount, and the date it occurred are needed before saving.';
@@ -61,6 +73,26 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     default:
       return null;
   }
+}
+
+export function listEmptyCopy(spendState: SpendState): string {
+  if (spendState === 'PENDING') {
+    return 'Nothing waiting at this counter.';
+  }
+  if (spendState === 'REJECTED') {
+    return 'Nothing turned down at this counter.';
+  }
+  return 'Record the first spend from this counter.';
+}
+
+export function postingLabel(status: string | undefined): string {
+  if (status === 'PENDING') {
+    return 'Waiting';
+  }
+  if (status === 'REJECTED') {
+    return 'Turned down';
+  }
+  return 'On the books';
 }
 
 export function statusIcon(status: PageStatus) {

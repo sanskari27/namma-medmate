@@ -8,6 +8,7 @@ import java.util.UUID;
 public final class ApprovalPolicy {
 
   public static final Duration AUDIT_RETENTION = Duration.ofDays(90);
+  public static final String APPROVAL_NOT_REQUIRED = "APPROVAL_NOT_REQUIRED";
 
   private ApprovalPolicy() {}
 
@@ -17,6 +18,15 @@ public final class ApprovalPolicy {
           org.springframework.http.HttpStatus.FORBIDDEN,
           "FORBIDDEN",
           "Approvals module permission is required");
+    }
+  }
+
+  public static void rejectFinanceExpenseRouting(ModuleCode module) {
+    if (module == ModuleCode.FINANCE) {
+      throw new com.nammamedmate.server.shared.exception.ApiException(
+          org.springframework.http.HttpStatus.UNPROCESSABLE_ENTITY,
+          APPROVAL_NOT_REQUIRED,
+          "Expenses post as they are recorded. They do not wait on sign-off.");
     }
   }
 

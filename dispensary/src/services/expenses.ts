@@ -19,6 +19,8 @@ export interface ExpenseEvidence {
   uploadedAt: string;
 }
 
+export type ExpensePostingStatus = 'PENDING' | 'POSTED' | 'REJECTED';
+
 export interface ShopExpense {
   id: string;
   tenantId: string;
@@ -29,6 +31,7 @@ export interface ShopExpense {
   categoryLabel: string;
   amountPaise: number;
   occurredOn: string;
+  status: ExpensePostingStatus;
   notes: string | null;
   currentEvidenceId: string | null;
   version: number;
@@ -64,6 +67,7 @@ export interface ExpenseListQuery {
   categoryId?: string;
   from?: string;
   to?: string;
+  status?: ExpensePostingStatus;
 }
 
 export async function listExpenseCategories(): Promise<ExpenseCategory[]> {

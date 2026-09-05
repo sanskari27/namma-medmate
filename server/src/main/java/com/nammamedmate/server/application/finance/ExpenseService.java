@@ -9,6 +9,7 @@ import com.nammamedmate.server.domain.Expense;
 import com.nammamedmate.server.domain.ExpenseCategory;
 import com.nammamedmate.server.domain.ExpenseEvidence;
 import com.nammamedmate.server.domain.ExpensePolicy;
+import com.nammamedmate.server.domain.ExpensePostingStatus;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.infrastructure.finance.ExpenseFileStorage;
@@ -111,11 +112,15 @@ public class ExpenseService {
       String scope,
       UUID categoryId,
       LocalDate from,
-      LocalDate to) {
+      LocalDate to,
+      String status) {
     Context ctx = requireFinance(principal);
     List<UUID> branchIds = resolveListBranches(principal, ctx, branchId, scope);
     Map<UUID, String> names = branchNames(ctx.tenantId(), branchIds);
-    return expenseRepository.findScoped(ctx.tenantId(), branchIds, categoryId, from, to).stream()
+    ExpensePostingStatus posting = ExpensePolicy.parseListStatus(status);
+    return expenseRepository
+        .findScoped(ctx.tenantId(), branchIds, categoryId, from, to, posting)
+        .stream()
         .map(row -> toView(row, names.get(row.getBranchId())))
         .toList();
   }
@@ -132,7 +137,13 @@ public class ExpenseService {
     List<UUID> branchIds = resolveListBranches(principal, ctx, branchId, scope);
     Map<UUID, String> names = branchNames(ctx.tenantId(), branchIds);
     List<Expense> rows =
-        expenseRepository.findScoped(ctx.tenantId(), branchIds, categoryId, from, to);
+        expenseRepository.findScoped(
+            ctx.tenantId(),
+            branchIds,
+            categoryId,
+            from,
+            to,
+            ExpensePostingStatus.POSTED);
     long total = 0;
     Map<UUID, ExpenseTotalsView.CategoryTotal> byCategory = new LinkedHashMap<>();
     Map<UUID, ExpenseTotalsView.BranchTotal> byBranch = new LinkedHashMap<>();
@@ -186,6 +197,7 @@ public class ExpenseService {
     ensureSystemCategories();
     UUID branchId = resolveWriteBranch(principal, ctx, command.branchId());
     long amount = ExpensePolicy.requireAmountPaise(command.amountPaise());
+    ExpensePolicy.assertNoApprovalThreshold(amount);
     LocalDate occurred = ExpensePolicy.requireOccurredOn(command.occurredOn(), today());
     ExpensePolicy.assertPeriodOpen(occurred);
     String notes = ExpensePolicy.requireNotes(command.notes());
@@ -209,6 +221,7 @@ public class ExpenseService {
     row.setAmountPaise(amount);
     row.setOccurredOn(occurred);
     row.setNotes(notes);
+    row.setStatus(ExpensePolicy.postedWriteStatus());
     row.setIdempotencyKey(key);
     row.setVersion(1);
     row.setCreatedBy(principal.userId());
@@ -234,6 +247,7 @@ public class ExpenseService {
             ? row.getBranchId()
             : resolveWriteBranch(principal, ctx, command.branchId());
     long amount = ExpensePolicy.requireAmountPaise(command.amountPaise());
+    ExpensePolicy.assertNoApprovalThreshold(amount);
     LocalDate occurred = ExpensePolicy.requireOccurredOn(command.occurredOn(), today());
     ExpensePolicy.assertPeriodOpen(occurred);
     ExpenseCategory category = requireCategory(ctx.tenantId(), command.categoryId());
@@ -244,6 +258,7 @@ public class ExpenseService {
     row.setAmountPaise(amount);
     row.setOccurredOn(occurred);
     row.setNotes(ExpensePolicy.requireNotes(command.notes()));
+    row.setStatus(ExpensePolicy.postedWriteStatus());
     row.setVersion(row.getVersion() + 1);
     row.setUpdatedAt(Instant.now(clock));
     expenseRepository.saveAndFlush(row);
@@ -438,6 +453,7 @@ public class ExpenseService {
         row.getCategoryLabel(),
         row.getAmountPaise(),
         row.getOccurredOn(),
+        row.getStatus(),
         row.getNotes(),
         row.getCurrentEvidenceId(),
         row.getVersion(),

@@ -203,6 +203,7 @@ public class ApprovalService {
     if (command == null || command.moduleCode() == null || command.actionKey() == null) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
+    ApprovalPolicy.rejectFinanceExpenseRouting(command.moduleCode());
     ApprovalActionCatalog.requireModuleMatch(command.actionKey(), command.moduleCode());
     if (command.idempotencyKey() != null && !command.idempotencyKey().isBlank()) {
       Optional<ApprovalRequest> existing =
@@ -386,6 +387,7 @@ public class ApprovalService {
     if (command == null || command.moduleCode() == null || command.actionKey() == null) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
+    ApprovalPolicy.rejectFinanceExpenseRouting(command.moduleCode());
     ApprovalActionCatalog.requireModuleMatch(command.actionKey(), command.moduleCode());
     if (command.approverType() == null) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
