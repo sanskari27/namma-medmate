@@ -268,10 +268,7 @@ class LicenseTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.evidence[0].id").value(firstEvidenceId));
 
     assertThat(complianceLicenseEvidenceRepository.count()).isEqualTo(2);
-    assertThat(
-            auditEventRepository.findAll().stream()
-                .map(AuditEvent::getAction)
-                .toList())
+    assertThat(auditEventRepository.findAll().stream().map(AuditEvent::getAction).toList())
         .contains("LICENSE_RENEW");
 
     mockMvc
@@ -286,9 +283,7 @@ class LicenseTest extends AbstractIntegrationTest {
     Fixture fx = seed("ac05");
     LocalDate far = LocalDate.now(ZoneOffset.UTC).plusDays(200);
 
-    mockMvc
-        .perform(get("/api/v1/compliance/licenses"))
-        .andExpect(status().isUnauthorized());
+    mockMvc.perform(get("/api/v1/compliance/licenses")).andExpect(status().isUnauthorized());
 
     Cookie staff = login("staff@ac05.local");
     createLicense(
@@ -467,8 +462,10 @@ class LicenseTest extends AbstractIntegrationTest {
   private Fixture seed(String tag) throws Exception {
     Tenant tenant = persistTenant(tag, "Chem " + tag);
     persistPlan(tenant.getId());
-    AppUser owner = persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
-    AppUser staff = persistUser(tenant.getId(), "staff@" + tag + ".local", AppUserRole.pharmacy_staff);
+    AppUser owner =
+        persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
+    AppUser staff =
+        persistUser(tenant.getId(), "staff@" + tag + ".local", AppUserRole.pharmacy_staff);
     AppUser master = persistUser(null, "master@" + tag + ".local", AppUserRole.admin_super);
     Location branch = persistBranch(tenant.getId(), "Main", "BR01");
     Cookie cookie = login("owner@" + tag + ".local");

@@ -23,13 +23,10 @@ class LicensePolicyTest {
 
   @Test
   void ac01_pharmacyDocsAreTenantOrBranchNotStaff() {
-    assertThat(
-            LicensePolicy.requireScope(
-                ComplianceDocType.DRUG_LICENSE, "TENANT", null, null))
+    assertThat(LicensePolicy.requireScope(ComplianceDocType.DRUG_LICENSE, "TENANT", null, null))
         .isEqualTo(ComplianceLicenseScope.TENANT);
     UUID branchId = UUID.randomUUID();
-    assertThat(
-            LicensePolicy.requireScope(ComplianceDocType.GST, "BRANCH", branchId, null))
+    assertThat(LicensePolicy.requireScope(ComplianceDocType.GST, "BRANCH", branchId, null))
         .isEqualTo(ComplianceLicenseScope.BRANCH);
     assertThatThrownBy(
             () ->

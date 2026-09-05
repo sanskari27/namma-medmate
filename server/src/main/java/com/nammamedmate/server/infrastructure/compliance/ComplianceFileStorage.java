@@ -33,12 +33,7 @@ public class ComplianceFileStorage {
 
   public String store(UUID tenantId, UUID licenseId, MultipartFile file) {
     String key =
-        tenantId
-            + "/"
-            + licenseId
-            + "/"
-            + UUID.randomUUID()
-            + extensionFor(file.getContentType());
+        tenantId + "/" + licenseId + "/" + UUID.randomUUID() + extensionFor(file.getContentType());
     Path target = root.resolve(key).normalize();
     if (!target.startsWith(root)) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid storage path");
