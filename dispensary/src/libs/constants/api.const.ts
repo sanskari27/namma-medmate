@@ -105,6 +105,7 @@ export const API = {
   purchaseOrderIssue: (id: string) => `/api/v1/purchase-orders/${id}/issue`,
   purchaseOrderClose: (id: string) => `/api/v1/purchase-orders/${id}/close`,
   purchaseOrderCancel: (id: string) => `/api/v1/purchase-orders/${id}/cancel`,
+  purchaseOrderReceipts: (id: string) => `/api/v1/purchase-orders/${id}/receipts`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

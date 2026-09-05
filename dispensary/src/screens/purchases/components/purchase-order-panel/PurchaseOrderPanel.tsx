@@ -2,7 +2,7 @@ import { Button } from '@atoms';
 import type { Product } from '@/services/products';
 import type { PurchaseOrder, PurchaseOrderVersion } from '@/services/purchaseOrders';
 import type { Supplier } from '@/services/suppliers';
-import type { FormEvent } from 'react';
+import type { FormEvent, RefObject } from 'react';
 import { formatPaise, canEdit, type FormState } from '../../PurchasesScreen.utils';
 import { PurchaseOrderHeaderFields } from '../purchase-order-header-fields';
 import { PurchaseOrderLifecycle } from '../purchase-order-lifecycle';
@@ -29,6 +29,8 @@ export type PurchaseOrderPanelProps = {
   onIssue: () => void;
   onClose: () => void;
   onCancelOrder: () => void;
+  receiptButtonRef?: RefObject<HTMLButtonElement | null>;
+  onRecordDelivery?: () => void;
 };
 
 export function PurchaseOrderPanel({
@@ -51,6 +53,8 @@ export function PurchaseOrderPanel({
   onIssue,
   onClose,
   onCancelOrder,
+  receiptButtonRef,
+  onRecordDelivery,
 }: PurchaseOrderPanelProps) {
   if (!creating && !selected) {
     return (
@@ -103,6 +107,8 @@ export function PurchaseOrderPanel({
             <PurchaseOrderLifecycle
               status={selected.status}
               busy={busy}
+              receiptButtonRef={receiptButtonRef}
+              onRecordDelivery={onRecordDelivery}
               onIssue={onIssue}
               onClose={onClose}
               onCancel={onCancelOrder}

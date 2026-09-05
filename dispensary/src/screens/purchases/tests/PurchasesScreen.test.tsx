@@ -26,6 +26,8 @@ vi.mock('@/services/purchaseOrders', async () => {
     createFromReorder: vi.fn(),
     bulkPurchaseOrders: vi.fn(),
     getPurchaseOrderAnalytics: vi.fn(),
+    listGoodsReceipts: vi.fn(),
+    createGoodsReceipt: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -58,6 +60,7 @@ import {
   createFromReorder,
   createPurchaseOrder,
   getPurchaseOrderAnalytics,
+  listGoodsReceipts,
   listPurchaseOrderVersions,
   listPurchaseOrders,
   previewReorderDrafts,
@@ -78,6 +81,7 @@ const previewMock = vi.mocked(previewReorderDrafts);
 const fromReorderMock = vi.mocked(createFromReorder);
 const bulkMock = vi.mocked(bulkPurchaseOrders);
 const analyticsMock = vi.mocked(getPurchaseOrderAnalytics);
+const receiptsMock = vi.mocked(listGoodsReceipts);
 
 const sample: PurchaseOrder = {
   id: 'po1',
@@ -220,6 +224,27 @@ describe('outlet purchase orders', () => {
     fromReorderMock.mockReset();
     bulkMock.mockReset();
     analyticsMock.mockReset();
+    receiptsMock.mockReset();
+    receiptsMock.mockResolvedValue({
+      purchaseOrderId: sample.id,
+      poNumber: sample.poNumber,
+      status: 'ISSUED',
+      supplierId: sample.supplierId,
+      supplierLegalName: sample.supplierLegalName,
+      lines: [
+        {
+          purchaseOrderLineId: 'l1',
+          productId: 'p1',
+          productName: 'Crocin Advance',
+          sku: 'CROCIN',
+          orderedQuantity: 10,
+          unitRatePaise: 10000,
+          receivedQuantity: 0,
+          remainingQuantity: 10,
+        },
+      ],
+      receipts: [],
+    });
   });
 
   it('loading: waits for outlet indents', () => {
@@ -266,6 +291,27 @@ describe('outlet purchase orders', () => {
     await user.click(screen.getByRole('button', { name: 'New indent' }));
     await user.click(screen.getByRole('button', { name: 'Back to list' }));
     expect(screen.getByRole('button', { name: 'New indent' })).toHaveFocus();
+  });
+
+  it('issued indent can record a stockist delivery', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([{ ...sample, status: 'ISSUED', version: 2 }]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /PO\/2026-27\/BR01\/00001/ }));
+    expect(screen.getByRole('button', { name: 'Record delivery' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Record delivery' }));
+    expect(await screen.findByRole('heading', { name: 'Record delivery' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Challan / invoice ref')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Back to indent' }));
+    expect(screen.getByRole('button', { name: 'Record delivery' })).toHaveFocus();
+  });
+
+  it('draft indent has no record delivery action', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /PO\/2026-27\/BR01\/00001/ }));
+    expect(screen.queryByRole('button', { name: 'Record delivery' })).not.toBeInTheDocument();
   });
 
   it('closed indent freezes pack quantities', async () => {

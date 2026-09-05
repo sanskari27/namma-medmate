@@ -1,3 +1,4 @@
+import { GoodsReceiptDialog } from './components/goods-receipt-dialog';
 import { PurchaseOrderListPanel } from './components/purchase-order-list-panel';
 import { PurchaseOrderPanel } from './components/purchase-order-panel';
 import { PurchasesHeader } from './components/purchases-header';
@@ -76,6 +77,8 @@ export default function PurchasesScreen() {
             onCancelOrder={() => {
               void page.runTransition(page.cancelPurchaseOrder);
             }}
+            receiptButtonRef={page.receiptButtonRef}
+            onRecordDelivery={() => page.setReceiptOpen(true)}
           />
         </div>
       ) : null}
@@ -85,6 +88,13 @@ export default function PurchasesScreen() {
         onCreated={page.onReorderCreated}
         onCloseFocus={() => page.reorderRef.current?.focus()}
         onPageStatus={page.setStatus}
+      />
+      <GoodsReceiptDialog
+        open={page.receiptOpen}
+        purchaseOrderId={page.selected?.id ?? null}
+        onOpenChange={page.setReceiptOpen}
+        onRecorded={() => page.setStatus('success')}
+        onCloseFocus={() => page.receiptButtonRef.current?.focus()}
       />
     </div>
   );

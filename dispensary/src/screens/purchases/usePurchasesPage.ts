@@ -38,6 +38,7 @@ export function usePurchasesPage() {
   const statusId = useId();
   const addRef = useRef<HTMLButtonElement | null>(null);
   const reorderRef = useRef<HTMLButtonElement | null>(null);
+  const receiptButtonRef = useRef<HTMLButtonElement | null>(null);
   const allowed = hasPurchaseAccess(user?.modules);
 
   const [status, setStatus] = useState<PageStatus>('loading');
@@ -54,6 +55,7 @@ export function usePurchasesPage() {
   const [rightVersion, setRightVersion] = useState<number | null>(null);
   const [planCode, setPlanCode] = useState<string | null>(null);
   const [reorderOpen, setReorderOpen] = useState(false);
+  const [receiptOpen, setReceiptOpen] = useState(false);
   const [analytics, setAnalytics] = useState<PurchaseOrderAnalytics | null>(null);
   const [spendStatus, setSpendStatus] = useState<'loading' | 'empty' | 'denied' | 'failure' | null>(
     null,
@@ -245,6 +247,7 @@ export function usePurchasesPage() {
     statusId,
     addRef,
     reorderRef,
+    receiptButtonRef,
     allowed,
     status,
     setStatus,
@@ -265,6 +268,8 @@ export function usePurchasesPage() {
     planCode,
     reorderOpen,
     setReorderOpen,
+    receiptOpen,
+    setReceiptOpen,
     analytics,
     spendStatus,
     onChange,

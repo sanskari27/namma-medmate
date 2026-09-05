@@ -1,0 +1,1 @@
+export { GoodsReceiptDialog } from './GoodsReceiptDialog';

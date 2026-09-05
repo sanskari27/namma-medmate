@@ -1,0 +1,1 @@
+export { GoodsReceiptPanel } from './GoodsReceiptPanel';

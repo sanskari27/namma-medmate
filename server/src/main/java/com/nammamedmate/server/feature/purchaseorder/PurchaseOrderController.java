@@ -1,7 +1,11 @@
 package com.nammamedmate.server.feature.purchaseorder;
 
 import com.nammamedmate.server.application.purchaseorder.BulkPurchaseOrderCommand;
+import com.nammamedmate.server.application.purchaseorder.CreateGoodsReceiptCommand;
 import com.nammamedmate.server.application.purchaseorder.CreatePurchaseOrderCommand;
+import com.nammamedmate.server.application.purchaseorder.GoodsReceiptService;
+import com.nammamedmate.server.application.purchaseorder.GoodsReceiptView;
+import com.nammamedmate.server.application.purchaseorder.GoodsReceiptsResult;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderAnalyticsView;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderService;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderVersionView;
@@ -9,6 +13,7 @@ import com.nammamedmate.server.application.purchaseorder.PurchaseOrderView;
 import com.nammamedmate.server.application.purchaseorder.ReorderDraftResult;
 import com.nammamedmate.server.application.purchaseorder.ReorderToDraftService;
 import com.nammamedmate.server.application.purchaseorder.UpdatePurchaseOrderCommand;
+import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PurchaseOrderStatus;
 import com.nammamedmate.server.domain.SupplierPaymentTerms;
@@ -40,11 +45,15 @@ public class PurchaseOrderController {
 
   private final ReorderToDraftService reorderToDraftService;
   private final PurchaseOrderService purchaseOrderService;
+  private final GoodsReceiptService goodsReceiptService;
 
   public PurchaseOrderController(
-      PurchaseOrderService purchaseOrderService, ReorderToDraftService reorderToDraftService) {
+      PurchaseOrderService purchaseOrderService,
+      ReorderToDraftService reorderToDraftService,
+      GoodsReceiptService goodsReceiptService) {
     this.purchaseOrderService = purchaseOrderService;
     this.reorderToDraftService = reorderToDraftService;
+    this.goodsReceiptService = goodsReceiptService;
   }
 
   @GetMapping("/reorder-preview")
@@ -206,6 +215,37 @@ public class PurchaseOrderController {
         toResponse(purchaseOrderService.cancel(principal, id, request.expectedVersion())));
   }
 
+  @GetMapping("/{id}/receipts")
+  public ApiResponse<GoodsReceiptsResponse> receipts(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toReceiptsResponse(goodsReceiptService.list(principal, id)));
+  }
+
+  @PostMapping("/{id}/receipts")
+  public ApiResponse<GoodsReceiptResponse> createReceipt(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody CreateGoodsReceiptRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toReceiptResponse(
+            goodsReceiptService.create(
+                principal,
+                id,
+                new CreateGoodsReceiptCommand(
+                    request.receiptReference(),
+                    request.idempotencyKey(),
+                    request.lines().stream()
+                        .map(
+                            line ->
+                                new CreateGoodsReceiptCommand.Line(
+                                    line.purchaseOrderLineId(),
+                                    line.quantity(),
+                                    line.unitRatePaise()))
+                        .toList()))));
+  }
+
   private PurchaseOrderResponse toResponse(PurchaseOrderView view) {
     return new PurchaseOrderResponse(
         view.id(),
@@ -355,4 +395,92 @@ public class PurchaseOrderController {
 
   public record PurchaseOrderAnalyticsResponse(
       long totalSpendPaise, List<SupplierSpendResponse> suppliers) {}
+
+  private GoodsReceiptsResponse toReceiptsResponse(GoodsReceiptsResult result) {
+    return new GoodsReceiptsResponse(
+        result.purchaseOrderId(),
+        result.poNumber(),
+        result.status(),
+        result.supplierId(),
+        result.supplierLegalName(),
+        result.lines().stream()
+            .map(
+                line ->
+                    new OutstandingLineResponse(
+                        line.purchaseOrderLineId(),
+                        line.productId(),
+                        line.productName(),
+                        line.sku(),
+                        line.orderedQuantity(),
+                        line.unitRatePaise(),
+                        line.receivedQuantity(),
+                        line.remainingQuantity()))
+            .toList(),
+        result.receipts().stream().map(this::toReceiptResponse).toList());
+  }
+
+  private GoodsReceiptResponse toReceiptResponse(GoodsReceiptView view) {
+    return new GoodsReceiptResponse(
+        view.id(),
+        view.receiptNumber(),
+        view.receiptReference(),
+        view.status(),
+        view.createdAt(),
+        view.lines().stream()
+            .map(
+                line ->
+                    new GoodsReceiptLineResponse(
+                        line.purchaseOrderLineId(),
+                        line.productId(),
+                        line.productName(),
+                        line.sku(),
+                        line.quantity(),
+                        line.unitRatePaise()))
+            .toList());
+  }
+
+  public record OutstandingLineResponse(
+      UUID purchaseOrderLineId,
+      UUID productId,
+      String productName,
+      String sku,
+      BigDecimal orderedQuantity,
+      long unitRatePaise,
+      BigDecimal receivedQuantity,
+      BigDecimal remainingQuantity) {}
+
+  public record GoodsReceiptLineResponse(
+      UUID purchaseOrderLineId,
+      UUID productId,
+      String productName,
+      String sku,
+      BigDecimal quantity,
+      long unitRatePaise) {}
+
+  public record GoodsReceiptResponse(
+      UUID id,
+      String receiptNumber,
+      String receiptReference,
+      GoodsReceiptStatus status,
+      Instant createdAt,
+      List<GoodsReceiptLineResponse> lines) {}
+
+  public record GoodsReceiptsResponse(
+      UUID purchaseOrderId,
+      String poNumber,
+      PurchaseOrderStatus status,
+      UUID supplierId,
+      String supplierLegalName,
+      List<OutstandingLineResponse> lines,
+      List<GoodsReceiptResponse> receipts) {}
+
+  public record ReceiptLineRequest(
+      @NotNull UUID purchaseOrderLineId,
+      @NotNull BigDecimal quantity,
+      @NotNull Long unitRatePaise) {}
+
+  public record CreateGoodsReceiptRequest(
+      @NotBlank @Size(max = 128) String receiptReference,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @NotEmpty List<@Valid ReceiptLineRequest> lines) {}
 }

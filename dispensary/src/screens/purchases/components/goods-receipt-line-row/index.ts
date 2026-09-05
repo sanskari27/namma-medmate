@@ -1,0 +1,1 @@
+export { GoodsReceiptLineRow } from './GoodsReceiptLineRow';

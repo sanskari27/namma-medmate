@@ -200,3 +200,70 @@ export async function getPurchaseOrderAnalytics(): Promise<PurchaseOrderAnalytic
   const { data } = await apiClient.get<PurchaseOrderAnalytics>(API.PURCHASE_ORDERS_ANALYTICS);
   return data;
 }
+
+export type GoodsReceiptStatus = 'PENDING_QC';
+
+export interface GoodsReceiptLine {
+  purchaseOrderLineId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  quantity: number | string;
+  unitRatePaise: number;
+}
+
+export interface GoodsReceipt {
+  id: string;
+  receiptNumber: string;
+  receiptReference: string;
+  status: GoodsReceiptStatus;
+  createdAt: string;
+  lines: GoodsReceiptLine[];
+}
+
+export interface GoodsReceiptOutstandingLine {
+  purchaseOrderLineId: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  orderedQuantity: number | string;
+  unitRatePaise: number;
+  receivedQuantity: number | string;
+  remainingQuantity: number | string;
+}
+
+export interface GoodsReceipts {
+  purchaseOrderId: string;
+  poNumber: string;
+  status: PurchaseOrderStatus;
+  supplierId: string;
+  supplierLegalName: string;
+  lines: GoodsReceiptOutstandingLine[];
+  receipts: GoodsReceipt[];
+}
+
+export interface CreateGoodsReceiptInput {
+  receiptReference: string;
+  idempotencyKey: string;
+  lines: Array<{
+    purchaseOrderLineId: string;
+    quantity: number;
+    unitRatePaise: number;
+  }>;
+}
+
+export async function listGoodsReceipts(purchaseOrderId: string): Promise<GoodsReceipts> {
+  const { data } = await apiClient.get<GoodsReceipts>(API.purchaseOrderReceipts(purchaseOrderId));
+  return data;
+}
+
+export async function createGoodsReceipt(
+  purchaseOrderId: string,
+  input: CreateGoodsReceiptInput,
+): Promise<GoodsReceipt> {
+  const { data } = await apiClient.post<GoodsReceipt>(
+    API.purchaseOrderReceipts(purchaseOrderId),
+    input,
+  );
+  return data;
+}

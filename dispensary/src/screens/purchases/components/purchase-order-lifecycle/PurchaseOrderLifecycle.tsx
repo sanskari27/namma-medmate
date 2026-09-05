@@ -1,10 +1,13 @@
 import { Button } from '@atoms';
+import type { RefObject } from 'react';
 import type { PurchaseOrderStatus } from '@/services/purchaseOrders';
 import { statusLabel } from '../../PurchasesScreen.utils';
 
 export type PurchaseOrderLifecycleProps = {
   status: PurchaseOrderStatus;
   busy: boolean;
+  receiptButtonRef?: RefObject<HTMLButtonElement | null>;
+  onRecordDelivery?: () => void;
   onIssue: () => void;
   onClose: () => void;
   onCancel: () => void;
@@ -13,6 +16,8 @@ export type PurchaseOrderLifecycleProps = {
 export function PurchaseOrderLifecycle({
   status,
   busy,
+  receiptButtonRef,
+  onRecordDelivery,
   onIssue,
   onClose,
   onCancel,
@@ -28,7 +33,12 @@ export function PurchaseOrderLifecycle({
         </Button>
       ) : null}
       {status === 'ISSUED' ? (
-        <Button type="button" disabled={busy} onClick={onClose}>
+        <Button ref={receiptButtonRef} type="button" disabled={busy} onClick={onRecordDelivery}>
+          Record delivery
+        </Button>
+      ) : null}
+      {status === 'ISSUED' ? (
+        <Button type="button" variant="outline" disabled={busy} onClick={onClose}>
           Close indent
         </Button>
       ) : null}
