@@ -80,5 +80,6 @@ public record SalesInvoiceView(
       long igstPaise,
       long lineTaxablePaise,
       long lineTaxPaise,
-      long lineTotalPaise) {}
+      long lineTotalPaise,
+      BigDecimal prescribedQuantity) {}
 }

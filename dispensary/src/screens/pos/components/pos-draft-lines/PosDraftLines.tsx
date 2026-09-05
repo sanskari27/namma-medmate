@@ -19,6 +19,7 @@ export type PosDraftLine = {
   sellingRupees: string;
   discountRupees: string;
   discountType: DiscountType;
+  prescribedQuantity: string;
 };
 
 interface PosDraftLinesProps {

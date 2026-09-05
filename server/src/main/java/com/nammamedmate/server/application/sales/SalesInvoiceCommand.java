@@ -21,5 +21,6 @@ public record SalesInvoiceCommand(
       ProductUnit unit,
       Long mrpPaise,
       Long sellingPricePaise,
-      Long discountPaise) {}
+      Long discountPaise,
+      BigDecimal prescribedQuantity) {}
 }

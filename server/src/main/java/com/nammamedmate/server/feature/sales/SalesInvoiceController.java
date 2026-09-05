@@ -207,7 +207,8 @@ public class SalesInvoiceController {
         line.unit(),
         line.mrpPaise(),
         line.sellingPricePaise(),
-        line.discountPaise() == null ? 0L : line.discountPaise());
+        line.discountPaise() == null ? 0L : line.discountPaise(),
+        line.prescribedQuantity());
   }
 
   private SalesInvoiceResponse toResponse(SalesInvoiceView view) {
@@ -282,7 +283,8 @@ public class SalesInvoiceController {
                         line.igstPaise(),
                         line.lineTaxablePaise(),
                         line.lineTaxPaise(),
-                        line.lineTotalPaise()))
+                        line.lineTotalPaise(),
+                        line.prescribedQuantity()))
             .toList(),
         view.createdAt(),
         view.updatedAt());
@@ -311,7 +313,8 @@ public class SalesInvoiceController {
       @NotNull ProductUnit unit,
       @NotNull Long mrpPaise,
       @NotNull Long sellingPricePaise,
-      Long discountPaise) {}
+      Long discountPaise,
+      BigDecimal prescribedQuantity) {}
 
   public record PricingRequest(
       @NotNull Integer expectedVersion,
@@ -410,5 +413,6 @@ public class SalesInvoiceController {
       long igstPaise,
       long lineTaxablePaise,
       long lineTaxPaise,
-      long lineTotalPaise) {}
+      long lineTotalPaise,
+      BigDecimal prescribedQuantity) {}
 }

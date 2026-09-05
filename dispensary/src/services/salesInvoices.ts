@@ -46,6 +46,7 @@ export interface SalesInvoiceLine {
   lineTaxablePaise: number;
   lineTaxPaise: number;
   lineTotalPaise: number;
+  prescribedQuantity?: number | string | null;
 }
 
 export interface SalesInvoice {
@@ -95,6 +96,7 @@ export interface SalesInvoiceLineInput {
   mrpPaise: number;
   sellingPricePaise: number;
   discountPaise: number;
+  prescribedQuantity?: number;
 }
 
 export interface CreateSalesInvoiceInput {
@@ -176,5 +178,23 @@ export async function completeSalesInvoice(
   input: InvoiceCompleteInput,
 ): Promise<SalesInvoice> {
   const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceComplete(id), input);
+  return data;
+}
+
+export interface PrescriptionFulfillmentItem {
+  productId: string;
+  prescribedQuantity: number;
+  fulfilledQuantity: number;
+  remainingQuantity: number;
+}
+
+export async function getPrescriptionFulfillment(
+  reference: string,
+  customerId: string,
+): Promise<{ items: PrescriptionFulfillmentItem[] }> {
+  const { data } = await apiClient.get<{ items: PrescriptionFulfillmentItem[] }>(
+    API.SALES_PRESCRIPTIONS,
+    { params: { reference, customerId } },
+  );
   return data;
 }

@@ -1,12 +1,12 @@
 import { useId } from 'react';
 import { PosAckFooter } from './components/pos-ack-footer';
 import { PosBillDiscount } from './components/pos-bill-discount';
-import { PosControlledGate } from './components/pos-controlled-gate';
 import { PosCustomerPicker } from './components/pos-customer-picker';
 import { PosDiscountApproval } from './components/pos-discount-approval';
 import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
+import { PosPrescriptionPanel } from './components/pos-prescription-panel';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosTenderPanel } from './components/pos-tender-panel';
 import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
@@ -50,14 +50,21 @@ export default function PosScreen() {
             onWalkIn={till.skipWalkIn}
             busy={till.busy}
           />
-          {till.controlledDraft ? (
-            <PosControlledGate
+          {till.prescriptionDraft ? (
+            <PosPrescriptionPanel
+              lines={till.draft}
+              prescriptionReference={till.prescriptionReference}
+              onPrescriptionReferenceChange={till.setPrescriptionReference}
+              prescriptionVerified={till.prescriptionVerified}
+              onPrescriptionVerifiedChange={till.setPrescriptionVerified}
+              onPrescribedQuantityChange={till.setPrescribedQuantity}
               doctors={till.doctors}
               selectedDoctorId={till.selectedDoctorId}
               onDoctorChange={till.setSelectedDoctorId}
-              prescriptionVerified={till.prescriptionVerified}
-              onPrescriptionVerifiedChange={till.setPrescriptionVerified}
               canDispense={till.canDispense}
+              controlled={till.controlledDraft}
+              lookupStatus={till.rxLookupStatus}
+              lookupItems={till.rxLookupItems}
               busy={till.busy}
             />
           ) : null}

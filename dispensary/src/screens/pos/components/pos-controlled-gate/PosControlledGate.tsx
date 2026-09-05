@@ -5,8 +5,6 @@ export type PosControlledGateProps = {
   doctors: Doctor[];
   selectedDoctorId: string;
   onDoctorChange: (doctorId: string) => void;
-  prescriptionVerified: boolean;
-  onPrescriptionVerifiedChange: (checked: boolean) => void;
   canDispense: boolean;
   busy: boolean;
 };
@@ -15,21 +13,16 @@ export function PosControlledGate({
   doctors,
   selectedDoctorId,
   onDoctorChange,
-  prescriptionVerified,
-  onPrescriptionVerifiedChange,
   canDispense,
   busy,
 }: PosControlledGateProps) {
   return (
-    <section
-      className="space-y-3 rounded border border-line bg-surface p-3"
-      aria-label="Schedule dispense"
-    >
+    <div className="space-y-3 border-t border-line pt-3" aria-label="Schedule dispense">
       <div>
-        <h2 className="text-sm font-semibold text-ink">Schedule H / H1 / X / NDPS</h2>
+        <h3 className="text-sm font-semibold text-ink">Schedule H / H1 / X / NDPS</h3>
         <p className="text-xs text-muted">
           {canDispense
-            ? 'Pharmacist or owner must link the prescriber and tick that the prescription was checked.'
+            ? 'Pharmacist or owner must link the prescriber before these packs leave the till.'
             : 'Cashier-only logins cannot dispense these packs. Call a pharmacist to this till.'}
         </p>
       </div>
@@ -52,17 +45,6 @@ export function PosControlledGate({
           ))}
         </select>
       </div>
-      <div className="flex items-center gap-2">
-        <input
-          id="pos-rx-checked"
-          type="checkbox"
-          className="size-4 accent-brand"
-          checked={prescriptionVerified}
-          onChange={(event) => onPrescriptionVerifiedChange(event.target.checked)}
-          disabled={busy || !canDispense}
-        />
-        <Label htmlFor="pos-rx-checked">Prescription checked</Label>
-      </div>
-    </section>
+    </div>
   );
 }

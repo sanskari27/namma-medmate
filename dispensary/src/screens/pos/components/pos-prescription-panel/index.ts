@@ -1,0 +1,1 @@
+export { PosPrescriptionPanel } from './PosPrescriptionPanel';

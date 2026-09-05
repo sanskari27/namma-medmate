@@ -58,6 +58,9 @@ public class SalesInvoiceLine {
   @Column(name = "base_quantity", nullable = false, precision = 19, scale = 6)
   private BigDecimal baseQuantity;
 
+  @Column(name = "prescribed_quantity", precision = 19, scale = 6)
+  private BigDecimal prescribedQuantity;
+
   @Column(name = "mrp_paise", nullable = false)
   private long mrpPaise;
 

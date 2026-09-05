@@ -55,6 +55,10 @@ export function isControlledProduct(product: Product): boolean {
   );
 }
 
+export function isPrescriptionProduct(product: Product): boolean {
+  return product.prescriptionRequired || isControlledProduct(product);
+}
+
 export function statusCopy(
   status: PageStatus,
   invoiceNumber?: string | null,
@@ -69,7 +73,7 @@ export function statusCopy(
     case 'empty':
       return 'No medicines in the catalogue yet. Add stock in Inventory, then build a draft here.';
     case 'validation':
-      return 'Add a medicine with MRP and selling price. Walk-in can skip the patient. Safety complete still needs a linked customer and a review reason when warnings appear. Schedule packs need a patient, prescriber, and Prescription checked. Tax override needs a reason. Discount over the sign-off limit waits for approval.';
+      return 'Add a medicine with MRP and selling price. Walk-in can skip the patient. Safety complete still needs a linked customer and a review reason when warnings appear. Schedule packs need a patient, prescriber, and Prescription checked. Rx packs need an Rx reference, Prescription checked, and prescribed qty. Tax override needs a reason. Discount over the sign-off limit waits for approval.';
     case 'denied':
       return 'This till cannot save Sales bills, or a cashier-only login cannot dispense Schedule H, H1, X, or NDPS stock.';
     case 'conflict':
@@ -116,7 +120,11 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'OVER_ALLOCATION' ||
     error.code === 'INVALID_CHANGE' ||
     error.code === 'CREDIT_LIMIT_EXCEEDED' ||
-    error.code === 'KHATA_REQUIRES_CUSTOMER'
+    error.code === 'KHATA_REQUIRES_CUSTOMER' ||
+    error.code === 'RX_REQUIRED' ||
+    error.code === 'OVER_FULFILLMENT' ||
+    error.code === 'FOREIGN_REFERENCE' ||
+    error.code === 'PRESCRIBED_REQUIRED'
   ) {
     return 'validation';
   }

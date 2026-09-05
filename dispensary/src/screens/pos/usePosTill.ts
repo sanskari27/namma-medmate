@@ -16,8 +16,10 @@ import {
   adjustInvoiceTax,
   completeSalesInvoice,
   createSalesInvoice,
+  getPrescriptionFulfillment,
   updateSalesInvoice,
   type DiscountType,
+  type PrescriptionFulfillmentItem,
   type SalesInvoice,
 } from '@/services/salesInvoices';
 import type { RootState } from '@/store';
@@ -31,6 +33,7 @@ import {
   hasSalesAccess,
   invoiceTotals,
   isControlledProduct,
+  isPrescriptionProduct,
   mapApiStatus,
   percentToBps,
   previewTender,
@@ -56,6 +59,9 @@ export function usePosTill() {
   const [walkIn, setWalkIn] = useState(false);
   const [selectedDoctorId, setSelectedDoctorId] = useState('');
   const [prescriptionVerified, setPrescriptionVerified] = useState(false);
+  const [prescriptionReference, setPrescriptionReference] = useState('');
+  const [rxLookupStatus, setRxLookupStatus] = useState<PageStatus>(null);
+  const [rxLookupItems, setRxLookupItems] = useState<PrescriptionFulfillmentItem[]>([]);
   const [draft, setDraft] = useState<PosDraftLine[]>([]);
   const [evaluation, setEvaluation] = useState<SafetyEvaluation | null>(null);
   const [reason, setReason] = useState('');
@@ -73,6 +79,7 @@ export function usePosTill() {
 
   const productIds = draft.map((line) => line.product.id);
   const controlledDraft = draft.some((line) => isControlledProduct(line.product));
+  const prescriptionDraft = draft.some((line) => isPrescriptionProduct(line.product));
 
   const patchLine = (productId: string, patch: Partial<PosDraftLine>) => {
     setDraft((current) =>
@@ -150,6 +157,41 @@ export function usePosTill() {
     return () => window.clearTimeout(handle);
   }, [allowed, productQuery]);
 
+  useEffect(() => {
+    if (!prescriptionDraft || !selectedCustomer || !prescriptionReference.trim()) {
+      setRxLookupStatus(null);
+      setRxLookupItems([]);
+      return;
+    }
+    let cancelled = false;
+    setRxLookupStatus('loading');
+    const handle = window.setTimeout(() => {
+      void getPrescriptionFulfillment(prescriptionReference.trim(), selectedCustomer.id)
+        .then((result) => {
+          if (cancelled) {
+            return;
+          }
+          setRxLookupItems(result.items);
+          setRxLookupStatus(result.items.length === 0 ? 'empty' : 'success');
+        })
+        .catch((error) => {
+          if (cancelled) {
+            return;
+          }
+          setRxLookupItems([]);
+          if (isApiError(error) && error.code === 'FOREIGN_REFERENCE') {
+            setRxLookupStatus('conflict');
+            return;
+          }
+          setRxLookupStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
+        });
+    }, 200);
+    return () => {
+      cancelled = true;
+      window.clearTimeout(handle);
+    };
+  }, [prescriptionDraft, selectedCustomer, prescriptionReference]);
+
   const addProduct = async (product: Product) => {
     if (draft.some((line) => line.product.id === product.id)) {
       return;
@@ -201,6 +243,7 @@ export function usePosTill() {
         sellingRupees: '',
         discountRupees: '',
         discountType: 'FLAT',
+        prescribedQuantity: '',
       },
     ]);
     setEvaluation(null);
@@ -229,6 +272,9 @@ export function usePosTill() {
         mrpPaise,
         sellingPricePaise,
         discountPaise: rupeesToPaise(line.discountRupees) ?? 0,
+        prescribedQuantity: isPrescriptionProduct(line.product)
+          ? Number(line.prescribedQuantity)
+          : undefined,
       });
     }
     return lines.length === 0 ? null : lines;
@@ -240,16 +286,35 @@ export function usePosTill() {
       setStatus('validation');
       return;
     }
+    if (controlledDraft && !canDispense) {
+      setStatus('denied');
+      return;
+    }
     if (controlledDraft && (!selectedCustomer || !selectedDoctorId || !prescriptionVerified)) {
       setStatus('validation');
       return;
+    }
+    if (prescriptionDraft) {
+      const prescribedOk = draft
+        .filter((line) => isPrescriptionProduct(line.product))
+        .every((line) => Number(line.prescribedQuantity) > 0);
+      if (
+        !selectedCustomer ||
+        !prescriptionVerified ||
+        !prescriptionReference.trim() ||
+        !prescribedOk ||
+        rxLookupStatus === 'conflict'
+      ) {
+        setStatus('validation');
+        return;
+      }
     }
     setBusy(true);
     try {
       const payload = {
         customerId: selectedCustomer?.id ?? null,
         doctorId: selectedDoctorId || null,
-        prescriptionReference: null,
+        prescriptionReference: prescriptionReference.trim() || null,
         prescriptionVerified,
         lines,
       };
@@ -470,6 +535,26 @@ export function usePosTill() {
       setStatusHint(collectStatusHint('validation', 'KHATA_REQUIRES_CUSTOMER'));
       return;
     }
+    if (controlledDraft && !canDispense) {
+      setStatus('denied');
+      return;
+    }
+    if (prescriptionDraft) {
+      const prescribedOk = draft
+        .filter((line) => isPrescriptionProduct(line.product))
+        .every((line) => Number(line.prescribedQuantity) > 0);
+      if (
+        !selectedCustomer ||
+        !prescriptionVerified ||
+        !prescriptionReference.trim() ||
+        !prescribedOk ||
+        (controlledDraft && !selectedDoctorId) ||
+        rxLookupStatus === 'conflict'
+      ) {
+        setStatus('validation');
+        return;
+      }
+    }
     setBusy(true);
     try {
       const collected = await completeSalesInvoice(invoice.id, {
@@ -523,6 +608,10 @@ export function usePosTill() {
     setSelectedDoctorId,
     prescriptionVerified,
     setPrescriptionVerified,
+    prescriptionReference,
+    setPrescriptionReference,
+    setPrescribedQuantity: (productId: string, value: string) =>
+      patchLine(productId, { prescribedQuantity: value }),
     draft,
     evaluation,
     reason,
@@ -530,6 +619,9 @@ export function usePosTill() {
     busy,
     invoice,
     controlledDraft,
+    prescriptionDraft,
+    rxLookupStatus,
+    rxLookupItems,
     totals,
     billType,
     billValue,

@@ -20,6 +20,7 @@ import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
 import com.nammamedmate.server.domain.InvoicePolicy;
+import com.nammamedmate.server.domain.InvoicePrescriptionPolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
@@ -30,6 +31,7 @@ import com.nammamedmate.server.domain.SalesInvoiceLine;
 import com.nammamedmate.server.domain.SalesInvoicePayment;
 import com.nammamedmate.server.domain.SalesInvoiceSequence;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
+import com.nammamedmate.server.domain.SalesPrescriptionFulfillment;
 import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.StockBatch;
 import com.nammamedmate.server.domain.TaxJurisdiction;
@@ -46,6 +48,7 @@ import com.nammamedmate.server.persistence.SalesInvoiceLineRepository;
 import com.nammamedmate.server.persistence.SalesInvoicePaymentRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceSequenceRepository;
+import com.nammamedmate.server.persistence.SalesPrescriptionFulfillmentRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
 import com.nammamedmate.server.persistence.StockBatchRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -77,6 +80,7 @@ public class SalesInvoiceService {
   private final SalesInvoiceRepository salesInvoiceRepository;
   private final SalesInvoiceLineRepository salesInvoiceLineRepository;
   private final SalesInvoicePaymentRepository salesInvoicePaymentRepository;
+  private final SalesPrescriptionFulfillmentRepository fulfillmentRepository;
   private final SalesInvoiceSequenceRepository salesInvoiceSequenceRepository;
   private final ProductRepository productRepository;
   private final ProductUnitConversionRepository conversionRepository;
@@ -98,6 +102,7 @@ public class SalesInvoiceService {
       SalesInvoiceRepository salesInvoiceRepository,
       SalesInvoiceLineRepository salesInvoiceLineRepository,
       SalesInvoicePaymentRepository salesInvoicePaymentRepository,
+      SalesPrescriptionFulfillmentRepository fulfillmentRepository,
       SalesInvoiceSequenceRepository salesInvoiceSequenceRepository,
       ProductRepository productRepository,
       ProductUnitConversionRepository conversionRepository,
@@ -117,6 +122,7 @@ public class SalesInvoiceService {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
     this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
+    this.fulfillmentRepository = fulfillmentRepository;
     this.salesInvoiceSequenceRepository = salesInvoiceSequenceRepository;
     this.productRepository = productRepository;
     this.conversionRepository = conversionRepository;
@@ -154,6 +160,35 @@ public class SalesInvoiceService {
     return toView(invoice, linesOf(invoice));
   }
 
+  @Transactional(readOnly = true)
+  public PrescriptionFulfillmentListView listFulfillment(
+      AuthPrincipal principal, String reference, UUID customerId) {
+    Context ctx = requireReady(principal);
+    if (customerId == null || reference == null || reference.isBlank()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    String ref = reference.trim();
+    List<SalesPrescriptionFulfillment> rows =
+        fulfillmentRepository.findAllByTenantIdAndPrescriptionReference(ctx.tenantId(), ref);
+    if (rows.isEmpty()) {
+      return new PrescriptionFulfillmentListView(List.of());
+    }
+    for (SalesPrescriptionFulfillment row : rows) {
+      InvoicePrescriptionPolicy.assertCustomerBind(row.getCustomerId(), customerId);
+    }
+    return new PrescriptionFulfillmentListView(
+        rows.stream()
+            .map(
+                row ->
+                    new PrescriptionFulfillmentListView.Item(
+                        row.getProductId(),
+                        row.getPrescribedQuantity(),
+                        row.getFulfilledQuantity(),
+                        InvoicePrescriptionPolicy.remaining(
+                            row.getPrescribedQuantity(), row.getFulfilledQuantity())))
+            .toList());
+  }
+
   @Transactional
   public SalesInvoiceView create(AuthPrincipal principal, SalesInvoiceCommand command) {
     Context ctx = requireReady(principal);
@@ -175,7 +210,7 @@ public class SalesInvoiceService {
     InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
     Instant now = clock.instant();
     applyParty(invoice, command, ctx.tenantId());
-    List<SalesInvoiceLine> lines = replaceLines(invoice, command, now);
+    List<SalesInvoiceLine> lines = replaceLines(principal, invoice, command, now);
     evaluateDiscountApproval(
         principal,
         invoice,
@@ -380,6 +415,7 @@ public class SalesInvoiceService {
     InvoicePaymentPolicy.Allocation allocation =
         InvoicePaymentPolicy.allocate(invoice.getTotalPaise(), changePaise, parts);
     InvoicePaymentPolicy.requireKhataCustomer(allocation.amountDuePaise(), invoice.getCustomerId());
+    applyPrescriptionFulfillment(principal, invoice, linesOf(invoice));
     if (allocation.amountDuePaise() > 0L) {
       customerCreditService.chargeForSale(
           principal,
@@ -453,7 +489,8 @@ public class SalesInvoiceService {
     invoice.setUpdatedAt(now);
     applyParty(invoice, command, ctx.tenantId());
     List<PreparedLine> prepared =
-        prepareLines(ctx, command, DiscountType.NONE, 0L, TaxJurisdiction.INTRA, Map.of());
+        prepareLines(
+            principal, ctx, command, DiscountType.NONE, 0L, TaxJurisdiction.INTRA, Map.of());
     String fy = InvoicePolicy.financialYear(LocalDate.ofInstant(now, IST));
     invoice.setInvoiceNumber(nextInvoiceNumber(ctx, branch, fy));
     applyHeaderMoney(invoice, prepared);
@@ -485,7 +522,7 @@ public class SalesInvoiceService {
   }
 
   private List<SalesInvoiceLine> replaceLines(
-      SalesInvoice invoice, SalesInvoiceCommand command, Instant now) {
+      AuthPrincipal principal, SalesInvoice invoice, SalesInvoiceCommand command, Instant now) {
     Context ctx = new Context(invoice.getTenantId(), invoice.getBranchId());
     Location branch = requireActiveBranch(ctx.tenantId(), ctx.branchId());
     TaxJurisdiction jurisdiction =
@@ -498,7 +535,13 @@ public class SalesInvoiceService {
     }
     List<PreparedLine> prepared =
         prepareLines(
-            ctx, command, billType, invoice.getBillDiscountValue(), jurisdiction, previous);
+            principal,
+            ctx,
+            command,
+            billType,
+            invoice.getBillDiscountValue(),
+            jurisdiction,
+            previous);
     salesInvoiceLineRepository.deleteBySalesInvoiceIdAndTenantIdAndBranchId(
         invoice.getId(), invoice.getTenantId(), invoice.getBranchId());
     invoice.setTaxJurisdiction(jurisdiction);
@@ -509,6 +552,7 @@ public class SalesInvoiceService {
   }
 
   private List<PreparedLine> prepareLines(
+      AuthPrincipal principal,
       Context ctx,
       SalesInvoiceCommand command,
       DiscountType billType,
@@ -532,11 +576,19 @@ public class SalesInvoiceService {
             "PRODUCT_INACTIVE",
             "Inactive products cannot be billed.");
       }
+      boolean controlled = ControlledStockPolicy.isControlled(product);
+      boolean needsRx = InvoicePrescriptionPolicy.needsRx(product);
+      if (controlled) {
+        requirePharmacist(principal);
+      }
       InvoicePolicy.requireControlledContext(
-          ControlledStockPolicy.isControlled(product),
-          command.customerId(),
-          command.doctorId(),
-          command.prescriptionVerified());
+          controlled, command.customerId(), command.doctorId(), command.prescriptionVerified());
+      InvoicePrescriptionPolicy.requirePatient(needsRx, command.customerId());
+      String reference =
+          InvoicePrescriptionPolicy.requireReference(
+              needsRx, command.prescriptionVerified(), command.prescriptionReference());
+      BigDecimal prescribed =
+          InvoicePrescriptionPolicy.requirePrescribed(needsRx, item.prescribedQuantity());
       long discount = item.discountPaise() == null ? 0L : item.discountPaise();
       long mrp = item.mrpPaise() == null ? 0L : item.mrpPaise();
       long selling = item.sellingPricePaise() == null ? 0L : item.sellingPricePaise();
@@ -544,6 +596,21 @@ public class SalesInvoiceService {
       BigDecimal quantity =
           InvoicePolicy.requireQuantity(item.quantity(), product.getQuantityPrecision());
       BigDecimal baseQuantity = toBase(product, item.unit(), quantity);
+      if (needsRx) {
+        var existing =
+            fulfillmentRepository.findByTenantIdAndPrescriptionReferenceAndProductId(
+                ctx.tenantId(), reference, product.getId());
+        existing.ifPresent(
+            row ->
+                InvoicePrescriptionPolicy.assertCustomerBind(
+                    row.getCustomerId(), command.customerId()));
+        InvoicePrescriptionPolicy.assertCanFill(
+            prescribed,
+            existing
+                .map(SalesPrescriptionFulfillment::getFulfilledQuantity)
+                .orElse(BigDecimal.ZERO),
+            baseQuantity);
+      }
       StockBatch batch = requireBatch(product, item.batchId(), ctx, baseQuantity);
       SalesInvoiceLine prior = previous.get(item.productId());
       DiscountType type = DiscountType.FLAT;
@@ -554,7 +621,16 @@ public class SalesInvoiceService {
       }
       drafts.add(
           new DraftLine(
-              product, batch, item.unit(), quantity, baseQuantity, mrp, selling, type, value));
+              product,
+              batch,
+              item.unit(),
+              quantity,
+              baseQuantity,
+              prescribed,
+              mrp,
+              selling,
+              type,
+              value));
     }
     InvoicePolicy.PricedBill priced =
         InvoicePolicy.priceBill(
@@ -581,6 +657,7 @@ public class SalesInvoiceService {
               row.unit(),
               row.quantity(),
               row.baseQuantity(),
+              row.prescribedQuantity(),
               row.mrpPaise(),
               row.sellingPricePaise(),
               row.discountType(),
@@ -609,6 +686,7 @@ public class SalesInvoiceService {
       line.setQuantity(row.quantity());
       line.setUnit(row.unit());
       line.setBaseQuantity(row.baseQuantity());
+      line.setPrescribedQuantity(row.prescribedQuantity());
       line.setMrpPaise(row.mrpPaise());
       line.setSellingPricePaise(row.sellingPricePaise());
       line.setDiscountPaise(row.money().discountPaise());
@@ -849,7 +927,8 @@ public class SalesInvoiceService {
                         line.getIgstPaise(),
                         line.getLineTaxablePaise(),
                         line.getLineTaxPaise(),
-                        line.getLineTotalPaise()))
+                        line.getLineTotalPaise(),
+                        line.getPrescribedQuantity()))
             .toList(),
         invoice.getCreatedAt(),
         invoice.getUpdatedAt());
@@ -1062,6 +1141,73 @@ public class SalesInvoiceService {
             "{\"invoiceId\":\"" + invoiceId + "\"}"));
   }
 
+  private void applyPrescriptionFulfillment(
+      AuthPrincipal principal, SalesInvoice invoice, List<SalesInvoiceLine> lines) {
+    Instant now = clock.instant();
+    for (SalesInvoiceLine line : lines) {
+      Product product = requireProduct(line.getProductId(), invoice.getTenantId());
+      boolean needsRx = InvoicePrescriptionPolicy.needsRx(product);
+      if (ControlledStockPolicy.isControlled(product)) {
+        requirePharmacist(principal);
+      }
+      InvoicePolicy.requireControlledContext(
+          ControlledStockPolicy.isControlled(product),
+          invoice.getCustomerId(),
+          invoice.getDoctorId(),
+          invoice.isPrescriptionVerified());
+      if (!needsRx) {
+        continue;
+      }
+      InvoicePrescriptionPolicy.requirePatient(true, invoice.getCustomerId());
+      String reference =
+          InvoicePrescriptionPolicy.requireReference(
+              true, invoice.isPrescriptionVerified(), invoice.getPrescriptionReference());
+      BigDecimal prescribed =
+          InvoicePrescriptionPolicy.requirePrescribed(true, line.getPrescribedQuantity());
+      SalesPrescriptionFulfillment existing =
+          fulfillmentRepository
+              .lockByTenantIdAndPrescriptionReferenceAndProductId(
+                  invoice.getTenantId(), reference, product.getId())
+              .orElse(null);
+      if (existing != null) {
+        InvoicePrescriptionPolicy.assertCustomerBind(
+            existing.getCustomerId(), invoice.getCustomerId());
+      }
+      InvoicePrescriptionPolicy.assertCanFill(
+          existing == null ? prescribed : existing.getPrescribedQuantity(),
+          existing == null ? BigDecimal.ZERO : existing.getFulfilledQuantity(),
+          line.getBaseQuantity());
+      if (existing == null) {
+        SalesPrescriptionFulfillment created = new SalesPrescriptionFulfillment();
+        created.setId(UUID.randomUUID());
+        created.setTenantId(invoice.getTenantId());
+        created.setCustomerId(invoice.getCustomerId());
+        created.setDoctorId(invoice.getDoctorId());
+        created.setPrescriptionReference(reference);
+        created.setProductId(product.getId());
+        created.setPrescribedQuantity(prescribed);
+        created.setFulfilledQuantity(line.getBaseQuantity());
+        created.setCreatedAt(now);
+        created.setUpdatedAt(now);
+        fulfillmentRepository.save(created);
+        continue;
+      }
+      existing.setFulfilledQuantity(existing.getFulfilledQuantity().add(line.getBaseQuantity()));
+      existing.setUpdatedAt(now);
+      fulfillmentRepository.save(existing);
+    }
+  }
+
+  private void requirePharmacist(AuthPrincipal principal) {
+    AppUser user =
+        appUserRepository
+            .findById(principal.userId())
+            .filter(row -> row.getDeletedAt() == null)
+            .orElseThrow(SalesInvoiceService::forbidden);
+    ControlledStockPolicy.requireDispenseAuthority(
+        user.getRole(), accessQueryService.hasAssignedRoleCode(user, "pharmacist"));
+  }
+
   private static ApiException notFound() {
     return new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Invoice was not found");
   }
@@ -1078,6 +1224,7 @@ public class SalesInvoiceService {
       ProductUnit unit,
       BigDecimal quantity,
       BigDecimal baseQuantity,
+      BigDecimal prescribedQuantity,
       long mrpPaise,
       long sellingPricePaise,
       DiscountType discountType,
@@ -1089,6 +1236,7 @@ public class SalesInvoiceService {
       ProductUnit unit,
       BigDecimal quantity,
       BigDecimal baseQuantity,
+      BigDecimal prescribedQuantity,
       long mrpPaise,
       long sellingPricePaise,
       DiscountType discountType,

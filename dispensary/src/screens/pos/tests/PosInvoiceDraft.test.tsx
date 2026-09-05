@@ -102,6 +102,7 @@ vi.mock('@/services/salesInvoices', async () => {
     adjustInvoiceTax: vi.fn(),
     assertInvoicePricingReady: vi.fn(),
     completeSalesInvoice: vi.fn(),
+    getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
