@@ -14,6 +14,7 @@ import com.nammamedmate.server.application.loyalty.LoyaltyCompleteResult;
 import com.nammamedmate.server.application.loyalty.LoyaltyService;
 import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.offer.OfferEvaluator;
+import com.nammamedmate.server.application.prescription.PrescriptionReferenceService;
 import com.nammamedmate.server.application.product.ProductUnitConverter;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -115,6 +116,7 @@ public class SalesInvoiceService {
   private final OfferEvaluator offerEvaluator;
   private final InvoiceComplianceSnapshotter invoiceComplianceSnapshotter;
   private final ControlledSaleRecorder controlledSaleRecorder;
+  private final PrescriptionReferenceService prescriptionReferenceService;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -143,6 +145,7 @@ public class SalesInvoiceService {
       OfferEvaluator offerEvaluator,
       InvoiceComplianceSnapshotter invoiceComplianceSnapshotter,
       ControlledSaleRecorder controlledSaleRecorder,
+      PrescriptionReferenceService prescriptionReferenceService,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -169,6 +172,7 @@ public class SalesInvoiceService {
     this.offerEvaluator = offerEvaluator;
     this.invoiceComplianceSnapshotter = invoiceComplianceSnapshotter;
     this.controlledSaleRecorder = controlledSaleRecorder;
+    this.prescriptionReferenceService = prescriptionReferenceService;
     this.clock = clock;
   }
 
@@ -274,6 +278,7 @@ public class SalesInvoiceService {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
     String ref = reference.trim();
+    prescriptionReferenceService.assertSelectable(ctx.tenantId(), ref);
     List<SalesPrescriptionFulfillment> rows =
         fulfillmentRepository.findAllByTenantIdAndPrescriptionReference(ctx.tenantId(), ref);
     if (rows.isEmpty()) {
@@ -790,6 +795,7 @@ public class SalesInvoiceService {
           InvoicePolicy.requireQuantity(item.quantity(), product.getQuantityPrecision());
       BigDecimal baseQuantity = toBase(product, item.unit(), quantity);
       if (needsRx) {
+        prescriptionReferenceService.assertSelectable(ctx.tenantId(), reference);
         var existing =
             fulfillmentRepository.findByTenantIdAndPrescriptionReferenceAndProductId(
                 ctx.tenantId(), reference, product.getId());
@@ -1589,6 +1595,7 @@ public class SalesInvoiceService {
           existing == null ? prescribed : existing.getPrescribedQuantity(),
           existing == null ? BigDecimal.ZERO : existing.getFulfilledQuantity(),
           line.getBaseQuantity());
+      prescriptionReferenceService.assertSelectable(invoice.getTenantId(), reference);
       if (existing == null) {
         SalesPrescriptionFulfillment created = new SalesPrescriptionFulfillment();
         created.setId(UUID.randomUUID());
@@ -1607,6 +1614,18 @@ public class SalesInvoiceService {
       existing.setFulfilledQuantity(existing.getFulfilledQuantity().add(line.getBaseQuantity()));
       existing.setUpdatedAt(now);
       fulfillmentRepository.save(existing);
+    }
+    if (invoice.getPrescriptionReference() != null
+        && !invoice.getPrescriptionReference().isBlank()) {
+      fulfillmentRepository.flush();
+      prescriptionReferenceService.recordFromCompletedSale(
+          principal,
+          invoice.getTenantId(),
+          invoice.getBranchId(),
+          invoice.getCustomerId(),
+          invoice.getDoctorId(),
+          invoice.getPrescriptionReference(),
+          invoice.getId());
     }
   }
 

@@ -97,6 +97,11 @@ export function PosPrescriptionPanel({
           That Rx reference is already on another patient.
         </p>
       ) : null}
+      {lookupStatus === 'denied' ? (
+        <p role="alert" className="text-sm text-ink">
+          This Rx is archived — history only, not a new sale.
+        </p>
+      ) : null}
       {lookupStatus === 'failure' ? (
         <p role="alert" className="text-sm text-ink">
           Could not check this Rx. Check the connection and try again.

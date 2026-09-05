@@ -25,6 +25,7 @@ import DistributorsScreen from '@/screens/distributors/DistributorsScreen';
 import PurchasesScreen from '@/screens/purchases/PurchasesScreen';
 import OffersScreen from '@/screens/offers/OffersScreen';
 import LicensesScreen from '@/screens/licenses/LicensesScreen';
+import PrescriptionsScreen from '@/screens/prescriptions/PrescriptionsScreen';
 import RegistersScreen from '@/screens/registers/RegistersScreen';
 import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRegisterScreen';
 import StubScreen from '@/screens/stub/StubScreen';
@@ -58,6 +59,7 @@ const router = createBrowserRouter([
           { path: ROUTES.CREDIT, element: <CreditScreen /> },
           { path: ROUTES.INVENTORY, element: <InventoryScreen /> },
           { path: ROUTES.SALES, element: <PosScreen /> },
+          { path: ROUTES.PRESCRIPTIONS, element: <PrescriptionsScreen /> },
           { path: ROUTES.RETURNS, element: <ReturnsScreen /> },
           { path: ROUTES.DISTRIBUTORS, element: <DistributorsScreen /> },
           { path: ROUTES.PURCHASES, element: <PurchasesScreen /> },

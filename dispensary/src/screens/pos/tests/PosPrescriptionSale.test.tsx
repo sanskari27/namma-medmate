@@ -433,6 +433,21 @@ describe('PosScreen prescription-linked sale', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('another patient');
   });
 
+  it('denied: archived Rx cannot go on a new bill', async () => {
+    const user = userEvent.setup();
+    getFulfillmentMock.mockRejectedValue(
+      new ApiError('This Rx is archived. Open history, not a new sale.', 422, 'ARCHIVED_REFERENCE'),
+    );
+    renderPage();
+    await screen.findByText('Amoxil');
+    await user.click(screen.getByRole('button', { name: /Add Amoxil/i }));
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+    await user.type(screen.getByLabelText('Rx reference'), 'RX-OLD');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This Rx is archived — history only, not a new sale.',
+    );
+  });
+
   it('failure: remaining lookup network error', async () => {
     const user = userEvent.setup();
     getFulfillmentMock.mockRejectedValue(new Error('network'));
