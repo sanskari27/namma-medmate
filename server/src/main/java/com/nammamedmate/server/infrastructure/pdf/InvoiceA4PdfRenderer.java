@@ -39,7 +39,8 @@ public class InvoiceA4PdfRenderer {
     Font small = FontFactory.getFont(FontFactory.HELVETICA, 8);
     document.add(new Paragraph(text(model.pharmacyLegalName(), "Pharmacy"), title));
     document.add(new Paragraph("Pharmacy address: " + text(model.pharmacyAddress(), "—"), body));
-    document.add(new Paragraph("Pharmacy phone / contact: " + text(model.pharmacyPhone(), "—"), body));
+    document.add(
+        new Paragraph("Pharmacy phone / contact: " + text(model.pharmacyPhone(), "—"), body));
     document.add(new Paragraph("GSTIN: " + text(model.pharmacyGstin(), "—"), body));
     document.add(new Paragraph("PAN: " + text(model.pharmacyPan(), "—"), body));
     document.add(
@@ -62,13 +63,15 @@ public class InvoiceA4PdfRenderer {
             "Prescription number / reference: " + text(model.prescriptionReference(), "—"), body));
     document.add(new Paragraph("Doctor name: " + text(model.doctorName(), "—"), body));
     document.add(
-        new Paragraph("Doctor registration number: " + text(model.doctorRegistration(), "—"), body));
+        new Paragraph(
+            "Doctor registration number: " + text(model.doctorRegistration(), "—"), body));
     document.add(new Paragraph("Pharmacist name: " + text(model.pharmacistName(), "—"), body));
     document.add(
         new Paragraph(
             "Pharmacist registration number: " + text(model.pharmacistRegistration(), "—"), body));
     document.add(new Paragraph(" "));
-    PdfPTable table = new PdfPTable(new float[] {3.2f, 1.4f, 1.2f, 0.8f, 0.8f, 1.1f, 1.1f, 1.1f, 1.1f, 0.9f});
+    PdfPTable table =
+        new PdfPTable(new float[] {3.2f, 1.4f, 1.2f, 0.8f, 0.8f, 1.1f, 1.1f, 1.1f, 1.1f, 0.9f});
     table.setWidthPercentage(100);
     header(table, "Product / medicine");
     header(table, "Batch");
@@ -145,7 +148,10 @@ public class InvoiceA4PdfRenderer {
     for (InvoicePdfDocument.ReturnNote note : model.returns()) {
       document.add(
           new Paragraph(
-              "Return / refund: " + text(note.reason(), "—") + " " + rupees(note.refundTotalPaise()),
+              "Return / refund: "
+                  + text(note.reason(), "—")
+                  + " "
+                  + rupees(note.refundTotalPaise()),
               body));
     }
     document.add(
@@ -164,7 +170,8 @@ public class InvoiceA4PdfRenderer {
   }
 
   private static void header(PdfPTable table, String label) {
-    PdfPCell cell = new PdfPCell(new Phrase(label, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8)));
+    PdfPCell cell =
+        new PdfPCell(new Phrase(label, FontFactory.getFont(FontFactory.HELVETICA_BOLD, 8)));
     cell.setHorizontalAlignment(Element.ALIGN_LEFT);
     table.addCell(cell);
   }

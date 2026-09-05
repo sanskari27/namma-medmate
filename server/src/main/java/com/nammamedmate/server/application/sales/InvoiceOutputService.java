@@ -190,10 +190,7 @@ public class InvoiceOutputService {
                 Map.of("invoiceNumber", invoice.getInvoiceNumber()),
                 InvoiceCopyPolicy.idempotencyKey(invoice.getId())));
     return new InvoiceCopyView(
-        result.id(),
-        result.status(),
-        result.replayed(),
-        invoice.getInvoiceNumber());
+        result.id(), result.status(), result.replayed(), invoice.getInvoiceNumber());
   }
 
   private SalesInvoice requireInvoice(UUID id, Context ctx) {

@@ -1088,7 +1088,9 @@ public class SalesInvoiceService {
         invoice.getEinvoiceApplicability() == null
             ? EinvoiceApplicability.NOT_APPLICABLE
             : invoice.getEinvoiceApplicability(),
-        invoice.getEinvoiceStatus() == null ? EinvoiceStatus.NOT_SUBMITTED : invoice.getEinvoiceStatus(),
+        invoice.getEinvoiceStatus() == null
+            ? EinvoiceStatus.NOT_SUBMITTED
+            : invoice.getEinvoiceStatus(),
         invoice.getEinvoiceIrn(),
         invoice.getCompletedAt(),
         paymentsOf(invoice).stream()

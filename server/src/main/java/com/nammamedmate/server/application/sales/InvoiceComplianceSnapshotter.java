@@ -58,12 +58,17 @@ public class InvoiceComplianceSnapshotter {
             .findByTenantIdAndStatus(invoice.getTenantId(), KycSubmissionStatus.APPROVED)
             .orElse(null);
     Tenant tenant = tenantRepository.findById(invoice.getTenantId()).orElse(null);
-    invoice.setPharmacyLegalName(firstNonBlank(kyc == null ? null : kyc.getLegalName(), tenant == null ? null : tenant.getName()));
+    invoice.setPharmacyLegalName(
+        firstNonBlank(
+            kyc == null ? null : kyc.getLegalName(), tenant == null ? null : tenant.getName()));
     invoice.setPharmacyAddress(addressOf(branch, kyc));
     invoice.setPharmacyPhone(
-        firstNonBlank(branch == null ? null : branch.getContactPhone(), kyc == null ? null : kyc.getContactPhone()));
+        firstNonBlank(
+            branch == null ? null : branch.getContactPhone(),
+            kyc == null ? null : kyc.getContactPhone()));
     invoice.setPharmacyGstin(
-        firstNonBlank(branch == null ? null : branch.getGstin(), kyc == null ? null : kyc.getGstin()));
+        firstNonBlank(
+            branch == null ? null : branch.getGstin(), kyc == null ? null : kyc.getGstin()));
     invoice.setPharmacyPan(kyc == null ? null : blankToNull(kyc.getPan()));
     invoice.setPharmacyDrugLicenseNumber(
         firstNonBlank(
@@ -102,10 +107,7 @@ public class InvoiceComplianceSnapshotter {
     if (branch != null) {
       String joined =
           Stream.of(
-                  branch.getAddressLine(),
-                  branch.getCity(),
-                  branch.getState(),
-                  branch.getPincode())
+                  branch.getAddressLine(), branch.getCity(), branch.getState(), branch.getPincode())
               .filter(part -> part != null && !part.isBlank())
               .collect(Collectors.joining(", "));
       if (!joined.isBlank()) {

@@ -140,8 +140,7 @@ class InvoiceCopyTest extends AbstractIntegrationTest {
   void ac07_emailCopyIsTenantAndBranchScoped() throws Exception {
     Fixture fx = seed("copy-iso");
     Stocked product = stocked(fx, "CPY-7", "Iso Pack");
-    UUID customerId =
-        createCustomer(fx.cookie(), "Iso Patient", "9501000086", "iso@patient.local");
+    UUID customerId = createCustomer(fx.cookie(), "Iso Patient", "9501000086", "iso@patient.local");
     UUID invoiceId = createDraft(fx, product, customerId, "copy-7");
     completeCash(fx, invoiceId, "copy-complete-7");
 

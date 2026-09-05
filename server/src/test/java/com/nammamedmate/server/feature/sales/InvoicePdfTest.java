@@ -75,19 +75,16 @@ class InvoicePdfTest extends AbstractIntegrationTest {
   @Autowired private PasswordEncoder passwordEncoder;
 
   @Test
-  void ac01_pdfIncludesPharmacyTaxLicenseLinePatientPrescriberPharmacistControlledPaymentReturnAndDeclaration()
-      throws Exception {
+  void
+      ac01_pdfIncludesPharmacyTaxLicenseLinePatientPrescriberPharmacistControlledPaymentReturnAndDeclaration()
+          throws Exception {
     Fixture fx = seed("pdf-ac01");
     persistKyc(fx);
     persistPharmacist(fx);
     Stocked product = stocked(fx, "PDF-1", "Schedule H1 Pack", true);
     UUID customerId =
         createCustomer(
-            fx.cookie(),
-            "Meera Patient",
-            "9501000099",
-            "meera@patient.local",
-            "44 Koramangala");
+            fx.cookie(), "Meera Patient", "9501000099", "meera@patient.local", "44 Koramangala");
     UUID doctorId = createDoctor(fx.cookie(), "Dr Rao", "KA-DR-88");
     UUID invoiceId = createDraft(fx, product, customerId, doctorId, true, "pdf-1");
     mockMvc
@@ -118,11 +115,15 @@ class InvoicePdfTest extends AbstractIntegrationTest {
             .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PDF))
             .andExpect(
                 header()
-                    .string(HttpHeaders.CONTENT_DISPOSITION, org.hamcrest.Matchers.containsString("attachment")))
+                    .string(
+                        HttpHeaders.CONTENT_DISPOSITION,
+                        org.hamcrest.Matchers.containsString("attachment")))
             .andReturn();
     byte[] bytes = pdf.getResponse().getContentAsByteArray();
     PdfReader reader = new PdfReader(bytes);
-    assertThat(InvoicePdfPolicy.isA4(reader.getPageSize(1).getWidth(), reader.getPageSize(1).getHeight()))
+    assertThat(
+            InvoicePdfPolicy.isA4(
+                reader.getPageSize(1).getWidth(), reader.getPageSize(1).getHeight()))
         .isTrue();
     String text = new PdfTextExtractor(reader).getTextFromPage(1);
     reader.close();
@@ -191,7 +192,13 @@ class InvoicePdfTest extends AbstractIntegrationTest {
             post("/api/v1/sales/invoices/" + invoiceId + "/complete")
                 .cookie(fx.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(completeJson(1, TOTAL, 0, "pdf-complete-5", "{\"mode\":\"CASH\",\"amountPaise\":11200}")))
+                .content(
+                    completeJson(
+                        1,
+                        TOTAL,
+                        0,
+                        "pdf-complete-5",
+                        "{\"mode\":\"CASH\",\"amountPaise\":11200}")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.einvoiceApplicability").value("NOT_APPLICABLE"))
         .andExpect(jsonPath("$.data.einvoiceStatus").value("NOT_SUBMITTED"))
@@ -697,13 +704,7 @@ class InvoicePdfTest extends AbstractIntegrationTest {
           "isActive":true
         }
         """
-        .formatted(
-            sku,
-            name,
-            categoryId,
-            controlled,
-            controlled ? "\"H1\"" : "null",
-            controlled);
+        .formatted(sku, name, categoryId, controlled, controlled ? "\"H1\"" : "null", controlled);
   }
 
   private record Fixture(UUID tenantId, UUID branchId, UUID userId, Cookie cookie) {}

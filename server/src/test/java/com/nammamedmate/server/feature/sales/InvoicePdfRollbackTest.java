@@ -15,7 +15,6 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchStatus;
 import com.nammamedmate.server.domain.BranchType;
-import com.nammamedmate.server.domain.EmailDeliveryStatus;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.SalesInvoice;
