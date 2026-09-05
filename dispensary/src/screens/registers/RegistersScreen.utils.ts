@@ -52,7 +52,7 @@ export function toQuery(filters: FilterState): {
 }
 
 export function filenameFor(key: string, format: 'csv' | 'pdf'): string {
-  return `${key.toLowerCase().replaceAll('_', '-')}-register.${format}`;
+  return `${key.toLowerCase().replace(/_/g, '-')}-register.${format}`;
 }
 
 export function columnLabel(column: string): string {
