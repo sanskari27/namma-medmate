@@ -25,8 +25,7 @@ public final class LoyaltyPolicy {
 
   public static void assertEntitled(PlanCode plan) {
     if (!entitled(plan)) {
-      throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT, PLAN_LIMIT_MESSAGE);
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT, PLAN_LIMIT_MESSAGE);
     }
   }
 

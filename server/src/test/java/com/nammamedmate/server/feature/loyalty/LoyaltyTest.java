@@ -164,7 +164,10 @@ class LoyaltyTest extends AbstractIntegrationTest {
     assertThat(salesInvoiceRepository.findById(invoiceId).orElseThrow().getLoyaltyEarnedPoints())
         .isEqualTo(1L);
     assertThat(
-            salesInvoiceRepository.findById(invoiceId).orElseThrow().getLoyaltyPendingTaxablePaise())
+            salesInvoiceRepository
+                .findById(invoiceId)
+                .orElseThrow()
+                .getLoyaltyPendingTaxablePaise())
         .isEqualTo(0L);
   }
 
@@ -453,12 +456,7 @@ class LoyaltyTest extends AbstractIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         completeJson(
-                            1,
-                            TOTAL,
-                            0,
-                            key,
-                            10,
-                            "{\"mode\":\"CASH\",\"amountPaise\":10200}")))
+                            1, TOTAL, 0, key, 10, "{\"mode\":\"CASH\",\"amountPaise\":10200}")))
             .andReturn();
     return result.getResponse().getStatus();
   }

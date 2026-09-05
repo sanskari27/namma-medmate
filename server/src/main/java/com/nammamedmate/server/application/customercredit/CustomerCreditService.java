@@ -299,8 +299,7 @@ public class CustomerCreditService {
         normalizedKey,
         principal.userId(),
         now);
-    loyaltyService.earnOnSettlement(
-        principal, tenantId, customerId, amountPaise, normalizedKey);
+    loyaltyService.earnOnSettlement(principal, tenantId, customerId, amountPaise, normalizedKey);
     return toView(account, ledgerEntries(tenantId, customerId));
   }
 

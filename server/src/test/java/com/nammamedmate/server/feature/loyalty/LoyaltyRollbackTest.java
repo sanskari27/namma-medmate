@@ -98,8 +98,7 @@ class LoyaltyRollbackTest extends AbstractIntegrationTest {
     assertThat(salesInvoiceRepository.findById(invoiceId).orElseThrow().getStatus())
         .isEqualTo(SalesInvoiceStatus.DRAFT);
     assertThat(ledgerRepository.count()).isZero();
-    assertThat(accountRepository.findByTenantIdAndCustomerId(tenant.getId(), customerId))
-        .isEmpty();
+    assertThat(accountRepository.findByTenantIdAndCustomerId(tenant.getId(), customerId)).isEmpty();
   }
 
   private UUID createDraft(Cookie cookie, UUID customerId, UUID productId, UUID batchId)

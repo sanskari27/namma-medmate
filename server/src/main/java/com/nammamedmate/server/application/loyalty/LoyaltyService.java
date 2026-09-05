@@ -156,8 +156,7 @@ public class LoyaltyService {
     long pending = 0L;
     long earned = 0L;
     if (LoyaltyPolicy.entitled(plan)) {
-      taxablePaid =
-          LoyaltyPolicy.share(taxable, paidExcludingKhataPaise, invoice.getTotalPaise());
+      taxablePaid = LoyaltyPolicy.share(taxable, paidExcludingKhataPaise, invoice.getTotalPaise());
       if (taxablePaid > taxable) {
         taxablePaid = taxable;
       }
@@ -168,7 +167,9 @@ public class LoyaltyService {
       return new LoyaltyCompleteResult(0L, 0L, 0L, taxable, pending);
     }
     CustomerLoyaltyAccount account =
-        existing != null ? existing : lockOrCreate(invoice.getTenantId(), invoice.getCustomerId(), now);
+        existing != null
+            ? existing
+            : lockOrCreate(invoice.getTenantId(), invoice.getCustomerId(), now);
     if (redeemPoints > 0L) {
       applyDelta(
           account,
@@ -272,7 +273,9 @@ public class LoyaltyService {
   @Transactional
   public void reverseForReturn(
       AuthPrincipal principal, SalesInvoice invoice, UUID salesReturnId, long refundTotalPaise) {
-    if (invoice.getCustomerId() == null || refundTotalPaise <= 0L || invoice.getTotalPaise() <= 0L) {
+    if (invoice.getCustomerId() == null
+        || refundTotalPaise <= 0L
+        || invoice.getTotalPaise() <= 0L) {
       return;
     }
     String earnKey = "loyalty-return-earn:" + salesReturnId;
@@ -296,9 +299,7 @@ public class LoyaltyService {
     long pendingReduce =
         cap(
             LoyaltyPolicy.share(
-                invoice.getLoyaltyPendingTaxablePaise(),
-                refundTotalPaise,
-                invoice.getTotalPaise()),
+                invoice.getLoyaltyPendingTaxablePaise(), refundTotalPaise, invoice.getTotalPaise()),
             invoice.getLoyaltyPendingTaxablePaise());
     if (reverseEarn == 0L && reverseRedeem == 0L && pendingReduce == 0L) {
       return;
