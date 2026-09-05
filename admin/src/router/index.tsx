@@ -15,6 +15,7 @@ import PlatformActivityScreen from '@/screens/platform-activity/PlatformActivity
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import SupportSessionScreen from '@/screens/support-session/SupportSessionScreen';
 import KycQueueScreen from '@/screens/kyc-queue/KycQueueScreen';
+import LicenceExpiryScreen from '@/screens/licence-expiry/LicenceExpiryScreen';
 import PharmaciesScreen from '@/screens/pharmacies/PharmaciesScreen';
 import SubscriptionsScreen from '@/screens/subscriptions/SubscriptionsScreen';
 import StubScreen from '@/screens/stub/StubScreen';
@@ -38,6 +39,7 @@ const router = createBrowserRouter([
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.PHARMACIES, element: <PharmaciesScreen /> },
           { path: ROUTES.KYC, element: <KycQueueScreen /> },
+          { path: ROUTES.LICENCE_EXPIRY, element: <LicenceExpiryScreen /> },
           { path: ROUTES.SUBSCRIPTIONS, element: <SubscriptionsScreen /> },
           { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
           { path: ROUTES.SUPPORT, element: <SupportSessionScreen /> },

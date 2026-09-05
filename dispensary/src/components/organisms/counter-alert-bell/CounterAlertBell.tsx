@@ -53,8 +53,8 @@ function floorDestination(sourceType: string): string {
     case 'supplier_due':
       return 'Opens purchases';
     case 'staff_license':
-      return 'Opens employees';
     case 'license_expiry':
+      return 'Opens licences';
     case 'plan_limit':
     case 'subscription_expiry':
       return 'Opens subscription';

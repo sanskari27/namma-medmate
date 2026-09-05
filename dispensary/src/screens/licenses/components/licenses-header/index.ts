@@ -1,0 +1,1 @@
+export { LicensesHeader } from './LicensesHeader';

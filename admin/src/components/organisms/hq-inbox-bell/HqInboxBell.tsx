@@ -51,7 +51,7 @@ function hqDestination(sourceType: string): string {
     case 'subscription_expiry':
       return 'Opens subscriptions';
     case 'license_expiry':
-      return 'Opens pharmacy file';
+      return 'Opens licence expiry';
     case 'kyc':
       return 'Opens KYC queue';
     default:
