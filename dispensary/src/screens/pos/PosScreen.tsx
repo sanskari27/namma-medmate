@@ -1,11 +1,14 @@
 import { useId } from 'react';
 import { PosAckFooter } from './components/pos-ack-footer';
-import { PosBillTotals } from './components/pos-bill-totals';
+import { PosBillDiscount } from './components/pos-bill-discount';
 import { PosControlledGate } from './components/pos-controlled-gate';
 import { PosCustomerPicker } from './components/pos-customer-picker';
+import { PosDiscountApproval } from './components/pos-discount-approval';
 import { PosDraftLines } from './components/pos-draft-lines';
+import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
 import { PosStatusBanner } from './components/pos-status-banner';
+import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
 import { PosWarningPanel } from './components/pos-warning-panel';
 import { usePosTill } from './usePosTill';
 
@@ -31,6 +34,7 @@ export default function PosScreen() {
         statusId={statusId}
         invoiceNumber={till.invoice?.invoiceNumber}
       />
+      <PosDiscountApproval status={till.invoice?.discountApprovalStatus} />
       <div className="grid gap-4 lg:grid-cols-2">
         <div className="space-y-4">
           <PosCustomerPicker
@@ -68,11 +72,24 @@ export default function PosScreen() {
             onMrpChange={till.changeMrp}
             onSellingChange={till.changeSelling}
             onDiscountChange={till.changeDiscount}
+            onDiscountTypeChange={till.changeDiscountType}
+            onTaxOverride={till.openTaxOverride}
             busy={till.busy}
           />
         </div>
         <div className="space-y-4">
-          <PosBillTotals totals={till.totals} saved={Boolean(till.invoice)} />
+          <PosGstBreakdown totals={till.totals} saved={Boolean(till.invoice)} />
+          <PosBillDiscount
+            billType={till.billType}
+            billValue={till.billValue}
+            customerGstin={till.customerGstin}
+            onBillTypeChange={till.setBillType}
+            onBillValueChange={till.setBillValue}
+            onCustomerGstinChange={till.setCustomerGstin}
+            onApply={till.runApplyPricing}
+            disabled={!till.invoice || till.draft.length === 0}
+            busy={till.busy}
+          />
           <PosWarningPanel
             evaluation={till.evaluation}
             productNames={Object.fromEntries(
@@ -81,6 +98,22 @@ export default function PosScreen() {
           />
         </div>
       </div>
+      <PosTaxAdjustDialog
+        open={Boolean(till.taxProductId)}
+        productName={till.taxProductName}
+        gstRate={till.taxRate}
+        reason={till.taxReason}
+        onGstRateChange={till.setTaxRate}
+        onReasonChange={till.setTaxReason}
+        onOpenChange={(open) => {
+          if (!open) {
+            till.closeTaxOverride();
+          }
+        }}
+        onSubmit={till.runTaxAdjust}
+        onCloseFocus={() => document.getElementById('pos-product-search')?.focus()}
+        busy={till.busy}
+      />
       <PosAckFooter
         reason={till.reason}
         onReasonChange={till.setReason}

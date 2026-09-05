@@ -11,8 +11,11 @@ import {
 import { listProducts, type Product, type ProductUnit } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
+  applyInvoicePricing,
+  adjustInvoiceTax,
   createSalesInvoice,
   updateSalesInvoice,
+  type DiscountType,
   type SalesInvoice,
 } from '@/services/salesInvoices';
 import type { RootState } from '@/store';
@@ -25,6 +28,7 @@ import {
   invoiceTotals,
   isControlledProduct,
   mapApiStatus,
+  percentToBps,
   rupeesToPaise,
   type PageStatus,
 } from './PosScreen.utils';
@@ -50,6 +54,12 @@ export function usePosTill() {
   const [reason, setReason] = useState('');
   const [busy, setBusy] = useState(false);
   const [invoice, setInvoice] = useState<SalesInvoice | null>(null);
+  const [billType, setBillType] = useState<DiscountType>('FLAT');
+  const [billValue, setBillValue] = useState('');
+  const [customerGstin, setCustomerGstin] = useState('');
+  const [taxProductId, setTaxProductId] = useState<string | null>(null);
+  const [taxRate, setTaxRate] = useState('');
+  const [taxReason, setTaxReason] = useState('');
 
   const productIds = draft.map((line) => line.product.id);
   const controlledDraft = draft.some((line) => isControlledProduct(line.product));
@@ -180,6 +190,7 @@ export function usePosTill() {
         mrpRupees: '',
         sellingRupees: '',
         discountRupees: '',
+        discountType: 'FLAT',
       },
     ]);
     setEvaluation(null);
@@ -235,8 +246,105 @@ export function usePosTill() {
       const saved = invoice
         ? await updateSalesInvoice(invoice.id, { ...payload, expectedVersion: invoice.version })
         : await createSalesInvoice({ ...payload, idempotencyKey: idempotencyKey.current });
+      const pricing = pricingRequest(saved.version);
+      if (!pricing) {
+        setInvoice(saved);
+        setStatus('validation');
+        return;
+      }
+      const priced = await applyInvoicePricing(saved.id, pricing);
+      setInvoice(priced);
+      setStatus('success');
+    } catch (error) {
+      setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const lineDiscountValue = (line: PosDraftLine): number | null => {
+    if (line.discountType === 'PERCENT') {
+      return percentToBps(line.discountRupees);
+    }
+    return rupeesToPaise(line.discountRupees) ?? 0;
+  };
+
+  const pricingRequest = (expectedVersion: number) => {
+    const billDiscountValue =
+      billType === 'PERCENT' ? percentToBps(billValue) : (rupeesToPaise(billValue) ?? 0);
+    const lines = draft.map((line) => {
+      const value = lineDiscountValue(line);
+      return {
+        productId: line.product.id,
+        type: line.discountType,
+        value: value ?? 0,
+        invalid: value == null,
+      };
+    });
+    if (billDiscountValue == null || lines.some((line) => line.invalid)) {
+      return null;
+    }
+    return {
+      expectedVersion,
+      customerGstin: customerGstin.trim() || null,
+      billDiscountType: billValue.trim() ? billType : 'NONE',
+      billDiscountValue: billValue.trim() ? billDiscountValue : 0,
+      lines: lines.map((line) => ({
+        productId: line.productId,
+        type: line.type,
+        value: line.value,
+      })),
+    };
+  };
+
+  const runApplyPricing = async () => {
+    if (!invoice) {
+      setStatus('validation');
+      return;
+    }
+    const pricing = pricingRequest(invoice.version);
+    if (!pricing) {
+      setStatus('validation');
+      return;
+    }
+    setBusy(true);
+    try {
+      const saved = await applyInvoicePricing(invoice.id, pricing);
       setInvoice(saved);
       setStatus('success');
+    } catch (error) {
+      setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const runTaxAdjust = async () => {
+    if (!invoice || !taxProductId) {
+      setStatus('validation');
+      return;
+    }
+    if (!taxReason.trim()) {
+      setStatus('validation');
+      return;
+    }
+    const rate = Number(taxRate);
+    if (!Number.isFinite(rate) || rate < 0) {
+      setStatus('validation');
+      return;
+    }
+    setBusy(true);
+    try {
+      const saved = await adjustInvoiceTax(invoice.id, {
+        expectedVersion: invoice.version,
+        reason: taxReason.trim(),
+        lines: [{ productId: taxProductId, gstRate: rate }],
+      });
+      setInvoice(saved);
+      setTaxProductId(null);
+      setTaxReason('');
+      setStatus('success');
+      window.setTimeout(() => document.getElementById('pos-product-search')?.focus(), 0);
     } catch (error) {
       setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
     } finally {
@@ -359,6 +467,14 @@ export function usePosTill() {
     invoice,
     controlledDraft,
     totals,
+    billType,
+    billValue,
+    customerGstin,
+    taxProductId,
+    taxRate,
+    taxReason,
+    taxProductName:
+      draft.find((line) => line.product.id === taxProductId)?.product.name ?? 'this medicine',
     showReason: Boolean(evaluation && evaluation.warnings.length > 0),
     selectCustomer: (customer: Customer) => {
       setSelectedCustomer(customer);
@@ -410,7 +526,32 @@ export function usePosTill() {
       patchLine(productId, { sellingRupees: value }),
     changeDiscount: (productId: string, value: string) =>
       patchLine(productId, { discountRupees: value }),
+    changeDiscountType: (productId: string, value: DiscountType) =>
+      patchLine(productId, { discountType: value, discountRupees: '' }),
+    setBillType,
+    setBillValue,
+    setCustomerGstin,
+    setTaxRate,
+    setTaxReason,
+    openTaxOverride: (productId: string) => {
+      const line = draft.find((item) => item.product.id === productId);
+      setTaxProductId(productId);
+      setTaxRate(
+        String(
+          line?.product.gstRate ??
+            invoice?.lines.find((row) => row.productId === productId)?.gstRate ??
+            '',
+        ),
+      );
+      setTaxReason('');
+    },
+    closeTaxOverride: () => {
+      setTaxProductId(null);
+      window.setTimeout(() => document.getElementById('pos-product-search')?.focus(), 0);
+    },
     runSave: () => void runSave(),
+    runApplyPricing: () => void runApplyPricing(),
+    runTaxAdjust: () => void runTaxAdjust(),
     runEvaluate: () => void runEvaluate(),
     runComplete: () => void runComplete(),
   };

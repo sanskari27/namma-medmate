@@ -116,6 +116,9 @@ export const API = {
   goodsReceipt: (id: string) => `/api/v1/goods-receipts/${id}`,
   goodsReceiptQualityCheck: (id: string) => `/api/v1/goods-receipts/${id}/quality-check`,
   salesInvoice: (id: string) => `/api/v1/sales/invoices/${id}`,
+  salesInvoicePricing: (id: string) => `/api/v1/sales/invoices/${id}/pricing`,
+  salesInvoiceTaxAdjustment: (id: string) => `/api/v1/sales/invoices/${id}/tax-adjustment`,
+  salesInvoiceAssertReady: (id: string) => `/api/v1/sales/invoices/${id}/pricing/assert-ready`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

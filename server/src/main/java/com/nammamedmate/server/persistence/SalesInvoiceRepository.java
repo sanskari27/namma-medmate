@@ -26,5 +26,9 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
   Optional<SalesInvoice> lockByIdAndTenantIdAndBranchId(
       @Param("id") UUID id, @Param("tenantId") UUID tenantId, @Param("branchId") UUID branchId);
 
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select i from SalesInvoice i where i.discountApprovalRequestId = :requestId")
+  Optional<SalesInvoice> lockByDiscountApprovalRequestId(@Param("requestId") UUID requestId);
+
   List<SalesInvoice> findByTenantIdAndBranchIdOrderByCreatedAtDesc(UUID tenantId, UUID branchId);
 }

@@ -67,11 +67,31 @@ public class SalesInvoiceLine {
   @Column(name = "discount_paise", nullable = false)
   private long discountPaise;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "discount_type", nullable = false, length = 16)
+  private DiscountType discountType = DiscountType.FLAT;
+
+  @Column(name = "discount_value", nullable = false)
+  private long discountValue;
+
+  @Column(name = "bill_discount_paise", nullable = false)
+  private long billDiscountPaise;
+
   @Column(name = "hsn_code", length = 16)
   private String hsnCode;
 
+  @Column(name = "tax_category", length = 64)
+  private String taxCategory;
+
   @Column(name = "gst_rate", precision = 5, scale = 2)
   private BigDecimal gstRate;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "gst_rate_source", nullable = false, length = 16)
+  private GstRateSource gstRateSource = GstRateSource.PRODUCT;
+
+  @Column(name = "original_gst_rate", precision = 5, scale = 2)
+  private BigDecimal originalGstRate;
 
   @Column(name = "cgst_paise", nullable = false)
   private long cgstPaise;

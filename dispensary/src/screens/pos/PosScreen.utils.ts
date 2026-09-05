@@ -38,7 +38,7 @@ export function statusCopy(status: PageStatus, invoiceNumber?: string | null): s
     case 'empty':
       return 'No medicines in the catalogue yet. Add stock in Inventory, then build a draft here.';
     case 'validation':
-      return 'Add a medicine with MRP and selling price. Walk-in can skip the patient. Safety complete still needs a linked customer and a review reason when warnings appear. Schedule packs need a patient, prescriber, and Prescription checked.';
+      return 'Add a medicine with MRP and selling price. Walk-in can skip the patient. Safety complete still needs a linked customer and a review reason when warnings appear. Schedule packs need a patient, prescriber, and Prescription checked. Tax override needs a reason. Discount over the sign-off limit waits for approval.';
     case 'denied':
       return 'This till cannot save Sales bills, or a cashier-only login cannot dispense Schedule H, H1, X, or NDPS stock.';
     case 'conflict':
@@ -75,7 +75,12 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'INCOMPLETE_CONTROLLED' ||
     error.code === 'INVALID_UOM' ||
     error.code === 'FOREIGN_BATCH' ||
-    error.code === 'PRICE_INVALID'
+    error.code === 'PRICE_INVALID' ||
+    error.code === 'EXCESSIVE_DISCOUNT' ||
+    error.code === 'JURISDICTION_INVALID' ||
+    error.code === 'TAX_RATE_INVALID' ||
+    error.code === 'REASON_REQUIRED' ||
+    error.code === 'APPROVAL_REQUIRED'
   ) {
     return 'validation';
   }
@@ -140,6 +145,10 @@ export type BillTotals = {
   discountPaise: number;
   taxPaise: number;
   totalPaise: number;
+  cgstPaise: number;
+  sgstPaise: number;
+  igstPaise: number;
+  taxJurisdiction: 'INTRA' | 'INTER' | null;
 };
 
 export function previewTotals(lines: DraftMoneyLine[]): BillTotals {
@@ -163,11 +172,16 @@ export function previewTotals(lines: DraftMoneyLine[]): BillTotals {
     discount += clippedDiscount;
     tax += lineTax;
   }
+  const cgst = Math.floor(tax / 2);
   return {
     subtotalPaise: subtotal,
     discountPaise: discount,
     taxPaise: tax,
     totalPaise: subtotal + tax,
+    cgstPaise: cgst,
+    sgstPaise: tax - cgst,
+    igstPaise: 0,
+    taxJurisdiction: 'INTRA',
   };
 }
 
@@ -178,7 +192,38 @@ export function invoiceTotals(invoice: SalesInvoice | null, lines: DraftMoneyLin
       discountPaise: invoice.discountPaise,
       taxPaise: invoice.taxPaise,
       totalPaise: invoice.totalPaise,
+      cgstPaise: invoice.cgstPaise ?? 0,
+      sgstPaise: invoice.sgstPaise ?? 0,
+      igstPaise: invoice.igstPaise ?? 0,
+      taxJurisdiction: invoice.taxJurisdiction ?? 'INTRA',
     };
   }
   return previewTotals(lines);
+}
+
+export function percentToBps(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 0;
+  }
+  const amount = Number(trimmed);
+  if (!Number.isFinite(amount) || amount < 0) {
+    return null;
+  }
+  return Math.round(amount * 100);
+}
+
+export function discountApprovalCopy(
+  status: SalesInvoice['discountApprovalStatus'] | null | undefined,
+): string | null {
+  if (status === 'PENDING') {
+    return 'Waiting for sign-off on this discount before the bill can complete.';
+  }
+  if (status === 'APPROVED') {
+    return 'Discount signed off. You can complete this bill when the rest of the till is ready.';
+  }
+  if (status === 'REJECTED') {
+    return 'Reduce the discount and apply on this bill again.';
+  }
+  return null;
 }

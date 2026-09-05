@@ -1,7 +1,11 @@
 package com.nammamedmate.server.application.sales;
 
+import com.nammamedmate.server.domain.DiscountApprovalStatus;
+import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
+import com.nammamedmate.server.domain.TaxJurisdiction;
 import java.math.BigDecimal;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -25,6 +29,18 @@ public record SalesInvoiceView(
     long discountPaise,
     long taxPaise,
     long totalPaise,
+    DiscountType billDiscountType,
+    long billDiscountValue,
+    String customerGstin,
+    TaxJurisdiction taxJurisdiction,
+    long cgstPaise,
+    long sgstPaise,
+    long igstPaise,
+    long roundOffPaise,
+    UUID discountApprovalRequestId,
+    DiscountApprovalStatus discountApprovalStatus,
+    String taxAdjustmentReason,
+    boolean taxAdjusted,
     List<LineView> lines,
     Instant createdAt,
     Instant updatedAt) {
@@ -43,8 +59,14 @@ public record SalesInvoiceView(
       long mrpPaise,
       long sellingPricePaise,
       long discountPaise,
+      DiscountType discountType,
+      long discountValue,
+      long billDiscountPaise,
       String hsnCode,
+      String taxCategory,
       BigDecimal gstRate,
+      GstRateSource gstRateSource,
+      BigDecimal originalGstRate,
       long cgstPaise,
       long sgstPaise,
       long igstPaise,

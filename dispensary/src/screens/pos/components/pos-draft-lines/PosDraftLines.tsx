@@ -2,6 +2,7 @@ import { Button, Input, Label } from '@atoms';
 import { ProductUnitSelect } from '@templates';
 import type { StockBatchDetail } from '@/services/inventory';
 import type { Product, ProductUnit } from '@/services/products';
+import type { DiscountType } from '@/services/salesInvoices';
 import { Plus, Trash2 } from 'lucide-react';
 import { PosLinePricing } from '../pos-line-pricing';
 
@@ -17,6 +18,7 @@ export type PosDraftLine = {
   mrpRupees: string;
   sellingRupees: string;
   discountRupees: string;
+  discountType: DiscountType;
 };
 
 interface PosDraftLinesProps {
@@ -32,6 +34,8 @@ interface PosDraftLinesProps {
   onMrpChange: (productId: string, value: string) => void;
   onSellingChange: (productId: string, value: string) => void;
   onDiscountChange: (productId: string, value: string) => void;
+  onDiscountTypeChange: (productId: string, value: DiscountType) => void;
+  onTaxOverride: (productId: string) => void;
   busy: boolean;
 }
 
@@ -48,6 +52,8 @@ export function PosDraftLines({
   onMrpChange,
   onSellingChange,
   onDiscountChange,
+  onDiscountTypeChange,
+  onTaxOverride,
   busy,
 }: PosDraftLinesProps) {
   const draftIds = new Set(draft.map((item) => item.product.id));
@@ -181,12 +187,23 @@ export function PosDraftLines({
                   productName={line.product.name}
                   mrpRupees={line.mrpRupees}
                   sellingRupees={line.sellingRupees}
-                  discountRupees={line.discountRupees}
+                  discountValue={line.discountRupees}
+                  discountType={line.discountType}
                   onMrpChange={(value) => onMrpChange(line.product.id, value)}
                   onSellingChange={(value) => onSellingChange(line.product.id, value)}
                   onDiscountChange={(value) => onDiscountChange(line.product.id, value)}
+                  onDiscountTypeChange={(value) => onDiscountTypeChange(line.product.id, value)}
                   busy={busy}
                 />
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onTaxOverride(line.product.id)}
+                  disabled={busy}
+                >
+                  Tax override
+                </Button>
               </li>
             );
           })

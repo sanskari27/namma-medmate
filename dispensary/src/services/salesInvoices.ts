@@ -6,6 +6,11 @@ export { ApiError, isApiError };
 
 export type SalesInvoiceStatus = 'DRAFT';
 
+export type DiscountType = 'NONE' | 'PERCENT' | 'FLAT';
+export type TaxJurisdiction = 'INTRA' | 'INTER';
+export type DiscountApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED' | 'REJECTED';
+export type GstRateSource = 'PRODUCT' | 'MANUAL';
+
 export interface SalesInvoiceLine {
   id: string;
   productId: string;
@@ -20,8 +25,14 @@ export interface SalesInvoiceLine {
   mrpPaise: number;
   sellingPricePaise: number;
   discountPaise: number;
+  discountType: DiscountType | null;
+  discountValue: number;
+  billDiscountPaise: number;
   hsnCode: string | null;
+  taxCategory: string | null;
   gstRate: number | null;
+  gstRateSource: GstRateSource | null;
+  originalGstRate: number | null;
   cgstPaise: number;
   sgstPaise: number;
   igstPaise: number;
@@ -47,6 +58,18 @@ export interface SalesInvoice {
   discountPaise: number;
   taxPaise: number;
   totalPaise: number;
+  billDiscountType: DiscountType | null;
+  billDiscountValue: number;
+  customerGstin: string | null;
+  taxJurisdiction: TaxJurisdiction | null;
+  cgstPaise: number;
+  sgstPaise: number;
+  igstPaise: number;
+  roundOffPaise: number;
+  discountApprovalRequestId: string | null;
+  discountApprovalStatus: DiscountApprovalStatus | null;
+  taxAdjustmentReason: string | null;
+  taxAdjusted: boolean;
   lines: SalesInvoiceLine[];
   createdAt: string;
   updatedAt: string;
@@ -90,5 +113,40 @@ export async function updateSalesInvoice(
   input: UpdateSalesInvoiceInput,
 ): Promise<SalesInvoice> {
   const { data } = await apiClient.patch<SalesInvoice>(API.salesInvoice(id), input);
+  return data;
+}
+
+export interface InvoicePricingInput {
+  expectedVersion: number;
+  customerGstin: string | null;
+  billDiscountType: DiscountType;
+  billDiscountValue: number;
+  lines: { productId: string; type: DiscountType; value: number }[];
+}
+
+export interface InvoiceTaxAdjustmentInput {
+  expectedVersion: number;
+  reason: string;
+  lines: { productId: string; gstRate: number }[];
+}
+
+export async function applyInvoicePricing(
+  id: string,
+  input: InvoicePricingInput,
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoicePricing(id), input);
+  return data;
+}
+
+export async function adjustInvoiceTax(
+  id: string,
+  input: InvoiceTaxAdjustmentInput,
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceTaxAdjustment(id), input);
+  return data;
+}
+
+export async function assertInvoicePricingReady(id: string): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceAssertReady(id), {});
   return data;
 }

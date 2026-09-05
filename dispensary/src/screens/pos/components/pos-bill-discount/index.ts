@@ -1,0 +1,1 @@
+export { PosBillDiscount } from './PosBillDiscount';

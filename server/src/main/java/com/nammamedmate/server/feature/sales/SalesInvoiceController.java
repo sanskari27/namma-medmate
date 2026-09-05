@@ -1,11 +1,18 @@
 package com.nammamedmate.server.feature.sales;
 
+import com.nammamedmate.server.application.sales.InvoicePricingCommand;
+import com.nammamedmate.server.application.sales.InvoiceTaxAdjustmentCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceService;
 import com.nammamedmate.server.application.sales.SalesInvoiceView;
+import com.nammamedmate.server.domain.DiscountApprovalStatus;
+import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
+import com.nammamedmate.server.domain.TaxJurisdiction;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
+import com.nammamedmate.server.shared.exception.ApiException;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
@@ -17,6 +24,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
@@ -90,6 +98,78 @@ public class SalesInvoiceController {
                     request.lines().stream().map(this::toLine).toList()))));
   }
 
+  @PostMapping("/{id}/pricing")
+  public ApiResponse<SalesInvoiceResponse> applyPricing(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody PricingRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            salesInvoiceService.applyPricing(
+                principal,
+                id,
+                new InvoicePricingCommand(
+                    request.expectedVersion(),
+                    request.customerGstin(),
+                    parseDiscountType(request.billDiscountType()),
+                    request.billDiscountValue(),
+                    request.lines() == null
+                        ? List.of()
+                        : request.lines().stream()
+                            .map(
+                                line ->
+                                    new InvoicePricingCommand.LineDiscount(
+                                        line.productId(),
+                                        parseDiscountType(line.type(), DiscountType.FLAT),
+                                        line.value()))
+                            .toList()))));
+  }
+
+  @PostMapping("/{id}/tax-adjustment")
+  public ApiResponse<SalesInvoiceResponse> adjustTax(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody TaxAdjustmentRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            salesInvoiceService.adjustTax(
+                principal,
+                id,
+                new InvoiceTaxAdjustmentCommand(
+                    request.expectedVersion(),
+                    request.reason(),
+                    request.lines().stream()
+                        .map(
+                            line ->
+                                new InvoiceTaxAdjustmentCommand.LineRate(
+                                    line.productId(), line.gstRate()))
+                        .toList()))));
+  }
+
+  @PostMapping("/{id}/pricing/assert-ready")
+  public ApiResponse<SalesInvoiceResponse> assertReady(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toResponse(salesInvoiceService.assertReady(principal, id)));
+  }
+
+  private DiscountType parseDiscountType(String type) {
+    return parseDiscountType(type, DiscountType.NONE);
+  }
+
+  private DiscountType parseDiscountType(String type, DiscountType fallback) {
+    if (type == null || type.isBlank()) {
+      return fallback;
+    }
+    try {
+      return DiscountType.valueOf(type.trim());
+    } catch (RuntimeException ex) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+  }
+
   private SalesInvoiceCommand.Line toLine(LineRequest line) {
     return new SalesInvoiceCommand.Line(
         line.productId(),
@@ -119,6 +199,18 @@ public class SalesInvoiceController {
         view.discountPaise(),
         view.taxPaise(),
         view.totalPaise(),
+        view.billDiscountType(),
+        view.billDiscountValue(),
+        view.customerGstin(),
+        view.taxJurisdiction(),
+        view.cgstPaise(),
+        view.sgstPaise(),
+        view.igstPaise(),
+        view.roundOffPaise(),
+        view.discountApprovalRequestId(),
+        view.discountApprovalStatus(),
+        view.taxAdjustmentReason(),
+        view.taxAdjusted(),
         view.lines().stream()
             .map(
                 line ->
@@ -136,8 +228,14 @@ public class SalesInvoiceController {
                         line.mrpPaise(),
                         line.sellingPricePaise(),
                         line.discountPaise(),
+                        line.discountType(),
+                        line.discountValue(),
+                        line.billDiscountPaise(),
                         line.hsnCode(),
+                        line.taxCategory(),
                         line.gstRate(),
+                        line.gstRateSource(),
+                        line.originalGstRate(),
                         line.cgstPaise(),
                         line.sgstPaise(),
                         line.igstPaise(),
@@ -174,6 +272,22 @@ public class SalesInvoiceController {
       @NotNull Long sellingPricePaise,
       Long discountPaise) {}
 
+  public record PricingRequest(
+      @NotNull Integer expectedVersion,
+      String customerGstin,
+      String billDiscountType,
+      Long billDiscountValue,
+      List<@Valid PricingLineRequest> lines) {}
+
+  public record PricingLineRequest(@NotNull UUID productId, String type, Long value) {}
+
+  public record TaxAdjustmentRequest(
+      @NotNull Integer expectedVersion,
+      String reason,
+      @NotEmpty List<@Valid TaxLineRequest> lines) {}
+
+  public record TaxLineRequest(@NotNull UUID productId, @NotNull BigDecimal gstRate) {}
+
   public record SalesInvoiceListResponse(List<SalesInvoiceResponse> items) {}
 
   public record SalesInvoiceResponse(
@@ -193,6 +307,18 @@ public class SalesInvoiceController {
       long discountPaise,
       long taxPaise,
       long totalPaise,
+      DiscountType billDiscountType,
+      long billDiscountValue,
+      String customerGstin,
+      TaxJurisdiction taxJurisdiction,
+      long cgstPaise,
+      long sgstPaise,
+      long igstPaise,
+      long roundOffPaise,
+      UUID discountApprovalRequestId,
+      DiscountApprovalStatus discountApprovalStatus,
+      String taxAdjustmentReason,
+      boolean taxAdjusted,
       List<LineResponse> lines,
       Instant createdAt,
       Instant updatedAt) {}
@@ -211,8 +337,14 @@ public class SalesInvoiceController {
       long mrpPaise,
       long sellingPricePaise,
       long discountPaise,
+      DiscountType discountType,
+      long discountValue,
+      long billDiscountPaise,
       String hsnCode,
+      String taxCategory,
       BigDecimal gstRate,
+      GstRateSource gstRateSource,
+      BigDecimal originalGstRate,
       long cgstPaise,
       long sgstPaise,
       long igstPaise,
