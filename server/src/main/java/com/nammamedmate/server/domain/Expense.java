@@ -2,6 +2,8 @@ package com.nammamedmate.server.domain;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
 import java.time.Instant;
@@ -38,6 +40,10 @@ public class Expense {
 
   @Column(name = "occurred_on", nullable = false)
   private LocalDate occurredOn;
+
+  @Enumerated(EnumType.STRING)
+  @Column(nullable = false, length = 16)
+  private ExpensePostingStatus status;
 
   @Column(length = 500)
   private String notes;

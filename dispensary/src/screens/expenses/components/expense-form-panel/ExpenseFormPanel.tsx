@@ -43,7 +43,7 @@ export function ExpenseFormPanel({
       />
       <div className="mt-auto flex justify-end">
         <Button type="submit" disabled={busy}>
-          {creating ? 'Save this spend' : 'Update this spend'}
+          {creating ? 'Save this spend' : 'Correct this spend'}
         </Button>
       </div>
       {selected?.currentEvidenceId ? (

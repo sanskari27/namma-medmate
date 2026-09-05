@@ -1,17 +1,29 @@
 import type { ShopExpense } from '@/services/expenses';
-import { formatOccurredOn, formatPaise } from '../../ExpensesScreen.utils';
+import {
+  formatOccurredOn,
+  formatPaise,
+  listEmptyCopy,
+  postingLabel,
+  type SpendState,
+} from '../../ExpensesScreen.utils';
 
 export type ExpensesListPanelProps = {
   items: ShopExpense[];
   selectedId: string | null;
+  spendState: SpendState;
   onSelect: (id: string) => void;
 };
 
-export function ExpensesListPanel({ items, selectedId, onSelect }: ExpensesListPanelProps) {
+export function ExpensesListPanel({
+  items,
+  selectedId,
+  spendState,
+  onSelect,
+}: ExpensesListPanelProps) {
   if (items.length === 0) {
     return (
       <p className="border border-dashed border-line px-3 py-6 text-sm text-muted">
-        Record the first spend from this counter.
+        {listEmptyCopy(spendState)}
       </p>
     );
   }
@@ -29,7 +41,10 @@ export function ExpensesListPanel({ items, selectedId, onSelect }: ExpensesListP
               }`}
               onClick={() => onSelect(row.id)}
             >
-              <span className="font-medium text-ink">{row.categoryLabel}</span>
+              <span className="flex w-full items-center justify-between gap-2">
+                <span className="font-medium text-ink">{row.categoryLabel}</span>
+                <span className="text-xs text-muted">{postingLabel(row.status)}</span>
+              </span>
               <span className="font-mono text-xs text-ink">{formatPaise(row.amountPaise)}</span>
               <span className="text-xs text-muted">
                 {formatOccurredOn(row.occurredOn)} · {row.branchName}

@@ -68,6 +68,29 @@ public final class ExpensePolicy {
     // Closed accounting periods are not configured in Phase 1 (M8-S01-AC05).
   }
 
+  public static void assertNoApprovalThreshold(long amountPaise) {
+    requireAmountPaise(amountPaise);
+  }
+
+  public static ExpensePostingStatus postedWriteStatus() {
+    return ExpensePostingStatus.POSTED;
+  }
+
+  public static boolean countsTowardPostedReports(ExpensePostingStatus status) {
+    return status == ExpensePostingStatus.POSTED;
+  }
+
+  public static ExpensePostingStatus parseListStatus(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return ExpensePostingStatus.POSTED;
+    }
+    try {
+      return ExpensePostingStatus.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+    } catch (RuntimeException ex) {
+      throw shape();
+    }
+  }
+
   public static String requireCustomCode(String code) {
     String normalized = normalizeCode(code);
     if (normalized.isEmpty()) {

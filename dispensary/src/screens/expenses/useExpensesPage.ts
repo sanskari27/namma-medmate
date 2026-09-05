@@ -25,6 +25,7 @@ import {
   type FormState,
   type OutletScope,
   type PageStatus,
+  type SpendState,
 } from './ExpensesScreen.utils';
 
 export function useExpensesPage() {
@@ -47,6 +48,7 @@ export function useExpensesPage() {
   const [filterCategoryId, setFilterCategoryId] = useState('');
   const [from, setFrom] = useState('');
   const [to, setTo] = useState('');
+  const [spendState, setSpendState] = useState<SpendState>('POSTED');
 
   const selected = items.find((row) => row.id === selectedId) ?? null;
 
@@ -56,8 +58,9 @@ export function useExpensesPage() {
       categoryId: filterCategoryId || undefined,
       from: from || undefined,
       to: to || undefined,
+      status: spendState,
     };
-  }, [filterCategoryId, from, scope, to]);
+  }, [filterCategoryId, from, scope, spendState, to]);
 
   const load = useCallback(async () => {
     if (!allowed) {
@@ -153,7 +156,7 @@ export function useExpensesPage() {
       setCreating(false);
       setSelectedId(next.id);
       setStatus('success');
-      setStatusHint(null);
+      setStatusHint(creating ? null : 'Spend is still on the books.');
       addRef.current?.focus();
     } catch (error) {
       if (isApiError(error)) {
@@ -214,6 +217,7 @@ export function useExpensesPage() {
     filterCategoryId,
     from,
     to,
+    spendState,
     startCreate,
     selectExpense,
     onChange,
@@ -223,5 +227,6 @@ export function useExpensesPage() {
     setFilterCategoryId,
     setFrom,
     setTo,
+    setSpendState,
   };
 }
