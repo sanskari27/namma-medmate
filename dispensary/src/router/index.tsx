@@ -25,6 +25,7 @@ import DistributorsScreen from '@/screens/distributors/DistributorsScreen';
 import PurchasesScreen from '@/screens/purchases/PurchasesScreen';
 import OffersScreen from '@/screens/offers/OffersScreen';
 import LicensesScreen from '@/screens/licenses/LicensesScreen';
+import RegistersScreen from '@/screens/registers/RegistersScreen';
 import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRegisterScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
           { path: ROUTES.DASHBOARD, element: <DashboardScreen /> },
           { path: ROUTES.ACCOUNT, element: <AccountScreen /> },
           { path: ROUTES.LICENSES, element: <LicensesScreen /> },
+          { path: ROUTES.REGISTERS, element: <RegistersScreen /> },
           { path: ROUTES.CONTROLLED_REGISTER, element: <ControlledRegisterScreen /> },
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
           { path: ROUTES.CUSTOMERS, element: <CustomersScreen /> },

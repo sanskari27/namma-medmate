@@ -1,0 +1,1 @@
+export { RegistersTable } from './RegistersTable';

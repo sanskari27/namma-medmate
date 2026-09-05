@@ -1,0 +1,56 @@
+import { RegistersBookList } from './components/registers-book-list';
+import { RegistersEmptyState } from './components/registers-empty-state';
+import { RegistersFilters } from './components/registers-filters';
+import { RegistersHeader } from './components/registers-header';
+import { RegistersStatusBanner } from './components/registers-status-banner';
+import { RegistersTable } from './components/registers-table';
+import { useRegistersPage } from './useRegistersPage';
+
+export default function RegistersScreen() {
+  const page = useRegistersPage();
+
+  return (
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <RegistersHeader
+        spreadsheetRef={page.spreadsheetRef}
+        pdfRef={page.pdfRef}
+        denied={!page.allowed}
+        busy={page.busy}
+        onSpreadsheet={page.onSpreadsheet}
+        onPdf={page.onPdf}
+      />
+      <RegistersStatusBanner
+        status={page.status}
+        statusId={page.statusId}
+        hint={page.statusHint}
+      />
+      {page.allowed ? (
+        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
+          <RegistersBookList
+            books={page.books}
+            selectedKey={page.selectedKey}
+            onSelect={page.onSelectBook}
+          />
+          <div className="flex min-h-0 flex-col gap-3">
+            <RegistersFilters
+              filters={page.filters}
+              showBatch={page.showBatch}
+              disabled={page.busy}
+              onChange={page.onChangeFilters}
+              onApply={page.onApplyFilters}
+            />
+            {page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
+              <RegistersTable
+                title={page.table.title}
+                columns={page.table.columns}
+                items={page.table.items}
+              />
+            ) : (
+              <RegistersEmptyState />
+            )}
+          </div>
+        </div>
+      ) : null}
+    </div>
+  );
+}

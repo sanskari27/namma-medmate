@@ -7,6 +7,7 @@ public enum ModuleCode {
   CRM(true, false),
   FINANCE(true, false),
   REPORTING(true, false),
+  COMPLIANCE(true, false),
   STAFF(true, false),
   ROLES(true, false),
   APPROVALS(true, false),

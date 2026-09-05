@@ -69,6 +69,8 @@ function floorDesks(modules: string[]): string {
           return 'accounts';
         case 'REPORTING':
           return 'reports';
+        case 'COMPLIANCE':
+          return 'register book';
         case 'STAFF':
           return 'staff';
         case 'ROLES':

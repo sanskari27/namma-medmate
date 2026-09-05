@@ -1,0 +1,1 @@
+export { RegistersStatusBanner } from './RegistersStatusBanner';
