@@ -1,0 +1,1 @@
+export { ExpensesTotalsStrip } from './ExpensesTotalsStrip';

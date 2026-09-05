@@ -171,7 +171,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.PRESCRIPTIONS &&
     item.path !== ROUTES.DISTRIBUTORS &&
     item.path !== ROUTES.PURCHASES &&
-    item.path !== ROUTES.OFFERS,
+    item.path !== ROUTES.OFFERS &&
+    item.path !== ROUTES.EXPENSES,
 ).map((item) => ({
   path: item.path,
   title: item.label,
