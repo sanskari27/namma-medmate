@@ -89,6 +89,22 @@ export function statusCopy(
   }
 }
 
+export function offerStatusHint(status: PageStatus, code?: string | null): string | null {
+  if (code === 'AMBIGUOUS_PRECEDENCE') {
+    return 'Two live schemes share the same priority on a line. Change priority on Schemes, then apply again.';
+  }
+  if (status === 'validation') {
+    return 'Save this bill first, then apply a scheme.';
+  }
+  if (status === 'conflict') {
+    return 'This bill was updated on another till. Refresh, then apply the scheme again.';
+  }
+  if (status === 'failure') {
+    return 'Could not apply this scheme. Check the connection and try again.';
+  }
+  return null;
+}
+
 export function holdStatusHint(status: PageStatus): string | null {
   if (status === 'loading') {
     return null;

@@ -1,0 +1,1 @@
+export { OffersHeader } from './OffersHeader';

@@ -96,26 +96,27 @@ vi.mock('@/services/salesInvoices', async () => {
     assertInvoicePricingReady: vi.fn(),
     completeSalesInvoice: vi.fn(),
     getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
-    listSalesInvoices: vi.fn().mockResolvedValue({ items: [] }),
+    listSalesInvoices: vi.fn(),
     holdSalesInvoice: vi.fn(),
     resumeSalesInvoice: vi.fn(),
-    listInvoiceOffers: vi.fn().mockResolvedValue({ items: [] }),
+    listInvoiceOffers: vi.fn(),
     applyInvoiceOffers: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { getCustomerCredit } from '@/services/credit';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import { listProducts } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
+  applyInvoiceOffers,
   applyInvoicePricing,
-  completeSalesInvoice,
   createSalesInvoice,
+  listInvoiceOffers,
+  listSalesInvoices,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
@@ -124,10 +125,11 @@ const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
-const getCreditMock = vi.mocked(getCustomerCredit);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
-const completeInvoiceMock = vi.mocked(completeSalesInvoice);
+const listHeldMock = vi.mocked(listSalesInvoices);
+const listOffersMock = vi.mocked(listInvoiceOffers);
+const applyOffersMock = vi.mocked(applyInvoiceOffers);
 
 const customer = {
   id: 'c1',
@@ -198,8 +200,8 @@ const draftInvoice = {
   staffUserId: 'u1',
   terminalId: 'sess-1',
   customerId: null as string | null,
-  doctorId: null,
-  prescriptionReference: null,
+  doctorId: null as string | null,
+  prescriptionReference: null as string | null,
   prescriptionVerified: false,
   version: 1,
   subtotalPaise: 10000,
@@ -256,10 +258,17 @@ const draftInvoice = {
       lineTaxablePaise: 10000,
       lineTaxPaise: 1200,
       lineTotalPaise: 11200,
+      offerId: null as string | null,
+      offerName: null as string | null,
+      offerKind: null as 'BOGO' | 'SEASONAL' | 'BUNDLE' | null,
+      offerPriority: null as number | null,
+      offerBenefitPaise: 0,
+      offerExplanation: null as string | null,
     },
   ],
   createdAt: '2026-09-05T08:00:00Z',
   updatedAt: '2026-09-05T08:00:00Z',
+  revalidation: null,
 };
 
 function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
@@ -300,7 +309,7 @@ async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
   expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
 }
 
-describe('PosScreen mixed payment and khata', () => {
+describe('PosScreen schemes on this bill', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     listProductsMock.mockReset();
@@ -308,22 +317,15 @@ describe('PosScreen mixed payment and khata', () => {
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
-    getCreditMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
-    completeInvoiceMock.mockReset();
+    listHeldMock.mockReset();
+    listOffersMock.mockReset();
+    applyOffersMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA]);
     listDoctorsMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
-    getCreditMock.mockResolvedValue({
-      customerId: 'c1',
-      limitPaise: 50000,
-      balancePaise: 0,
-      availablePaise: 50000,
-      version: 1,
-      entries: [],
-    });
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -341,118 +343,158 @@ describe('PosScreen mixed payment and khata', () => {
     });
     createInvoiceMock.mockResolvedValue(draftInvoice);
     applyPricingMock.mockResolvedValue(draftInvoice);
+    listHeldMock.mockResolvedValue({ items: [] });
+    listOffersMock.mockResolvedValue({ items: [] });
   });
 
-  it('loading: waits for catalogue before Collect bill', () => {
-    listProductsMock.mockReturnValue(new Promise(() => undefined));
+  it('loading: waits for schemes on a saved bill', async () => {
+    const user = userEvent.setup();
+    listOffersMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading catalogue for this till…')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Collect bill' })).not.toBeInTheDocument();
+    await saveWalkInDraft(user);
+    expect(await screen.findByText('Loading schemes on this bill…')).toBeInTheDocument();
   });
 
-  it('empty: saved draft asks for a tender before collect', async () => {
+  it('empty: no live scheme fits this bill', async () => {
     const user = userEvent.setup();
     renderPage();
     await saveWalkInDraft(user);
-    expect(screen.getByRole('region', { name: 'Take payment' })).toHaveTextContent(
-      'Add cash, UPI, card, bank, or khata to collect.',
-    );
-    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+    expect(await screen.findByText('No live scheme fits this bill.')).toBeInTheDocument();
   });
 
-  it('denied: till without Sales cannot collect', () => {
+  it('denied: till without Sales cannot apply a scheme', () => {
     renderPage(['CRM']);
     expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Apply scheme' })).not.toBeInTheDocument();
   });
 
-  it('validation: walk-in cannot put the bill on khata', async () => {
+  it('validation: Apply scheme needs a saved draft', async () => {
     const user = userEvent.setup();
     renderPage();
-    await saveWalkInDraft(user);
-    expect(screen.getByLabelText('Khata ₹')).toBeDisabled();
-    await user.type(screen.getByLabelText('Cash ₹'), '50');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: 'Apply scheme' }));
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Tender must cover this bill. Add the rest or put it on khata for a linked patient.',
+      'Save this bill first, then apply a scheme.',
     );
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
+    expect(applyOffersMock).not.toHaveBeenCalled();
   });
 
-  it('conflict: stale total on collect', async () => {
+  it('conflict: another till already changed this bill', async () => {
     const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    listOffersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'o1',
+          name: 'Festive 10',
+          kind: 'SEASONAL',
+          priority: 8,
+          explanation: 'Festive 10 — scheme on this line.',
+          benefitPaise: 1000,
+        },
+      ],
+    });
+    applyOffersMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
     await saveWalkInDraft(user);
-    await user.type(screen.getByLabelText('Cash ₹'), '112');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This bill total changed. Refresh, then collect again.',
+      'This bill was updated on another till. Refresh, then apply the scheme again.',
     );
   });
 
-  it('failure: collect network error', async () => {
+  it('failure: apply scheme network error', async () => {
     const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new Error('network'));
+    listOffersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'o1',
+          name: 'Festive 10',
+          kind: 'SEASONAL',
+          priority: 8,
+          explanation: 'Festive 10 — scheme on this line.',
+          benefitPaise: 1000,
+        },
+      ],
+    });
+    applyOffersMock.mockRejectedValue(new Error('network'));
     renderPage();
     await saveWalkInDraft(user);
-    await user.type(screen.getByLabelText('Cash ₹'), '112');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not collect this bill');
+    await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not apply this scheme. Check the connection and try again.',
+    );
   });
 
-  it('success: mixed cash UPI and khata with change back restores Find medicine focus', async () => {
+  it('success: apply scheme snapshots the saving on the line', async () => {
     const user = userEvent.setup();
-    completeInvoiceMock.mockResolvedValue({
+    listOffersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'o1',
+          name: 'Festive 10',
+          kind: 'SEASONAL',
+          priority: 8,
+          explanation: 'Festive 10 — scheme on this line (1000 paise).',
+          benefitPaise: 1000,
+        },
+      ],
+    });
+    applyOffersMock.mockResolvedValue({
       ...draftInvoice,
-      status: 'COMPLETED',
       version: 2,
-      customerId: 'c1',
-      amountPaidPaise: 12000,
-      amountDuePaise: 3200,
-      changePaise: 800,
-      payments: [
-        { mode: 'CASH', amountPaise: 5800, reference: null },
-        { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
-        { mode: 'CREDIT', amountPaise: 3200, reference: null },
+      discountPaise: 1000,
+      subtotalPaise: 9000,
+      taxPaise: 1080,
+      totalPaise: 10080,
+      lines: [
+        {
+          ...draftInvoice.lines[0],
+          offerId: 'o1',
+          offerName: 'Festive 10',
+          offerKind: 'SEASONAL',
+          offerPriority: 8,
+          offerBenefitPaise: 1000,
+          offerExplanation: 'Festive 10 — scheme on this line (1000 paise).',
+          discountPaise: 1000,
+          lineTaxablePaise: 9000,
+          lineTaxPaise: 1080,
+          lineTotalPaise: 10080,
+        },
       ],
     });
     renderPage();
-    await screen.findByText('Penicillin V');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.type(screen.getByLabelText('MRP ₹'), '120');
-    await user.type(screen.getByLabelText('Selling ₹'), '100');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: 'Save bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
-    expect(await screen.findByText(/Khata left ₹500/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Cash ₹'), '58');
-    await user.type(screen.getByLabelText('UPI ₹'), '30');
-    await user.type(screen.getByLabelText('UPI reference'), 'UPI-9');
-    await user.type(screen.getByLabelText('Khata ₹'), '32');
-    const tender = screen.getByRole('region', { name: 'Take payment' });
-    expect(tender).toHaveTextContent('Change back');
-    expect(tender).toHaveTextContent('Still due');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Bill INV/2026-27/BR01/00001 collected at this till.',
-    );
+    await saveWalkInDraft(user);
+    expect(await screen.findByText('Festive 10')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Apply scheme' }));
+    expect(await screen.findByRole('status')).toHaveTextContent('Festive 10 applied on this bill.');
+    expect(screen.getByText('Festive 10 — scheme on this line (1000 paise).')).toBeInTheDocument();
     await waitFor(() => {
-      expect(completeInvoiceMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 1,
-          expectedTotalPaise: 11200,
-          changePaise: 800,
-          payments: [
-            { mode: 'CASH', amountPaise: 5800, reference: null },
-            { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
-            { mode: 'CREDIT', amountPaise: 3200, reference: null },
-          ],
-        }),
-      );
+      expect(screen.getByLabelText('Find medicine')).toHaveFocus();
     });
-    expect(screen.getByLabelText('Find medicine')).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+    expect(applyOffersMock).toHaveBeenCalledWith('inv-1', { expectedVersion: 1 });
+  });
+
+  it('validation: two live schemes share a line priority', async () => {
+    const user = userEvent.setup();
+    listOffersMock.mockResolvedValue({
+      items: [
+        {
+          id: 'o1',
+          name: 'Festive 10',
+          kind: 'SEASONAL',
+          priority: 8,
+          explanation: 'Festive 10 — scheme on this line.',
+          benefitPaise: 1000,
+        },
+      ],
+    });
+    applyOffersMock.mockRejectedValue(new ApiError('tie', 422, 'AMBIGUOUS_PRECEDENCE'));
+    renderPage();
+    await saveWalkInDraft(user);
+    await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Two live schemes share the same priority on a line. Change priority on Schemes, then apply again.',
+    );
+    expect(screen.queryByRole('alert')).not.toHaveTextContent('Save this bill first');
   });
 });

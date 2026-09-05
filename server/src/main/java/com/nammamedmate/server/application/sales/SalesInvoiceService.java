@@ -9,6 +9,8 @@ import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.customercredit.CustomerCreditService;
 import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
+import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
+import com.nammamedmate.server.application.offer.OfferEvaluator;
 import com.nammamedmate.server.application.product.ProductUnitConverter;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -103,6 +105,7 @@ public class SalesInvoiceService {
   private final CustomerCreditService customerCreditService;
   private final InventoryStockService inventoryStockService;
   private final CustomerHistoryService customerHistoryService;
+  private final OfferEvaluator offerEvaluator;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -127,6 +130,7 @@ public class SalesInvoiceService {
       CustomerCreditService customerCreditService,
       InventoryStockService inventoryStockService,
       CustomerHistoryService customerHistoryService,
+      OfferEvaluator offerEvaluator,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -149,6 +153,7 @@ public class SalesInvoiceService {
     this.customerCreditService = customerCreditService;
     this.inventoryStockService = inventoryStockService;
     this.customerHistoryService = customerHistoryService;
+    this.offerEvaluator = offerEvaluator;
     this.clock = clock;
   }
 
@@ -171,6 +176,79 @@ public class SalesInvoiceService {
     Context ctx = requireReady(principal);
     SalesInvoice invoice = requireInvoice(id, ctx);
     return toView(invoice, linesOf(invoice));
+  }
+
+  @Transactional(readOnly = true)
+  public InvoiceOfferListResult listOffers(AuthPrincipal principal, UUID invoiceId) {
+    Context ctx = requireReady(principal);
+    SalesInvoice invoice = requireInvoice(invoiceId, ctx);
+    return new InvoiceOfferListResult(
+        offerEvaluator.eligible(ctx.tenantId(), linesOf(invoice), clock.instant()));
+  }
+
+  @Transactional
+  public SalesInvoiceView applyOffers(AuthPrincipal principal, UUID id, Integer expectedVersion) {
+    Context ctx = requireReady(principal);
+    if (expectedVersion == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    SalesInvoice invoice =
+        salesInvoiceRepository
+            .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
+            .orElseThrow(SalesInvoiceService::notFound);
+    InvoiceHoldPolicy.assertMutable(invoice.getStatus());
+    InvoicePolicy.assertVersion(invoice.getVersion(), expectedVersion);
+    List<SalesInvoiceLine> existing = linesOf(invoice);
+    InvoicePolicy.requireLines(existing);
+    Instant now = clock.instant();
+    Map<UUID, OfferEvaluator.LineAssignment> assigned =
+        offerEvaluator.assignments(ctx.tenantId(), existing, now);
+    for (SalesInvoiceLine line : existing) {
+      OfferEvaluator.LineAssignment hit = assigned.get(line.getProductId());
+      if (hit == null) {
+        line.setOfferId(null);
+        line.setOfferName(null);
+        line.setOfferKind(null);
+        line.setOfferPriority(null);
+        line.setOfferBenefitPaise(0L);
+        line.setOfferExplanation(null);
+      } else {
+        line.setOfferId(hit.offerId());
+        line.setOfferName(hit.offerName());
+        line.setOfferKind(hit.kind());
+        line.setOfferPriority(hit.priority());
+        line.setOfferBenefitPaise(hit.benefitPaise());
+        line.setOfferExplanation(hit.explanation());
+      }
+    }
+    List<InvoicePolicy.LinePriceInput> inputs = new ArrayList<>();
+    for (SalesInvoiceLine line : existing) {
+      inputs.add(
+          new InvoicePolicy.LinePriceInput(
+              line.getQuantity(),
+              line.getSellingPricePaise(),
+              line.getDiscountType() == null ? DiscountType.NONE : line.getDiscountType(),
+              line.getDiscountValue(),
+              line.getGstRate(),
+              line.getOfferBenefitPaise()));
+    }
+    InvoicePolicy.PricedBill bill =
+        InvoicePolicy.priceBill(
+            inputs,
+            invoice.getBillDiscountType() == null
+                ? DiscountType.NONE
+                : invoice.getBillDiscountType(),
+            invoice.getBillDiscountValue(),
+            invoice.getTaxJurisdiction() == null
+                ? TaxJurisdiction.INTRA
+                : invoice.getTaxJurisdiction());
+    applyPricedBill(invoice, existing, bill, Map.of(), now, ctx.tenantId());
+    evaluateDiscountApproval(principal, invoice, bill.effectiveDiscountBps());
+    invoice.setVersion(invoice.getVersion() + 1);
+    invoice.setUpdatedAt(now);
+    salesInvoiceRepository.save(invoice);
+    auditAction(principal, invoice.getId(), "SALES_INVOICE_OFFER_APPLY");
+    return toView(invoice, existing);
   }
 
   @Transactional(readOnly = true)
@@ -278,7 +356,12 @@ public class SalesInvoiceService {
       Product product = requireProduct(line.getProductId(), ctx.tenantId());
       inputs.add(
           new InvoicePolicy.LinePriceInput(
-              line.getQuantity(), line.getSellingPricePaise(), type, value, product.getGstRate()));
+              line.getQuantity(),
+              line.getSellingPricePaise(),
+              type,
+              value,
+              product.getGstRate(),
+              line.getOfferBenefitPaise()));
     }
     InvoicePolicy.PricedBill bill =
         InvoicePolicy.priceBill(inputs, billType, billValue, jurisdiction);
@@ -332,7 +415,8 @@ public class SalesInvoiceService {
               line.getSellingPricePaise(),
               line.getDiscountType() == null ? DiscountType.FLAT : line.getDiscountType(),
               line.getDiscountValue(),
-              rate));
+              rate,
+              line.getOfferBenefitPaise()));
     }
     InvoicePolicy.PricedBill bill =
         InvoicePolicy.priceBill(
@@ -1004,7 +1088,13 @@ public class SalesInvoiceService {
                         line.getLineTaxablePaise(),
                         line.getLineTaxPaise(),
                         line.getLineTotalPaise(),
-                        line.getPrescribedQuantity()))
+                        line.getPrescribedQuantity(),
+                        line.getOfferId(),
+                        line.getOfferName(),
+                        line.getOfferKind(),
+                        line.getOfferPriority(),
+                        line.getOfferBenefitPaise(),
+                        line.getOfferExplanation()))
             .toList(),
         invoice.getCreatedAt(),
         invoice.getUpdatedAt(),
@@ -1096,7 +1186,8 @@ public class SalesInvoiceService {
               line.getSellingPricePaise(),
               line.getDiscountType(),
               line.getDiscountValue(),
-              gst));
+              gst,
+              line.getOfferBenefitPaise()));
     }
     InvoicePolicy.PricedBill bill =
         InvoicePolicy.priceBill(

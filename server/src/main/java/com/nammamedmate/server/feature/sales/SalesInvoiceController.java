@@ -1,5 +1,6 @@
 package com.nammamedmate.server.feature.sales;
 
+import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.sales.InvoiceCompletionCommand;
 import com.nammamedmate.server.application.sales.InvoiceHoldCommand;
 import com.nammamedmate.server.application.sales.InvoicePricingCommand;
@@ -12,6 +13,7 @@ import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
+import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
@@ -66,6 +68,36 @@ public class SalesInvoiceController {
       Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(salesInvoiceService.get(principal, id)));
+  }
+
+  @GetMapping("/{id}/offers")
+  public ApiResponse<InvoiceOfferListResponse> listOffers(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InvoiceOfferListResult result = salesInvoiceService.listOffers(principal, id);
+    return ApiResponse.ok(
+        new InvoiceOfferListResponse(
+            result.items().stream()
+                .map(
+                    item ->
+                        new InvoiceOfferItemResponse(
+                            item.id(),
+                            item.name(),
+                            item.kind(),
+                            item.priority(),
+                            item.explanation(),
+                            item.benefitPaise()))
+                .toList()));
+  }
+
+  @PostMapping("/{id}/offers")
+  public ApiResponse<SalesInvoiceResponse> applyOffers(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody HoldResumeRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(salesInvoiceService.applyOffers(principal, id, request.expectedVersion())));
   }
 
   @PostMapping
@@ -314,7 +346,13 @@ public class SalesInvoiceController {
                         line.lineTaxablePaise(),
                         line.lineTaxPaise(),
                         line.lineTotalPaise(),
-                        line.prescribedQuantity()))
+                        line.prescribedQuantity(),
+                        line.offerId(),
+                        line.offerName(),
+                        line.offerKind(),
+                        line.offerPriority(),
+                        line.offerBenefitPaise(),
+                        line.offerExplanation()))
             .toList(),
         view.createdAt(),
         view.updatedAt(),
@@ -448,5 +486,16 @@ public class SalesInvoiceController {
       long lineTaxablePaise,
       long lineTaxPaise,
       long lineTotalPaise,
-      BigDecimal prescribedQuantity) {}
+      BigDecimal prescribedQuantity,
+      UUID offerId,
+      String offerName,
+      OfferKind offerKind,
+      Integer offerPriority,
+      long offerBenefitPaise,
+      String offerExplanation) {}
+
+  public record InvoiceOfferListResponse(List<InvoiceOfferItemResponse> items) {}
+
+  public record InvoiceOfferItemResponse(
+      UUID id, String name, OfferKind kind, int priority, String explanation, long benefitPaise) {}
 }
