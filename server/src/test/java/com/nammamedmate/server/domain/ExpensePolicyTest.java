@@ -48,4 +48,25 @@ class ExpensePolicyTest {
     assertThatCode(() -> ExpensePolicy.assertPeriodOpen(TODAY.minusYears(2)))
         .doesNotThrowAnyException();
   }
+
+  @Test
+  void ac01_expensesPostImmediatelyWithNoApprovalThreshold() {
+    assertThat(ExpensePolicy.postedWriteStatus()).isEqualTo(ExpensePostingStatus.POSTED);
+    assertThatCode(() -> ExpensePolicy.assertNoApprovalThreshold(9_999_999L))
+        .doesNotThrowAnyException();
+    assertThatCode(() -> ExpensePolicy.assertNoApprovalThreshold(1L)).doesNotThrowAnyException();
+  }
+
+  @Test
+  void ac02_onlyPostedSpendCountsTowardReports() {
+    assertThat(ExpensePolicy.countsTowardPostedReports(ExpensePostingStatus.POSTED)).isTrue();
+    assertThat(ExpensePolicy.countsTowardPostedReports(ExpensePostingStatus.PENDING)).isFalse();
+    assertThat(ExpensePolicy.countsTowardPostedReports(ExpensePostingStatus.REJECTED)).isFalse();
+    assertThat(ExpensePolicy.parseListStatus(null)).isEqualTo(ExpensePostingStatus.POSTED);
+    assertThat(ExpensePolicy.parseListStatus("pending")).isEqualTo(ExpensePostingStatus.PENDING);
+    assertThatThrownBy(() -> ExpensePolicy.parseListStatus("held"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo("VALIDATION_ERROR");
+  }
 }

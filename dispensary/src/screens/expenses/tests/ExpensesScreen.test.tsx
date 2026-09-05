@@ -30,12 +30,14 @@ import {
   listExpenseCategories,
   listExpenseTotals,
   listExpenses,
+  updateExpense,
 } from '@/services/expenses';
 
 const listMock = vi.mocked(listExpenses);
 const catsMock = vi.mocked(listExpenseCategories);
 const totalsMock = vi.mocked(listExpenseTotals);
 const createMock = vi.mocked(createExpense);
+const updateMock = vi.mocked(updateExpense);
 const categoryCreateMock = vi.mocked(createExpenseCategory);
 
 const rent: ExpenseCategory = {
@@ -59,6 +61,7 @@ const sample: ShopExpense = {
   notes: 'September rent',
   currentEvidenceId: null,
   version: 1,
+  status: 'POSTED',
   createdAt: '2026-09-06T00:00:00Z',
   updatedAt: '2026-09-06T00:00:00Z',
   evidence: [],
@@ -104,6 +107,7 @@ describe('shop spend', () => {
     catsMock.mockReset();
     totalsMock.mockReset();
     createMock.mockReset();
+    updateMock.mockReset();
     categoryCreateMock.mockReset();
     catsMock.mockResolvedValue([rent]);
     totalsMock.mockResolvedValue(emptyTotals);
@@ -240,5 +244,55 @@ describe('shop spend', () => {
     );
     expect(totalsMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' }));
     expect(await screen.findByText(/All outlets:/)).toHaveTextContent('₹2,800.00');
+  });
+
+  it('waiting: spend posts as you record it', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Shop spend' });
+    await user.selectOptions(screen.getByLabelText('Spend state'), 'PENDING');
+    expect(
+      await screen.findByText('Spend posts as you record it — nothing waits on sign-off.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /send for approval/i })).not.toBeInTheDocument();
+    await waitFor(() =>
+      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'PENDING' })),
+    );
+  });
+
+  it('turned down: phase 1 does not reject spend', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    renderPage();
+    await screen.findByRole('heading', { name: 'Shop spend' });
+    await user.selectOptions(screen.getByLabelText('Spend state'), 'REJECTED');
+    expect(await screen.findByText('Phase 1 does not reject spend.')).toBeInTheDocument();
+    await waitFor(() =>
+      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'REJECTED' })),
+    );
+  });
+
+  it('posted badge on the books', async () => {
+    listMock.mockResolvedValue([sample]);
+    totalsMock.mockResolvedValue(rentTotals);
+    renderPage();
+    expect(await screen.findByRole('button', { name: /On the books/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /Rent/ })).toBeInTheDocument();
+  });
+
+  it('success: correct posted spend and restore focus', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([sample]);
+    totalsMock.mockResolvedValue(rentTotals);
+    updateMock.mockResolvedValue({ ...sample, amountPaise: 160000, version: 2 });
+    renderPage();
+    await screen.findByRole('button', { name: /On the books/ });
+    await user.click(screen.getByRole('button', { name: /Rent/ }));
+    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '1600' } });
+    await user.click(screen.getByRole('button', { name: 'Correct this spend' }));
+    await waitFor(() => expect(updateMock).toHaveBeenCalled());
+    expect(await screen.findByRole('status')).toHaveTextContent('Spend is still on the books.');
+    expect(screen.getByRole('button', { name: 'Record spend' })).toHaveFocus();
   });
 });

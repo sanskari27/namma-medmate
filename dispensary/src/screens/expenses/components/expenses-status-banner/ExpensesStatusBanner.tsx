@@ -1,13 +1,24 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../ExpensesScreen.utils';
+import {
+  statusCopy,
+  statusIcon,
+  type PageStatus,
+  type SpendState,
+} from '../../ExpensesScreen.utils';
 
 export type ExpensesStatusBannerProps = {
   status: PageStatus;
   statusId: string;
   hint?: string | null;
+  spendState?: SpendState;
 };
 
-export function ExpensesStatusBanner({ status, statusId, hint }: ExpensesStatusBannerProps) {
-  const text = statusCopy(status, hint);
+export function ExpensesStatusBanner({
+  status,
+  statusId,
+  hint,
+  spendState = 'POSTED',
+}: ExpensesStatusBannerProps) {
+  const text = statusCopy(status, hint, spendState);
   if (!text) {
     return <div id={statusId} className="min-h-5" />;
   }

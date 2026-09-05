@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.finance.ExpenseEvidenceStream;
 import com.nammamedmate.server.application.finance.ExpenseService;
 import com.nammamedmate.server.application.finance.ExpenseTotalsView;
 import com.nammamedmate.server.application.finance.ExpenseView;
+import com.nammamedmate.server.domain.ExpensePostingStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
@@ -67,11 +68,12 @@ public class ExpenseController {
       @RequestParam(required = false) String scope,
       @RequestParam(required = false) UUID categoryId,
       @RequestParam(required = false) LocalDate from,
-      @RequestParam(required = false) LocalDate to) {
+      @RequestParam(required = false) LocalDate to,
+      @RequestParam(required = false) String status) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
         new ExpenseListResponse(
-            expenseService.list(principal, branchId, scope, categoryId, from, to).stream()
+            expenseService.list(principal, branchId, scope, categoryId, from, to, status).stream()
                 .map(this::toExpense)
                 .toList()));
   }
@@ -180,6 +182,7 @@ public class ExpenseController {
         view.categoryLabel(),
         view.amountPaise(),
         view.occurredOn(),
+        view.status(),
         view.notes(),
         view.currentEvidenceId(),
         view.version(),
@@ -226,6 +229,7 @@ public class ExpenseController {
       String categoryLabel,
       long amountPaise,
       LocalDate occurredOn,
+      ExpensePostingStatus status,
       String notes,
       UUID currentEvidenceId,
       int version,

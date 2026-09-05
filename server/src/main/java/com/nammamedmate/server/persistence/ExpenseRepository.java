@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Expense;
+import com.nammamedmate.server.domain.ExpensePostingStatus;
 import java.time.LocalDate;
 import java.util.Collection;
 import java.util.List;
@@ -21,6 +22,7 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
       select e from Expense e
       where e.tenantId = :tenantId
         and e.branchId in :branchIds
+        and e.status = :status
         and (:categoryId is null or e.categoryId = :categoryId)
         and (:fromDate is null or e.occurredOn >= :fromDate)
         and (:toDate is null or e.occurredOn <= :toDate)
@@ -31,5 +33,6 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
       @Param("branchIds") Collection<UUID> branchIds,
       @Param("categoryId") UUID categoryId,
       @Param("fromDate") LocalDate fromDate,
-      @Param("toDate") LocalDate toDate);
+      @Param("toDate") LocalDate toDate,
+      @Param("status") ExpensePostingStatus status);
 }
