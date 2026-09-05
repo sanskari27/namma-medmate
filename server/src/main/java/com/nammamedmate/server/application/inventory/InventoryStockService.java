@@ -692,7 +692,7 @@ public class InventoryStockService {
     Context ctx = requireReady(principal);
     StringJoiner joiner = new StringJoiner("\n");
     joiner.add("sku,name,onHand,reorderLevel,minimumStock,reorderQuantity,suggestedOrderQty");
-    for (ReorderLine line : buildReorderLines(ctx)) {
+    for (InventoryReorderLine line : buildReorderLines(ctx)) {
       joiner.add(
           csv(line.sku())
               + ","
@@ -743,7 +743,7 @@ public class InventoryStockService {
     int warnDays = expiryWarnDays(ctx);
     LocalDate today = today();
     List<InventoryAlertsView.LowStockAlertView> low = new ArrayList<>();
-    for (ReorderLine line : buildReorderLines(ctx)) {
+    for (InventoryReorderLine line : buildReorderLines(ctx)) {
       List<InventoryAlertsView.OtherBranchStockView> others = new ArrayList<>();
       for (Location branch :
           locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(
@@ -806,7 +806,12 @@ public class InventoryStockService {
     return new InventoryAlertsView(low, near);
   }
 
-  private List<ReorderLine> buildReorderLines(Context ctx) {
+  @Transactional(readOnly = true)
+  public List<InventoryReorderLine> listReorderLinesForBranch(UUID tenantId, UUID branchId) {
+    return buildReorderLines(new Context(tenantId, branchId, tenantId));
+  }
+
+  private List<InventoryReorderLine> buildReorderLines(Context ctx) {
     Map<UUID, BranchProductStockLevel> overrides = new HashMap<>();
     for (BranchProductStockLevel level :
         branchProductStockLevelRepository.findAllByTenantIdAndBranchId(
@@ -820,7 +825,7 @@ public class InventoryStockService {
     for (StockBalance balance : balances) {
       onHandByProduct.merge(balance.getProductId(), balance.getQuantity(), BigDecimal::add);
     }
-    List<ReorderLine> lines = new ArrayList<>();
+    List<InventoryReorderLine> lines = new ArrayList<>();
     for (Product product : productRepository.findAllByTenantIdOrderByNameAsc(ctx.tenantId())) {
       BranchStockLevelView levels = effectiveLevels(product, overrides.get(product.getId()));
       BigDecimal onHand = onHandByProduct.getOrDefault(product.getId(), BigDecimal.ZERO);
@@ -829,7 +834,7 @@ public class InventoryStockService {
       }
       int suggested = suggestedOrderQty(onHand, levels);
       lines.add(
-          new ReorderLine(
+          new InventoryReorderLine(
               product.getId(),
               product.getSku(),
               product.getName(),
@@ -1047,14 +1052,4 @@ public class InventoryStockService {
   }
 
   private record Context(UUID tenantId, UUID branchId, UUID userId) {}
-
-  private record ReorderLine(
-      UUID productId,
-      String sku,
-      String name,
-      BigDecimal onHand,
-      Integer reorderLevel,
-      Integer minimumStock,
-      Integer reorderQuantity,
-      int suggestedOrderQty) {}
 }

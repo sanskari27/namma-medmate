@@ -9,5 +9,7 @@ public interface SupplierCategoryRepository extends JpaRepository<SupplierCatego
 
   List<SupplierCategory> findAllBySupplierIdAndTenantId(UUID supplierId, UUID tenantId);
 
+  List<SupplierCategory> findAllByTenantId(UUID tenantId);
+
   void deleteBySupplierIdAndTenantId(UUID supplierId, UUID tenantId);
 }

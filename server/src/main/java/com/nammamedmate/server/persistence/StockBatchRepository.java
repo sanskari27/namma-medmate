@@ -15,4 +15,8 @@ public interface StockBatchRepository extends JpaRepository<StockBatch, UUID> {
 
   List<StockBatch> findAllByTenantIdAndProductIdOrderByExpiresOnAscBatchNumberAsc(
       UUID tenantId, UUID productId);
+
+  Optional<StockBatch>
+      findFirstByTenantIdAndProductIdAndPurchasePricePaiseGreaterThanOrderByCreatedAtDesc(
+          UUID tenantId, UUID productId, long purchasePricePaise);
 }

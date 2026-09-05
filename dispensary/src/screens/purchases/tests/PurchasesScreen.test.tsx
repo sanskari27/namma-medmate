@@ -22,10 +22,18 @@ vi.mock('@/services/purchaseOrders', async () => {
     issuePurchaseOrder: vi.fn(),
     closePurchaseOrder: vi.fn(),
     cancelPurchaseOrder: vi.fn(),
+    previewReorderDrafts: vi.fn(),
+    createFromReorder: vi.fn(),
+    bulkPurchaseOrders: vi.fn(),
+    getPurchaseOrderAnalytics: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
+
+vi.mock('@/services/subscriptions', () => ({
+  getCurrentSubscription: vi.fn(),
+}));
 
 vi.mock('@/services/suppliers', async () => {
   const axios = await import('@/services/axios');
@@ -46,11 +54,16 @@ vi.mock('@/services/products', async () => {
 });
 
 import {
+  bulkPurchaseOrders,
+  createFromReorder,
   createPurchaseOrder,
+  getPurchaseOrderAnalytics,
   listPurchaseOrderVersions,
   listPurchaseOrders,
+  previewReorderDrafts,
   updatePurchaseOrder,
 } from '@/services/purchaseOrders';
+import { getCurrentSubscription } from '@/services/subscriptions';
 import { listSuppliers } from '@/services/suppliers';
 import { listProducts } from '@/services/products';
 
@@ -60,6 +73,11 @@ const updateMock = vi.mocked(updatePurchaseOrder);
 const versionsMock = vi.mocked(listPurchaseOrderVersions);
 const suppliersMock = vi.mocked(listSuppliers);
 const productsMock = vi.mocked(listProducts);
+const subscriptionMock = vi.mocked(getCurrentSubscription);
+const previewMock = vi.mocked(previewReorderDrafts);
+const fromReorderMock = vi.mocked(createFromReorder);
+const bulkMock = vi.mocked(bulkPurchaseOrders);
+const analyticsMock = vi.mocked(getPurchaseOrderAnalytics);
 
 const sample: PurchaseOrder = {
   id: 'po1',
@@ -184,6 +202,24 @@ describe('outlet purchase orders', () => {
     suppliersMock.mockResolvedValue([supplier]);
     productsMock.mockResolvedValue([product]);
     versionsMock.mockResolvedValue([]);
+    subscriptionMock.mockReset();
+    subscriptionMock.mockResolvedValue({
+      tenantId: 't1',
+      planCode: 'GROWTH',
+      status: 'ACTIVE',
+      startedAt: '2026-09-01T00:00:00Z',
+      expiresAt: null,
+      branchLimitOverride: null,
+      effectiveBranchLimit: 3,
+      maxUsers: 5,
+      usersUsed: 1,
+      branchesUsed: 1,
+      entitledModules: ['PROCUREMENT'],
+    });
+    previewMock.mockReset();
+    fromReorderMock.mockReset();
+    bulkMock.mockReset();
+    analyticsMock.mockReset();
   });
 
   it('loading: waits for outlet indents', () => {
@@ -273,7 +309,7 @@ describe('outlet purchase orders', () => {
     await user.click(await screen.findByRole('button', { name: /PO\/2026-27\/BR01\/00001/ }));
     await user.click(await screen.findByRole('button', { name: 'Save revision' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Someone else saved this indent. Reload the list and try again.',
+      'Reorder numbers moved, or someone else saved this indent. Reload and try again.',
     );
   });
 
@@ -326,5 +362,129 @@ describe('outlet purchase orders', () => {
     );
     expect(screen.getAllByText(/PO\/2026-27\/BR01\/00001/).length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Earlier save')).toBeInTheDocument();
+  });
+
+  it('loading: waits for reorder split', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    expect(screen.getByText('Reading this outlet’s reorder list…')).toBeInTheDocument();
+  });
+
+  it('empty: nothing below reorder', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockRejectedValue(new ApiError('Nothing is below reorder', 422, 'REORDER_EMPTY'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    expect(await screen.findByText('Nothing is below reorder on this outlet.')).toBeInTheDocument();
+  });
+
+  it('denied: free plan stays manual', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockRejectedValue(new ApiError('Growth or Pro is required', 422, 'PLAN_LIMIT'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This outlet’s plan still places indents by hand. Growth drafts from the reorder list.',
+    );
+  });
+
+  it('conflict: stale reorder fingerprint', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockResolvedValue({
+      fingerprint: 'abc',
+      planCode: 'GROWTH',
+      drafts: [{ ...sample, id: '', poNumber: '', notes: 'Draft from outlet reorder' }],
+      unmapped: [
+        {
+          productId: 'p2',
+          sku: 'ORPH',
+          name: 'Orphan pack',
+          suggestedOrderQty: 10,
+          reason: 'UNMAPPED',
+        },
+      ],
+    });
+    fromReorderMock.mockRejectedValue(new ApiError('Reorder list changed', 409, 'STALE_STATE'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    await screen.findByText('Not on a stockist yet');
+    await user.click(screen.getByRole('button', { name: 'Save as drafts' }));
+    expect(
+      await screen.findByText('Reorder numbers moved. Preview again before drafting.'),
+    ).toBeInTheDocument();
+  });
+
+  it('failure: reorder preview network error', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockRejectedValue(new ApiError('down', 0, 'NETWORK'));
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    expect(
+      await screen.findByText('Could not reach the server for reorder drafts. Try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: save reorder split as drafts and restore focus', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    previewMock.mockResolvedValue({
+      fingerprint: 'abc',
+      planCode: 'GROWTH',
+      drafts: [{ ...sample, id: '', poNumber: '', notes: 'Draft from outlet reorder' }],
+      unmapped: [],
+    });
+    fromReorderMock.mockResolvedValue({
+      fingerprint: 'abc',
+      planCode: 'GROWTH',
+      drafts: [sample],
+      unmapped: [],
+    });
+    renderPage();
+    await screen.findByRole('heading', { name: 'Purchases' });
+    await user.click(screen.getByRole('button', { name: 'Draft from reorder' }));
+    await user.click(await screen.findByRole('button', { name: 'Save as drafts' }));
+    await waitFor(() => expect(fromReorderMock).toHaveBeenCalled());
+    expect(screen.getByRole('button', { name: 'Draft from reorder' })).toHaveFocus();
+  });
+
+  it('pro: issue selected drafts and show stockist spend', async () => {
+    const user = userEvent.setup();
+    subscriptionMock.mockResolvedValue({
+      tenantId: 't1',
+      planCode: 'PRO',
+      status: 'ACTIVE',
+      startedAt: '2026-09-01T00:00:00Z',
+      expiresAt: null,
+      branchLimitOverride: null,
+      effectiveBranchLimit: 5,
+      maxUsers: null,
+      usersUsed: 1,
+      branchesUsed: 1,
+      entitledModules: ['PROCUREMENT'],
+    });
+    listMock.mockResolvedValue([sample]);
+    analyticsMock.mockResolvedValue({
+      totalSpendPaise: 0,
+      suppliers: [],
+    });
+    bulkMock.mockResolvedValue([{ ...sample, status: 'ISSUED', version: 2 }]);
+    renderPage();
+    expect(await screen.findByRole('heading', { name: 'Stockist spend' })).toBeInTheDocument();
+    expect(screen.getByText('No issued or closed spend on this outlet yet.')).toBeInTheDocument();
+    await user.click(screen.getByRole('checkbox', { name: 'Select PO/2026-27/BR01/00001' }));
+    await user.click(screen.getByRole('button', { name: 'Issue selected' }));
+    await waitFor(() => expect(bulkMock).toHaveBeenCalled());
   });
 });

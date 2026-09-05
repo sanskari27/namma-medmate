@@ -203,6 +203,7 @@ public class PurchaseOrderService {
     purchaseOrderRepository.saveAndFlush(order);
     List<PurchaseOrderLine> lines = replaceLines(order, command.lines(), now);
     persistVersion(order, lines, supplier, principal.userId(), now);
+    purchaseOrderRepository.save(order);
     audit(principal, "PURCHASE_ORDER_CREATE", order.getId());
     return toView(order, lines);
   }

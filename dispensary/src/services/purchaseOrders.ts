@@ -143,3 +143,60 @@ export async function cancelPurchaseOrder(
   });
   return data;
 }
+
+export interface UnmappedReorderLine {
+  productId: string;
+  sku: string;
+  name: string;
+  suggestedOrderQty: number;
+  reason: string;
+}
+
+export interface ReorderDraftResult {
+  fingerprint: string;
+  planCode: string;
+  drafts: PurchaseOrder[];
+  unmapped: UnmappedReorderLine[];
+}
+
+export interface PurchaseOrderAnalytics {
+  totalSpendPaise: number;
+  suppliers: Array<{
+    supplierId: string;
+    supplierLegalName: string;
+    orderCount: number;
+    spendPaise: number;
+  }>;
+}
+
+export async function previewReorderDrafts(): Promise<ReorderDraftResult> {
+  const { data } = await apiClient.get<ReorderDraftResult>(API.PURCHASE_ORDERS_REORDER_PREVIEW);
+  return data;
+}
+
+export async function createFromReorder(
+  idempotencyKey: string,
+  fingerprint: string,
+): Promise<ReorderDraftResult> {
+  const { data } = await apiClient.post<ReorderDraftResult>(API.PURCHASE_ORDERS_FROM_REORDER, {
+    idempotencyKey,
+    fingerprint,
+  });
+  return data;
+}
+
+export async function bulkPurchaseOrders(
+  action: 'ISSUE' | 'CANCEL',
+  items: Array<{ id: string; expectedVersion: number }>,
+): Promise<PurchaseOrder[]> {
+  const { data } = await apiClient.post<{ items: PurchaseOrder[] }>(API.PURCHASE_ORDERS_BULK, {
+    action,
+    items,
+  });
+  return data.items;
+}
+
+export async function getPurchaseOrderAnalytics(): Promise<PurchaseOrderAnalytics> {
+  const { data } = await apiClient.get<PurchaseOrderAnalytics>(API.PURCHASE_ORDERS_ANALYTICS);
+  return data;
+}

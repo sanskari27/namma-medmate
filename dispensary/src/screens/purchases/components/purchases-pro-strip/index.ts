@@ -1,0 +1,1 @@
+export { PurchasesProStrip } from './PurchasesProStrip';

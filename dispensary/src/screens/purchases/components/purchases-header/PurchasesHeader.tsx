@@ -4,15 +4,21 @@ import type { Ref } from 'react';
 export type PurchasesHeaderProps = {
   addButtonId: string;
   addButtonRef?: Ref<HTMLButtonElement>;
+  reorderButtonId?: string;
+  reorderButtonRef?: Ref<HTMLButtonElement>;
   denied?: boolean;
   onAdd: () => void;
+  onReorderDraft?: () => void;
 };
 
 export function PurchasesHeader({
   addButtonId,
   addButtonRef,
+  reorderButtonId,
+  reorderButtonRef,
   denied = false,
   onAdd,
+  onReorderDraft,
 }: PurchasesHeaderProps) {
   return (
     <Reveal>
@@ -27,13 +33,26 @@ export function PurchasesHeader({
           <p className={`mt-1 text-sm text-muted ${denied ? '' : 'max-w-xl'}`}>
             {denied
               ? 'Indents this outlet places with one stockist.'
-              : 'One stockist per indent. Save keeps a version and retotals paise. Closed or cancelled lines stay frozen.'}
+              : 'One stockist per indent. Growth can draft from the reorder list. Closed or cancelled lines stay frozen.'}
           </p>
         </div>
         {denied ? null : (
-          <Button ref={addButtonRef} id={addButtonId} type="button" onClick={onAdd}>
-            New indent
-          </Button>
+          <div className="flex flex-wrap items-center gap-2">
+            {onReorderDraft ? (
+              <Button
+                ref={reorderButtonRef}
+                id={reorderButtonId}
+                type="button"
+                variant="outline"
+                onClick={onReorderDraft}
+              >
+                Draft from reorder
+              </Button>
+            ) : null}
+            <Button ref={addButtonRef} id={addButtonId} type="button" onClick={onAdd}>
+              New indent
+            </Button>
+          </div>
         )}
       </header>
     </Reveal>

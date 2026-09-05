@@ -42,6 +42,31 @@ export function hasPurchaseAccess(modules: string[] | undefined): boolean {
   return modules?.includes('PROCUREMENT') === true;
 }
 
+export function canDraftFromReorder(planCode: string | null | undefined): boolean {
+  return planCode === 'GROWTH' || planCode === 'PRO';
+}
+
+export function isProPlan(planCode: string | null | undefined): boolean {
+  return planCode === 'PRO';
+}
+
+export function unmappedReasonLabel(reason: string): string {
+  switch (reason) {
+    case 'AMBIGUOUS':
+      return 'More than one stockist covers this pack';
+    case 'NO_RATE':
+      return 'No last rate on file';
+    case 'PRODUCT_INACTIVE':
+      return 'Pack is off the shelf list';
+    case 'SUPPLIER_INACTIVE':
+      return 'Stockist is inactive';
+    case 'ZERO_QTY':
+      return 'Suggested qty is zero';
+    default:
+      return 'No stockist mapped';
+  }
+}
+
 export function statusLabel(status: PurchaseOrderStatus): string {
   switch (status) {
     case 'DRAFT':
@@ -136,7 +161,7 @@ export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text
     case 'conflict':
       return {
         icon: AlertCircle,
-        text: 'Someone else saved this indent. Reload the list and try again.',
+        text: 'Reorder numbers moved, or someone else saved this indent. Reload and try again.',
       };
     case 'failure':
       return { icon: Unplug, text: 'Could not reach the server for purchase orders. Try again.' };
@@ -164,6 +189,9 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
   if (error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
+  if (error.code === 'PLAN_LIMIT') {
+    return 'denied';
+  }
   if (error.status === 409 || error.code === 'STALE_STATE') {
     return 'conflict';
   }
@@ -175,7 +203,8 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
     error.code === 'SUPPLIER_INACTIVE' ||
     error.code === 'PRODUCT_INACTIVE' ||
     error.code === 'INVALID_QUANTITY' ||
-    error.code === 'PO_CLOSED'
+    error.code === 'PO_CLOSED' ||
+    error.code === 'REORDER_EMPTY'
   ) {
     return 'validation';
   }

@@ -1,10 +1,15 @@
 package com.nammamedmate.server.feature.purchaseorder;
 
+import com.nammamedmate.server.application.purchaseorder.BulkPurchaseOrderCommand;
 import com.nammamedmate.server.application.purchaseorder.CreatePurchaseOrderCommand;
+import com.nammamedmate.server.application.purchaseorder.PurchaseOrderAnalyticsView;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderService;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderVersionView;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderView;
+import com.nammamedmate.server.application.purchaseorder.ReorderDraftResult;
+import com.nammamedmate.server.application.purchaseorder.ReorderToDraftService;
 import com.nammamedmate.server.application.purchaseorder.UpdatePurchaseOrderCommand;
+import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PurchaseOrderStatus;
 import com.nammamedmate.server.domain.SupplierPaymentTerms;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
@@ -33,10 +38,69 @@ import org.springframework.web.bind.annotation.RestController;
 @RequestMapping("/api/v1/purchase-orders")
 public class PurchaseOrderController {
 
+  private final ReorderToDraftService reorderToDraftService;
   private final PurchaseOrderService purchaseOrderService;
 
-  public PurchaseOrderController(PurchaseOrderService purchaseOrderService) {
+  public PurchaseOrderController(
+      PurchaseOrderService purchaseOrderService, ReorderToDraftService reorderToDraftService) {
     this.purchaseOrderService = purchaseOrderService;
+    this.reorderToDraftService = reorderToDraftService;
+  }
+
+  @GetMapping("/reorder-preview")
+  public ApiResponse<ReorderDraftResponse> reorderPreview(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toReorderResponse(reorderToDraftService.preview(principal)));
+  }
+
+  @PostMapping("/from-reorder")
+  public ApiResponse<ReorderDraftResponse> fromReorder(
+      Authentication authentication, @Valid @RequestBody FromReorderRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toReorderResponse(
+            reorderToDraftService.fromReorder(
+                principal, request.idempotencyKey(), request.fingerprint())));
+  }
+
+  @PostMapping("/bulk")
+  public ApiResponse<PurchaseOrderListResponse> bulk(
+      Authentication authentication, @Valid @RequestBody BulkPurchaseOrderRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        new PurchaseOrderListResponse(
+            reorderToDraftService
+                .bulk(
+                    principal,
+                    new BulkPurchaseOrderCommand(
+                        request.action(),
+                        request.items().stream()
+                            .map(
+                                item ->
+                                    new BulkPurchaseOrderCommand.Item(
+                                        item.id(), item.expectedVersion()))
+                            .toList()))
+                .stream()
+                .map(this::toResponse)
+                .toList()));
+  }
+
+  @GetMapping("/analytics")
+  public ApiResponse<PurchaseOrderAnalyticsResponse> analytics(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    PurchaseOrderAnalyticsView view = reorderToDraftService.analytics(principal);
+    return ApiResponse.ok(
+        new PurchaseOrderAnalyticsResponse(
+            view.totalSpendPaise(),
+            view.suppliers().stream()
+                .map(
+                    row ->
+                        new SupplierSpendResponse(
+                            row.supplierId(),
+                            row.supplierLegalName(),
+                            row.orderCount(),
+                            row.spendPaise()))
+                .toList()));
   }
 
   @GetMapping
@@ -187,6 +251,23 @@ public class PurchaseOrderController {
         view.snapshot());
   }
 
+  private ReorderDraftResponse toReorderResponse(ReorderDraftResult result) {
+    return new ReorderDraftResponse(
+        result.fingerprint(),
+        result.planCode(),
+        result.drafts().stream().map(this::toResponse).toList(),
+        result.unmapped().stream()
+            .map(
+                line ->
+                    new UnmappedReorderLineResponse(
+                        line.productId(),
+                        line.sku(),
+                        line.name(),
+                        line.suggestedOrderQty(),
+                        line.reason()))
+            .toList());
+  }
+
   public record PurchaseOrderListResponse(List<PurchaseOrderResponse> items) {}
 
   public record PurchaseOrderVersionListResponse(List<PurchaseOrderVersionResponse> items) {}
@@ -250,4 +331,28 @@ public class PurchaseOrderController {
       @NotEmpty List<@Valid LineRequest> lines) {}
 
   public record TransitionPurchaseOrderRequest(@NotNull Integer expectedVersion) {}
+
+  public record FromReorderRequest(
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @NotBlank @Size(max = 64) String fingerprint) {}
+
+  public record BulkPurchaseOrderItemRequest(@NotNull UUID id, @NotNull Integer expectedVersion) {}
+
+  public record BulkPurchaseOrderRequest(
+      @NotBlank String action, @NotEmpty List<@Valid BulkPurchaseOrderItemRequest> items) {}
+
+  public record UnmappedReorderLineResponse(
+      UUID productId, String sku, String name, int suggestedOrderQty, String reason) {}
+
+  public record ReorderDraftResponse(
+      String fingerprint,
+      PlanCode planCode,
+      List<PurchaseOrderResponse> drafts,
+      List<UnmappedReorderLineResponse> unmapped) {}
+
+  public record SupplierSpendResponse(
+      UUID supplierId, String supplierLegalName, long orderCount, long spendPaise) {}
+
+  public record PurchaseOrderAnalyticsResponse(
+      long totalSpendPaise, List<SupplierSpendResponse> suppliers) {}
 }

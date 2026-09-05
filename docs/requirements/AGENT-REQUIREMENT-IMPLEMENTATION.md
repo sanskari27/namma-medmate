@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 36 |
+| done | 37 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 31 |
+| ready | 30 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -53,7 +53,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M4-S07 | M4 | server + dispensary | done | M4-S03, M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V32 controlled_stock_register (tenant+branch, unique per stock_movement); ControlledStockPolicy/Recorder/Service/Controller `/api/v1/compliance/controlled-stock` verify+list+export csv/ndps; register written from InventoryStockService, StockTransferService, InventoryAdjustmentApplier. Tests ControlledStockPolicyTest (4), ControlledStockTest AC01–AC05 (5), ControlledStockRollbackTest (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 488 tests BUILD SUCCESS. Dispensary: POS PosControlledGate Prescription checked + verify; Inventory Schedule register tab + ControlledStockWorkspace CSV/NDPS export; services/controlledStock.ts. SPA lint+341 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173 down; host API OWNER Drug Store 1 → GET register `{items:[]}` 200, csv/ndps headers 200, unauth 401. Uniqueness from source (viridian Schedule register / Prescription checked, not HQ clone). |
 | M5-S01 | M5 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: empty-state test awaits empty copy. Server: V33 supplier + supplier_category (tenant_id only, no rating); SupplierService/Controller GET/POST/PATCH /api/v1/suppliers; PROCUREMENT or FINANCE; licenseStatus + session-branch branchProcurement. Tests SupplierPolicyTest (8), SupplierTest AC01–AC05 (5), SupplierRollbackTest (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 502 tests BUILD SUCCESS. Dispensary: DistributorsScreen /distributors; services/suppliers.ts. SPA lint+354 tests+build. `make compose-config` OK. Requirements valid. Browser: no IDE browser MCP this session; uniqueness from source (viridian shop-floor supplier book, not HQ clone). |
 | M5-S02 | M5 | server + dispensary | done | M5-S01, M4-S01 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: line queries tenant+branch; New indent focus restore + CLOSED freeze tests. Server: V34 purchase_order/line/version; PurchaseOrderService/Controller `/api/v1/purchase-orders` CRUD+issue/close/cancel+versions; SupplierService.branchProcurement uses real POs. Tests PurchaseOrderPolicyTest 6, PurchaseOrderTest AC01–AC05, PurchaseOrderRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 514 BUILD SUCCESS. Dispensary: PurchasesScreen `/purchases` + purchaseOrders.ts; lint+367 tests+build. `make compose-config` OK. Browser: :5173 connection refused; uniqueness from source (viridian Outlet orders / New indent / one stockist). |
-| M5-S03 | M5 | server + dispensary | ready | M5-S02, M4-S04, M2-S05 | — | — |
+| M5-S03 | M5 | server + dispensary | done | M5-S02, M4-S04, M2-S05 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: AC06 annex GET 404, preview ids null + annex branchId, same key+A fingerprint 409 STALE_STATE, branch A run/PO unchanged. Server: V35 purchase_order_reorder_run; GET `/api/v1/purchase-orders/reorder-preview` + POST `/from-reorder`; Pro POST `/bulk` ISSUE\|CANCEL + GET `/analytics`. Tests ReorderToDraftPolicyTest, ReorderToDraftTest 6 (AC01–AC06), ReorderToDraftRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 526 tests BUILD SUCCESS. Dispensary: viridian Draft from reorder + Pro issue-selected + stockist spend; loading/empty/validation/denied/conflict/failure/success; screen 91 lines. SPA lint+375 tests+build (vitest maxWorkers 2). `make compose-config` OK. Requirements valid. Browser: :5173 connection refused; uniqueness from source (shop-floor reorder drafts, not HQ). |
 | M5-S04 | M5 | server + dispensary | ready | M5-S02 | — | — |
 | M5-S05 | M5 | server + dispensary | ready | M5-S04, M4-S03 | — | — |
 | M5-S06 | M5 | server + dispensary | ready | M5-S05 | — | — |

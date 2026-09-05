@@ -1,10 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canDraftFromReorder,
   canEdit,
   compareVersions,
   emptyForm,
   hasPurchaseAccess,
+  isProPlan,
   toLineInputs,
+  unmappedReasonLabel,
   validateForm,
 } from '../PurchasesScreen.utils';
 import type { PurchaseOrderVersion } from '@/services/purchaseOrders';
@@ -14,6 +17,15 @@ describe('purchases helpers', () => {
     expect(hasPurchaseAccess(['PROCUREMENT'])).toBe(true);
     expect(hasPurchaseAccess(['FINANCE'])).toBe(false);
     expect(hasPurchaseAccess(['SALES'])).toBe(false);
+  });
+
+  it('gates reorder draft and pro tools by plan', () => {
+    expect(canDraftFromReorder('FREE')).toBe(false);
+    expect(canDraftFromReorder('STARTER')).toBe(false);
+    expect(canDraftFromReorder('GROWTH')).toBe(true);
+    expect(isProPlan('GROWTH')).toBe(false);
+    expect(isProPlan('PRO')).toBe(true);
+    expect(unmappedReasonLabel('AMBIGUOUS')).toContain('More than one stockist');
   });
 
   it('requires stockist and a priced line', () => {
