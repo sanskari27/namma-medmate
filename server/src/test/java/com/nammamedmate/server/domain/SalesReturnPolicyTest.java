@@ -96,7 +96,8 @@ class SalesReturnPolicyTest {
   @Test
   void ac04_creditNoteNeedsAKhataCustomer() {
     SalesReturnPolicy.assertCreditNoteCustomer(SalesReturnRefundMode.CASH, null);
-    SalesReturnPolicy.assertCreditNoteCustomer(SalesReturnRefundMode.CREDIT_NOTE, UUID.randomUUID());
+    SalesReturnPolicy.assertCreditNoteCustomer(
+        SalesReturnRefundMode.CREDIT_NOTE, UUID.randomUUID());
     assertThatThrownBy(
             () ->
                 SalesReturnPolicy.assertCreditNoteCustomer(SalesReturnRefundMode.CREDIT_NOTE, null))

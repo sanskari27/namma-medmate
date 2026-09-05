@@ -235,9 +235,8 @@ public class SalesReturnService {
     SalesReturnPolicy.assertCreditNoteCustomer(refundMode, invoice.getCustomerId());
 
     List<SalesInvoiceLine> invoiceLines =
-        salesInvoiceLineRepository
-            .findAllBySalesInvoiceIdAndTenantIdAndBranchIdOrderBySortOrderAsc(
-                invoice.getId(), ctx.tenantId(), ctx.branchId());
+        salesInvoiceLineRepository.findAllBySalesInvoiceIdAndTenantIdAndBranchIdOrderBySortOrderAsc(
+            invoice.getId(), ctx.tenantId(), ctx.branchId());
     Map<UUID, SalesInvoiceLine> byId = new HashMap<>();
     for (SalesInvoiceLine line : invoiceLines) {
       byId.put(line.getId(), line);
