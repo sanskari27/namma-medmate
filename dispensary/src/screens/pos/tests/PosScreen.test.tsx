@@ -77,6 +77,22 @@ vi.mock('@/services/controlledStock', async () => {
   };
 });
 
+vi.mock('@/services/credit', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    getCustomerCredit: vi.fn().mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 0,
+      balancePaise: 0,
+      availablePaise: 0,
+      version: 0,
+      entries: [],
+    }),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';

@@ -101,6 +101,21 @@ public class SalesInvoice {
   @Column(name = "tax_adjusted", nullable = false)
   private boolean taxAdjusted;
 
+  @Column(name = "amount_paid_paise", nullable = false)
+  private long amountPaidPaise;
+
+  @Column(name = "amount_due_paise", nullable = false)
+  private long amountDuePaise;
+
+  @Column(name = "change_paise", nullable = false)
+  private long changePaise;
+
+  @Column(name = "completed_at")
+  private Instant completedAt;
+
+  @Column(name = "complete_idempotency_key", length = 128)
+  private String completeIdempotencyKey;
+
   @Column(name = "idempotency_key", nullable = false, length = 128)
   private String idempotencyKey;
 

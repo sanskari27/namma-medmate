@@ -77,6 +77,22 @@ vi.mock('@/services/controlledStock', async () => {
   };
 });
 
+vi.mock('@/services/credit', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    getCustomerCredit: vi.fn().mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 0,
+      balancePaise: 0,
+      availablePaise: 0,
+      version: 0,
+      entries: [],
+    }),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 vi.mock('@/services/salesInvoices', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -85,6 +101,7 @@ vi.mock('@/services/salesInvoices', async () => {
     applyInvoicePricing: vi.fn(),
     adjustInvoiceTax: vi.fn(),
     assertInvoicePricingReady: vi.fn(),
+    completeSalesInvoice: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -200,6 +217,11 @@ const savedInvoice = {
   discountApprovalStatus: 'NOT_REQUIRED' as const,
   taxAdjustmentReason: null,
   taxAdjusted: false,
+  amountPaidPaise: 0,
+  amountDuePaise: 0,
+  changePaise: 0,
+  completedAt: null,
+  payments: [],
   lines: [],
   createdAt: '2026-09-05T08:00:00Z',
   updatedAt: '2026-09-05T08:00:00Z',

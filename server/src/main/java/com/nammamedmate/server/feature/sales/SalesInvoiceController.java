@@ -1,5 +1,6 @@
 package com.nammamedmate.server.feature.sales;
 
+import com.nammamedmate.server.application.sales.InvoiceCompletionCommand;
 import com.nammamedmate.server.application.sales.InvoicePricingCommand;
 import com.nammamedmate.server.application.sales.InvoiceTaxAdjustmentCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceCommand;
@@ -8,6 +9,8 @@ import com.nammamedmate.server.application.sales.SalesInvoiceView;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.InvoicePaymentPolicy;
+import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import com.nammamedmate.server.domain.TaxJurisdiction;
@@ -155,6 +158,32 @@ public class SalesInvoiceController {
     return ApiResponse.ok(toResponse(salesInvoiceService.assertReady(principal, id)));
   }
 
+  @PostMapping("/{id}/complete")
+  public ApiResponse<SalesInvoiceResponse> complete(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody CompleteSalesInvoiceRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            salesInvoiceService.complete(
+                principal,
+                id,
+                new InvoiceCompletionCommand(
+                    request.expectedVersion(),
+                    request.expectedTotalPaise(),
+                    request.changePaise(),
+                    request.idempotencyKey(),
+                    request.payments().stream()
+                        .map(
+                            payment ->
+                                new InvoiceCompletionCommand.Payment(
+                                    InvoicePaymentPolicy.requireMode(payment.mode()),
+                                    payment.amountPaise(),
+                                    payment.reference()))
+                        .toList()))));
+  }
+
   private DiscountType parseDiscountType(String type) {
     return parseDiscountType(type, DiscountType.NONE);
   }
@@ -211,6 +240,18 @@ public class SalesInvoiceController {
         view.discountApprovalStatus(),
         view.taxAdjustmentReason(),
         view.taxAdjusted(),
+        view.amountPaidPaise(),
+        view.amountDuePaise(),
+        view.changePaise(),
+        view.completedAt(),
+        view.payments() == null
+            ? List.of()
+            : view.payments().stream()
+                .map(
+                    payment ->
+                        new PaymentResponse(
+                            payment.mode(), payment.amountPaise(), payment.reference()))
+                .toList(),
         view.lines().stream()
             .map(
                 line ->
@@ -288,6 +329,18 @@ public class SalesInvoiceController {
 
   public record TaxLineRequest(@NotNull UUID productId, @NotNull BigDecimal gstRate) {}
 
+  public record CompleteSalesInvoiceRequest(
+      @NotNull Integer expectedVersion,
+      @NotNull Long expectedTotalPaise,
+      Long changePaise,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @NotEmpty List<@Valid PaymentRequest> payments) {}
+
+  public record PaymentRequest(
+      @NotBlank @Size(max = 16) String mode,
+      @NotNull Long amountPaise,
+      @Size(max = 64) String reference) {}
+
   public record SalesInvoiceListResponse(List<SalesInvoiceResponse> items) {}
 
   public record SalesInvoiceResponse(
@@ -319,9 +372,16 @@ public class SalesInvoiceController {
       DiscountApprovalStatus discountApprovalStatus,
       String taxAdjustmentReason,
       boolean taxAdjusted,
+      long amountPaidPaise,
+      long amountDuePaise,
+      long changePaise,
+      Instant completedAt,
+      List<PaymentResponse> payments,
       List<LineResponse> lines,
       Instant createdAt,
       Instant updatedAt) {}
+
+  public record PaymentResponse(PaymentMode mode, long amountPaise, String reference) {}
 
   public record LineResponse(
       UUID id,

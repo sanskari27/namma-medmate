@@ -80,14 +80,7 @@ vi.mock('@/services/controlledStock', async () => {
 vi.mock('@/services/credit', async () => {
   const axios = await import('@/services/axios');
   return {
-    getCustomerCredit: vi.fn().mockResolvedValue({
-      customerId: 'c1',
-      limitPaise: 0,
-      balancePaise: 0,
-      availablePaise: 0,
-      version: 0,
-      entries: [],
-    }),
+    getCustomerCredit: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -107,14 +100,15 @@ vi.mock('@/services/salesInvoices', async () => {
   };
 });
 
+import { getCustomerCredit } from '@/services/credit';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import { listProducts } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
-  adjustInvoiceTax,
   applyInvoicePricing,
+  completeSalesInvoice,
   createSalesInvoice,
 } from '@/services/salesInvoices';
 
@@ -124,9 +118,10 @@ const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
+const getCreditMock = vi.mocked(getCustomerCredit);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
-const adjustTaxMock = vi.mocked(adjustInvoiceTax);
+const completeInvoiceMock = vi.mocked(completeSalesInvoice);
 
 const customer = {
   id: 'c1',
@@ -188,7 +183,7 @@ const productA = {
   updatedAt: '2026-09-04T00:00:00Z',
 };
 
-const savedInvoice = {
+const draftInvoice = {
   id: 'inv-1',
   tenantId: 't1',
   branchId: 'b1',
@@ -196,7 +191,7 @@ const savedInvoice = {
   status: 'DRAFT' as const,
   staffUserId: 'u1',
   terminalId: 'sess-1',
-  customerId: null,
+  customerId: null as string | null,
   doctorId: null,
   prescriptionReference: null,
   prescriptionVerified: false,
@@ -221,7 +216,11 @@ const savedInvoice = {
   amountDuePaise: 0,
   changePaise: 0,
   completedAt: null,
-  payments: [],
+  payments: [] as {
+    mode: 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
+    amountPaise: number;
+    reference: string | null;
+  }[],
   lines: [
     {
       id: 'l1',
@@ -285,7 +284,7 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
   );
 }
 
-async function saveDraft(user: ReturnType<typeof userEvent.setup>) {
+async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Penicillin V');
   await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
   await user.type(screen.getByLabelText('MRP ₹'), '120');
@@ -295,7 +294,7 @@ async function saveDraft(user: ReturnType<typeof userEvent.setup>) {
   expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
 }
 
-describe('PosScreen GST and discount', () => {
+describe('PosScreen mixed payment and khata', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     listProductsMock.mockReset();
@@ -303,13 +302,22 @@ describe('PosScreen GST and discount', () => {
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
+    getCreditMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
-    adjustTaxMock.mockReset();
+    completeInvoiceMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA]);
     listDoctorsMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
+    getCreditMock.mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 50000,
+      balancePaise: 0,
+      availablePaise: 50000,
+      version: 1,
+      entries: [],
+    });
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -325,190 +333,120 @@ describe('PosScreen GST and discount', () => {
       conversionVersion: 1,
       factorToBase: 1,
     });
-    createInvoiceMock.mockResolvedValue(savedInvoice);
-    applyPricingMock.mockResolvedValue(savedInvoice);
+    createInvoiceMock.mockResolvedValue(draftInvoice);
+    applyPricingMock.mockResolvedValue(draftInvoice);
   });
 
-  it('loading: waits for catalogue before GST on this bill', () => {
+  it('loading: waits for catalogue before Collect bill', () => {
     listProductsMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
     expect(screen.getByText('Loading catalogue for this till…')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Collect bill' })).not.toBeInTheDocument();
   });
 
-  it('empty: no medicines to price', async () => {
-    listProductsMock.mockResolvedValue([]);
+  it('empty: saved draft asks for a tender before collect', async () => {
+    const user = userEvent.setup();
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'No medicines in the catalogue yet',
+    await saveWalkInDraft(user);
+    expect(screen.getByRole('region', { name: 'Take payment' })).toHaveTextContent(
+      'Add cash, UPI, card, bank, or khata to collect.',
+    );
+    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+  });
+
+  it('denied: till without Sales cannot collect', () => {
+    renderPage(['CRM']);
+    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
+    expect(completeInvoiceMock).not.toHaveBeenCalled();
+  });
+
+  it('validation: walk-in cannot put the bill on khata', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await saveWalkInDraft(user);
+    expect(screen.getByLabelText('Khata ₹')).toBeDisabled();
+    await user.type(screen.getByLabelText('Cash ₹'), '50');
+    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Tender must cover this bill. Add the rest or put it on khata for a linked patient.',
+    );
+    expect(completeInvoiceMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: stale total on collect', async () => {
+    const user = userEvent.setup();
+    completeInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    renderPage();
+    await saveWalkInDraft(user);
+    await user.type(screen.getByLabelText('Cash ₹'), '112');
+    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This bill total changed. Refresh, then collect again.',
     );
   });
 
-  it('denied: till without Sales cannot apply GST', () => {
-    renderPage(['CRM']);
-    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
-    expect(applyPricingMock).not.toHaveBeenCalled();
-  });
-
-  it('validation: tax override needs a reason', async () => {
+  it('failure: collect network error', async () => {
     const user = userEvent.setup();
+    completeInvoiceMock.mockRejectedValue(new Error('network'));
     renderPage();
-    await saveDraft(user);
-    await user.click(screen.getByRole('button', { name: 'Tax override' }));
-    await user.click(screen.getByRole('button', { name: 'Save tax override' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Tax override needs a reason');
-    expect(adjustTaxMock).not.toHaveBeenCalled();
+    await saveWalkInDraft(user);
+    await user.type(screen.getByLabelText('Cash ₹'), '112');
+    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not collect this bill');
   });
 
-  it('conflict: stale bill on apply', async () => {
+  it('success: mixed cash UPI and khata with change back restores Find medicine focus', async () => {
     const user = userEvent.setup();
-    renderPage();
-    await saveDraft(user);
-    applyPricingMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
-    await user.type(screen.getByLabelText('Discount ₹'), '5');
-    await user.click(screen.getByRole('button', { name: 'Apply on this bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Draft warnings');
-  });
-
-  it('failure: apply GST network error', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await saveDraft(user);
-    applyPricingMock.mockRejectedValue(new Error('network'));
-    await user.click(screen.getByRole('button', { name: 'Apply on this bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not save this bill');
-  });
-
-  it('success: line percent and bill rupee discount show GST breakup', async () => {
-    const user = userEvent.setup();
-    applyPricingMock.mockResolvedValue({
-      ...savedInvoice,
+    completeInvoiceMock.mockResolvedValue({
+      ...draftInvoice,
+      status: 'COMPLETED',
       version: 2,
-      discountPaise: 1500,
-      subtotalPaise: 8500,
-      taxPaise: 1020,
-      totalPaise: 9520,
-      cgstPaise: 510,
-      sgstPaise: 510,
-    });
-    renderPage();
-    await saveDraft(user);
-    expect(screen.getByRole('region', { name: 'GST on this bill' })).toHaveTextContent('CGST');
-    await user.click(screen.getByRole('button', { name: 'Use percent discount for Penicillin V' }));
-    await user.type(screen.getByLabelText('Discount %'), '10');
-    await user.type(screen.getByLabelText('Bill discount ₹'), '5');
-    await user.click(screen.getByRole('button', { name: 'Apply on this bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
-    await waitFor(() => {
-      expect(applyPricingMock).toHaveBeenLastCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 2,
-          billDiscountType: 'FLAT',
-          billDiscountValue: 500,
-          lines: [expect.objectContaining({ productId: 'p1', type: 'PERCENT', value: 1000 })],
-        }),
-      );
-    });
-  });
-
-  it('success: save bill sends percent discount as basis points not rupees', async () => {
-    const user = userEvent.setup();
-    applyPricingMock.mockResolvedValue({
-      ...savedInvoice,
-      version: 2,
-      discountPaise: 1500,
-      subtotalPaise: 8500,
+      customerId: 'c1',
+      amountPaidPaise: 12000,
+      amountDuePaise: 3200,
+      changePaise: 800,
+      payments: [
+        { mode: 'CASH', amountPaise: 5800, reference: null },
+        { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
+        { mode: 'CREDIT', amountPaise: 3200, reference: null },
+      ],
     });
     renderPage();
     await screen.findByText('Penicillin V');
     await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
     await user.type(screen.getByLabelText('MRP ₹'), '120');
     await user.type(screen.getByLabelText('Selling ₹'), '100');
-    await user.click(screen.getByRole('button', { name: 'Use percent discount for Penicillin V' }));
-    await user.type(screen.getByLabelText('Discount %'), '10');
-    await user.type(screen.getByLabelText('Bill discount ₹'), '5');
-    await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
     await user.click(screen.getByRole('button', { name: 'Save bill' }));
     expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
+    expect(await screen.findByText(/Khata left ₹500/)).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Cash ₹'), '58');
+    await user.type(screen.getByLabelText('UPI ₹'), '30');
+    await user.type(screen.getByLabelText('UPI reference'), 'UPI-9');
+    await user.type(screen.getByLabelText('Khata ₹'), '32');
+    const tender = screen.getByRole('region', { name: 'Take payment' });
+    expect(tender).toHaveTextContent('Change back');
+    expect(tender).toHaveTextContent('Still due');
+    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Bill INV/2026-27/BR01/00001 collected at this till.',
+    );
     await waitFor(() => {
-      expect(applyPricingMock).toHaveBeenCalledWith(
+      expect(completeInvoiceMock).toHaveBeenCalledWith(
         'inv-1',
         expect.objectContaining({
           expectedVersion: 1,
-          billDiscountType: 'FLAT',
-          billDiscountValue: 500,
-          lines: [expect.objectContaining({ productId: 'p1', type: 'PERCENT', value: 1000 })],
-        }),
-      );
-    });
-  });
-
-  it('success: waiting for sign-off after over-threshold discount', async () => {
-    const user = userEvent.setup();
-    applyPricingMock.mockResolvedValue({
-      ...savedInvoice,
-      version: 2,
-      discountApprovalStatus: 'PENDING',
-      discountApprovalRequestId: 'req-1',
-    });
-    renderPage();
-    await saveDraft(user);
-    await user.click(screen.getByRole('button', { name: 'Apply on this bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Waiting for sign-off');
-  });
-
-  it('success: tax override with reason restores product search focus', async () => {
-    const user = userEvent.setup();
-    adjustTaxMock.mockResolvedValue({
-      ...savedInvoice,
-      version: 2,
-      taxAdjusted: true,
-      taxAdjustmentReason: 'Wrong HSN on pack',
-    });
-    renderPage();
-    await saveDraft(user);
-    await user.click(screen.getByRole('button', { name: 'Tax override' }));
-    const rate = screen.getByLabelText('GST rate %');
-    await user.clear(rate);
-    await user.type(rate, '5');
-    await user.type(screen.getByLabelText('Override reason'), 'Wrong HSN on pack');
-    await user.click(screen.getByRole('button', { name: 'Save tax override' }));
-    await waitFor(() => {
-      expect(adjustTaxMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 1,
-          reason: 'Wrong HSN on pack',
-          lines: [{ productId: 'p1', gstRate: 5 }],
+          expectedTotalPaise: 11200,
+          changePaise: 800,
+          payments: [
+            { mode: 'CASH', amountPaise: 5800, reference: null },
+            { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
+            { mode: 'CREDIT', amountPaise: 3200, reference: null },
+          ],
         }),
       );
     });
     expect(screen.getByLabelText('Find medicine')).toHaveFocus();
-  });
-
-  it('success: inter-state GSTIN shows IGST on this bill', async () => {
-    const user = userEvent.setup();
-    applyPricingMock.mockResolvedValue({
-      ...savedInvoice,
-      version: 2,
-      taxJurisdiction: 'INTER',
-      cgstPaise: 0,
-      sgstPaise: 0,
-      igstPaise: 1200,
-      taxPaise: 1200,
-    });
-    renderPage();
-    await saveDraft(user);
-    await user.type(screen.getByLabelText('Customer GSTIN'), '27AABCU9603R1ZM');
-    await user.click(screen.getByRole('button', { name: 'Apply on this bill' }));
-    await waitFor(() => {
-      expect(applyPricingMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({ customerGstin: '27AABCU9603R1ZM' }),
-      );
-    });
-    const gst = screen.getByRole('region', { name: 'GST on this bill' });
-    expect(gst).toHaveTextContent('IGST');
-    expect(gst).not.toHaveTextContent('CGST');
+    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
   });
 });

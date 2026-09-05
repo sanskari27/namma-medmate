@@ -5,6 +5,30 @@ import type { SalesInvoice } from '@/services/salesInvoices';
 export type PageStatus =
   'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
+export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
+
+export type TenderDraft = {
+  cashRupees: string;
+  cardRupees: string;
+  upiRupees: string;
+  creditRupees: string;
+  bankRupees: string;
+  cardReference: string;
+  upiReference: string;
+  bankReference: string;
+};
+
+export const emptyTender = (): TenderDraft => ({
+  cashRupees: '',
+  cardRupees: '',
+  upiRupees: '',
+  creditRupees: '',
+  bankRupees: '',
+  cardReference: '',
+  upiReference: '',
+  bankReference: '',
+});
+
 const CONTROLLED_SCHEDULES = new Set(['H', 'H1', 'X', 'NDPS']);
 
 export function hasSalesAccess(modules: string[] | undefined): boolean {
@@ -31,7 +55,14 @@ export function isControlledProduct(product: Product): boolean {
   );
 }
 
-export function statusCopy(status: PageStatus, invoiceNumber?: string | null): string | null {
+export function statusCopy(
+  status: PageStatus,
+  invoiceNumber?: string | null,
+  hint?: string | null,
+): string | null {
+  if (hint) {
+    return hint;
+  }
   switch (status) {
     case 'loading':
       return 'Loading catalogue for this till…';
@@ -80,9 +111,17 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'JURISDICTION_INVALID' ||
     error.code === 'TAX_RATE_INVALID' ||
     error.code === 'REASON_REQUIRED' ||
-    error.code === 'APPROVAL_REQUIRED'
+    error.code === 'APPROVAL_REQUIRED' ||
+    error.code === 'UNDER_ALLOCATION' ||
+    error.code === 'OVER_ALLOCATION' ||
+    error.code === 'INVALID_CHANGE' ||
+    error.code === 'CREDIT_LIMIT_EXCEEDED' ||
+    error.code === 'KHATA_REQUIRES_CUSTOMER'
   ) {
     return 'validation';
+  }
+  if (error.code === 'DUPLICATE_COMPLETION') {
+    return 'conflict';
   }
   return 'failure';
 }
@@ -224,6 +263,80 @@ export function discountApprovalCopy(
   }
   if (status === 'REJECTED') {
     return 'Reduce the discount and apply on this bill again.';
+  }
+  return null;
+}
+
+export type TenderPart = {
+  mode: PaymentMode;
+  amountPaise: number;
+  reference: string | null;
+};
+
+export type TenderPreview = {
+  paidPaise: number;
+  duePaise: number;
+  changePaise: number;
+  remainingPaise: number;
+  parts: TenderPart[];
+  invalid: boolean;
+};
+
+function fieldPaise(value: string): number | null {
+  const trimmed = value.trim();
+  if (!trimmed) {
+    return 0;
+  }
+  return rupeesToPaise(trimmed);
+}
+
+export function previewTender(totalPaise: number, tender: TenderDraft): TenderPreview {
+  const cash = fieldPaise(tender.cashRupees);
+  const card = fieldPaise(tender.cardRupees);
+  const upi = fieldPaise(tender.upiRupees);
+  const credit = fieldPaise(tender.creditRupees);
+  const bank = fieldPaise(tender.bankRupees);
+  const invalid = cash == null || card == null || upi == null || credit == null || bank == null;
+  const amounts: TenderPart[] = [
+    { mode: 'CASH', amountPaise: cash ?? 0, reference: null },
+    { mode: 'CARD', amountPaise: card ?? 0, reference: tender.cardReference.trim() || null },
+    { mode: 'UPI', amountPaise: upi ?? 0, reference: tender.upiReference.trim() || null },
+    { mode: 'CREDIT', amountPaise: credit ?? 0, reference: null },
+    {
+      mode: 'BANK_TRANSFER',
+      amountPaise: bank ?? 0,
+      reference: tender.bankReference.trim() || null,
+    },
+  ];
+  const parts = amounts.filter((part) => part.amountPaise > 0);
+  const paidPaise = parts.reduce((sum, part) => sum + part.amountPaise, 0);
+  const duePaise = credit ?? 0;
+  const changePaise = Math.max(0, paidPaise - totalPaise);
+  return {
+    paidPaise,
+    duePaise,
+    changePaise,
+    remainingPaise: Math.max(0, totalPaise - paidPaise),
+    parts,
+    invalid,
+  };
+}
+
+export function collectStatusHint(status: PageStatus, code?: string | null): string | null {
+  if (status === 'validation') {
+    if (code === 'CREDIT_LIMIT_EXCEEDED') {
+      return 'Khata is over the approved limit. Reduce khata or take cash, UPI, card, or bank.';
+    }
+    if (code === 'KHATA_REQUIRES_CUSTOMER') {
+      return 'Link a patient before putting this bill on khata.';
+    }
+    return 'Tender must cover this bill. Add the rest or put it on khata for a linked patient.';
+  }
+  if (status === 'conflict') {
+    return 'This bill total changed. Refresh, then collect again.';
+  }
+  if (status === 'failure') {
+    return 'Could not collect this bill. Check the connection and try again.';
   }
   return null;
 }

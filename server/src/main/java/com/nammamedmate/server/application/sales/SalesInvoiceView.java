@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.sales;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import com.nammamedmate.server.domain.TaxJurisdiction;
@@ -41,9 +42,16 @@ public record SalesInvoiceView(
     DiscountApprovalStatus discountApprovalStatus,
     String taxAdjustmentReason,
     boolean taxAdjusted,
+    long amountPaidPaise,
+    long amountDuePaise,
+    long changePaise,
+    Instant completedAt,
+    List<PaymentView> payments,
     List<LineView> lines,
     Instant createdAt,
     Instant updatedAt) {
+
+  public record PaymentView(PaymentMode mode, long amountPaise, String reference) {}
 
   public record LineView(
       UUID id,

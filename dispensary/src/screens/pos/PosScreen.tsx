@@ -8,6 +8,7 @@ import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
 import { PosStatusBanner } from './components/pos-status-banner';
+import { PosTenderPanel } from './components/pos-tender-panel';
 import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
 import { PosWarningPanel } from './components/pos-warning-panel';
 import { usePosTill } from './usePosTill';
@@ -33,6 +34,7 @@ export default function PosScreen() {
         status={till.status}
         statusId={statusId}
         invoiceNumber={till.invoice?.invoiceNumber}
+        hint={till.statusHint}
       />
       <PosDiscountApproval status={till.invoice?.discountApprovalStatus} />
       <div className="grid gap-4 lg:grid-cols-2">
@@ -87,9 +89,24 @@ export default function PosScreen() {
             onBillValueChange={till.setBillValue}
             onCustomerGstinChange={till.setCustomerGstin}
             onApply={till.runApplyPricing}
-            disabled={!till.invoice || till.draft.length === 0}
+            disabled={!till.invoice || till.draft.length === 0 || till.collected}
             busy={till.busy}
           />
+          {till.invoice ? (
+            <PosTenderPanel
+              tender={till.tender}
+              preview={till.tenderPreview}
+              totalPaise={till.invoice.totalPaise}
+              walkIn={till.walkIn}
+              hasCustomer={Boolean(till.selectedCustomer)}
+              availablePaise={till.creditAvailablePaise}
+              collected={till.collected}
+              disabled={till.draft.length === 0}
+              busy={till.busy}
+              onChange={till.setTender}
+              onCollect={till.runCollect}
+            />
+          ) : null}
           <PosWarningPanel
             evaluation={till.evaluation}
             productNames={Object.fromEntries(

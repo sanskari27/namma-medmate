@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.approval.ApprovalService;
 import com.nammamedmate.server.application.approval.CreateApprovalRequestCommand;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.customercredit.CustomerCreditService;
 import com.nammamedmate.server.application.product.ProductUnitConverter;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -17,6 +18,7 @@ import com.nammamedmate.server.domain.ControlledStockPolicy;
 import com.nammamedmate.server.domain.DiscountApprovalStatus;
 import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.InvoicePaymentPolicy;
 import com.nammamedmate.server.domain.InvoicePolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
@@ -25,6 +27,7 @@ import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.ProductUnitConversion;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceLine;
+import com.nammamedmate.server.domain.SalesInvoicePayment;
 import com.nammamedmate.server.domain.SalesInvoiceSequence;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import com.nammamedmate.server.domain.StockBalance;
@@ -40,6 +43,7 @@ import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.ProductUnitConversionRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceLineRepository;
+import com.nammamedmate.server.persistence.SalesInvoicePaymentRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceSequenceRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
@@ -72,6 +76,7 @@ public class SalesInvoiceService {
 
   private final SalesInvoiceRepository salesInvoiceRepository;
   private final SalesInvoiceLineRepository salesInvoiceLineRepository;
+  private final SalesInvoicePaymentRepository salesInvoicePaymentRepository;
   private final SalesInvoiceSequenceRepository salesInvoiceSequenceRepository;
   private final ProductRepository productRepository;
   private final ProductUnitConversionRepository conversionRepository;
@@ -86,11 +91,13 @@ public class SalesInvoiceService {
   private final ApprovalRuleRepository approvalRuleRepository;
   private final ApprovalRequestRepository approvalRequestRepository;
   private final AuditService auditService;
+  private final CustomerCreditService customerCreditService;
   private final Clock clock;
 
   public SalesInvoiceService(
       SalesInvoiceRepository salesInvoiceRepository,
       SalesInvoiceLineRepository salesInvoiceLineRepository,
+      SalesInvoicePaymentRepository salesInvoicePaymentRepository,
       SalesInvoiceSequenceRepository salesInvoiceSequenceRepository,
       ProductRepository productRepository,
       ProductUnitConversionRepository conversionRepository,
@@ -105,9 +112,11 @@ public class SalesInvoiceService {
       ApprovalRuleRepository approvalRuleRepository,
       ApprovalRequestRepository approvalRequestRepository,
       AuditService auditService,
+      CustomerCreditService customerCreditService,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
+    this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
     this.salesInvoiceSequenceRepository = salesInvoiceSequenceRepository;
     this.productRepository = productRepository;
     this.conversionRepository = conversionRepository;
@@ -122,6 +131,7 @@ public class SalesInvoiceService {
     this.approvalRuleRepository = approvalRuleRepository;
     this.approvalRequestRepository = approvalRequestRepository;
     this.auditService = auditService;
+    this.customerCreditService = customerCreditService;
     this.clock = clock;
   }
 
@@ -161,6 +171,7 @@ public class SalesInvoiceService {
         salesInvoiceRepository
             .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
             .orElseThrow(SalesInvoiceService::notFound);
+    InvoicePaymentPolicy.assertDraft(invoice.getStatus());
     InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
     Instant now = clock.instant();
     applyParty(invoice, command, ctx.tenantId());
@@ -188,6 +199,7 @@ public class SalesInvoiceService {
         salesInvoiceRepository
             .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
             .orElseThrow(SalesInvoiceService::notFound);
+    InvoicePaymentPolicy.assertDraft(invoice.getStatus());
     InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
     Location branch = requireActiveBranch(ctx.tenantId(), ctx.branchId());
     TaxJurisdiction jurisdiction =
@@ -250,6 +262,7 @@ public class SalesInvoiceService {
         salesInvoiceRepository
             .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
             .orElseThrow(SalesInvoiceService::notFound);
+    InvoicePaymentPolicy.assertDraft(invoice.getStatus());
     InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
     if (command.lines() == null || command.lines().isEmpty()) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
@@ -324,6 +337,101 @@ public class SalesInvoiceService {
     Context ctx = requireReady(principal);
     SalesInvoice invoice = requireInvoice(id, ctx);
     InvoicePolicy.assertDiscountReady(invoice.getDiscountApprovalStatus());
+    return toView(invoice, linesOf(invoice));
+  }
+
+  @Transactional
+  public SalesInvoiceView complete(
+      AuthPrincipal principal, UUID id, InvoiceCompletionCommand command) {
+    Context ctx = requireReady(principal);
+    if (command == null || command.expectedVersion() == null || command.payments() == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    String key = requireIdempotencyKey(command.idempotencyKey());
+    SalesInvoice invoice =
+        salesInvoiceRepository
+            .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
+            .orElseThrow(SalesInvoiceService::notFound);
+    if (invoice.getStatus() == SalesInvoiceStatus.COMPLETED) {
+      if (key.equals(invoice.getCompleteIdempotencyKey())) {
+        return toView(invoice, linesOf(invoice));
+      }
+      throw new ApiException(
+          HttpStatus.CONFLICT,
+          InvoicePaymentPolicy.DUPLICATE_COMPLETION,
+          "This bill was already collected.");
+    }
+    InvoicePaymentPolicy.assertDraft(invoice.getStatus());
+    InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
+    InvoicePaymentPolicy.assertExpectedTotal(invoice.getTotalPaise(), command.expectedTotalPaise());
+    InvoicePolicy.assertDiscountReady(invoice.getDiscountApprovalStatus());
+    long changePaise = command.changePaise() == null ? 0L : command.changePaise();
+    List<InvoicePaymentPolicy.Part> parts = new ArrayList<>();
+    for (InvoiceCompletionCommand.Payment payment : command.payments()) {
+      if (payment == null || payment.mode() == null || payment.amountPaise() == null) {
+        throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+      }
+      parts.add(
+          new InvoicePaymentPolicy.Part(
+              payment.mode(),
+              payment.amountPaise(),
+              InvoicePaymentPolicy.optionalReference(payment.reference())));
+    }
+    InvoicePaymentPolicy.Allocation allocation =
+        InvoicePaymentPolicy.allocate(invoice.getTotalPaise(), changePaise, parts);
+    InvoicePaymentPolicy.requireKhataCustomer(allocation.amountDuePaise(), invoice.getCustomerId());
+    if (allocation.amountDuePaise() > 0L) {
+      customerCreditService.chargeForSale(
+          principal,
+          ctx.tenantId(),
+          invoice.getCustomerId(),
+          allocation.amountDuePaise(),
+          invoice.getId(),
+          "sale:" + invoice.getId());
+    }
+    Instant now = clock.instant();
+    int order = 0;
+    for (InvoicePaymentPolicy.Part part : allocation.parts()) {
+      SalesInvoicePayment row = new SalesInvoicePayment();
+      row.setId(UUID.randomUUID());
+      row.setTenantId(invoice.getTenantId());
+      row.setBranchId(invoice.getBranchId());
+      row.setSalesInvoiceId(invoice.getId());
+      row.setMode(part.mode());
+      row.setAmountPaise(part.amountPaise());
+      row.setReference(part.reference());
+      row.setSortOrder(order++);
+      row.setCreatedAt(now);
+      salesInvoicePaymentRepository.save(row);
+    }
+    invoice.setStatus(SalesInvoiceStatus.COMPLETED);
+    invoice.setAmountPaidPaise(allocation.amountPaidPaise());
+    invoice.setAmountDuePaise(allocation.amountDuePaise());
+    invoice.setChangePaise(allocation.changePaise());
+    invoice.setCompleteIdempotencyKey(key);
+    invoice.setCompletedAt(now);
+    invoice.setVersion(invoice.getVersion() + 1);
+    invoice.setUpdatedAt(now);
+    try {
+      salesInvoiceRepository.saveAndFlush(invoice);
+    } catch (DataIntegrityViolationException ex) {
+      throw new ApiException(
+          HttpStatus.CONFLICT,
+          InvoicePaymentPolicy.DUPLICATE_COMPLETION,
+          "This bill was already collected.");
+    }
+    auditService.record(
+        new AuditRecordCommand(
+            principal.userId(),
+            principal.tenantId(),
+            principal.activeBranchId(),
+            "SALES_INVOICE_COMPLETE",
+            AuditService.OUTCOME_SUCCESS,
+            null,
+            null,
+            null,
+            principal.sessionId(),
+            "{\"invoiceId\":\"" + invoice.getId() + "\"}"));
     return toView(invoice, linesOf(invoice));
   }
 
@@ -663,6 +771,12 @@ public class SalesInvoiceService {
             invoice.getId(), invoice.getTenantId(), invoice.getBranchId());
   }
 
+  private List<SalesInvoicePayment> paymentsOf(SalesInvoice invoice) {
+    return salesInvoicePaymentRepository
+        .findAllBySalesInvoiceIdAndTenantIdAndBranchIdOrderBySortOrderAsc(
+            invoice.getId(), invoice.getTenantId(), invoice.getBranchId());
+  }
+
   private SalesInvoiceView toView(SalesInvoice invoice, List<SalesInvoiceLine> lines) {
     return new SalesInvoiceView(
         invoice.getId(),
@@ -695,6 +809,16 @@ public class SalesInvoiceService {
             : invoice.getDiscountApprovalStatus(),
         invoice.getTaxAdjustmentReason(),
         invoice.isTaxAdjusted(),
+        invoice.getAmountPaidPaise(),
+        invoice.getAmountDuePaise(),
+        invoice.getChangePaise(),
+        invoice.getCompletedAt(),
+        paymentsOf(invoice).stream()
+            .map(
+                payment ->
+                    new SalesInvoiceView.PaymentView(
+                        payment.getMode(), payment.getAmountPaise(), payment.getReference()))
+            .toList(),
         lines.stream()
             .map(
                 line ->

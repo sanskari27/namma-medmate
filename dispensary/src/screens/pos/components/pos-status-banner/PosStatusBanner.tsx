@@ -4,10 +4,11 @@ interface PosStatusBannerProps {
   status: PageStatus;
   statusId: string;
   invoiceNumber?: string | null;
+  hint?: string | null;
 }
 
-export function PosStatusBanner({ status, statusId, invoiceNumber }: PosStatusBannerProps) {
-  const copy = statusCopy(status, invoiceNumber);
+export function PosStatusBanner({ status, statusId, invoiceNumber, hint }: PosStatusBannerProps) {
+  const copy = statusCopy(status, invoiceNumber, hint);
   if (!copy) {
     return <div id={statusId} className="min-h-5" aria-live="polite" />;
   }

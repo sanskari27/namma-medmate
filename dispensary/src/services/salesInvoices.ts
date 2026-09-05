@@ -4,12 +4,19 @@ import type { ProductUnit } from '@/services/products';
 
 export { ApiError, isApiError };
 
-export type SalesInvoiceStatus = 'DRAFT';
+export type SalesInvoiceStatus = 'DRAFT' | 'COMPLETED';
 
 export type DiscountType = 'NONE' | 'PERCENT' | 'FLAT';
 export type TaxJurisdiction = 'INTRA' | 'INTER';
 export type DiscountApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type GstRateSource = 'PRODUCT' | 'MANUAL';
+export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
+
+export interface SalesInvoicePayment {
+  mode: PaymentMode;
+  amountPaise: number;
+  reference: string | null;
+}
 
 export interface SalesInvoiceLine {
   id: string;
@@ -70,6 +77,11 @@ export interface SalesInvoice {
   discountApprovalStatus: DiscountApprovalStatus | null;
   taxAdjustmentReason: string | null;
   taxAdjusted: boolean;
+  amountPaidPaise: number;
+  amountDuePaise: number;
+  changePaise: number;
+  completedAt: string | null;
+  payments: SalesInvoicePayment[];
   lines: SalesInvoiceLine[];
   createdAt: string;
   updatedAt: string;
@@ -148,5 +160,21 @@ export async function adjustInvoiceTax(
 
 export async function assertInvoicePricingReady(id: string): Promise<SalesInvoice> {
   const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceAssertReady(id), {});
+  return data;
+}
+
+export interface InvoiceCompleteInput {
+  expectedVersion: number;
+  expectedTotalPaise: number;
+  changePaise: number;
+  idempotencyKey: string;
+  payments: { mode: PaymentMode; amountPaise: number; reference: string | null }[];
+}
+
+export async function completeSalesInvoice(
+  id: string,
+  input: InvoiceCompleteInput,
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceComplete(id), input);
   return data;
 }

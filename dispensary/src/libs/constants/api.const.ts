@@ -119,6 +119,7 @@ export const API = {
   salesInvoicePricing: (id: string) => `/api/v1/sales/invoices/${id}/pricing`,
   salesInvoiceTaxAdjustment: (id: string) => `/api/v1/sales/invoices/${id}/tax-adjustment`,
   salesInvoiceAssertReady: (id: string) => `/api/v1/sales/invoices/${id}/pricing/assert-ready`,
+  salesInvoiceComplete: (id: string) => `/api/v1/sales/invoices/${id}/complete`,
   userBranches: (userId: string) => `/api/v1/users/${userId}/branches`,
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
 } as const;

@@ -1,3 +1,4 @@
+import { getCustomerCredit } from '@/services/credit';
 import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers, type Customer } from '@/services/customers';
 import { listDoctors, type Doctor } from '@/services/doctors';
@@ -13,6 +14,7 @@ import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
   applyInvoicePricing,
   adjustInvoiceTax,
+  completeSalesInvoice,
   createSalesInvoice,
   updateSalesInvoice,
   type DiscountType,
@@ -24,13 +26,17 @@ import { useSelector } from 'react-redux';
 import type { PosDraftLine } from './components/pos-draft-lines';
 import {
   canDispenseControlled,
+  collectStatusHint,
+  emptyTender,
   hasSalesAccess,
   invoiceTotals,
   isControlledProduct,
   mapApiStatus,
   percentToBps,
+  previewTender,
   rupeesToPaise,
   type PageStatus,
+  type TenderDraft,
 } from './PosScreen.utils';
 
 export function usePosTill() {
@@ -38,6 +44,7 @@ export function usePosTill() {
   const allowed = hasSalesAccess(user?.modules);
   const canDispense = canDispenseControlled(user?.role, user?.roles);
   const idempotencyKey = useRef(crypto.randomUUID());
+  const completeKey = useRef(crypto.randomUUID());
 
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [customers, setCustomers] = useState<Customer[]>([]);
@@ -60,6 +67,9 @@ export function usePosTill() {
   const [taxProductId, setTaxProductId] = useState<string | null>(null);
   const [taxRate, setTaxRate] = useState('');
   const [taxReason, setTaxReason] = useState('');
+  const [tender, setTender] = useState<TenderDraft>(emptyTender);
+  const [statusHint, setStatusHint] = useState<string | null>(null);
+  const [creditAvailablePaise, setCreditAvailablePaise] = useState<number | null>(null);
 
   const productIds = draft.map((line) => line.product.id);
   const controlledDraft = draft.some((line) => isControlledProduct(line.product));
@@ -255,6 +265,7 @@ export function usePosTill() {
       const priced = await applyInvoicePricing(saved.id, pricing);
       setInvoice(priced);
       setStatus('success');
+      setStatusHint(null);
     } catch (error) {
       setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
     } finally {
@@ -431,6 +442,59 @@ export function usePosTill() {
     }
   };
 
+  const runCollect = async () => {
+    if (!invoice || invoice.status === 'COMPLETED') {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation'));
+      return;
+    }
+    const preview = previewTender(invoice.totalPaise, tender);
+    if (preview.invalid || preview.parts.length === 0) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation'));
+      return;
+    }
+    if (preview.remainingPaise > 0) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation'));
+      return;
+    }
+    const cashPaise = preview.parts.find((part) => part.mode === 'CASH')?.amountPaise ?? 0;
+    if (preview.changePaise > cashPaise) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation'));
+      return;
+    }
+    if (tender.creditRupees.trim() && (walkIn || !selectedCustomer)) {
+      setStatus('validation');
+      setStatusHint(collectStatusHint('validation', 'KHATA_REQUIRES_CUSTOMER'));
+      return;
+    }
+    setBusy(true);
+    try {
+      const collected = await completeSalesInvoice(invoice.id, {
+        expectedVersion: invoice.version,
+        expectedTotalPaise: invoice.totalPaise,
+        changePaise: preview.changePaise,
+        idempotencyKey: completeKey.current,
+        payments: preview.parts,
+      });
+      setInvoice(collected);
+      setStatus('success');
+      setStatusHint(`Bill ${collected.invoiceNumber} collected at this till.`);
+      window.setTimeout(() => document.getElementById('pos-product-search')?.focus(), 0);
+    } catch (error) {
+      const next = isApiError(error) ? mapApiStatus(error) : 'failure';
+      setStatus(next);
+      setStatusHint(
+        collectStatusHint(next, isApiError(error) ? error.code : null) ??
+          (next === 'failure' ? collectStatusHint('failure') : null),
+      );
+    } finally {
+      setBusy(false);
+    }
+  };
+
   const totals = invoiceTotals(
     invoice,
     draft.map((line) => ({
@@ -476,21 +540,36 @@ export function usePosTill() {
     taxProductName:
       draft.find((line) => line.product.id === taxProductId)?.product.name ?? 'this medicine',
     showReason: Boolean(evaluation && evaluation.warnings.length > 0),
+    statusHint,
+    tender,
+    tenderPreview: previewTender(invoice?.totalPaise ?? totals.totalPaise, tender),
+    creditAvailablePaise,
+    collected: invoice?.status === 'COMPLETED',
+    setTender: (patch: Partial<TenderDraft>) => {
+      setTender((current) => ({ ...current, ...patch }));
+    },
     selectCustomer: (customer: Customer) => {
       setSelectedCustomer(customer);
       setWalkIn(false);
       setEvaluation(null);
       setStatus(null);
+      setStatusHint(null);
+      void getCustomerCredit(customer.id)
+        .then((credit) => setCreditAvailablePaise(credit.availablePaise))
+        .catch(() => setCreditAvailablePaise(null));
     },
     clearCustomer: () => {
       setSelectedCustomer(null);
       setWalkIn(false);
       setEvaluation(null);
+      setCreditAvailablePaise(null);
     },
     skipWalkIn: () => {
       setSelectedCustomer(null);
       setWalkIn(true);
       setEvaluation(null);
+      setCreditAvailablePaise(null);
+      setTender((current) => ({ ...current, creditRupees: '' }));
       setStatus(null);
       window.setTimeout(() => document.getElementById('pos-product-search')?.focus(), 0);
     },
@@ -554,5 +633,6 @@ export function usePosTill() {
     runTaxAdjust: () => void runTaxAdjust(),
     runEvaluate: () => void runEvaluate(),
     runComplete: () => void runComplete(),
+    runCollect: () => void runCollect(),
   };
 }
