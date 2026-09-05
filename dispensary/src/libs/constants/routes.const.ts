@@ -7,6 +7,7 @@ export const ROUTES = {
   DASHBOARD: '/',
   ORDERS: '/orders',
   SALES: '/pos',
+  RETURNS: '/returns',
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
   CREDIT: '/credit',
@@ -70,6 +71,7 @@ export const NAV_SECTIONS = [
         badge: { count: 1, label: '1 held bill' },
       },
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
+      { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
       {
         label: 'Prescriptions',
         path: ROUTES.PRESCRIPTIONS,
@@ -153,6 +155,7 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.CREDIT &&
     item.path !== ROUTES.INVENTORY &&
     item.path !== ROUTES.SALES &&
+    item.path !== ROUTES.RETURNS &&
     item.path !== ROUTES.DISTRIBUTORS &&
     item.path !== ROUTES.PURCHASES &&
     item.path !== ROUTES.OFFERS,

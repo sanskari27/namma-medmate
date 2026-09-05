@@ -217,6 +217,43 @@ public class CustomerCreditService {
   }
 
   @Transactional
+  public CustomerCreditView postCreditNote(
+      AuthPrincipal principal,
+      UUID tenantId,
+      UUID customerId,
+      long amountPaise,
+      UUID invoiceId,
+      String idempotencyKey) {
+    requireCustomer(customerId, tenantId);
+    if (amountPaise <= 0) {
+      throw validationError();
+    }
+    String normalizedKey = requireIdempotencyKey(idempotencyKey);
+    CustomerCreditView replay = replayIfPresent(tenantId, customerId, normalizedKey, amountPaise);
+    if (replay != null) {
+      return replay;
+    }
+    Instant now = clock.instant();
+    CustomerCreditAccount account = lockOrCreate(tenantId, customerId, now);
+    account.setBalancePaise(account.getBalancePaise() - amountPaise);
+    account.setVersion(account.getVersion() + 1);
+    account.setUpdatedAt(now);
+    accountRepository.save(account);
+    appendLedger(
+        account,
+        CustomerCreditLedgerType.CREDIT_NOTE,
+        amountPaise,
+        account.getBalancePaise(),
+        invoiceId,
+        null,
+        null,
+        normalizedKey,
+        principal.userId(),
+        now);
+    return toView(account, ledgerEntries(tenantId, customerId));
+  }
+
+  @Transactional
   public CustomerCreditView settle(
       AuthPrincipal principal,
       UUID customerId,
