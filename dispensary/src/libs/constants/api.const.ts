@@ -58,6 +58,8 @@ export const API = {
   COMPLIANCE_CONTROLLED_STOCK: '/api/v1/compliance/controlled-stock',
   COMPLIANCE_CONTROLLED_STOCK_VERIFY: '/api/v1/compliance/controlled-stock/verify',
   COMPLIANCE_CONTROLLED_STOCK_EXPORT: '/api/v1/compliance/controlled-stock/export',
+  COMPLIANCE_CONTROLLED_REGISTER: '/api/v1/compliance/controlled-register',
+  COMPLIANCE_CONTROLLED_REGISTER_EXPORT: '/api/v1/compliance/controlled-register/export',
   SUPPLIERS: '/api/v1/suppliers',
   SUPPLIER_DUES: '/api/v1/suppliers/dues',
   PURCHASE_RETURNS: '/api/v1/purchase-returns',

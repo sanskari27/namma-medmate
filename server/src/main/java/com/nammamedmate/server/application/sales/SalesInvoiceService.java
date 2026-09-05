@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.approval.ApprovalService;
 import com.nammamedmate.server.application.approval.CreateApprovalRequestCommand;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.compliance.ControlledSaleRecorder;
 import com.nammamedmate.server.application.customercredit.CustomerCreditService;
 import com.nammamedmate.server.application.customerhistory.CustomerHistoryService;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
@@ -113,6 +114,7 @@ public class SalesInvoiceService {
   private final CustomerHistoryService customerHistoryService;
   private final OfferEvaluator offerEvaluator;
   private final InvoiceComplianceSnapshotter invoiceComplianceSnapshotter;
+  private final ControlledSaleRecorder controlledSaleRecorder;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -140,6 +142,7 @@ public class SalesInvoiceService {
       CustomerHistoryService customerHistoryService,
       OfferEvaluator offerEvaluator,
       InvoiceComplianceSnapshotter invoiceComplianceSnapshotter,
+      ControlledSaleRecorder controlledSaleRecorder,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -165,6 +168,7 @@ public class SalesInvoiceService {
     this.customerHistoryService = customerHistoryService;
     this.offerEvaluator = offerEvaluator;
     this.invoiceComplianceSnapshotter = invoiceComplianceSnapshotter;
+    this.controlledSaleRecorder = controlledSaleRecorder;
     this.clock = clock;
   }
 
@@ -632,6 +636,7 @@ public class SalesInvoiceService {
     invoice.setCompleteIdempotencyKey(key);
     invoice.setCompletedAt(now);
     invoiceComplianceSnapshotter.apply(invoice, lines);
+    controlledSaleRecorder.recordCompletedInvoice(invoice, lines);
     invoice.setVersion(invoice.getVersion() + 1);
     invoice.setUpdatedAt(now);
     try {
