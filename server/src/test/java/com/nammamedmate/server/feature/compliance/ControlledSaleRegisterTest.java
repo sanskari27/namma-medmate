@@ -319,6 +319,37 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items", hasSize(0)));
 
+    Location annex = persistBranch(fx.tenantId(), "Annex", "BR2", false);
+    mockMvc
+        .perform(
+            get("/api/v1/compliance/controlled-register")
+                .cookie(fx.cookie())
+                .param("branchId", annex.getId().toString()))
+        .andExpect(status().isNotFound());
+    mockMvc
+        .perform(
+            get("/api/v1/compliance/controlled-register/export")
+                .cookie(fx.cookie())
+                .param("branchId", annex.getId().toString())
+                .param("format", "csv"))
+        .andExpect(status().isNotFound());
+    selectBranch(fx.cookie(), annex.getId());
+    mockMvc
+        .perform(get("/api/v1/compliance/controlled-register").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items", hasSize(0)));
+    mockMvc
+        .perform(
+            get("/api/v1/compliance/controlled-register/export")
+                .cookie(fx.cookie())
+                .param("format", "csv"))
+        .andExpect(status().isOk())
+        .andExpect(
+            content()
+                .string(
+                    org.hamcrest.Matchers.not(
+                        org.hamcrest.Matchers.containsString("Safe Patient"))));
+
     AppUser stray =
         persistUser(fx.tenantId(), "nobranch@csr-ac05b.local", AppUserRole.pharmacy_owner, "Stray");
     Cookie noBranch = login(stray.getEmail());
@@ -567,7 +598,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     AppUser owner =
         persistUser(
             tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner, ownerName);
-    Location branch = persistBranch(tenant.getId());
+    Location branch = persistBranch(tenant.getId(), "Main", "BR01", true);
     Cookie cookie = login(owner.getEmail());
     mockMvc
         .perform(
@@ -579,18 +610,28 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     return new Fixture(tenant.getId(), branch.getId(), owner.getId(), cookie);
   }
 
-  private Location persistBranch(UUID tenantId) {
+  private void selectBranch(Cookie cookie, UUID branchId) throws Exception {
+    mockMvc
+        .perform(
+            post("/api/v1/session/branch")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"branchId\":\"" + branchId + "\"}"))
+        .andExpect(status().isOk());
+  }
+
+  private Location persistBranch(UUID tenantId, String name, String code, boolean defaultBranch) {
     Location branch = new Location();
     branch.setId(UUID.randomUUID());
     branch.setTenantId(tenantId);
-    branch.setName("Main");
-    branch.setBranchCode("BR01");
+    branch.setName(name);
+    branch.setBranchCode(code);
     branch.setAddressLine("12 MG Road");
     branch.setCity("Bengaluru");
     branch.setState("KA");
     branch.setPincode("560001");
     branch.setContactPhone("9876543210");
-    branch.setDrugLicenseNumber("DL-BR01");
+    branch.setDrugLicenseNumber("DL-" + code);
     branch.setGstin("29ABCDE1234F1Z5");
     Map<String, Object> hours = new LinkedHashMap<>();
     Map<String, Object> mon = new LinkedHashMap<>();
@@ -601,7 +642,7 @@ class ControlledSaleRegisterTest extends AbstractIntegrationTest {
     branch.setBranchType(BranchType.RETAIL);
     branch.setStatus(BranchStatus.ACTIVE);
     branch.setOpeningDate(LocalDate.of(2026, 9, 1));
-    branch.setDefaultBranch(true);
+    branch.setDefaultBranch(defaultBranch);
     branch.setLinkedWarehouse(false);
     branch.setPricingSettings(Map.of("defaultMarkupBps", 0));
     branch.setTaxSettings(Map.of("gstMode", "CGST_SGST", "taxState", "KA"));
