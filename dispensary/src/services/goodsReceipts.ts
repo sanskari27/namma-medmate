@@ -50,6 +50,8 @@ export type GoodsReceiptDetail = {
   checkedByUserId: string | null;
   visualInspectionPassed: boolean | null;
   checklist: GoodsReceiptQcChecklist | null;
+  purchaseReturnId: string | null;
+  debitNoteNumber: string | null;
   lines: GoodsReceiptQcLine[];
 };
 

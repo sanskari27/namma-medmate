@@ -111,6 +111,8 @@ public class GoodsReceiptController {
                 view.checklist().labelMatches(),
                 view.checklist().batchReadable(),
                 view.checklist().noDamage()),
+        view.purchaseReturnId(),
+        view.debitNoteNumber(),
         view.lines().stream()
             .map(
                 line ->
@@ -173,6 +175,8 @@ public class GoodsReceiptController {
       UUID checkedByUserId,
       Boolean visualInspectionPassed,
       ChecklistResponse checklist,
+      UUID purchaseReturnId,
+      String debitNoteNumber,
       List<QualityCheckLineResponse> lines) {}
 
   public record ChecklistRequest(

@@ -375,6 +375,90 @@ public class InventoryStockService {
     return loadBalanceView(ctx, balance.getId());
   }
 
+  @Transactional
+  public StockBalanceView returnToSupplier(
+      AuthPrincipal principal,
+      UUID productId,
+      UUID batchId,
+      BigDecimal quantity,
+      String idempotencyKey,
+      Long expectedVersion) {
+    Context ctx = requireReadyForReturn(principal);
+    Product product = requireProduct(productId, ctx.tenantId());
+    BigDecimal qty = requirePositiveQuantity(quantity, product.getQuantityPrecision());
+    String key = requireIdempotencyKey(idempotencyKey);
+
+    Optional<StockMovement> existing =
+        stockMovementRepository.findByTenantIdAndIdempotencyKey(ctx.tenantId(), key);
+    if (existing.isPresent()) {
+      StockMovement prior = existing.get();
+      assertIdempotentPurchaseReturn(prior, productId, batchId, qty);
+      return loadBalanceView(ctx, prior.getBalanceId());
+    }
+
+    if (product.isRequiresBatchTracking()) {
+      if (batchId == null) {
+        throw validationError();
+      }
+      stockBatchRepository
+          .findByIdAndTenantId(batchId, ctx.tenantId())
+          .filter(b -> b.getProductId().equals(productId))
+          .orElseThrow(
+              () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch was not found"));
+    } else if (batchId != null) {
+      throw validationError();
+    }
+
+    StockBalance balance =
+        lockBalance(ctx, productId, batchId)
+            .orElseThrow(
+                () ->
+                    new ApiException(
+                        HttpStatus.UNPROCESSABLE_ENTITY,
+                        "INSUFFICIENT_STOCK",
+                        "Not enough stock for this return."));
+    if (expectedVersion != null) {
+      assertExpectedVersion(balance, expectedVersion);
+    }
+    if (balance.getQuantity().compareTo(qty) < 0) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          "INSUFFICIENT_STOCK",
+          "Not enough stock for this return.");
+    }
+
+    Instant now = clock.instant();
+    BigDecimal next = balance.getQuantity().subtract(qty);
+    balance.setQuantity(next);
+    balance.setVersion(balance.getVersion() + 1);
+    balance.setUpdatedAt(now);
+    stockBalanceRepository.saveAndFlush(balance);
+
+    Long price =
+        batchId == null
+            ? null
+            : stockBatchRepository
+                .findByIdAndTenantId(batchId, ctx.tenantId())
+                .map(StockBatch::getPurchasePricePaise)
+                .orElse(null);
+    StockMovement movement =
+        newMovement(
+            ctx,
+            productId,
+            batchId,
+            balance.getId(),
+            StockMovementType.PURCHASE_RETURN,
+            qty,
+            next,
+            price,
+            key,
+            now);
+    stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
+    maybeNotifyLowStock(ctx, product);
+    return loadBalanceView(ctx, balance.getId());
+  }
+
   private UUID resolveBatchForReceipt(
       Context ctx,
       Product product,
@@ -505,6 +589,16 @@ public class InventoryStockService {
   private void assertIdempotentIssue(
       StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
     if (prior.getType() != StockMovementType.STOCK_OUT
+        || !prior.getProductId().equals(productId)
+        || prior.getQuantity().compareTo(qty) != 0
+        || !Objects.equals(prior.getBatchId(), batchId)) {
+      throw idempotencyConflict();
+    }
+  }
+
+  private void assertIdempotentPurchaseReturn(
+      StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
+    if (prior.getType() != StockMovementType.PURCHASE_RETURN
         || !prior.getProductId().equals(productId)
         || prior.getQuantity().compareTo(qty) != 0
         || !Objects.equals(prior.getBatchId(), batchId)) {
@@ -960,6 +1054,17 @@ public class InventoryStockService {
 
   private Context requireReady(AuthPrincipal principal) {
     UUID tenantId = requireModuleAccess(principal, Set.of(ModuleCode.INVENTORY));
+    UUID branchId = principal.activeBranchId();
+    if (branchId == null) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
+    }
+    return new Context(tenantId, branchId, principal.userId());
+  }
+
+  private Context requireReadyForReturn(AuthPrincipal principal) {
+    UUID tenantId =
+        requireModuleAccess(
+            principal, Set.of(ModuleCode.INVENTORY, ModuleCode.PROCUREMENT, ModuleCode.FINANCE));
     UUID branchId = principal.activeBranchId();
     if (branchId == null) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);

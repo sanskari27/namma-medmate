@@ -14,7 +14,8 @@ export type InventoryStatusBannerProps = {
     | 'guidance'
     | 'stocktake'
     | 'controlled'
-    | 'qc';
+    | 'qc'
+    | 'returns';
 };
 
 export function InventoryStatusBanner({

@@ -1,19 +1,21 @@
 import { AlertCircle } from 'lucide-react';
-import type { PageStatus } from '../../DistributorsScreen.utils';
+import type { BannerSurface, PageStatus } from '../../DistributorsScreen.utils';
 import { statusCopy, statusIconClass } from '../../DistributorsScreen.utils';
 
 export type DistributorsStatusBannerProps = {
   status: PageStatus;
   statusId: string;
   asAlert?: boolean;
+  surface?: BannerSurface;
 };
 
 export function DistributorsStatusBanner({
   status,
   statusId,
   asAlert = false,
+  surface = 'book',
 }: DistributorsStatusBannerProps) {
-  const banner = statusCopy(status);
+  const banner = statusCopy(status, surface);
   if (!banner) {
     return null;
   }

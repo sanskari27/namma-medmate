@@ -4,6 +4,8 @@ import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
+import com.nammamedmate.server.application.purchasereturn.PurchaseReturnService;
+import com.nammamedmate.server.application.purchasereturn.PurchaseReturnView;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.GoodsReceipt;
@@ -53,6 +55,7 @@ public class QualityCheckService {
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final InventoryStockService inventoryStockService;
+  private final PurchaseReturnService purchaseReturnService;
   private final AuditService auditService;
   private final Clock clock;
 
@@ -65,6 +68,7 @@ public class QualityCheckService {
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       InventoryStockService inventoryStockService,
+      PurchaseReturnService purchaseReturnService,
       AuditService auditService,
       Clock clock) {
     this.goodsReceiptRepository = goodsReceiptRepository;
@@ -75,6 +79,7 @@ public class QualityCheckService {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.inventoryStockService = inventoryStockService;
+    this.purchaseReturnService = purchaseReturnService;
     this.auditService = auditService;
     this.clock = clock;
   }
@@ -231,6 +236,7 @@ public class QualityCheckService {
       throw ex;
     }
     audit(principal, receipt.getId());
+    purchaseReturnService.recordFromQualityCheck(principal, receipt, lines);
     return toView(receipt, lines);
   }
 
@@ -315,6 +321,9 @@ public class QualityCheckService {
                 receipt.getBatchReadable(),
                 receipt.getNoDamage())
             : null;
+    var qcReturn =
+        purchaseReturnService.findQcReturn(
+            receipt.getTenantId(), receipt.getBranchId(), receipt.getId());
     return new QualityCheckView(
         receipt.getId(),
         receipt.getReceiptNumber(),
@@ -326,6 +335,8 @@ public class QualityCheckService {
         receipt.getCheckedByUserId(),
         receipt.getVisualInspectionPassed(),
         checklist,
+        qcReturn.map(PurchaseReturnView::id).orElse(null),
+        qcReturn.map(PurchaseReturnView::debitNoteNumber).orElse(null),
         lines.stream()
             .map(
                 line ->

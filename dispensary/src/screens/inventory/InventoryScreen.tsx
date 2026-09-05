@@ -12,6 +12,7 @@ import {
 } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
 import { QualityCheckWorkspace } from './components/quality-check-workspace';
+import { PurchaseReturnWorkspace } from './components/purchase-return-workspace';
 import { StockTakeWorkspace } from './components/stock-take-workspace/StockTakeWorkspace';
 import { TransferWorkspace } from './components/transfer-workspace/TransferWorkspace';
 import { hasInventoryAccess, type PageStatus } from './InventoryScreen.utils';
@@ -27,6 +28,7 @@ export default function InventoryScreen() {
   const transferRef = useRef<HTMLButtonElement | null>(null);
   const adjustRef = useRef<HTMLButtonElement | null>(null);
   const stockTakeRef = useRef<HTMLButtonElement | null>(null);
+  const returnRef = useRef<HTMLButtonElement | null>(null);
 
   const [view, setView] = useState<InventoryViewMode>('floor');
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
@@ -34,6 +36,7 @@ export default function InventoryScreen() {
   const [transferOpen, setTransferOpen] = useState(false);
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [stockTakeOpen, setStockTakeOpen] = useState(false);
+  const [returnOpen, setReturnOpen] = useState(false);
   const [transferPrefillProductId, setTransferPrefillProductId] = useState<string | null>(null);
   const [createRequest, setCreateRequest] = useState(0);
 
@@ -54,6 +57,7 @@ export default function InventoryScreen() {
           setTransferOpen(false);
           setAdjustOpen(false);
           setStockTakeOpen(false);
+          setReturnOpen(false);
           setTransferPrefillProductId(null);
           setStatus(allowed ? 'loading' : 'denied');
         }}
@@ -62,6 +66,7 @@ export default function InventoryScreen() {
         transferButtonRef={transferRef}
         adjustButtonRef={adjustRef}
         stockTakeButtonRef={stockTakeRef}
+        returnButtonRef={returnRef}
         denied={denied}
         canStartCount={user?.role === 'pharmacy_owner'}
         onAdd={() => setCreateRequest((n) => n + 1)}
@@ -72,6 +77,7 @@ export default function InventoryScreen() {
         }}
         onAdjust={() => setAdjustOpen(true)}
         onStartCount={() => setStockTakeOpen(true)}
+        onSendBack={() => setReturnOpen(true)}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -161,6 +167,16 @@ export default function InventoryScreen() {
         <QualityCheckWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
+          onStatusChange={onStatusChange}
+        />
+      ) : null}
+      {!denied && view === 'returns' ? (
+        <PurchaseReturnWorkspace
+          allowed={allowed}
+          activeBranchId={activeBranchId}
+          createOpen={returnOpen}
+          onCreateOpenChange={setReturnOpen}
+          createButtonRef={returnRef}
           onStatusChange={onStatusChange}
         />
       ) : null}

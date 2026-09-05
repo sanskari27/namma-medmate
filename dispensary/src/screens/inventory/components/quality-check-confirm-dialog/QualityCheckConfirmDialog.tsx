@@ -34,8 +34,8 @@ export function QualityCheckConfirmDialog({
       <DialogContent className="max-w-md">
         <DialogTitle>Accept onto floor?</DialogTitle>
         <DialogDescription>
-          Accepted packs become sellable stock. Rejected packs stay off the shelf — no return is
-          raised from this screen.
+          Accepted packs become sellable stock. Rejected packs stay off the shelf and raise a debit
+          note on the stockist khata.
         </DialogDescription>
         <div className="mt-4 flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" onClick={close}>

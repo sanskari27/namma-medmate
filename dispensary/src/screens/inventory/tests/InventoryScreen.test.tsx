@@ -135,6 +135,17 @@ vi.mock('@/services/goodsReceipts', async () => {
   };
 });
 
+vi.mock('@/services/purchaseReturns', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listPurchaseReturns: vi.fn(),
+    getPurchaseReturn: vi.fn(),
+    createPurchaseReturn: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { createProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
@@ -177,6 +188,7 @@ import type { StockTake } from '@/services/stockTakes';
 import { downloadControlledStockExport, listControlledStock } from '@/services/controlledStock';
 import type { ControlledStockLine } from '@/services/controlledStock';
 import { listBranchGoodsReceipts } from '@/services/goodsReceipts';
+import { listPurchaseReturns } from '@/services/purchaseReturns';
 
 const listMock = vi.mocked(listProducts);
 const createMock = vi.mocked(createProduct);
@@ -214,6 +226,7 @@ const cancelStockTakeMock = vi.mocked(cancelStockTake);
 const listControlledStockMock = vi.mocked(listControlledStock);
 const downloadControlledExportMock = vi.mocked(downloadControlledStockExport);
 const listGoodsReceiptsMock = vi.mocked(listBranchGoodsReceipts);
+const listPurchaseReturnsMock = vi.mocked(listPurchaseReturns);
 
 const category: ProductCategory = {
   id: 'cat1',
@@ -1724,5 +1737,23 @@ describe('quality check tab', () => {
     expect(
       await screen.findByText('No deliveries waiting for a pharmacist check.'),
     ).toBeInTheDocument();
+  });
+});
+
+describe('returns tab', () => {
+  it('offers a Returns tab and Send back on the floor inventory screen', async () => {
+    listPurchaseReturnsMock.mockResolvedValue([]);
+    listBalancesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    renderPage();
+    const user = userEvent.setup({ delay: null });
+    await user.click(screen.getByRole('tab', { name: 'Returns' }));
+    expect(
+      await screen.findByText(
+        'No debit notes yet. Send a pack back, or reject qty at Quality check.',
+      ),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument();
+    expect(screen.getByText('Send back to stockist')).toBeInTheDocument();
   });
 });

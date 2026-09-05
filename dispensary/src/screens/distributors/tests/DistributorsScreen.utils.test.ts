@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canSeeSupplierDues,
   hasSupplierAccess,
   licenseStatusCopy,
   toInput,
@@ -12,6 +13,12 @@ describe('distributors helpers', () => {
     expect(hasSupplierAccess(['PROCUREMENT'])).toBe(true);
     expect(hasSupplierAccess(['FINANCE'])).toBe(true);
     expect(hasSupplierAccess(['SALES'])).toBe(false);
+  });
+
+  it('shows due reminders on Growth and Pro', () => {
+    expect(canSeeSupplierDues('STARTER')).toBe(false);
+    expect(canSeeSupplierDues('GROWTH')).toBe(true);
+    expect(canSeeSupplierDues('PRO')).toBe(true);
   });
 
   it('explains license status in counter copy', () => {

@@ -167,7 +167,8 @@ export function statusCopy(
     | 'guidance'
     | 'stocktake'
     | 'controlled'
-    | 'qc' = 'catalogue',
+    | 'qc'
+    | 'returns' = 'catalogue',
 ): { icon: typeof AlertCircle; text: string } | null {
   if (view === 'floor') {
     switch (status) {
@@ -380,6 +381,44 @@ export function statusCopy(
         return {
           icon: BadgeCheck,
           text: 'Accepted onto the floor. Rejected packs stay off the shelf.',
+        };
+      default:
+        return null;
+    }
+  }
+  if (view === 'returns') {
+    switch (status) {
+      case 'loading':
+        return { icon: Package, text: 'Loading debit notes for this outlet…' };
+      case 'empty':
+        return {
+          icon: Package,
+          text: 'No debit notes yet. Send a pack back, or reject qty at Quality check.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Cannot return more than remaining accepted qty on this delivery.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till cannot send packs back. Ask the owner for Purchases or Accounts.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'Stockist balance changed. Close and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Pick an outlet in the sidebar, or retry if the server could not be reached.',
+        };
+      case 'success':
+        return {
+          icon: BadgeCheck,
+          text: 'Debit note confirmed. Floor stock is down and the khata is updated.',
         };
       default:
         return null;

@@ -121,3 +121,58 @@ export async function updateSupplier(id: string, input: SupplierInput): Promise<
   const { data } = await apiClient.patch<Supplier>(API.supplier(id), input);
   return data;
 }
+
+export type SupplierLedgerEntry = {
+  id: string;
+  type: 'INVOICE' | 'DEBIT_NOTE' | 'PAYMENT';
+  amountPaise: number;
+  balanceAfterPaise: number;
+  goodsReceiptId: string | null;
+  purchaseReturnId: string | null;
+  paymentMode: string | null;
+  paymentReference: string | null;
+  dueOn: string | null;
+  occurredAt: string;
+};
+
+export type SupplierLedger = {
+  supplierId: string;
+  supplierLegalName: string;
+  balancePaise: number;
+  version: number;
+  entries: SupplierLedgerEntry[];
+};
+
+export type SupplierDueItem = {
+  supplierId: string;
+  legalName: string;
+  balancePaise: number;
+  dueOn: string;
+  overdue: boolean;
+};
+
+export type RecordSupplierPaymentInput = {
+  amountPaise: number;
+  mode: string;
+  reference: string;
+  idempotencyKey: string;
+  expectedAccountVersion: number;
+};
+
+export async function getSupplierLedger(id: string): Promise<SupplierLedger> {
+  const { data } = await apiClient.get<SupplierLedger>(API.supplierLedger(id));
+  return data;
+}
+
+export async function recordSupplierPayment(
+  id: string,
+  input: RecordSupplierPaymentInput,
+): Promise<SupplierLedger> {
+  const { data } = await apiClient.post<SupplierLedger>(API.supplierPayments(id), input);
+  return data;
+}
+
+export async function listSupplierDues(): Promise<SupplierDueItem[]> {
+  const { data } = await apiClient.get<{ items: SupplierDueItem[] }>(API.SUPPLIER_DUES);
+  return data.items;
+}

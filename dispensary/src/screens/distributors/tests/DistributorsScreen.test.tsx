@@ -3,7 +3,7 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import DistributorsScreen from '@/screens/distributors/DistributorsScreen';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
@@ -16,6 +16,9 @@ vi.mock('@/services/suppliers', async () => {
     getSupplier: vi.fn(),
     createSupplier: vi.fn(),
     updateSupplier: vi.fn(),
+    getSupplierLedger: vi.fn(),
+    recordSupplierPayment: vi.fn(),
+    listSupplierDues: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -31,13 +34,32 @@ vi.mock('@/services/productCategories', async () => {
   };
 });
 
-import { createSupplier, listSuppliers, updateSupplier } from '@/services/suppliers';
+vi.mock('@/services/subscriptions', () => ({
+  getCurrentSubscription: vi.fn(),
+  getCatalogue: vi.fn(),
+  upgradePlan: vi.fn(),
+}));
+
+import {
+  createSupplier,
+  getSupplierLedger,
+  listSupplierDues,
+  listSuppliers,
+  recordSupplierPayment,
+  updateSupplier,
+  type SupplierLedger,
+} from '@/services/suppliers';
 import { listProductCategories } from '@/services/productCategories';
+import { getCurrentSubscription } from '@/services/subscriptions';
 
 const listMock = vi.mocked(listSuppliers);
 const createMock = vi.mocked(createSupplier);
 const updateMock = vi.mocked(updateSupplier);
 const categoriesMock = vi.mocked(listProductCategories);
+const ledgerMock = vi.mocked(getSupplierLedger);
+const payMock = vi.mocked(recordSupplierPayment);
+const duesMock = vi.mocked(listSupplierDues);
+const subscriptionMock = vi.mocked(getCurrentSubscription);
 
 const sample: Supplier = {
   id: 's1',
@@ -84,6 +106,72 @@ const sample: Supplier = {
     purchaseOrders: [],
   },
 };
+
+const emptyLedger: SupplierLedger = {
+  supplierId: 's1',
+  supplierLegalName: 'Acme Pharma Pvt Ltd',
+  balancePaise: 15000,
+  version: 2,
+  entries: [],
+};
+
+const filledLedger: SupplierLedger = {
+  ...emptyLedger,
+  entries: [
+    {
+      id: 'e1',
+      type: 'INVOICE',
+      amountPaise: 60000,
+      balanceAfterPaise: 60000,
+      goodsReceiptId: 'grn1',
+      purchaseReturnId: null,
+      paymentMode: null,
+      paymentReference: null,
+      dueOn: '2026-09-12',
+      occurredAt: '2026-09-05T04:30:00Z',
+    },
+    {
+      id: 'e2',
+      type: 'DEBIT_NOTE',
+      amountPaise: 40000,
+      balanceAfterPaise: 20000,
+      goodsReceiptId: 'grn1',
+      purchaseReturnId: 'pr1',
+      paymentMode: null,
+      paymentReference: null,
+      dueOn: null,
+      occurredAt: '2026-09-05T04:31:00Z',
+    },
+    {
+      id: 'e3',
+      type: 'PAYMENT',
+      amountPaise: 5000,
+      balanceAfterPaise: 15000,
+      goodsReceiptId: null,
+      purchaseReturnId: null,
+      paymentMode: 'UPI',
+      paymentReference: 'UPI-AC04',
+      dueOn: null,
+      occurredAt: '2026-09-05T05:00:00Z',
+    },
+  ],
+};
+
+const starterSub = {
+  tenantId: 't1',
+  planCode: 'STARTER',
+  status: 'ACTIVE',
+  startedAt: '2026-01-01T00:00:00Z',
+  expiresAt: null,
+  branchLimitOverride: null,
+  effectiveBranchLimit: 1,
+  maxUsers: 5,
+  usersUsed: 1,
+  branchesUsed: 1,
+  entitledModules: ['INVENTORY', 'PROCUREMENT', 'FINANCE'],
+};
+
+const growthSub = { ...starterSub, planCode: 'GROWTH' };
 
 function renderPage(modules: string[] = ['PROCUREMENT', 'INVENTORY']) {
   const store = configureStore({
@@ -133,7 +221,14 @@ describe('floor supplier book', () => {
     createMock.mockReset();
     updateMock.mockReset();
     categoriesMock.mockReset();
+    ledgerMock.mockReset();
+    payMock.mockReset();
+    duesMock.mockReset();
+    subscriptionMock.mockReset();
     categoriesMock.mockResolvedValue([]);
+    ledgerMock.mockResolvedValue(emptyLedger);
+    subscriptionMock.mockResolvedValue(starterSub);
+    duesMock.mockResolvedValue([]);
   });
 
   it('loading: waits for suppliers', () => {
@@ -255,5 +350,168 @@ describe('floor supplier book', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'That code or GSTIN is already on this pharmacy',
     );
+  });
+});
+
+describe('stockist khata', () => {
+  beforeEach(() => {
+    listMock.mockReset();
+    createMock.mockReset();
+    updateMock.mockReset();
+    categoriesMock.mockReset();
+    ledgerMock.mockReset();
+    payMock.mockReset();
+    duesMock.mockReset();
+    subscriptionMock.mockReset();
+    categoriesMock.mockResolvedValue([]);
+    listMock.mockResolvedValue([sample]);
+    ledgerMock.mockResolvedValue(emptyLedger);
+    subscriptionMock.mockResolvedValue(starterSub);
+    duesMock.mockResolvedValue([]);
+    vi.stubGlobal('crypto', { ...crypto, randomUUID: () => 'pay-key-1' });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
+  });
+
+  it('loading: waits for the stockist khata', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockReturnValue(new Promise(() => undefined));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    expect(await screen.findByText('Loading stockist khata…')).toBeInTheDocument();
+  });
+
+  it('empty: no khata lines yet', async () => {
+    const user = userEvent.setup({ delay: null });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    expect(
+      await screen.findByText('No khata lines yet for this stockist on this outlet.'),
+    ).toBeInTheDocument();
+    expect(screen.queryByLabelText('Due this week')).not.toBeInTheDocument();
+  });
+
+  it('validation: payment needs amount, mode, and reference', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockResolvedValue(filledLedger);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    await screen.findByRole('heading', { name: 'Stockist khata' });
+    await user.click(screen.getByRole('button', { name: 'Record payment' }));
+    await user.click(screen.getByRole('button', { name: 'Post payment' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Enter amount, mode, and a payment reference. Overpayment is not booked.',
+    );
+    expect(payMock).not.toHaveBeenCalled();
+  });
+
+  it('denied: ledger forbidden', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    expect(
+      await screen.findByText(
+        'This till cannot open the stockist khata. Ask the owner for Purchases or Accounts.',
+      ),
+    ).toBeInTheDocument();
+  });
+
+  it('conflict: duplicate payment reference', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockResolvedValue(filledLedger);
+    payMock.mockRejectedValue(new ApiError('Duplicate', 409, 'DUPLICATE_REFERENCE'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    await screen.findByRole('heading', { name: 'Stockist khata' });
+    await user.click(screen.getByRole('button', { name: 'Record payment' }));
+    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '50' } });
+    fireEvent.change(screen.getByLabelText('Reference'), { target: { value: 'UPI-DUP' } });
+    await user.click(screen.getByRole('button', { name: 'Post payment' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This payment reference is already on the khata, or the balance changed. Refresh and try again.',
+    );
+  });
+
+  it('failure: ledger network error', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockRejectedValue(new ApiError('Could not reach the server', 0, 'NETWORK'));
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    expect(
+      await screen.findByText('Could not reach the server for the stockist khata. Try again.'),
+    ).toBeInTheDocument();
+  });
+
+  it('success: records payment and shows invoice, debit note, and due date', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockResolvedValue(filledLedger);
+    payMock.mockResolvedValue({
+      ...filledLedger,
+      balancePaise: 10000,
+      version: 3,
+      entries: [
+        {
+          id: 'e4',
+          type: 'PAYMENT',
+          amountPaise: 5000,
+          balanceAfterPaise: 10000,
+          goodsReceiptId: null,
+          purchaseReturnId: null,
+          paymentMode: 'UPI',
+          paymentReference: 'UPI-NEW',
+          dueOn: null,
+          occurredAt: '2026-09-05T06:00:00Z',
+        },
+        ...filledLedger.entries,
+      ],
+    });
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    expect(await screen.findByText('Invoice')).toBeInTheDocument();
+    expect(screen.getByText('Debit note')).toBeInTheDocument();
+    expect(screen.getByText('Due 2026-09-12')).toBeInTheDocument();
+    expect(screen.getByText(/UPI · UPI-AC04/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Record payment' }));
+    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '50' } });
+    fireEvent.change(screen.getByLabelText('Reference'), { target: { value: 'UPI-NEW' } });
+    await user.click(screen.getByRole('button', { name: 'Post payment' }));
+    await waitFor(() => expect(payMock).toHaveBeenCalled());
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Payment recorded on the stockist khata.',
+    );
+    expect(screen.getByText(/UPI · UPI-NEW/)).toBeInTheDocument();
+  });
+
+  it('success: Growth plan shows due this week', async () => {
+    subscriptionMock.mockResolvedValue(growthSub);
+    duesMock.mockResolvedValue([
+      {
+        supplierId: 's1',
+        legalName: 'Acme Pharma Pvt Ltd',
+        balancePaise: 15000,
+        dueOn: '2026-09-05',
+        overdue: true,
+      },
+    ]);
+    renderPage();
+    expect(await screen.findByLabelText('Due this week')).toBeInTheDocument();
+    expect(screen.getByText(/Overdue/)).toBeInTheDocument();
+    expect(duesMock).toHaveBeenCalled();
+  });
+
+  it('restores focus to Record payment after cancel', async () => {
+    const user = userEvent.setup({ delay: null });
+    ledgerMock.mockResolvedValue(filledLedger);
+    renderPage();
+    await user.click(await screen.findByRole('button', { name: /Acme Distributors/ }));
+    await screen.findByRole('heading', { name: 'Stockist khata' });
+    await user.click(screen.getByRole('button', { name: 'Record payment' }));
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    await waitFor(() => {
+      expect(screen.getByRole('button', { name: 'Record payment' })).toHaveFocus();
+    });
   });
 });

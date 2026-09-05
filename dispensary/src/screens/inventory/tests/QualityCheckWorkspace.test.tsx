@@ -50,6 +50,8 @@ const detail: GoodsReceiptDetail = {
   checkedByUserId: null,
   visualInspectionPassed: null,
   checklist: null,
+  purchaseReturnId: null,
+  debitNoteNumber: null,
   lines: [
     {
       id: 'line1',
@@ -76,6 +78,8 @@ const checked: GoodsReceiptDetail = {
   checkedAt: '2026-09-05T04:30:00Z',
   checkedByUserId: 'u1',
   visualInspectionPassed: true,
+  purchaseReturnId: 'pr1',
+  debitNoteNumber: 'DN/2026-27/BR01/00001',
   checklist: {
     packagingIntact: true,
     labelMatches: true,
@@ -231,6 +235,7 @@ describe('quality check workspace', () => {
       await screen.findByText('Accepted onto the floor. Rejected packs stay off the shelf.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Checked')).toBeInTheDocument();
+    expect(screen.getByText('Debit note DN/2026-27/BR01/00001')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept onto floor' })).not.toBeInTheDocument();
   });
 

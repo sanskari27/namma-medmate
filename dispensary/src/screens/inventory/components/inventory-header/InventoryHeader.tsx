@@ -9,7 +9,8 @@ export type InventoryViewMode =
   | 'guidance'
   | 'stocktake'
   | 'controlled'
-  | 'qc';
+  | 'qc'
+  | 'returns';
 
 const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab: string }> = {
   floor: {
@@ -60,6 +61,11 @@ const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab
       'Inspect this delivery before it hits the floor. Accept onto stock; rejected packs stay off the shelf.',
     tab: 'Quality check',
   },
+  returns: {
+    eyebrow: 'Send back to stockist',
+    blurb: 'Confirmed return cuts floor stock now and writes a debit note on the stockist khata.',
+    tab: 'Returns',
+  },
 };
 
 export type InventoryHeaderProps = {
@@ -70,6 +76,7 @@ export type InventoryHeaderProps = {
   transferButtonRef?: Ref<HTMLButtonElement>;
   adjustButtonRef?: Ref<HTMLButtonElement>;
   stockTakeButtonRef?: Ref<HTMLButtonElement>;
+  returnButtonRef?: Ref<HTMLButtonElement>;
   denied?: boolean;
   canStartCount?: boolean;
   onAdd: () => void;
@@ -77,6 +84,7 @@ export type InventoryHeaderProps = {
   onTransfer: () => void;
   onAdjust: () => void;
   onStartCount: () => void;
+  onSendBack: () => void;
 };
 
 export function InventoryHeader({
@@ -87,6 +95,7 @@ export function InventoryHeader({
   transferButtonRef,
   adjustButtonRef,
   stockTakeButtonRef,
+  returnButtonRef,
   denied = false,
   canStartCount = false,
   onAdd,
@@ -94,6 +103,7 @@ export function InventoryHeader({
   onTransfer,
   onAdjust,
   onStartCount,
+  onSendBack,
 }: InventoryHeaderProps) {
   const copy = VIEW_COPY[view];
   const blurb = denied ? 'Stock and SKUs for this pharmacy floor.' : copy.blurb;
@@ -127,6 +137,10 @@ export function InventoryHeader({
             <Button ref={stockTakeButtonRef} type="button" onClick={onStartCount}>
               Start count
             </Button>
+          ) : view === 'returns' ? (
+            <Button ref={returnButtonRef} type="button" onClick={onSendBack}>
+              Send back
+            </Button>
           ) : null}
         </div>
         {denied ? null : (
@@ -139,6 +153,7 @@ export function InventoryHeader({
               [
                 'floor',
                 'qc',
+                'returns',
                 'catalogue',
                 'transfers',
                 'adjustments',

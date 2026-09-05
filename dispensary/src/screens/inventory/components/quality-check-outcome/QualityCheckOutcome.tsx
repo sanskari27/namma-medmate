@@ -15,6 +15,9 @@ export function QualityCheckOutcome({ detail }: QualityCheckOutcomeProps) {
       {detail.checkedAt ? (
         <p className="mt-1 text-muted">Checked {formatIst(detail.checkedAt)}</p>
       ) : null}
+      {detail.debitNoteNumber ? (
+        <p className="mt-2 font-mono text-sm text-ink">Debit note {detail.debitNoteNumber}</p>
+      ) : null}
       {detail.lines.map((line) => (
         <p key={line.id} className="mt-2 font-mono text-xs text-muted">
           {line.sku}: accepted {line.acceptedQuantity ?? '—'} / rejected{' '}

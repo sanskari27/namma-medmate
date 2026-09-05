@@ -104,7 +104,51 @@ export function hasSupplierAccess(modules: string[] | undefined): boolean {
   return modules?.includes('PROCUREMENT') === true || modules?.includes('FINANCE') === true;
 }
 
-export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text: string } | null {
+export function canSeeSupplierDues(planCode: string | null | undefined): boolean {
+  return planCode === 'GROWTH' || planCode === 'PRO';
+}
+
+export type BannerSurface = 'book' | 'khata';
+
+export function statusCopy(
+  status: PageStatus,
+  surface: BannerSurface = 'book',
+): { icon: typeof AlertCircle; text: string } | null {
+  if (surface === 'khata') {
+    switch (status) {
+      case 'loading':
+        return { icon: Truck, text: 'Loading stockist khata…' };
+      case 'empty':
+        return {
+          icon: Truck,
+          text: 'No khata lines yet for this stockist on this outlet.',
+        };
+      case 'validation':
+        return {
+          icon: AlertCircle,
+          text: 'Enter amount, mode, and a payment reference. Overpayment is not booked.',
+        };
+      case 'denied':
+        return {
+          icon: AlertCircle,
+          text: 'This till cannot open the stockist khata. Ask the owner for Purchases or Accounts.',
+        };
+      case 'conflict':
+        return {
+          icon: AlertCircle,
+          text: 'This payment reference is already on the khata, or the balance changed. Refresh and try again.',
+        };
+      case 'failure':
+        return {
+          icon: Unplug,
+          text: 'Could not reach the server for the stockist khata. Try again.',
+        };
+      case 'success':
+        return { icon: BadgeCheck, text: 'Payment recorded on the stockist khata.' };
+      default:
+        return null;
+    }
+  }
   switch (status) {
     case 'loading':
       return { icon: Truck, text: 'Loading the supplier book for this pharmacy…' };
@@ -347,12 +391,17 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
   if (error.status === 409 || error.code === 'CODE_TAKEN' || error.code === 'GSTIN_TAKEN') {
     return 'conflict';
   }
+  if (error.code === 'DUPLICATE_REFERENCE' || error.code === 'STALE_STATE') {
+    return 'conflict';
+  }
   if (
     error.status === 400 ||
     error.status === 422 ||
     error.code === 'VALIDATION_ERROR' ||
     error.code === 'LICENSE_DATE_INVALID' ||
-    error.code === 'UNSAFE_BANK_UPDATE'
+    error.code === 'UNSAFE_BANK_UPDATE' ||
+    error.code === 'OVERPAYMENT' ||
+    error.code === 'PLAN_LIMIT'
   ) {
     return 'validation';
   }

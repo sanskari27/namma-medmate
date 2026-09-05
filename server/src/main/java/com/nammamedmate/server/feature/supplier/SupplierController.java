@@ -1,5 +1,9 @@
 package com.nammamedmate.server.feature.supplier;
 
+import com.nammamedmate.server.application.purchasereturn.PurchaseReturnService;
+import com.nammamedmate.server.application.purchasereturn.SupplierDueListResult;
+import com.nammamedmate.server.application.purchasereturn.SupplierLedgerView;
+import com.nammamedmate.server.application.purchasereturn.SupplierPaymentCommand;
 import com.nammamedmate.server.application.supplier.SupplierCommand;
 import com.nammamedmate.server.application.supplier.SupplierService;
 import com.nammamedmate.server.application.supplier.SupplierView;
@@ -11,6 +15,7 @@ import com.nammamedmate.server.domain.SupplierType;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
+import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
@@ -33,9 +38,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class SupplierController {
 
   private final SupplierService supplierService;
+  private final PurchaseReturnService purchaseReturnService;
 
-  public SupplierController(SupplierService supplierService) {
+  public SupplierController(
+      SupplierService supplierService, PurchaseReturnService purchaseReturnService) {
     this.supplierService = supplierService;
+    this.purchaseReturnService = purchaseReturnService;
   }
 
   @GetMapping
@@ -47,10 +55,53 @@ public class SupplierController {
             supplierService.list(principal, q).stream().map(this::toResponse).toList()));
   }
 
+  @GetMapping("/dues")
+  public ApiResponse<DueListResponse> dues(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    SupplierDueListResult result = purchaseReturnService.dues(principal);
+    return ApiResponse.ok(
+        new DueListResponse(
+            result.items().stream()
+                .map(
+                    item ->
+                        new DueItemResponse(
+                            item.supplierId(),
+                            item.legalName(),
+                            item.balancePaise(),
+                            item.dueOn(),
+                            item.overdue()))
+                .toList()));
+  }
+
   @GetMapping("/{id}")
   public ApiResponse<SupplierResponse> get(Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(supplierService.get(principal, id)));
+  }
+
+  @GetMapping("/{id}/ledger")
+  public ApiResponse<LedgerResponse> ledger(Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toLedger(purchaseReturnService.ledger(principal, id)));
+  }
+
+  @PostMapping("/{id}/payments")
+  public ApiResponse<LedgerResponse> pay(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody RecordPaymentRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toLedger(
+            purchaseReturnService.pay(
+                principal,
+                id,
+                new SupplierPaymentCommand(
+                    request.amountPaise(),
+                    request.mode(),
+                    request.reference(),
+                    request.idempotencyKey(),
+                    request.expectedAccountVersion()))));
   }
 
   @PostMapping
@@ -238,4 +289,58 @@ public class SupplierController {
       List<UUID> categoryIds,
       @NotNull SupplierStatus status,
       String notes) {}
+
+  private LedgerResponse toLedger(SupplierLedgerView view) {
+    return new LedgerResponse(
+        view.supplierId(),
+        view.supplierLegalName(),
+        view.balancePaise(),
+        view.version(),
+        view.entries().stream()
+            .map(
+                entry ->
+                    new LedgerEntryResponse(
+                        entry.id(),
+                        entry.type().name(),
+                        entry.amountPaise(),
+                        entry.balanceAfterPaise(),
+                        entry.goodsReceiptId(),
+                        entry.purchaseReturnId(),
+                        entry.paymentMode(),
+                        entry.paymentReference(),
+                        entry.dueOn(),
+                        entry.occurredAt()))
+            .toList());
+  }
+
+  public record DueListResponse(List<DueItemResponse> items) {}
+
+  public record DueItemResponse(
+      UUID supplierId, String legalName, long balancePaise, LocalDate dueOn, boolean overdue) {}
+
+  public record LedgerResponse(
+      UUID supplierId,
+      String supplierLegalName,
+      long balancePaise,
+      long version,
+      List<LedgerEntryResponse> entries) {}
+
+  public record LedgerEntryResponse(
+      UUID id,
+      String type,
+      long amountPaise,
+      long balanceAfterPaise,
+      UUID goodsReceiptId,
+      UUID purchaseReturnId,
+      String paymentMode,
+      String paymentReference,
+      LocalDate dueOn,
+      Instant occurredAt) {}
+
+  public record RecordPaymentRequest(
+      @Min(1) long amountPaise,
+      @NotBlank @Size(max = 64) String mode,
+      @NotBlank @Size(max = 200) String reference,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @NotNull Long expectedAccountVersion) {}
 }

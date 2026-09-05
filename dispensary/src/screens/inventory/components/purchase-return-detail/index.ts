@@ -1,0 +1,1 @@
+export { PurchaseReturnDetailPanel } from './PurchaseReturnDetailPanel';

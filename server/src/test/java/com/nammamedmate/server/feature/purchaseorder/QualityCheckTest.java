@@ -209,6 +209,12 @@ class QualityCheckTest extends AbstractIntegrationTest {
         .first()
         .extracting(row -> row.getType())
         .isEqualTo(StockMovementType.STOCK_IN);
+    mockMvc
+        .perform(get("/api/v1/purchase-returns").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items", hasSize(1)))
+        .andExpect(jsonPath("$.data.items[0].origin").value("QC"))
+        .andExpect(jsonPath("$.data.items[0].amountPaise").value(40000));
   }
 
   @Test

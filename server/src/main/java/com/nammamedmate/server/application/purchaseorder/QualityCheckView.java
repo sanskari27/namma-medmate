@@ -18,6 +18,8 @@ public record QualityCheckView(
     UUID checkedByUserId,
     Boolean visualInspectionPassed,
     ChecklistView checklist,
+    UUID purchaseReturnId,
+    String debitNoteNumber,
     List<LineView> lines) {
 
   public record ChecklistView(
