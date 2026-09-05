@@ -294,7 +294,34 @@ public class InventoryStockService {
       BigDecimal quantity,
       String idempotencyKey,
       Long expectedVersion) {
-    Context ctx = requireReady(principal);
+    return issueWithContext(
+        requireReady(principal), productId, batchId, quantity, idempotencyKey, expectedVersion);
+  }
+
+  @Transactional
+  public StockBalanceView issueForSale(
+      AuthPrincipal principal,
+      UUID productId,
+      UUID batchId,
+      BigDecimal quantity,
+      String idempotencyKey,
+      Long expectedVersion) {
+    return issueWithContext(
+        requireReadyForSale(principal),
+        productId,
+        batchId,
+        quantity,
+        idempotencyKey,
+        expectedVersion);
+  }
+
+  private StockBalanceView issueWithContext(
+      Context ctx,
+      UUID productId,
+      UUID batchId,
+      BigDecimal quantity,
+      String idempotencyKey,
+      Long expectedVersion) {
     Product product = requireProduct(productId, ctx.tenantId());
     BigDecimal qty = requirePositiveQuantity(quantity, product.getQuantityPrecision());
     String key = requireIdempotencyKey(idempotencyKey);
@@ -1065,6 +1092,15 @@ public class InventoryStockService {
     UUID tenantId =
         requireModuleAccess(
             principal, Set.of(ModuleCode.INVENTORY, ModuleCode.PROCUREMENT, ModuleCode.FINANCE));
+    UUID branchId = principal.activeBranchId();
+    if (branchId == null) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
+    }
+    return new Context(tenantId, branchId, principal.userId());
+  }
+
+  private Context requireReadyForSale(AuthPrincipal principal) {
+    UUID tenantId = requireModuleAccess(principal, Set.of(ModuleCode.SALES, ModuleCode.INVENTORY));
     UUID branchId = principal.activeBranchId();
     if (branchId == null) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);

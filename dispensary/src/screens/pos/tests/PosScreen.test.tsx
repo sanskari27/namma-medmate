@@ -93,6 +93,24 @@ vi.mock('@/services/credit', async () => {
   };
 });
 
+vi.mock('@/services/salesInvoices', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    createSalesInvoice: vi.fn(),
+    updateSalesInvoice: vi.fn(),
+    applyInvoicePricing: vi.fn(),
+    adjustInvoiceTax: vi.fn(),
+    assertInvoicePricingReady: vi.fn(),
+    completeSalesInvoice: vi.fn(),
+    getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
+    listSalesInvoices: vi.fn().mockResolvedValue({ items: [] }),
+    holdSalesInvoice: vi.fn(),
+    resumeSalesInvoice: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';

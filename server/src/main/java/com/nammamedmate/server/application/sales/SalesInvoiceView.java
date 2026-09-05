@@ -49,7 +49,8 @@ public record SalesInvoiceView(
     List<PaymentView> payments,
     List<LineView> lines,
     Instant createdAt,
-    Instant updatedAt) {
+    Instant updatedAt,
+    InvoiceRevalidation revalidation) {
 
   public record PaymentView(PaymentMode mode, long amountPaise, String reference) {}
 

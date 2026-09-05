@@ -89,6 +89,48 @@ export function statusCopy(
   }
 }
 
+export function holdStatusHint(status: PageStatus): string | null {
+  if (status === 'loading') {
+    return null;
+  }
+  if (status === 'validation') {
+    return 'Save this bill first, then hold it if the patient steps away.';
+  }
+  if (status === 'conflict') {
+    return 'This bill was updated on another till. Refresh, then hold again.';
+  }
+  if (status === 'failure') {
+    return 'Could not hold this bill. Check the connection and try again.';
+  }
+  return null;
+}
+
+export function resumeStatusHint(
+  invoiceNumber: string | null,
+  revalidation: {
+    stock: boolean;
+    expiry: boolean;
+    price: boolean;
+    tax: boolean;
+    approval: boolean;
+  } | null,
+): string {
+  const held = invoiceNumber
+    ? `Held bill ${invoiceNumber} is back on this till.`
+    : 'Held bill is back on this till.';
+  if (
+    revalidation &&
+    (revalidation.stock ||
+      revalidation.expiry ||
+      revalidation.price ||
+      revalidation.tax ||
+      revalidation.approval)
+  ) {
+    return `${held} Floor qty, price, or GST changed — review before collect.`;
+  }
+  return held;
+}
+
 export function mapApiStatus(error: { status?: number; code?: string | null }): PageStatus {
   if (error.status === 403 || error.code === 'FORBIDDEN' || error.code === 'PHARMACIST_REQUIRED') {
     return 'denied';
@@ -98,7 +140,9 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'CONFLICT' ||
     error.code === 'STALE_STOCK' ||
     error.code === 'STALE_STATE' ||
-    error.code === 'NUMBER_COLLISION'
+    error.code === 'INSUFFICIENT_STOCK' ||
+    error.code === 'NUMBER_COLLISION' ||
+    error.code === 'DUPLICATE_COMPLETION'
   ) {
     return 'conflict';
   }
@@ -127,9 +171,6 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'PRESCRIBED_REQUIRED'
   ) {
     return 'validation';
-  }
-  if (error.code === 'DUPLICATE_COMPLETION') {
-    return 'conflict';
   }
   return 'failure';
 }
@@ -165,6 +206,13 @@ export function warningSummary(
 
 export function formatPaise(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN')}`;
+}
+
+export function paiseToRupees(paise: number): string {
+  if (paise === 0) {
+    return '';
+  }
+  return String(paise / 100);
 }
 
 export function rupeesToPaise(value: string): number | null {

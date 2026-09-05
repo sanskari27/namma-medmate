@@ -1,7 +1,9 @@
 package com.nammamedmate.server.feature.sales;
 
 import com.nammamedmate.server.application.sales.InvoiceCompletionCommand;
+import com.nammamedmate.server.application.sales.InvoiceHoldCommand;
 import com.nammamedmate.server.application.sales.InvoicePricingCommand;
+import com.nammamedmate.server.application.sales.InvoiceRevalidation;
 import com.nammamedmate.server.application.sales.InvoiceTaxAdjustmentCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceService;
@@ -35,6 +37,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -48,11 +51,14 @@ public class SalesInvoiceController {
   }
 
   @GetMapping
-  public ApiResponse<SalesInvoiceListResponse> list(Authentication authentication) {
+  public ApiResponse<SalesInvoiceListResponse> list(
+      Authentication authentication, @RequestParam(required = false) SalesInvoiceStatus status) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
         new SalesInvoiceListResponse(
-            salesInvoiceService.list(principal).items().stream().map(this::toResponse).toList()));
+            salesInvoiceService.list(principal, status).items().stream()
+                .map(this::toResponse)
+                .toList()));
   }
 
   @GetMapping("/{id}")
@@ -156,6 +162,30 @@ public class SalesInvoiceController {
       Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(salesInvoiceService.assertReady(principal, id)));
+  }
+
+  @PostMapping("/{id}/hold")
+  public ApiResponse<SalesInvoiceResponse> hold(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody HoldResumeRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            salesInvoiceService.hold(
+                principal, id, new InvoiceHoldCommand(request.expectedVersion()))));
+  }
+
+  @PostMapping("/{id}/resume")
+  public ApiResponse<SalesInvoiceResponse> resume(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody HoldResumeRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(
+            salesInvoiceService.resume(
+                principal, id, new InvoiceHoldCommand(request.expectedVersion()))));
   }
 
   @PostMapping("/{id}/complete")
@@ -287,7 +317,8 @@ public class SalesInvoiceController {
                         line.prescribedQuantity()))
             .toList(),
         view.createdAt(),
-        view.updatedAt());
+        view.updatedAt(),
+        view.revalidation());
   }
 
   public record CreateSalesInvoiceRequest(
@@ -331,6 +362,8 @@ public class SalesInvoiceController {
       @NotEmpty List<@Valid TaxLineRequest> lines) {}
 
   public record TaxLineRequest(@NotNull UUID productId, @NotNull BigDecimal gstRate) {}
+
+  public record HoldResumeRequest(@NotNull Integer expectedVersion) {}
 
   public record CompleteSalesInvoiceRequest(
       @NotNull Integer expectedVersion,
@@ -382,7 +415,8 @@ public class SalesInvoiceController {
       List<PaymentResponse> payments,
       List<LineResponse> lines,
       Instant createdAt,
-      Instant updatedAt) {}
+      Instant updatedAt,
+      InvoiceRevalidation revalidation) {}
 
   public record PaymentResponse(PaymentMode mode, long amountPaise, String reference) {}
 

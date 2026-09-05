@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.SalesInvoice;
+import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import jakarta.persistence.LockModeType;
 import java.util.List;
 import java.util.Optional;
@@ -31,4 +32,7 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
   Optional<SalesInvoice> lockByDiscountApprovalRequestId(@Param("requestId") UUID requestId);
 
   List<SalesInvoice> findByTenantIdAndBranchIdOrderByCreatedAtDesc(UUID tenantId, UUID branchId);
+
+  List<SalesInvoice> findByTenantIdAndBranchIdAndStatusOrderByCreatedAtDesc(
+      UUID tenantId, UUID branchId, SalesInvoiceStatus status);
 }

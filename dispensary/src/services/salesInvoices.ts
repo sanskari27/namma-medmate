@@ -4,7 +4,7 @@ import type { ProductUnit } from '@/services/products';
 
 export { ApiError, isApiError };
 
-export type SalesInvoiceStatus = 'DRAFT' | 'COMPLETED';
+export type SalesInvoiceStatus = 'DRAFT' | 'HELD' | 'COMPLETED';
 
 export type DiscountType = 'NONE' | 'PERCENT' | 'FLAT';
 export type TaxJurisdiction = 'INTRA' | 'INTER';
@@ -86,6 +86,15 @@ export interface SalesInvoice {
   lines: SalesInvoiceLine[];
   createdAt: string;
   updatedAt: string;
+  revalidation?: InvoiceRevalidation | null;
+}
+
+export interface InvoiceRevalidation {
+  stock: boolean;
+  expiry: boolean;
+  price: boolean;
+  tax: boolean;
+  approval: boolean;
 }
 
 export interface SalesInvoiceLineInput {
@@ -115,6 +124,31 @@ export interface UpdateSalesInvoiceInput {
   prescriptionVerified: boolean;
   expectedVersion: number;
   lines: SalesInvoiceLineInput[];
+}
+
+export async function listSalesInvoices(query?: { status?: SalesInvoiceStatus }): Promise<{
+  items: SalesInvoice[];
+}> {
+  const { data } = await apiClient.get<{ items: SalesInvoice[] }>(API.SALES_INVOICES, {
+    params: query?.status ? { status: query.status } : undefined,
+  });
+  return data;
+}
+
+export async function holdSalesInvoice(
+  id: string,
+  input: { expectedVersion: number },
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceHold(id), input);
+  return data;
+}
+
+export async function resumeSalesInvoice(
+  id: string,
+  input: { expectedVersion: number },
+): Promise<SalesInvoice> {
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceResume(id), input);
+  return data;
 }
 
 export async function createSalesInvoice(input: CreateSalesInvoiceInput): Promise<SalesInvoice> {

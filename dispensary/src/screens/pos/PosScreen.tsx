@@ -6,17 +6,29 @@ import { PosDiscountApproval } from './components/pos-discount-approval';
 import { PosDraftLines } from './components/pos-draft-lines';
 import { PosGstBreakdown } from './components/pos-gst-breakdown';
 import { PosHeader } from './components/pos-header';
+import { PosHoldList } from './components/pos-hold-list';
 import { PosPrescriptionPanel } from './components/pos-prescription-panel';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosTenderPanel } from './components/pos-tender-panel';
 import { PosTaxAdjustDialog } from './components/pos-tax-adjust-dialog';
 import { PosWarningPanel } from './components/pos-warning-panel';
+import { usePosHold } from './usePosHold';
 import { usePosTill } from './usePosTill';
 
 export default function PosScreen() {
   const titleId = useId();
   const statusId = useId();
   const till = usePosTill();
+  const hold = usePosHold({
+    allowed: till.allowed,
+    invoice: till.invoice,
+    busy: till.busy,
+    setBusy: till.setBusy,
+    setStatus: till.setStatus,
+    setStatusHint: till.setStatusHint,
+    hydrateInvoice: till.hydrateInvoice,
+    clearOpenBill: till.clearOpenBill,
+  });
 
   if (!till.allowed) {
     return (
@@ -87,6 +99,12 @@ export default function PosScreen() {
           />
         </div>
         <div className="space-y-4">
+          <PosHoldList
+            items={hold.items}
+            loading={hold.loading}
+            busy={till.busy}
+            onResume={hold.runResume}
+          />
           <PosGstBreakdown totals={till.totals} saved={Boolean(till.invoice)} />
           <PosBillDiscount
             billType={till.billType}
@@ -144,9 +162,11 @@ export default function PosScreen() {
         onEvaluate={till.runEvaluate}
         onComplete={till.runComplete}
         onSave={till.runSave}
+        onHold={hold.runHold}
         evaluateDisabled={till.draft.length === 0}
         completeDisabled={till.draft.length === 0}
         saveDisabled={till.draft.length === 0}
+        holdDisabled={till.collected}
         busy={till.busy}
         showReason={till.showReason}
       />

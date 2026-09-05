@@ -35,6 +35,7 @@ import {
   isControlledProduct,
   isPrescriptionProduct,
   mapApiStatus,
+  paiseToRupees,
   percentToBps,
   previewTender,
   rupeesToPaise,
@@ -248,6 +249,115 @@ export function usePosTill() {
     ]);
     setEvaluation(null);
     void refreshConversion(product.id, unit, '1');
+  };
+
+  const clearOpenBill = () => {
+    setInvoice(null);
+    setDraft([]);
+    setSelectedCustomer(null);
+    setWalkIn(false);
+    setSelectedDoctorId('');
+    setPrescriptionVerified(false);
+    setPrescriptionReference('');
+    setEvaluation(null);
+    setReason('');
+    setBillType('FLAT');
+    setBillValue('');
+    setCustomerGstin('');
+    setTaxProductId(null);
+    setTaxRate('');
+    setTaxReason('');
+    setTender(emptyTender());
+    setCreditAvailablePaise(null);
+    setProductQuery('');
+    setCustomerQuery('');
+    idempotencyKey.current = crypto.randomUUID();
+    completeKey.current = crypto.randomUUID();
+  };
+
+  const hydrateInvoice = async (saved: SalesInvoice) => {
+    setInvoice(saved);
+    const linked = saved.customerId
+      ? (customers.find((item) => item.id === saved.customerId) ?? null)
+      : null;
+    setSelectedCustomer(linked);
+    setWalkIn(!saved.customerId);
+    setSelectedDoctorId(saved.doctorId ?? '');
+    setPrescriptionReference(saved.prescriptionReference ?? '');
+    setPrescriptionVerified(saved.prescriptionVerified);
+    setCustomerGstin(saved.customerGstin ?? '');
+    if (saved.billDiscountType === 'PERCENT') {
+      setBillType('PERCENT');
+      setBillValue(saved.billDiscountValue ? String(saved.billDiscountValue / 100) : '');
+    } else if (saved.billDiscountType === 'FLAT') {
+      setBillType('FLAT');
+      setBillValue(paiseToRupees(saved.billDiscountValue));
+    } else {
+      setBillType('FLAT');
+      setBillValue('');
+    }
+    setTender(emptyTender());
+    setEvaluation(null);
+    setReason('');
+    setTaxProductId(null);
+    completeKey.current = crypto.randomUUID();
+    if (linked) {
+      void getCustomerCredit(linked.id)
+        .then((credit) => setCreditAvailablePaise(credit.availablePaise))
+        .catch(() => setCreditAvailablePaise(null));
+    } else {
+      setCreditAvailablePaise(null);
+    }
+    const next: PosDraftLine[] = [];
+    for (const line of saved.lines) {
+      const product = catalogue.find((item) => item.id === line.productId);
+      if (!product) {
+        continue;
+      }
+      let unitOptions: ProductUnit[] = [product.baseUnit];
+      try {
+        const units = await listProductUnits(product.id);
+        unitOptions = [
+          units.baseUnit,
+          ...units.units.map((row) => row.unit).filter((unit) => unit !== units.baseUnit),
+        ];
+      } catch {
+        unitOptions = [product.baseUnit, product.packUnit].filter(
+          (value, index, all) => all.indexOf(value) === index,
+        );
+      }
+      let batches: PosDraftLine['batches'] = [];
+      if (product.requiresBatchTracking) {
+        try {
+          batches = await listStockBatches(product.id);
+        } catch {
+          batches = [];
+        }
+      }
+      const batch = batches.find((item) => item.batchId === line.batchId);
+      next.push({
+        product,
+        unit: line.unit,
+        quantity: String(line.quantity),
+        baseQuantity: Number(line.baseQuantity),
+        unitOptions,
+        batches,
+        batchId: line.batchId,
+        nearExpiry: batch?.nearExpiry === true,
+        mrpRupees: paiseToRupees(line.mrpPaise),
+        sellingRupees: paiseToRupees(line.sellingPricePaise),
+        discountRupees:
+          line.discountType === 'PERCENT'
+            ? String(line.discountValue / 100)
+            : paiseToRupees(line.discountPaise),
+        discountType: line.discountType === 'PERCENT' ? 'PERCENT' : 'FLAT',
+        prescribedQuantity:
+          line.prescribedQuantity != null && line.prescribedQuantity !== ''
+            ? String(line.prescribedQuantity)
+            : '',
+      });
+    }
+    setDraft(next);
   };
 
   const linePayload = () => {
@@ -637,6 +747,11 @@ export function usePosTill() {
     tenderPreview: previewTender(invoice?.totalPaise ?? totals.totalPaise, tender),
     creditAvailablePaise,
     collected: invoice?.status === 'COMPLETED',
+    setBusy,
+    setStatus,
+    setStatusHint,
+    hydrateInvoice,
+    clearOpenBill,
     setTender: (patch: Partial<TenderDraft>) => {
       setTender((current) => ({ ...current, ...patch }));
     },

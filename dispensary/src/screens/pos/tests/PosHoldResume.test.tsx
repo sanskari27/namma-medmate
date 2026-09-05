@@ -96,7 +96,7 @@ vi.mock('@/services/salesInvoices', async () => {
     assertInvoicePricingReady: vi.fn(),
     completeSalesInvoice: vi.fn(),
     getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
-    listSalesInvoices: vi.fn().mockResolvedValue({ items: [] }),
+    listSalesInvoices: vi.fn(),
     holdSalesInvoice: vi.fn(),
     resumeSalesInvoice: vi.fn(),
     ApiError: axios.ApiError,
@@ -104,7 +104,6 @@ vi.mock('@/services/salesInvoices', async () => {
   };
 });
 
-import { getCustomerCredit } from '@/services/credit';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
@@ -112,8 +111,10 @@ import { listProducts } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
   applyInvoicePricing,
-  completeSalesInvoice,
   createSalesInvoice,
+  holdSalesInvoice,
+  listSalesInvoices,
+  resumeSalesInvoice,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
@@ -122,10 +123,11 @@ const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
-const getCreditMock = vi.mocked(getCustomerCredit);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
-const completeInvoiceMock = vi.mocked(completeSalesInvoice);
+const listHeldMock = vi.mocked(listSalesInvoices);
+const holdInvoiceMock = vi.mocked(holdSalesInvoice);
+const resumeInvoiceMock = vi.mocked(resumeSalesInvoice);
 
 const customer = {
   id: 'c1',
@@ -196,8 +198,8 @@ const draftInvoice = {
   staffUserId: 'u1',
   terminalId: 'sess-1',
   customerId: null as string | null,
-  doctorId: null,
-  prescriptionReference: null,
+  doctorId: null as string | null,
+  prescriptionReference: null as string | null,
   prescriptionVerified: false,
   version: 1,
   subtotalPaise: 10000,
@@ -258,6 +260,13 @@ const draftInvoice = {
   ],
   createdAt: '2026-09-05T08:00:00Z',
   updatedAt: '2026-09-05T08:00:00Z',
+  revalidation: null as {
+    stock: boolean;
+    expiry: boolean;
+    price: boolean;
+    tax: boolean;
+    approval: boolean;
+  } | null,
 };
 
 function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
@@ -298,7 +307,7 @@ async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
   expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
 }
 
-describe('PosScreen mixed payment and khata', () => {
+describe('PosScreen hold and resume', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     listProductsMock.mockReset();
@@ -306,22 +315,15 @@ describe('PosScreen mixed payment and khata', () => {
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
-    getCreditMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
-    completeInvoiceMock.mockReset();
+    listHeldMock.mockReset();
+    holdInvoiceMock.mockReset();
+    resumeInvoiceMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA]);
     listDoctorsMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
-    getCreditMock.mockResolvedValue({
-      customerId: 'c1',
-      limitPaise: 50000,
-      balancePaise: 0,
-      availablePaise: 50000,
-      version: 1,
-      entries: [],
-    });
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -339,118 +341,103 @@ describe('PosScreen mixed payment and khata', () => {
     });
     createInvoiceMock.mockResolvedValue(draftInvoice);
     applyPricingMock.mockResolvedValue(draftInvoice);
+    listHeldMock.mockResolvedValue({ items: [] });
   });
 
-  it('loading: waits for catalogue before Collect bill', () => {
-    listProductsMock.mockReturnValue(new Promise(() => undefined));
+  it('loading: waits for held bills list', async () => {
+    listHeldMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading catalogue for this till…')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Collect bill' })).not.toBeInTheDocument();
+    expect(await screen.findByText('Loading held bills…')).toBeInTheDocument();
   });
 
-  it('empty: saved draft asks for a tender before collect', async () => {
-    const user = userEvent.setup();
+  it('empty: till with no parked bills', async () => {
     renderPage();
-    await saveWalkInDraft(user);
-    expect(screen.getByRole('region', { name: 'Take payment' })).toHaveTextContent(
-      'Add cash, UPI, card, bank, or khata to collect.',
-    );
-    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+    expect(await screen.findByText('No held bills on this till.')).toBeInTheDocument();
   });
 
-  it('denied: till without Sales cannot collect', () => {
+  it('denied: till without Sales cannot hold', () => {
     renderPage(['CRM']);
     expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Hold bill' })).not.toBeInTheDocument();
+    expect(holdInvoiceMock).not.toHaveBeenCalled();
   });
 
-  it('validation: walk-in cannot put the bill on khata', async () => {
+  it('validation: Hold bill needs a saved draft', async () => {
     const user = userEvent.setup();
-    renderPage();
-    await saveWalkInDraft(user);
-    expect(screen.getByLabelText('Khata ₹')).toBeDisabled();
-    await user.type(screen.getByLabelText('Cash ₹'), '50');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Tender must cover this bill. Add the rest or put it on khata for a linked patient.',
-    );
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
-  });
-
-  it('conflict: stale total on collect', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
-    renderPage();
-    await saveWalkInDraft(user);
-    await user.type(screen.getByLabelText('Cash ₹'), '112');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This bill total changed. Refresh, then collect again.',
-    );
-  });
-
-  it('failure: collect network error', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new Error('network'));
-    renderPage();
-    await saveWalkInDraft(user);
-    await user.type(screen.getByLabelText('Cash ₹'), '112');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Could not collect this bill');
-  });
-
-  it('success: mixed cash UPI and khata with change back restores Find medicine focus', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockResolvedValue({
-      ...draftInvoice,
-      status: 'COMPLETED',
-      version: 2,
-      customerId: 'c1',
-      amountPaidPaise: 12000,
-      amountDuePaise: 3200,
-      changePaise: 800,
-      payments: [
-        { mode: 'CASH', amountPaise: 5800, reference: null },
-        { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
-        { mode: 'CREDIT', amountPaise: 3200, reference: null },
-      ],
-    });
     renderPage();
     await screen.findByText('Penicillin V');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.type(screen.getByLabelText('MRP ₹'), '120');
-    await user.type(screen.getByLabelText('Selling ₹'), '100');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: 'Save bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
-    expect(await screen.findByText(/Khata left ₹500/)).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Cash ₹'), '58');
-    await user.type(screen.getByLabelText('UPI ₹'), '30');
-    await user.type(screen.getByLabelText('UPI reference'), 'UPI-9');
-    await user.type(screen.getByLabelText('Khata ₹'), '32');
-    const tender = screen.getByRole('region', { name: 'Take payment' });
-    expect(tender).toHaveTextContent('Change back');
-    expect(tender).toHaveTextContent('Still due');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Bill INV/2026-27/BR01/00001 collected at this till.',
+    await user.click(screen.getByRole('button', { name: 'Hold bill' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Save this bill first, then hold it if the patient steps away.',
     );
-    await waitFor(() => {
-      expect(completeInvoiceMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 1,
-          expectedTotalPaise: 11200,
-          changePaise: 800,
-          payments: [
-            { mode: 'CASH', amountPaise: 5800, reference: null },
-            { mode: 'UPI', amountPaise: 3000, reference: 'UPI-9' },
-            { mode: 'CREDIT', amountPaise: 3200, reference: null },
-          ],
-        }),
-      );
+    expect(holdInvoiceMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: another till already changed this bill', async () => {
+    const user = userEvent.setup();
+    holdInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    renderPage();
+    await saveWalkInDraft(user);
+    await user.click(screen.getByRole('button', { name: 'Hold bill' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This bill was updated on another till. Refresh, then hold again.',
+    );
+  });
+
+  it('failure: hold network error', async () => {
+    const user = userEvent.setup();
+    holdInvoiceMock.mockRejectedValue(new Error('network'));
+    renderPage();
+    await saveWalkInDraft(user);
+    await user.click(screen.getByRole('button', { name: 'Hold bill' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not hold this bill. Check the connection and try again.',
+    );
+  });
+
+  it('success: hold parks the bill and resume restores it with revalidation', async () => {
+    const user = userEvent.setup();
+    const held = {
+      ...draftInvoice,
+      status: 'HELD' as const,
+      version: 2,
+    };
+    holdInvoiceMock.mockResolvedValue(held);
+    listHeldMock.mockResolvedValueOnce({ items: [] }).mockResolvedValue({ items: [held] });
+    resumeInvoiceMock.mockResolvedValue({
+      ...draftInvoice,
+      status: 'DRAFT' as const,
+      version: 3,
+      taxPaise: 1800,
+      totalPaise: 11800,
+      revalidation: {
+        stock: true,
+        expiry: false,
+        price: true,
+        tax: true,
+        approval: false,
+      },
     });
+    renderPage();
+    await saveWalkInDraft(user);
+    await user.click(screen.getByRole('button', { name: 'Hold bill' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Bill INV/2026-27/BR01/00001 held on this till.',
+    );
+    expect(
+      await screen.findByRole('button', { name: 'Resume bill INV/2026-27/BR01/00001' }),
+    ).toBeInTheDocument();
+    await waitFor(() => {
+      expect(screen.getByLabelText('Find medicine')).toHaveFocus();
+    });
+    await user.click(screen.getByRole('button', { name: 'Resume bill INV/2026-27/BR01/00001' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Held bill INV/2026-27/BR01/00001 is back on this till.',
+    );
+    expect(screen.getByRole('status')).toHaveTextContent(
+      'Floor qty, price, or GST changed — review before collect.',
+    );
     expect(screen.getByLabelText('Find medicine')).toHaveFocus();
-    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+    expect(resumeInvoiceMock).toHaveBeenCalledWith('inv-1', { expectedVersion: 2 });
   });
 });
