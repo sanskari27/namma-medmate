@@ -86,18 +86,6 @@ vi.mock('@/services/credit', async () => {
   };
 });
 
-vi.mock('@/services/loyalty', async () => {
-  const axios = await import('@/services/axios');
-  const actual = await vi.importActual<typeof import('@/services/loyalty')>('@/services/loyalty');
-  return {
-    ...actual,
-    getCustomerLoyalty: vi.fn(),
-    adjustCustomerLoyalty: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
-  };
-});
-
 vi.mock('@/services/salesInvoices', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -113,9 +101,9 @@ vi.mock('@/services/salesInvoices', async () => {
     resumeSalesInvoice: vi.fn(),
     listInvoiceOffers: vi.fn().mockResolvedValue({ items: [] }),
     applyInvoiceOffers: vi.fn(),
-    pingSalesInvoiceHealth: vi.fn().mockResolvedValue({ status: 'UP' }),
     downloadInvoicePdf: vi.fn(),
     emailInvoiceCopy: vi.fn(),
+    pingSalesInvoiceHealth: vi.fn().mockResolvedValue({ status: 'UP' }),
     openInvoicePdf: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
@@ -126,13 +114,15 @@ import { getCustomerCredit } from '@/services/credit';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
-import { getCustomerLoyalty } from '@/services/loyalty';
 import { listProducts } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
   applyInvoicePricing,
   completeSalesInvoice,
   createSalesInvoice,
+  downloadInvoicePdf,
+  emailInvoiceCopy,
+  openInvoicePdf,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
@@ -142,17 +132,19 @@ const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
 const getCreditMock = vi.mocked(getCustomerCredit);
-const getLoyaltyMock = vi.mocked(getCustomerLoyalty);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
 const completeInvoiceMock = vi.mocked(completeSalesInvoice);
+const downloadPdfMock = vi.mocked(downloadInvoicePdf);
+const emailCopyMock = vi.mocked(emailInvoiceCopy);
+const openPdfMock = vi.mocked(openInvoicePdf);
 
 const customer = {
   id: 'c1',
   tenantId: 't1',
   name: 'Ravi Kumar',
   phone: '9876500001',
-  email: null,
+  email: 'ravi@patient.local' as string | null,
   dateOfBirth: null,
   gender: null,
   address: null,
@@ -215,7 +207,7 @@ const draftInvoice = {
   status: 'DRAFT' as const,
   staffUserId: 'u1',
   terminalId: 'sess-1',
-  customerId: 'c1' as string | null,
+  customerId: null as string | null,
   doctorId: null,
   prescriptionReference: null,
   prescriptionVerified: false,
@@ -280,27 +272,7 @@ const draftInvoice = {
   updatedAt: '2026-09-05T08:00:00Z',
 };
 
-const loyaltyAccount = {
-  customerId: 'c1',
-  balancePoints: 21,
-  version: 1,
-  entries: [
-    {
-      id: 'le1',
-      type: 'EARN' as const,
-      points: 21,
-      deltaPoints: 21,
-      balanceAfterPoints: 21,
-      invoiceId: 'inv-old',
-      salesReturnId: null,
-      taxablePaise: 210000,
-      reason: null,
-      occurredAt: '2026-09-04T05:00:00Z',
-    },
-  ],
-};
-
-function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY']) {
+function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
@@ -328,17 +300,33 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY']
   );
 }
 
-async function savePatientDraft(user: ReturnType<typeof userEvent.setup>) {
+async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Penicillin V');
   await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
   await user.type(screen.getByLabelText('MRP ₹'), '120');
   await user.type(screen.getByLabelText('Selling ₹'), '100');
-  await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+  await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
   await user.click(screen.getByRole('button', { name: 'Save bill' }));
   expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
 }
 
-describe('POS loyalty redeem', () => {
+async function collectWalkIn(user: ReturnType<typeof userEvent.setup>) {
+  completeInvoiceMock.mockResolvedValue({
+    ...draftInvoice,
+    status: 'COMPLETED',
+    version: 2,
+    amountPaidPaise: 11200,
+    payments: [{ mode: 'CASH', amountPaise: 11200, reference: null }],
+  });
+  await saveWalkInDraft(user);
+  await user.type(screen.getByLabelText('Cash ₹'), '112');
+  await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+  expect(await screen.findByRole('status')).toHaveTextContent(
+    'Bill INV/2026-27/BR01/00001 collected at this till.',
+  );
+}
+
+describe('POS A4 invoice output', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     listProductsMock.mockReset();
@@ -347,10 +335,12 @@ describe('POS loyalty redeem', () => {
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
     getCreditMock.mockReset();
-    getLoyaltyMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
     completeInvoiceMock.mockReset();
+    downloadPdfMock.mockReset();
+    emailCopyMock.mockReset();
+    openPdfMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
     listProductsMock.mockResolvedValue([productA]);
     listDoctorsMock.mockResolvedValue([]);
@@ -363,7 +353,6 @@ describe('POS loyalty redeem', () => {
       version: 1,
       entries: [],
     });
-    getLoyaltyMock.mockResolvedValue(loyaltyAccount);
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -381,155 +370,124 @@ describe('POS loyalty redeem', () => {
     });
     createInvoiceMock.mockResolvedValue(draftInvoice);
     applyPricingMock.mockResolvedValue(draftInvoice);
-  });
-
-  it('loading: points panel waits while the ledger loads', async () => {
-    const user = userEvent.setup();
-    getLoyaltyMock.mockReturnValue(new Promise(() => undefined));
-    renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByText('Loading points…')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Use points')).not.toBeInTheDocument();
-  });
-
-  it('empty: linked patient with zero points has nothing to use', async () => {
-    const user = userEvent.setup();
-    getLoyaltyMock.mockResolvedValue({
-      customerId: 'c1',
-      balancePoints: 0,
-      version: 0,
-      entries: [],
+    downloadPdfMock.mockResolvedValue(new Blob(['pdf'], { type: 'application/pdf' }));
+    emailCopyMock.mockResolvedValue({
+      id: 'em-1',
+      status: 'QUEUED',
+      replayed: false,
+      invoiceNumber: 'INV/2026-27/BR01/00001',
     });
+  });
+
+  it('loading: print waits on the A4 bill', async () => {
+    const user = userEvent.setup();
+    downloadPdfMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByRole('region', { name: 'Points' })).toHaveTextContent(
-      'No points on this patient yet.',
+    await collectWalkIn(user);
+    await user.click(screen.getByRole('button', { name: 'Print this bill' }));
+    expect(await screen.findByText('Preparing the A4 bill…')).toBeInTheDocument();
+  });
+
+  it('empty: saved draft asks to collect before print', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    await saveWalkInDraft(user);
+    expect(screen.getByRole('region', { name: 'Bill copy' })).toHaveTextContent(
+      'Collect this bill to print the A4 invoice.',
     );
-    expect(screen.queryByLabelText('Use points')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Print this bill' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Send bill copy' })).not.toBeInTheDocument();
   });
 
-  it('denied: Free-Starter till hides Use points', async () => {
-    const user = userEvent.setup();
-    renderPage(['SALES', 'CRM', 'INVENTORY']);
-    await savePatientDraft(user);
-    expect(screen.queryByRole('region', { name: 'Points' })).not.toBeInTheDocument();
-    expect(getLoyaltyMock).not.toHaveBeenCalled();
+  it('denied: till without Sales cannot print', () => {
+    renderPage(['CRM']);
+    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
+    expect(screen.queryByRole('region', { name: 'Bill copy' })).not.toBeInTheDocument();
   });
 
-  it('denied: walk-in bill cannot use points', async () => {
+  it('validation: walk-in has no send-bill-copy control', async () => {
     const user = userEvent.setup();
+    renderPage();
+    await collectWalkIn(user);
+    expect(screen.queryByRole('button', { name: 'Send bill copy' })).not.toBeInTheDocument();
+  });
+
+  it('validation: linked patient without email cannot send a copy', async () => {
+    const user = userEvent.setup();
+    listCustomersMock.mockResolvedValue([{ ...customer, email: null }]);
+    completeInvoiceMock.mockResolvedValue({
+      ...draftInvoice,
+      status: 'COMPLETED',
+      version: 2,
+      customerId: 'c1',
+      amountPaidPaise: 11200,
+      payments: [{ mode: 'CASH', amountPaise: 11200, reference: null }],
+    });
     renderPage();
     await screen.findByText('Penicillin V');
     await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
     await user.type(screen.getByLabelText('MRP ₹'), '120');
     await user.type(screen.getByLabelText('Selling ₹'), '100');
-    await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
     await user.click(screen.getByRole('button', { name: 'Save bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
-    expect(screen.queryByRole('region', { name: 'Points' })).not.toBeInTheDocument();
-  });
-
-  it('validation: redeem over 20% of the bill is blocked at the till', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByLabelText('Use points')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Use points'), '23');
-    await user.type(screen.getByLabelText('Cash ₹'), '89');
+    await user.type(screen.getByLabelText('Cash ₹'), '112');
     await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    await user.click(await screen.findByRole('button', { name: 'Send bill copy' }));
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Points can cover at most 20% of this bill.',
+      'This patient has no email on file. Add one before sending a bill copy.',
     );
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
+    expect(emailCopyMock).not.toHaveBeenCalled();
   });
 
-  it('validation: redeem above the running balance is blocked', async () => {
+  it('conflict: stale bill on print', async () => {
     const user = userEvent.setup();
+    downloadPdfMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '22');
-    await user.type(screen.getByLabelText('Cash ₹'), '90');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'This patient does not have enough points for that redeem.',
-    );
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
-  });
-
-  it('conflict: stale total on collect with points', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
-    renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '10');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
+    await collectWalkIn(user);
+    await user.click(screen.getByRole('button', { name: 'Print this bill' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This bill total changed. Refresh, then collect again.',
+      'This bill changed. Refresh, then print again.',
     );
   });
 
-  it('failure: points ledger cannot load for this patient', async () => {
+  it('failure: download network error', async () => {
     const user = userEvent.setup();
-    getLoyaltyMock.mockRejectedValue(new Error('network'));
+    downloadPdfMock.mockRejectedValue(new Error('network'));
     renderPage();
-    await savePatientDraft(user);
-    expect(
-      await screen.findByText(/Could not load points for this patient/),
-    ).toBeInTheDocument();
+    await collectWalkIn(user);
+    await user.click(screen.getByRole('button', { name: 'Download A4' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not prepare this A4 bill');
   });
 
-  it('denied: collect redeem on a frozen plan keeps the copy local', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(
-      new ApiError('Points earn and redeem need Growth or Pro.', 422, 'PLAN_LIMIT'),
-    );
-    renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '10');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not on this plan');
-  });
-
-  it('success: Use points reduces collectible and restores Find medicine focus', async () => {
+  it('success: print and email restore focus', async () => {
     const user = userEvent.setup();
     completeInvoiceMock.mockResolvedValue({
       ...draftInvoice,
       status: 'COMPLETED',
       version: 2,
-      amountPaidPaise: 10200,
-      amountDuePaise: 0,
-      changePaise: 0,
-      loyaltyRedeemPoints: 10,
-      loyaltyRedeemPaise: 1000,
-      loyaltyEarnedPoints: 1,
-      payments: [{ mode: 'CASH', amountPaise: 10200, reference: null }],
+      customerId: 'c1',
+      amountPaidPaise: 11200,
+      payments: [{ mode: 'CASH', amountPaise: 11200, reference: null }],
     });
     renderPage();
-    await savePatientDraft(user);
-    const panel = await screen.findByRole('region', { name: 'Points' });
-    expect(panel).toHaveTextContent('21 pts');
-    await user.type(screen.getByLabelText('Use points'), '10');
-    expect(panel).toHaveTextContent('Still to collect');
-    expect(panel).toHaveTextContent('₹102');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
+    await user.type(screen.getByLabelText('MRP ₹'), '120');
+    await user.type(screen.getByLabelText('Selling ₹'), '100');
+    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: 'Save bill' }));
+    await user.type(screen.getByLabelText('Cash ₹'), '112');
     await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Bill INV/2026-27/BR01/00001 collected at this till.',
-    );
+    await user.click(await screen.findByRole('button', { name: 'Print this bill' }));
     await waitFor(() => {
-      expect(completeInvoiceMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 1,
-          expectedTotalPaise: 11200,
-          changePaise: 0,
-          redeemPoints: 10,
-          payments: [{ mode: 'CASH', amountPaise: 10200, reference: null }],
-        }),
-      );
+      expect(downloadPdfMock).toHaveBeenCalledWith('inv-1');
+      expect(openPdfMock).toHaveBeenCalled();
     });
+    expect(await screen.findByText('A4 bill ready.')).toBeInTheDocument();
     expect(screen.getByLabelText('Find medicine')).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Send bill copy' }));
+    await waitFor(() => expect(emailCopyMock).toHaveBeenCalledWith('inv-1'));
+    expect(await screen.findByText('Bill copy queued for this patient.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Send bill copy' })).toHaveFocus();
   });
 });

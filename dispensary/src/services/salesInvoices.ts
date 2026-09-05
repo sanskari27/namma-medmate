@@ -53,6 +53,8 @@ export interface SalesInvoiceLine {
   offerPriority?: number | null;
   offerBenefitPaise?: number;
   offerExplanation?: string | null;
+  scheduleClassification?: string | null;
+  controlledSubstance?: boolean;
 }
 
 export interface SalesInvoice {
@@ -92,6 +94,9 @@ export interface SalesInvoice {
   loyaltyEarnedPoints?: number;
   loyaltyTaxablePaise?: number;
   loyaltyPendingTaxablePaise?: number;
+  einvoiceApplicability?: 'NOT_APPLICABLE' | null;
+  einvoiceStatus?: 'NOT_SUBMITTED' | null;
+  einvoiceIrn?: string | null;
   completedAt: string | null;
   payments: SalesInvoicePayment[];
   lines: SalesInvoiceLine[];
@@ -270,4 +275,46 @@ export async function applyInvoiceOffers(
 ): Promise<SalesInvoice> {
   const { data } = await apiClient.post<SalesInvoice>(API.salesInvoiceOffers(id), input);
   return data;
+}
+
+export async function pingSalesInvoiceHealth(): Promise<{ status: string }> {
+  const { data } = await apiClient.get<{ status: string }>(API.SALES_INVOICES_HEALTH);
+  return data;
+}
+
+export async function downloadInvoicePdf(id: string): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(API.salesInvoicePdf(id), {
+    responseType: 'blob',
+  });
+  return data;
+}
+
+export async function emailInvoiceCopy(id: string): Promise<{
+  id: string;
+  status: string;
+  replayed: boolean;
+  invoiceNumber: string;
+}> {
+  const { data } = await apiClient.post<{
+    id: string;
+    status: string;
+    replayed: boolean;
+    invoiceNumber: string;
+  }>(API.salesInvoiceEmailCopy(id));
+  return data;
+}
+
+export function openInvoicePdf(blob: Blob, filename: string, print: boolean): void {
+  const url = URL.createObjectURL(blob);
+  if (print) {
+    window.open(url, '_blank');
+    return;
+  }
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = filename;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
 }

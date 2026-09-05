@@ -5,7 +5,6 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PosScreen from '@/screens/pos/PosScreen';
-import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/customers', async () => {
@@ -86,18 +85,6 @@ vi.mock('@/services/credit', async () => {
   };
 });
 
-vi.mock('@/services/loyalty', async () => {
-  const axios = await import('@/services/axios');
-  const actual = await vi.importActual<typeof import('@/services/loyalty')>('@/services/loyalty');
-  return {
-    ...actual,
-    getCustomerLoyalty: vi.fn(),
-    adjustCustomerLoyalty: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
-  };
-});
-
 vi.mock('@/services/salesInvoices', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -113,26 +100,25 @@ vi.mock('@/services/salesInvoices', async () => {
     resumeSalesInvoice: vi.fn(),
     listInvoiceOffers: vi.fn().mockResolvedValue({ items: [] }),
     applyInvoiceOffers: vi.fn(),
-    pingSalesInvoiceHealth: vi.fn().mockResolvedValue({ status: 'UP' }),
     downloadInvoicePdf: vi.fn(),
     emailInvoiceCopy: vi.fn(),
+    pingSalesInvoiceHealth: vi.fn(),
     openInvoicePdf: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { getCustomerCredit } from '@/services/credit';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
-import { getCustomerLoyalty } from '@/services/loyalty';
 import { listProducts } from '@/services/products';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import {
   applyInvoicePricing,
   completeSalesInvoice,
   createSalesInvoice,
+  pingSalesInvoiceHealth,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
@@ -141,27 +127,10 @@ const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
-const getCreditMock = vi.mocked(getCustomerCredit);
-const getLoyaltyMock = vi.mocked(getCustomerLoyalty);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
 const completeInvoiceMock = vi.mocked(completeSalesInvoice);
-
-const customer = {
-  id: 'c1',
-  tenantId: 't1',
-  name: 'Ravi Kumar',
-  phone: '9876500001',
-  email: null,
-  dateOfBirth: null,
-  gender: null,
-  address: null,
-  bloodGroup: null,
-  allergies: null,
-  chronicConditions: null,
-  createdAt: '2026-09-04T00:00:00Z',
-  updatedAt: '2026-09-04T00:00:00Z',
-};
+const pingHealthMock = vi.mocked(pingSalesInvoiceHealth);
 
 const productA = {
   id: 'p1',
@@ -215,7 +184,7 @@ const draftInvoice = {
   status: 'DRAFT' as const,
   staffUserId: 'u1',
   terminalId: 'sess-1',
-  customerId: 'c1' as string | null,
+  customerId: null as string | null,
   doctorId: null,
   prescriptionReference: null,
   prescriptionVerified: false,
@@ -280,27 +249,7 @@ const draftInvoice = {
   updatedAt: '2026-09-05T08:00:00Z',
 };
 
-const loyaltyAccount = {
-  customerId: 'c1',
-  balancePoints: 21,
-  version: 1,
-  entries: [
-    {
-      id: 'le1',
-      type: 'EARN' as const,
-      points: 21,
-      deltaPoints: 21,
-      balanceAfterPoints: 21,
-      invoiceId: 'inv-old',
-      salesReturnId: null,
-      taxablePaise: 210000,
-      reason: null,
-      occurredAt: '2026-09-04T05:00:00Z',
-    },
-  ],
-};
-
-function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY']) {
+function renderPage() {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
@@ -313,7 +262,7 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY']
           pinSet: true,
           tenantStatus: 'ACTIVE',
           emailVerified: true,
-          modules,
+          modules: ['SALES', 'CRM', 'INVENTORY'],
           roles: [],
         },
       },
@@ -328,17 +277,17 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY']
   );
 }
 
-async function savePatientDraft(user: ReturnType<typeof userEvent.setup>) {
+async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Penicillin V');
   await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
   await user.type(screen.getByLabelText('MRP ₹'), '120');
   await user.type(screen.getByLabelText('Selling ₹'), '100');
-  await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
+  await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
   await user.click(screen.getByRole('button', { name: 'Save bill' }));
   expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
 }
 
-describe('POS loyalty redeem', () => {
+describe('POS connectivity guard', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
     listProductsMock.mockReset();
@@ -346,24 +295,14 @@ describe('POS loyalty redeem', () => {
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
-    getCreditMock.mockReset();
-    getLoyaltyMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
     completeInvoiceMock.mockReset();
-    listCustomersMock.mockResolvedValue([customer]);
+    pingHealthMock.mockReset();
+    listCustomersMock.mockResolvedValue([]);
     listProductsMock.mockResolvedValue([productA]);
     listDoctorsMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
-    getCreditMock.mockResolvedValue({
-      customerId: 'c1',
-      limitPaise: 50000,
-      balancePaise: 0,
-      availablePaise: 50000,
-      version: 1,
-      entries: [],
-    });
-    getLoyaltyMock.mockResolvedValue(loyaltyAccount);
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -381,155 +320,36 @@ describe('POS loyalty redeem', () => {
     });
     createInvoiceMock.mockResolvedValue(draftInvoice);
     applyPricingMock.mockResolvedValue(draftInvoice);
+    pingHealthMock.mockResolvedValue({ status: 'UP' });
   });
 
-  it('loading: points panel waits while the ledger loads', async () => {
+  it('shows a full-screen overlay on disconnect and keeps the draft', async () => {
     const user = userEvent.setup();
-    getLoyaltyMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByText('Loading points…')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Use points')).not.toBeInTheDocument();
-  });
-
-  it('empty: linked patient with zero points has nothing to use', async () => {
-    const user = userEvent.setup();
-    getLoyaltyMock.mockResolvedValue({
-      customerId: 'c1',
-      balancePoints: 0,
-      version: 0,
-      entries: [],
-    });
-    renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByRole('region', { name: 'Points' })).toHaveTextContent(
-      'No points on this patient yet.',
+    await saveWalkInDraft(user);
+    window.dispatchEvent(new Event('offline'));
+    expect(await screen.findByRole('alertdialog', { name: 'Till is offline' })).toHaveTextContent(
+      'Keep this bill. Collect when the counter is back on the line.',
     );
-    expect(screen.queryByLabelText('Use points')).not.toBeInTheDocument();
-  });
-
-  it('denied: Free-Starter till hides Use points', async () => {
-    const user = userEvent.setup();
-    renderPage(['SALES', 'CRM', 'INVENTORY']);
-    await savePatientDraft(user);
-    expect(screen.queryByRole('region', { name: 'Points' })).not.toBeInTheDocument();
-    expect(getLoyaltyMock).not.toHaveBeenCalled();
-  });
-
-  it('denied: walk-in bill cannot use points', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await screen.findByText('Penicillin V');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.type(screen.getByLabelText('MRP ₹'), '120');
-    await user.type(screen.getByLabelText('Selling ₹'), '100');
-    await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
-    await user.click(screen.getByRole('button', { name: 'Save bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
-    expect(screen.queryByRole('region', { name: 'Points' })).not.toBeInTheDocument();
-  });
-
-  it('validation: redeem over 20% of the bill is blocked at the till', async () => {
-    const user = userEvent.setup();
-    renderPage();
-    await savePatientDraft(user);
-    expect(await screen.findByLabelText('Use points')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Use points'), '23');
-    await user.type(screen.getByLabelText('Cash ₹'), '89');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Points can cover at most 20% of this bill.',
-    );
+    expect(screen.getAllByText(/INV\/2026-27\/BR01\/00001/).length).toBeGreaterThan(0);
+    expect(screen.getByRole('button', { name: 'Collect bill' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Save bill' })).toBeDisabled();
     expect(completeInvoiceMock).not.toHaveBeenCalled();
   });
 
-  it('validation: redeem above the running balance is blocked', async () => {
+  it('resumes billing after the till can reach the server', async () => {
     const user = userEvent.setup();
     renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '22');
-    await user.type(screen.getByLabelText('Cash ₹'), '90');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'This patient does not have enough points for that redeem.',
-    );
-    expect(completeInvoiceMock).not.toHaveBeenCalled();
-  });
-
-  it('conflict: stale total on collect with points', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
-    renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '10');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This bill total changed. Refresh, then collect again.',
-    );
-  });
-
-  it('failure: points ledger cannot load for this patient', async () => {
-    const user = userEvent.setup();
-    getLoyaltyMock.mockRejectedValue(new Error('network'));
-    renderPage();
-    await savePatientDraft(user);
-    expect(
-      await screen.findByText(/Could not load points for this patient/),
-    ).toBeInTheDocument();
-  });
-
-  it('denied: collect redeem on a frozen plan keeps the copy local', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockRejectedValue(
-      new ApiError('Points earn and redeem need Growth or Pro.', 422, 'PLAN_LIMIT'),
-    );
-    renderPage();
-    await savePatientDraft(user);
-    await user.type(await screen.findByLabelText('Use points'), '10');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Not on this plan');
-  });
-
-  it('success: Use points reduces collectible and restores Find medicine focus', async () => {
-    const user = userEvent.setup();
-    completeInvoiceMock.mockResolvedValue({
-      ...draftInvoice,
-      status: 'COMPLETED',
-      version: 2,
-      amountPaidPaise: 10200,
-      amountDuePaise: 0,
-      changePaise: 0,
-      loyaltyRedeemPoints: 10,
-      loyaltyRedeemPaise: 1000,
-      loyaltyEarnedPoints: 1,
-      payments: [{ mode: 'CASH', amountPaise: 10200, reference: null }],
-    });
-    renderPage();
-    await savePatientDraft(user);
-    const panel = await screen.findByRole('region', { name: 'Points' });
-    expect(panel).toHaveTextContent('21 pts');
-    await user.type(screen.getByLabelText('Use points'), '10');
-    expect(panel).toHaveTextContent('Still to collect');
-    expect(panel).toHaveTextContent('₹102');
-    await user.type(screen.getByLabelText('Cash ₹'), '102');
-    await user.click(screen.getByRole('button', { name: 'Collect bill' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Bill INV/2026-27/BR01/00001 collected at this till.',
-    );
+    await saveWalkInDraft(user);
+    window.dispatchEvent(new Event('offline'));
+    expect(await screen.findByRole('alertdialog', { name: 'Till is offline' })).toBeInTheDocument();
+    pingHealthMock.mockResolvedValue({ status: 'UP' });
+    window.dispatchEvent(new Event('online'));
     await waitFor(() => {
-      expect(completeInvoiceMock).toHaveBeenCalledWith(
-        'inv-1',
-        expect.objectContaining({
-          expectedVersion: 1,
-          expectedTotalPaise: 11200,
-          changePaise: 0,
-          redeemPoints: 10,
-          payments: [{ mode: 'CASH', amountPaise: 10200, reference: null }],
-        }),
-      );
+      expect(screen.queryByRole('alertdialog', { name: 'Till is offline' })).not.toBeInTheDocument();
     });
+    expect(pingHealthMock).toHaveBeenCalled();
     expect(screen.getByLabelText('Find medicine')).toHaveFocus();
+    expect(screen.getAllByText(/INV\/2026-27\/BR01\/00001/).length).toBeGreaterThan(0);
   });
 });

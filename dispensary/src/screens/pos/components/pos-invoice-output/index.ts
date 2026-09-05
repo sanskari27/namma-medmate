@@ -1,0 +1,1 @@
+export { PosInvoiceOutput } from './PosInvoiceOutput';

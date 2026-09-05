@@ -125,6 +125,50 @@ public class SalesInvoice {
   @Column(name = "loyalty_pending_taxable_paise", nullable = false)
   private long loyaltyPendingTaxablePaise;
 
+  @Column(name = "pharmacy_legal_name", length = 200)
+  private String pharmacyLegalName;
+
+  @Column(name = "pharmacy_address", length = 500)
+  private String pharmacyAddress;
+
+  @Column(name = "pharmacy_phone", length = 32)
+  private String pharmacyPhone;
+
+  @Column(name = "pharmacy_gstin", length = 15)
+  private String pharmacyGstin;
+
+  @Column(name = "pharmacy_pan", length = 20)
+  private String pharmacyPan;
+
+  @Column(name = "pharmacy_drug_license_number", length = 64)
+  private String pharmacyDrugLicenseNumber;
+
+  @Column(name = "pharmacy_drug_license_type", length = 64)
+  private String pharmacyDrugLicenseType;
+
+  @Column(name = "pharmacist_name", length = 200)
+  private String pharmacistName;
+
+  @Column(name = "pharmacist_registration", length = 64)
+  private String pharmacistRegistration;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "einvoice_applicability", nullable = false, length = 32)
+  private EinvoiceApplicability einvoiceApplicability = EinvoiceApplicability.NOT_APPLICABLE;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "einvoice_status", nullable = false, length = 32)
+  private EinvoiceStatus einvoiceStatus = EinvoiceStatus.NOT_SUBMITTED;
+
+  @Column(name = "einvoice_irn", length = 64)
+  private String einvoiceIrn;
+
+  @Column(name = "einvoice_ack_no", length = 64)
+  private String einvoiceAckNo;
+
+  @Column(name = "einvoice_ack_at")
+  private Instant einvoiceAckAt;
+
   @Column(name = "completed_at")
   private Instant completedAt;
 

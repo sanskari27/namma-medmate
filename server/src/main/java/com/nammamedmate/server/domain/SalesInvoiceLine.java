@@ -133,6 +133,13 @@ public class SalesInvoiceLine {
   @Column(name = "line_total_paise", nullable = false)
   private long lineTotalPaise;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "schedule_classification", length = 16)
+  private ScheduleClassification scheduleClassification;
+
+  @Column(name = "controlled_substance", nullable = false)
+  private boolean controlledSubstance;
+
   @Column(name = "sort_order", nullable = false)
   private int sortOrder;
 
