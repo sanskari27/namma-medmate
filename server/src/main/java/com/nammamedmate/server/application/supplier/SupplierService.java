@@ -16,6 +16,7 @@ import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ProductCategoryRepository;
+import com.nammamedmate.server.persistence.PurchaseOrderRepository;
 import com.nammamedmate.server.persistence.SupplierCategoryRepository;
 import com.nammamedmate.server.persistence.SupplierRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -39,6 +40,7 @@ public class SupplierService {
   private final SupplierCategoryRepository supplierCategoryRepository;
   private final ProductCategoryRepository productCategoryRepository;
   private final LocationRepository locationRepository;
+  private final PurchaseOrderRepository purchaseOrderRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final AuditService auditService;
@@ -49,6 +51,7 @@ public class SupplierService {
       SupplierCategoryRepository supplierCategoryRepository,
       ProductCategoryRepository productCategoryRepository,
       LocationRepository locationRepository,
+      PurchaseOrderRepository purchaseOrderRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       AuditService auditService,
@@ -57,6 +60,7 @@ public class SupplierService {
     this.supplierCategoryRepository = supplierCategoryRepository;
     this.productCategoryRepository = productCategoryRepository;
     this.locationRepository = locationRepository;
+    this.purchaseOrderRepository = purchaseOrderRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.auditService = auditService;
@@ -344,21 +348,31 @@ public class SupplierService {
         supplier.getNotes(),
         supplier.getCreatedAt(),
         supplier.getUpdatedAt(),
-        branchProcurement(principal, supplier.getTenantId()));
+        branchProcurement(principal, supplier));
   }
 
   private SupplierView.BranchProcurementView branchProcurement(
-      AuthPrincipal principal, UUID tenantId) {
+      AuthPrincipal principal, Supplier supplier) {
     UUID branchId = principal == null ? null : principal.activeBranchId();
     if (branchId == null) {
       return new SupplierView.BranchProcurementView(null, null, List.of());
     }
     String name =
         locationRepository
-            .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
+            .findByIdAndTenantIdAndDeletedAtIsNull(branchId, supplier.getTenantId())
             .map(Location::getName)
             .orElse(null);
-    return new SupplierView.BranchProcurementView(branchId, name, List.of());
+    List<SupplierView.PurchaseOrderSummary> orders =
+        purchaseOrderRepository
+            .findByTenantIdAndBranchIdAndSupplierIdOrderByCreatedAtDesc(
+                supplier.getTenantId(), branchId, supplier.getId())
+            .stream()
+            .map(
+                row ->
+                    new SupplierView.PurchaseOrderSummary(
+                        row.getId(), row.getPoNumber(), row.getCreatedAt()))
+            .toList();
+    return new SupplierView.BranchProcurementView(branchId, name, orders);
   }
 
   private void audit(AuthPrincipal principal, String action, UUID supplierId) {

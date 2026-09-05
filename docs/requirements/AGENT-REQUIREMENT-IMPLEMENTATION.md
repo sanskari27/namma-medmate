@@ -6,11 +6,11 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 35 |
+| done | 36 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 32 |
+| ready | 31 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -52,7 +52,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M4-S06 | M4 | server + dispensary | done | M4-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V31 stock_take + stock_take_line (partial unique one OPEN per tenant+branch); StockTakeService/Controller POST/GET /api/v1/stock-takes + /{id}/counts|/post|/cancel; PHYSICAL_COUNT via InventoryAdjustmentService keys take:{id}:line:{id}; stock moves only after M4-S05 approve. Tests StockTakePolicyTest (5), StockTakeTest AC01–AC05 (6) + Rollback (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 478 BUILD SUCCESS. Dispensary: Inventory Physical count tab + stock-take-workspace/count-sheet/variance-list/history/start-dialog; services/stockTakes.ts; lint+331 tests+build. `make compose-config` OK. Browser: :5173 down; host API OWNER Drug Store 1 → GET stock-takes?scope=open `{items:[]}` 200, unauth 401. Uniqueness from source (viridian Physical count / Count this outlet / Book qty at start, not HQ clone). |
 | M4-S07 | M4 | server + dispensary | done | M4-S03, M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Server: V32 controlled_stock_register (tenant+branch, unique per stock_movement); ControlledStockPolicy/Recorder/Service/Controller `/api/v1/compliance/controlled-stock` verify+list+export csv/ndps; register written from InventoryStockService, StockTransferService, InventoryAdjustmentApplier. Tests ControlledStockPolicyTest (4), ControlledStockTest AC01–AC05 (5), ControlledStockRollbackTest (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 488 tests BUILD SUCCESS. Dispensary: POS PosControlledGate Prescription checked + verify; Inventory Schedule register tab + ControlledStockWorkspace CSV/NDPS export; services/controlledStock.ts. SPA lint+341 tests+build. `make compose-config` OK. Requirements valid. Browser: :5173 down; host API OWNER Drug Store 1 → GET register `{items:[]}` 200, csv/ndps headers 200, unauth 401. Uniqueness from source (viridian Schedule register / Prescription checked, not HQ clone). |
 | M5-S01 | M5 | server + dispensary | done | M1-S05 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: empty-state test awaits empty copy. Server: V33 supplier + supplier_category (tenant_id only, no rating); SupplierService/Controller GET/POST/PATCH /api/v1/suppliers; PROCUREMENT or FINANCE; licenseStatus + session-branch branchProcurement. Tests SupplierPolicyTest (8), SupplierTest AC01–AC05 (5), SupplierRollbackTest (1). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 502 tests BUILD SUCCESS. Dispensary: DistributorsScreen /distributors; services/suppliers.ts. SPA lint+354 tests+build. `make compose-config` OK. Requirements valid. Browser: no IDE browser MCP this session; uniqueness from source (viridian shop-floor supplier book, not HQ clone). |
-| M5-S02 | M5 | server + dispensary | ready | M5-S01, M4-S01 | — | — |
+| M5-S02 | M5 | server + dispensary | done | M5-S01, M4-S01 | — | Independent verifier PASS (story-verifier). verified→done. Gap-close after prior FAIL: line queries tenant+branch; New indent focus restore + CLOSED freeze tests. Server: V34 purchase_order/line/version; PurchaseOrderService/Controller `/api/v1/purchase-orders` CRUD+issue/close/cancel+versions; SupplierService.branchProcurement uses real POs. Tests PurchaseOrderPolicyTest 6, PurchaseOrderTest AC01–AC05, PurchaseOrderRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 514 BUILD SUCCESS. Dispensary: PurchasesScreen `/purchases` + purchaseOrders.ts; lint+367 tests+build. `make compose-config` OK. Browser: :5173 connection refused; uniqueness from source (viridian Outlet orders / New indent / one stockist). |
 | M5-S03 | M5 | server + dispensary | ready | M5-S02, M4-S04, M2-S05 | — | — |
 | M5-S04 | M5 | server + dispensary | ready | M5-S02 | — | — |
 | M5-S05 | M5 | server + dispensary | ready | M5-S04, M4-S03 | — | — |

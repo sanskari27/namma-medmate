@@ -87,7 +87,7 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Inventory', path: ROUTES.INVENTORY, hint: 'Stock on this floor' },
       { label: 'Rack & Locations', path: ROUTES.RACKS, hint: 'Where the pack sits' },
-      { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Incoming stock' },
+      { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Outlet purchase orders' },
       { label: 'Reorder / Distributor', path: ROUTES.REORDER, hint: 'What to indent next' },
       { label: 'Distributors', path: ROUTES.DISTRIBUTORS, hint: 'Supplier book' },
       { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },
@@ -153,7 +153,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.CREDIT &&
     item.path !== ROUTES.INVENTORY &&
     item.path !== ROUTES.SALES &&
-    item.path !== ROUTES.DISTRIBUTORS,
+    item.path !== ROUTES.DISTRIBUTORS &&
+    item.path !== ROUTES.PURCHASES,
 ).map((item) => ({
   path: item.path,
   title: item.label,
