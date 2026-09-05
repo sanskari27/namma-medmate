@@ -252,14 +252,15 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
             .getResponse()
             .getContentAsString();
     JsonNode events = objectMapper.readTree(auditBody).path("data").path("events");
-    assertThat(events.findValuesAsText("action"))
-        .contains("EXPENSE_CREATE", "EXPENSE_UPDATE");
+    assertThat(events.findValuesAsText("action")).contains("EXPENSE_CREATE", "EXPENSE_UPDATE");
     long createCount =
         events.findValuesAsText("action").stream().filter("EXPENSE_CREATE"::equals).count();
     assertThat(createCount).isEqualTo(1);
     assertThat(approvalDecisionRepository.findAll()).isEmpty();
 
-    mockMvc.perform(patch("/api/v1/audit").cookie(fx.cookie())).andExpect(status().isMethodNotAllowed());
+    mockMvc
+        .perform(patch("/api/v1/audit").cookie(fx.cookie()))
+        .andExpect(status().isMethodNotAllowed());
   }
 
   @Test
@@ -282,7 +283,8 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
             .path("id")
             .asText();
 
-    AppUser cashier = persistUser(fx.tenantId(), "till@scope-exp.local", AppUserRole.pharmacy_staff);
+    AppUser cashier =
+        persistUser(fx.tenantId(), "till@scope-exp.local", AppUserRole.pharmacy_staff);
     UUID salesRole = createRole(fx.cookie(), "Till", "[\"SALES\"]");
     mockMvc.perform(putRoles(cashier.getId(), fx.cookie(), salesRole)).andExpect(status().isOk());
     assignBranch(fx.cookie(), cashier.getId(), fx.branchId());
@@ -392,7 +394,9 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
   private void persistPending(Fixture fx, UUID categoryId, long amountPaise) {
     ExpenseCategory category = expenseCategoryRepository.findById(categoryId).orElseThrow();
     AppUser owner =
-        appUserRepository.findByEmailAndDeletedAtIsNull("owner@" + fx.tag() + ".local").orElseThrow();
+        appUserRepository
+            .findByEmailAndDeletedAtIsNull("owner@" + fx.tag() + ".local")
+            .orElseThrow();
     Instant now = T0;
     Expense row = new Expense();
     row.setId(UUID.randomUUID());

@@ -138,12 +138,7 @@ public class ExpenseService {
     Map<UUID, String> names = branchNames(ctx.tenantId(), branchIds);
     List<Expense> rows =
         expenseRepository.findScoped(
-            ctx.tenantId(),
-            branchIds,
-            categoryId,
-            from,
-            to,
-            ExpensePostingStatus.POSTED);
+            ctx.tenantId(), branchIds, categoryId, from, to, ExpensePostingStatus.POSTED);
     long total = 0;
     Map<UUID, ExpenseTotalsView.CategoryTotal> byCategory = new LinkedHashMap<>();
     Map<UUID, ExpenseTotalsView.BranchTotal> byBranch = new LinkedHashMap<>();
