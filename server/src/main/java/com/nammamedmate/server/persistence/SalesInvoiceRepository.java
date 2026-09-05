@@ -3,6 +3,7 @@ package com.nammamedmate.server.persistence;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -38,6 +39,8 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
 
   List<SalesInvoice> findByTenantIdAndPrescriptionReferenceAndStatusOrderByCompletedAtAsc(
       UUID tenantId, String prescriptionReference, SalesInvoiceStatus status);
+
+  List<SalesInvoice> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(

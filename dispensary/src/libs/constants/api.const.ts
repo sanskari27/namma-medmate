@@ -146,6 +146,8 @@ export const API = {
   prescriptionReference: (id: string) => `/api/v1/prescription-references/${id}`,
   prescriptionReferenceArchive: (id: string) => `/api/v1/prescription-references/${id}/archive`,
   EXPENSE_CATEGORIES: '/api/v1/finance/expense-categories',
+  FINANCE_RECEIVABLES: '/api/v1/finance/receivables',
+  FINANCE_PAYABLES: '/api/v1/finance/payables',
   EXPENSES: '/api/v1/finance/expenses',
   EXPENSES_TOTALS: '/api/v1/finance/expenses/totals',
   expense: (id: string) => `/api/v1/finance/expenses/${id}`,

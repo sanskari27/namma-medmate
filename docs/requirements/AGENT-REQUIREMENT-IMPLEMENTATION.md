@@ -7,10 +7,10 @@ independent verifier verdict. When a row status changes, update the counts.
 | Status | Count |
 |---|---:|
 | done | 55 |
-| in_progress | 0 |
+| in_progress | 1 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 12 |
+| ready | 11 |
 | blocked | 1 |
 | deferred | 3 |
 | total | 71 |
@@ -72,7 +72,7 @@ independent verifier verdict. When a row status changes, update the counts.
 | M7-S05 | M7 | server + dispensary + admin | deferred | M7-S03 | — | Phase 2 only |
 | M8-S01 | M8 | server + dispensary | done | M1-S05, M2-S04 | — | Independent verifier PASS (story-verifier bc-02f18673). verified→done. Prior FAIL closed: OWNER All outlets `scope=tenant` test; ExpenseFormPanel split spend + add-category fields. Delta `cd dispensary && npm run test -- --run src/screens/expenses/tests/ExpensesScreen.test.tsx` 9 passed. Server: V51 expense_category+expense+expense_evidence; ExpensePolicy/Service/Controller `/api/v1/finance/expense-categories` + `/expenses` CRUD/totals/evidence; FINANCE gate; OWNER tenant consolidation `?scope=tenant`; snapshot category_code/label; optional receipt; no closed-period lock. Tests ExpensePolicyTest 4, ExpenseTest AC01–AC05, ExpenseRollbackTest 1. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` Tests run: 733 Failures: 0 BUILD SUCCESS (03:08, 2026-09-06T02:28:28). Dispensary: `/expenses` Shop spend orchestrator (header/status/filter/totals/list/form); services/expenses.ts axios. Tests ExpensesScreen 9 (loading/empty/validation/denied/conflict/failure/success+focus + custom category + All outlets). SPA `cd dispensary && npm run lint && npm run test -- --run && npm run build` lint OK; 61 files 557 tests; first build TS2550 replaceAll, fixed `replace(/,/g,'')`, then tsc+vite OK. Skip admin. `make compose-config` OK. `node --test scripts/validate-requirements.test.mjs` 8 pass; `node scripts/validate-requirements.mjs` Requirements valid: 71 stories. Browser: no IDE browser MCP; :5173/expenses HTTP 200. Host API OWNER Drug Store 1 GET categories (RENT/ELECTRICITY/SALARIES/MISCELLANEOUS) + expenses `{items:[]}` + totals `{totalPaise:0}` 200; unauth 401. Uniqueness from source (viridian Shop spend / Record spend / This outlet / All outlets, not HQ clone). |
 | M8-S02 | M8 | server + dispensary | done | M8-S01, M1-S07 | D-004 closed | Independent verifier PASS (story-verifier bc-fc4a94dd). verified→done. Implementer 2026-09-06 (2d8ebef, 564abc9). D-004: post immediately; no threshold; no M1-S07 routing. Server: V52 expense.status PENDING\|POSTED\|REJECTED; API writes POSTED; totals POSTED-only; ApprovalService FINANCE → 422 APPROVAL_NOT_REQUIRED. Tests ExpensePolicyTest (+2 AC01/AC02), ApprovalPolicyTest (+1), ExpenseApprovalTest AC01–AC05 (5), ExpenseApprovalRollbackTest (2). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` Tests run: 743 Failures: 0 BUILD SUCCESS (03:02, 2026-09-06T04:12:09). Dispensary: Shop spend Spend state On the books/Waiting/Turned down; Posted badge; Correct this spend; no send-for-approval. Tests ExpensesScreen 13 (7 named states + waiting/turned down/posted/correction+focus). SPA `cd dispensary && npm run lint && npm run test -- --run && npm run build` lint OK; 61 files 562 tests (maxWorkers 2); tsc+vite OK. Skip admin. `make compose-config` OK. `node --test scripts/validate-requirements.test.mjs` 8 pass; `node scripts/validate-requirements.mjs` Requirements valid: 71 stories. Host API OWNER Drug Store 1 POST expense `{status:POSTED,amountPaise:12345}` 200, totals 12345, PENDING empty, FINANCE rule 422, unauth 401. Browser: `:5173/expenses` HTTP 200; uniqueness from source (viridian On the books / Waiting / Turned down / Correct this spend, not HQ clone). |
-| M8-S03 | M8 | server + dispensary | ready | M3-S05, M5-S06 | — | — |
+| M8-S03 | M8 | server + dispensary | in_progress | M3-S05, M5-S06 | — | Selected 2026-09-06: first dependency-ready story. |
 | M8-S04 | M8 | server + dispensary | ready | M6-S05, M5-S06, M8-S01 | — | — |
 | M8-S05 | M8 | server + dispensary | ready | M8-S04 | — | — |
 | M9-S01 | M9 | server + dispensary | ready | M1-S05, M2-S06, M4-S04, M5-S05, M6-S05, M8-S01, M8-S03 | — | — |

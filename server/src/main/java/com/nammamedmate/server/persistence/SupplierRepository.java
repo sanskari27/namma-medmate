@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Supplier;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,8 @@ public interface SupplierRepository extends JpaRepository<Supplier, UUID> {
   Optional<Supplier> findByTenantIdAndGstin(UUID tenantId, String gstin);
 
   List<Supplier> findAllByTenantIdOrderByLegalNameAsc(UUID tenantId);
+
+  List<Supplier> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   @Query(
       """

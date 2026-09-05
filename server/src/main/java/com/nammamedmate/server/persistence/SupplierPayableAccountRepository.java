@@ -2,6 +2,7 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.SupplierPayableAccount;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -30,4 +31,7 @@ public interface SupplierPayableAccountRepository
   List<SupplierPayableAccount>
       findAllByTenantIdAndBranchIdAndBalancePaiseGreaterThanOrderByBalancePaiseDesc(
           UUID tenantId, UUID branchId, long balancePaise);
+
+  List<SupplierPayableAccount> findAllByTenantIdAndBranchIdIn(
+      UUID tenantId, Collection<UUID> branchIds);
 }

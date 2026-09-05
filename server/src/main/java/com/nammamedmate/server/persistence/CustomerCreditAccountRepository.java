@@ -29,4 +29,6 @@ public interface CustomerCreditAccountRepository
 
   List<CustomerCreditAccount> findAllByTenantIdAndCustomerIdIn(
       UUID tenantId, List<UUID> customerIds);
+
+  List<CustomerCreditAccount> findAllByTenantId(UUID tenantId);
 }

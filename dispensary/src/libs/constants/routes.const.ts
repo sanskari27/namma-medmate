@@ -22,6 +22,7 @@ export const ROUTES = {
   KIOSK: '/kiosk',
   REPORTS: '/reports',
   EXPENSES: '/expenses',
+  AGING: '/aging',
   ACCOUNTANT: '/accountant',
   ACCOUNT: '/account',
   LICENSES: '/licenses',
@@ -100,6 +101,7 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Reports', path: ROUTES.REPORTS, hint: 'This branch numbers' },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
+      { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
       { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Books for the CA' },
     ],
   },
@@ -172,7 +174,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.DISTRIBUTORS &&
     item.path !== ROUTES.PURCHASES &&
     item.path !== ROUTES.OFFERS &&
-    item.path !== ROUTES.EXPENSES,
+    item.path !== ROUTES.EXPENSES &&
+    item.path !== ROUTES.AGING,
 ).map((item) => ({
   path: item.path,
   title: item.label,
