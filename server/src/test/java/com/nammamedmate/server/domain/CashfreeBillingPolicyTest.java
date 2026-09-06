@@ -76,7 +76,9 @@ class CashfreeBillingPolicyTest {
         .isFalse();
     assertThat(
             CashfreeBillingPolicy.isException(
-                SubscriptionPaymentStatus.PENDING, now.minus(CashfreeBillingPolicy.PENDING_AGE), now))
+                SubscriptionPaymentStatus.PENDING,
+                now.minus(CashfreeBillingPolicy.PENDING_AGE),
+                now))
         .isTrue();
     assertThat(CashfreeBillingPolicy.isException(SubscriptionPaymentStatus.FAILED, now, now))
         .isTrue();

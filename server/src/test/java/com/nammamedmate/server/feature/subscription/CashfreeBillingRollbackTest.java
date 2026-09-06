@@ -64,15 +64,14 @@ class CashfreeBillingRollbackTest extends AbstractIntegrationTest {
                 .cookie(cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"planCode\":\"STARTER\",\"idempotencyKey\":\""
-                        + UUID.randomUUID()
-                        + "\"}"))
+                    "{\"planCode\":\"STARTER\",\"idempotencyKey\":\"" + UUID.randomUUID() + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.code").value(CashfreeBillingPolicy.PROVIDER_UNAVAILABLE));
 
     assertThat(paymentRepository.count()).isZero();
     assertThat(intentRepository.count()).isZero();
-    assertThat(tenantSubscriptionRepository.findByTenantId(tenant.getId()).orElseThrow().getPlanCode())
+    assertThat(
+            tenantSubscriptionRepository.findByTenantId(tenant.getId()).orElseThrow().getPlanCode())
         .isEqualTo(PlanCode.FREE);
   }
 
@@ -90,9 +89,7 @@ class CashfreeBillingRollbackTest extends AbstractIntegrationTest {
                 .cookie(cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(
-                    "{\"planCode\":\"STARTER\",\"idempotencyKey\":\""
-                        + UUID.randomUUID()
-                        + "\"}"))
+                    "{\"planCode\":\"STARTER\",\"idempotencyKey\":\"" + UUID.randomUUID() + "\"}"))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.code").value(CashfreeBillingPolicy.PROVIDER_UNAVAILABLE));
     assertThat(paymentRepository.count()).isZero();

@@ -50,7 +50,10 @@ public class CashfreeBillingController {
   public ApiResponse<CashfreePaymentResponse> checkout(
       Authentication authentication, @Valid @RequestBody CheckoutRequest request) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(toResponse(cashfreeBillingService.checkout(principal, request.planCode(), request.idempotencyKey())));
+    return ApiResponse.ok(
+        toResponse(
+            cashfreeBillingService.checkout(
+                principal, request.planCode(), request.idempotencyKey())));
   }
 
   @GetMapping("/{id}")
@@ -62,7 +65,8 @@ public class CashfreeBillingController {
 
   @GetMapping
   public ApiResponse<CashfreePaymentResponse> statusByOrder(
-      Authentication authentication, @org.springframework.web.bind.annotation.RequestParam String orderId) {
+      Authentication authentication,
+      @org.springframework.web.bind.annotation.RequestParam String orderId) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(cashfreeBillingService.reconcileByOrder(principal, orderId)));
   }

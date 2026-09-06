@@ -96,7 +96,8 @@ public final class CashfreeBillingPolicy {
     return modes != null && !modes.contains("CASHFREE");
   }
 
-  public static boolean isException(SubscriptionPaymentStatus status, Instant createdAt, Instant now) {
+  public static boolean isException(
+      SubscriptionPaymentStatus status, Instant createdAt, Instant now) {
     if (status == SubscriptionPaymentStatus.FAILED
         || status == SubscriptionPaymentStatus.ABANDONED) {
       return true;

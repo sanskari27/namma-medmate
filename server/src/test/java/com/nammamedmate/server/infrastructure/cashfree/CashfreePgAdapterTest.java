@@ -51,8 +51,7 @@ class CashfreePgAdapterTest {
     String signature =
         java.util.Base64.getEncoder()
             .encodeToString(
-                mac.doFinal(
-                    (timestamp + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+                mac.doFinal((timestamp + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
     assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, signature)).isTrue();
     assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, "nope")).isFalse();
     assertThat(CashfreeWebhookSignature.valid("", timestamp, body, signature)).isFalse();

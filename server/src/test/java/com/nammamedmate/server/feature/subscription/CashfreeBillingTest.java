@@ -120,8 +120,11 @@ class CashfreeBillingTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.data.status").value("PENDING"))
             .andReturn();
     JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");
-    assertThat(paymentRepository.findById(UUID.fromString(data.get("id").asText())).orElseThrow()
-            .getAmountPaise())
+    assertThat(
+            paymentRepository
+                .findById(UUID.fromString(data.get("id").asText()))
+                .orElseThrow()
+                .getAmountPaise())
         .isEqualTo(69900);
     assertThat(
             tenantSubscriptionRepository.findByTenantId(fx.tenantId()).orElseThrow().getPlanCode())

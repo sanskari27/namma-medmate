@@ -171,7 +171,8 @@ public class CashfreeBillingService {
     if (payment.getStatus() != SubscriptionPaymentStatus.PENDING) {
       return toView(payment);
     }
-    Optional<CashfreeOrderStatus> fetched = cashfreePgAdapter.fetchOrder(payment.getProviderOrderId());
+    Optional<CashfreeOrderStatus> fetched =
+        cashfreePgAdapter.fetchOrder(payment.getProviderOrderId());
     if (fetched.isEmpty()) {
       return toView(payment);
     }
@@ -179,7 +180,9 @@ public class CashfreeBillingService {
     String status = order.status() == null ? "" : order.status().toUpperCase();
     if (status.equals("PAID") || status.equals("SUCCESS")) {
       applySuccess(payment, order.amountRupees(), null, Map.of("source", "reconcile"));
-    } else if (status.equals("EXPIRED") || status.equals("TERMINATED") || status.equals("USER_DROPPED")) {
+    } else if (status.equals("EXPIRED")
+        || status.equals("TERMINATED")
+        || status.equals("USER_DROPPED")) {
       mark(payment, SubscriptionPaymentStatus.ABANDONED, null, false);
     }
     return toView(payment);
@@ -298,12 +301,7 @@ public class CashfreeBillingService {
     payment.setUpdatedAt(now);
     payment.setSignatureVerified(true);
     paymentRepository.save(payment);
-    audit(
-        null,
-        payment.getTenantId(),
-        null,
-        CashfreeBillingPolicy.AUDIT_PAYMENT,
-        payment.getId());
+    audit(null, payment.getTenantId(), null, CashfreeBillingPolicy.AUDIT_PAYMENT, payment.getId());
   }
 
   private void fail(
