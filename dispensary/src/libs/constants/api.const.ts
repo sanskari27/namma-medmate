@@ -26,6 +26,7 @@ export const API = {
   SUBSCRIPTIONS_CATALOGUE: '/api/v1/subscriptions/catalogue',
   SUBSCRIPTIONS_CURRENT: '/api/v1/subscriptions/current',
   SUBSCRIPTIONS_UPGRADE: '/api/v1/subscriptions/upgrade',
+  SUBSCRIPTIONS_CASHFREE: '/api/v1/subscriptions/payments/cashfree',
   KIOSK: '/api/v1/kiosk',
   KIOSK_OPEN: '/api/v1/kiosk/open',
   KIOSK_CLOSE: '/api/v1/kiosk/close',

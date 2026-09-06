@@ -1,5 +1,7 @@
 package com.nammamedmate.server.feature.subscription;
 
+import com.nammamedmate.server.application.subscription.AdminCashfreePaymentView;
+import com.nammamedmate.server.application.subscription.CashfreeBillingService;
 import com.nammamedmate.server.application.subscription.OverrideEventView;
 import com.nammamedmate.server.application.subscription.SubscriptionCurrentView;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
@@ -27,9 +29,12 @@ import org.springframework.web.bind.annotation.RestController;
 public class AdminSubscriptionController {
 
   private final SubscriptionService subscriptionService;
+  private final CashfreeBillingService cashfreeBillingService;
 
-  public AdminSubscriptionController(SubscriptionService subscriptionService) {
+  public AdminSubscriptionController(
+      SubscriptionService subscriptionService, CashfreeBillingService cashfreeBillingService) {
     this.subscriptionService = subscriptionService;
+    this.cashfreeBillingService = cashfreeBillingService;
   }
 
   @GetMapping
@@ -39,6 +44,16 @@ public class AdminSubscriptionController {
         new AdminSubscriptionListResponse(
             subscriptionService.listForAdmin(principal).stream()
                 .map(AdminSubscriptionController::toSummary)
+                .toList()));
+  }
+
+  @GetMapping("/payments")
+  public ApiResponse<AdminPaymentListResponse> payments(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        new AdminPaymentListResponse(
+            cashfreeBillingService.listForAdmin(principal).stream()
+                .map(AdminSubscriptionController::toPayment)
                 .toList()));
   }
 
@@ -118,6 +133,19 @@ public class AdminSubscriptionController {
         view.entitledModules().stream().map(Enum::name).toList());
   }
 
+  private static AdminPaymentResponse toPayment(AdminCashfreePaymentView view) {
+    return new AdminPaymentResponse(
+        view.id(),
+        view.tenantId(),
+        view.tenantName(),
+        view.planCode().name(),
+        view.amountPaise(),
+        view.status().name(),
+        view.errorCode(),
+        view.exception(),
+        view.createdAt());
+  }
+
   public record AdminSubscriptionListResponse(List<AdminSubscriptionSummaryResponse> items) {}
 
   public record AdminSubscriptionSummaryResponse(
@@ -155,4 +183,17 @@ public class AdminSubscriptionController {
       Instant expiresAt,
       Integer branchLimitOverride,
       @NotBlank String reason) {}
+
+  public record AdminPaymentListResponse(List<AdminPaymentResponse> items) {}
+
+  public record AdminPaymentResponse(
+      UUID id,
+      UUID tenantId,
+      String tenantName,
+      String planCode,
+      int amountPaise,
+      String status,
+      String errorCode,
+      boolean exception,
+      Instant createdAt) {}
 }

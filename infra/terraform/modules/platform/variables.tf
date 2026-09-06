@@ -64,3 +64,31 @@ variable "resend_from" {
   type    = string
   default = "Namma MedMate <noreply@nammamedmate.com>"
 }
+
+variable "cashfree_client_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "cashfree_client_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "cashfree_webhook_secret" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "cashfree_env" {
+  type    = string
+  default = "production"
+}
+
+variable "cashfree_return_url" {
+  type    = string
+  default = "https://dispensary.nammamedmate.com/subscription"
+}

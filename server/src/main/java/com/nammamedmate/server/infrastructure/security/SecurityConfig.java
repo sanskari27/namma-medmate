@@ -134,6 +134,9 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(HttpMethod.POST, "/api/v1/integrations/resend/webhook")
                     .permitAll()
+                    .requestMatchers(
+                        HttpMethod.POST, "/api/v1/subscriptions/payments/cashfree/callback")
+                    .permitAll()
                     .anyRequest()
                     .authenticated())
         .exceptionHandling(

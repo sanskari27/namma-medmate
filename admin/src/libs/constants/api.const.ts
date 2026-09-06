@@ -25,6 +25,7 @@ export const API = {
   ADMIN_KYC: '/api/v1/admin/kyc',
   ADMIN_TENANTS: '/api/v1/admin/tenants',
   ADMIN_SUBSCRIPTIONS: '/api/v1/admin/subscriptions',
+  ADMIN_SUBSCRIPTION_PAYMENTS: '/api/v1/admin/subscriptions/payments',
   ADMIN_COMPLIANCE_LICENSES_DUE: '/api/v1/admin/compliance/licenses/due',
   WHATSAPP_TEMPLATES: '/api/v1/communications/whatsapp/templates',
   WHATSAPP_PROVIDER_SYNC: '/api/v1/communications/whatsapp/templates/provider/sync',

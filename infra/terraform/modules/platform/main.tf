@@ -302,6 +302,11 @@ resource "aws_ssm_parameter" "compose_env" {
     "RESEND_API_KEY=${var.resend_api_key}",
     "RESEND_WEBHOOK_SECRET=${var.resend_webhook_secret}",
     "RESEND_FROM=${var.resend_from}",
+    "CASHFREE_CLIENT_ID=${var.cashfree_client_id}",
+    "CASHFREE_CLIENT_SECRET=${var.cashfree_client_secret}",
+    "CASHFREE_WEBHOOK_SECRET=${var.cashfree_webhook_secret}",
+    "CASHFREE_ENV=${var.cashfree_env}",
+    "CASHFREE_RETURN_URL=${var.cashfree_return_url}",
   ])
 
   lifecycle {

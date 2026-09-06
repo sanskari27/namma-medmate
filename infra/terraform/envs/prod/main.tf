@@ -31,4 +31,9 @@ module "platform" {
   resend_api_key        = var.resend_api_key
   resend_webhook_secret = var.resend_webhook_secret
   resend_from           = var.resend_from
+  cashfree_client_id    = var.cashfree_client_id
+  cashfree_client_secret = var.cashfree_client_secret
+  cashfree_webhook_secret = var.cashfree_webhook_secret
+  cashfree_env          = var.cashfree_env
+  cashfree_return_url   = var.cashfree_return_url
 }

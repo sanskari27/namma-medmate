@@ -21,6 +21,14 @@ public final class PlanCatalogue {
         offer(PlanCode.PRO, 299_900));
   }
 
+  public static int pricePaiseMonthly(PlanCode code) {
+    return all().stream()
+        .filter(offer -> offer.code() == code)
+        .mapToInt(PlanOffer::pricePaiseMonthly)
+        .findFirst()
+        .orElse(0);
+  }
+
   private static PlanOffer offer(PlanCode code, int pricePaiseMonthly) {
     return new PlanOffer(
         code,
