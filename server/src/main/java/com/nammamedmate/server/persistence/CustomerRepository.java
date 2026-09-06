@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Customer;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
@@ -18,6 +19,20 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
   Optional<Customer> findByTenantIdAndPhoneAndDeletedAtIsNull(UUID tenantId, String phone);
 
   List<Customer> findAllByTenantIdAndDeletedAtIsNullOrderByNameAsc(UUID tenantId);
+
+  @Query(
+      """
+      select c from Customer c
+      where c.tenantId = :tenantId
+        and c.deletedAt is null
+        and c.createdAt >= :from
+        and c.createdAt < :toExclusive
+      order by c.createdAt asc, c.name asc
+      """)
+  List<Customer> findCreatedInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("from") Instant from,
+      @Param("toExclusive") Instant toExclusive);
 
   List<Customer> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 

@@ -2,6 +2,7 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.PurchaseOrder;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -25,6 +26,8 @@ public interface PurchaseOrderRepository extends JpaRepository<PurchaseOrder, UU
       """)
   Optional<PurchaseOrder> lockByIdAndTenantIdAndBranchId(
       @Param("id") UUID id, @Param("tenantId") UUID tenantId, @Param("branchId") UUID branchId);
+
+  List<PurchaseOrder> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   List<PurchaseOrder> findByTenantIdAndBranchIdOrderByCreatedAtDesc(UUID tenantId, UUID branchId);
 

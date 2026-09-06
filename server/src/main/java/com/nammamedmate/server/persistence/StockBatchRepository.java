@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.StockBatch;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -12,6 +13,8 @@ public interface StockBatchRepository extends JpaRepository<StockBatch, UUID> {
 
   Optional<StockBatch> findByTenantIdAndProductIdAndBatchNumber(
       UUID tenantId, UUID productId, String batchNumber);
+
+  List<StockBatch> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   List<StockBatch> findAllByTenantIdAndProductIdOrderByExpiresOnAscBatchNumberAsc(
       UUID tenantId, UUID productId);

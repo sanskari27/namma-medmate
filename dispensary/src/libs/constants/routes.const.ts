@@ -22,6 +22,7 @@ export const ROUTES = {
   KIOSK: '/kiosk',
   BOOKS: '/books',
   REPORTS: '/reports',
+  CUSTOM_REPORTS: '/custom-reports',
   EXPENSES: '/expenses',
   AGING: '/aging',
   ACCOUNTANT: '/accountant',
@@ -101,6 +102,11 @@ export const NAV_SECTIONS = [
     label: 'Business',
     items: [
       { label: 'Compare weeks', path: ROUTES.REPORTS, hint: 'This week vs last week' },
+      {
+        label: 'Build a report',
+        path: ROUTES.CUSTOM_REPORTS,
+        hint: 'Pick columns and download a sheet',
+      },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
       { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },
@@ -180,7 +186,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.AGING &&
     item.path !== ROUTES.BOOKS &&
     item.path !== ROUTES.ACCOUNTANT &&
-    item.path !== ROUTES.REPORTS,
+    item.path !== ROUTES.REPORTS &&
+    item.path !== ROUTES.CUSTOM_REPORTS,
 ).map((item) => ({
   path: item.path,
   title: item.label,

@@ -9,5 +9,5 @@ export function hasReportingAccess(
 }
 
 export function isReportingNavPath(path: string): boolean {
-  return path === '/reports';
+  return path === '/reports' || path === '/custom-reports';
 }
