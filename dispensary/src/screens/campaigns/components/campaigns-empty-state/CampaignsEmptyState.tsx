@@ -3,8 +3,8 @@ export function CampaignsEmptyState() {
     <section className="border border-line bg-surface p-3" aria-label="Empty broadcasts">
       <h2 className="text-sm font-semibold text-ink">Start a list</h2>
       <p className="mt-2 text-sm text-muted">
-        New broadcast, pick a saved tag, then count this list. Ready to send freezes the count for
-        later delivery.
+        New broadcast, pick a saved tag, then count this list. Ready to send freezes the count.
+        Send this list when the till is set.
       </p>
     </section>
   );

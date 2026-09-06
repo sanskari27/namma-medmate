@@ -26,6 +26,7 @@ import PurchasesScreen from '@/screens/purchases/PurchasesScreen';
 import OffersScreen from '@/screens/offers/OffersScreen';
 import LicensesScreen from '@/screens/licenses/LicensesScreen';
 import WhatsappTemplatesScreen from '@/screens/whatsapp-templates/WhatsappTemplatesScreen';
+import WhatsappSendsScreen from '@/screens/whatsapp-sends/WhatsappSendsScreen';
 import PrescriptionsScreen from '@/screens/prescriptions/PrescriptionsScreen';
 import RegistersScreen from '@/screens/registers/RegistersScreen';
 import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRegisterScreen';
@@ -61,6 +62,7 @@ const router = createBrowserRouter([
           { path: ROUTES.ACCOUNT, element: <AccountScreen /> },
           { path: ROUTES.LICENSES, element: <LicensesScreen /> },
           { path: ROUTES.WHATSAPP_TEMPLATES, element: <WhatsappTemplatesScreen /> },
+          { path: ROUTES.WHATSAPP_SENDS, element: <WhatsappSendsScreen /> },
           { path: ROUTES.REGISTERS, element: <RegistersScreen /> },
           { path: ROUTES.CONTROLLED_REGISTER, element: <ControlledRegisterScreen /> },
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },

@@ -93,6 +93,12 @@ export function apiStatusHint(code: string | null): string | null {
   if (code === 'READY_ALREADY') {
     return 'This broadcast is already ready to send.';
   }
+  if (code === 'NOT_READY') {
+    return 'Freeze this list before sending the shop update.';
+  }
+  if (code === 'PROVIDER_UNAVAILABLE') {
+    return 'WhatsApp is down. Open WhatsApp sends and try again when the line is back.';
+  }
   return null;
 }
 

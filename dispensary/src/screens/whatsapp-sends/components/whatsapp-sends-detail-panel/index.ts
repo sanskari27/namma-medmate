@@ -1,0 +1,1 @@
+export { WhatsappSendsDetailPanel } from './WhatsappSendsDetailPanel';

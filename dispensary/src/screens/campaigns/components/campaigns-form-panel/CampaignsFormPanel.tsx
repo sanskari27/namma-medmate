@@ -9,12 +9,14 @@ export type CampaignsFormPanelProps = {
   creating: boolean;
   canPreview: boolean;
   canReady: boolean;
+  canSend: boolean;
   busy: boolean;
   onChange: (patch: Partial<FormState>) => void;
   onToggleTag: (tagId: string) => void;
   onSave: () => void;
   onPreview: () => void;
   onReady: () => void;
+  onSend: () => void;
 };
 
 export function CampaignsFormPanel({
@@ -24,12 +26,14 @@ export function CampaignsFormPanel({
   creating,
   canPreview,
   canReady,
+  canSend,
   busy,
   onChange,
   onToggleTag,
   onSave,
   onPreview,
   onReady,
+  onSend,
 }: CampaignsFormPanelProps) {
   return (
     <section className="space-y-3 border border-line bg-surface p-3" aria-label="Broadcast form">
@@ -75,6 +79,9 @@ export function CampaignsFormPanel({
         </Button>
         <Button type="button" variant="outline" disabled={busy || !canReady} onClick={onReady}>
           Ready to send
+        </Button>
+        <Button type="button" disabled={busy || !canSend} onClick={onSend}>
+          Send this list
         </Button>
       </div>
     </section>

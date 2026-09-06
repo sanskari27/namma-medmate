@@ -9,5 +9,5 @@ export function hasCampaignAccess(
 }
 
 export function isCampaignNavPath(path: string): boolean {
-  return path === '/campaigns';
+  return path === '/campaigns' || path === '/whatsapp-sends';
 }

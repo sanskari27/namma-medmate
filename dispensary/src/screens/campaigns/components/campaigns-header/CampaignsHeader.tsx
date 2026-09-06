@@ -22,7 +22,7 @@ export function CampaignsHeader({
         <div>
           <h1 className="text-2xl font-semibold text-ink">Tag broadcasts</h1>
           <p className="mt-1 text-sm text-muted">
-            Prepare a WhatsApp list from saved patient tags. Sending is a later step.
+            Freeze a patient list, then send the shop update on WhatsApp.
           </p>
         </div>
         {denied ? null : (
@@ -35,6 +35,12 @@ export function CampaignsHeader({
                 Pack for the CA
               </Link>
             ) : null}
+            <Link
+              to={ROUTES.WHATSAPP_SENDS}
+              className="inline-flex h-9 items-center border border-line bg-surface px-3 text-sm text-ink hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+            >
+              WhatsApp sends
+            </Link>
             <Button ref={addButtonRef} type="button" onClick={onAdd}>
               New broadcast
             </Button>

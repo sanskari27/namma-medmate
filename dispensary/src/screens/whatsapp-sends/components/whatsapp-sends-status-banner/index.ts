@@ -1,0 +1,1 @@
+export { WhatsappSendsStatusBanner } from './WhatsappSendsStatusBanner';
