@@ -21,6 +21,7 @@ import {
   LayoutGrid,
   LogOut,
   MapPin,
+  Megaphone,
   Menu,
   MessageCircle,
   MonitorSmartphone,
@@ -73,6 +74,7 @@ import {
 import { cn } from '@/libs/cn';
 import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
 import { hasReportingAccess, isReportingNavPath } from '@/libs/reportingAccess';
+import { hasCampaignAccess, isCampaignNavPath } from '@/libs/campaignAccess';
 import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { switchSessionBranch } from '@/services/sessionBranch';
@@ -86,6 +88,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.SALES]: ScanBarcode,
   [ROUTES.PRESCRIPTIONS]: Pill,
   [ROUTES.CUSTOMERS]: Users,
+  [ROUTES.CAMPAIGNS]: Megaphone,
   [ROUTES.CREDIT]: Wallet,
   [ROUTES.CRM]: HeartPulse,
   [ROUTES.INVENTORY]: Package,
@@ -145,6 +148,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const isOwner = user?.role === 'pharmacy_owner';
   const canSeeFinance = hasFinanceAccess(user?.role, user?.roles);
   const canSeeReporting = hasReportingAccess(user?.role, user?.modules);
+  const canSeeCampaigns = hasCampaignAccess(user?.role, user?.modules);
   const branches = user?.branches ?? [];
   const activeBranchId = user?.activeBranchId ?? null;
   const selectedId =
@@ -361,6 +365,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
                   {section.items
                     .filter((item) => canSeeFinance || !isFinanceNavPath(item.path))
                     .filter((item) => canSeeReporting || !isReportingNavPath(item.path))
+                    .filter((item) => canSeeCampaigns || !isCampaignNavPath(item.path))
                     .map((item) => (
                       <li key={item.path}>
                         <RailLink

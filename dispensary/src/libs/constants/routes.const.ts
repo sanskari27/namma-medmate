@@ -10,6 +10,7 @@ export const ROUTES = {
   RETURNS: '/returns',
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
+  CAMPAIGNS: '/campaigns',
   CREDIT: '/credit',
   CRM: '/crm',
   INVENTORY: '/inventory',
@@ -81,6 +82,7 @@ export const NAV_SECTIONS = [
       { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
+      { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },
       { label: 'Credit / Khata', path: ROUTES.CREDIT, hint: 'Khata balances' },
       { label: 'CRM / Patients', path: ROUTES.CRM, hint: 'Patient records at this pharmacy' },
     ],
@@ -181,6 +183,7 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.SUBSCRIPTION &&
     item.path !== ROUTES.KIOSK &&
     item.path !== ROUTES.CUSTOMERS &&
+    item.path !== ROUTES.CAMPAIGNS &&
     item.path !== ROUTES.CREDIT &&
     item.path !== ROUTES.INVENTORY &&
     item.path !== ROUTES.SALES &&

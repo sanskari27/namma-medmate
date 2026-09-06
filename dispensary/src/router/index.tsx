@@ -33,6 +33,7 @@ import ExpensesScreen from '@/screens/expenses/ExpensesScreen';
 import AgingScreen from '@/screens/aging/AgingScreen';
 import ShopBooksScreen from '@/screens/shop-books/ShopBooksScreen';
 import CaPackScreen from '@/screens/ca-pack/CaPackScreen';
+import CampaignsScreen from '@/screens/campaigns/CampaignsScreen';
 import TrendsScreen from '@/screens/trends/TrendsScreen';
 import CustomReportsScreen from '@/screens/custom-reports/CustomReportsScreen';
 import StubScreen from '@/screens/stub/StubScreen';
@@ -64,6 +65,7 @@ const router = createBrowserRouter([
           { path: ROUTES.CONTROLLED_REGISTER, element: <ControlledRegisterScreen /> },
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
           { path: ROUTES.CUSTOMERS, element: <CustomersScreen /> },
+          { path: ROUTES.CAMPAIGNS, element: <CampaignsScreen /> },
           { path: ROUTES.CREDIT, element: <CreditScreen /> },
           { path: ROUTES.INVENTORY, element: <InventoryScreen /> },
           { path: ROUTES.SALES, element: <PosScreen /> },
