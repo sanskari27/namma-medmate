@@ -25,6 +25,24 @@ public final class DashboardPolicy {
   public static final String GRN_HREF = "/purchases";
   public static final String AGING_HREF = "/aging";
   public static final String EXPENSES_HREF = "/expenses";
+  public static final String APPROVALS_HREF = "/approvals/pending";
+  public static final String LICENSES_HREF = "/licenses";
+  public static final String ACCOUNT_HREF = "/account";
+  public static final String PURCHASES_HREF = "/purchases";
+  public static final String OK = "OK";
+  public static final String FAILED = "FAILED";
+  public static final String UNAVAILABLE = "UNAVAILABLE";
+  public static final String WIDGET_SALES = "SALES";
+  public static final String WIDGET_LOW_STOCK = "LOW_STOCK";
+  public static final String WIDGET_EXPIRY = "EXPIRY";
+  public static final String WIDGET_APPROVALS = "APPROVALS";
+  public static final String WIDGET_RECEIVABLES = "RECEIVABLES";
+  public static final String WIDGET_PAYABLES = "PAYABLES";
+  public static final String WIDGET_TOP_PRODUCTS = "TOP_PRODUCTS";
+  public static final String WIDGET_TRANSFERS = "TRANSFERS";
+  public static final String WIDGET_COMPLIANCE = "COMPLIANCE";
+  public static final String WIDGET_OPEN_POS = "OPEN_POS";
+  public static final int TOP_PRODUCTS_LIMIT = 5;
 
   private DashboardPolicy() {}
 
@@ -116,5 +134,22 @@ public final class DashboardPolicy {
 
   public static ApiException shape() {
     return new ApiException(HttpStatus.BAD_REQUEST, VALIDATION_ERROR, "Invalid request");
+  }
+
+  public static boolean isDue(LocalDate expiresOn, LocalDate today) {
+    if (expiresOn == null || today == null) {
+      return false;
+    }
+    return !expiresOn.isAfter(LicensePolicy.dueCutoff(today));
+  }
+
+  public static boolean isNearExpiry(LocalDate expiresOn, LocalDate today, int warnDays) {
+    if (expiresOn == null || today == null) {
+      return false;
+    }
+    if (expiresOn.isBefore(today)) {
+      return false;
+    }
+    return !expiresOn.isAfter(today.plusDays(warnDays));
   }
 }

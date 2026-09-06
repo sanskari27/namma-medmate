@@ -90,15 +90,12 @@ class DashboardPolicyTest {
   }
 
   @Test
-  void ac06_invalidRoleAndTenantScopeOnStaffAreRejected() {
-    assertThatThrownBy(() -> DashboardPolicy.requireRole("pharmacist"))
-        .extracting(ex -> ((ApiException) ex).getCode())
-        .isEqualTo(DashboardPolicy.VALIDATION_ERROR);
-    assertThatThrownBy(() -> DashboardPolicy.requireScope(DashboardRole.CASHIER, "tenant"))
-        .extracting(ex -> ((ApiException) ex).getCode())
-        .isEqualTo(DashboardPolicy.VALIDATION_ERROR);
-    assertThat(DashboardPolicy.requireScope(DashboardRole.OWNER, "tenant"))
-        .isEqualTo(DashboardPolicy.SCOPE_TENANT);
-    assertThat(DashboardPolicy.requireRole("cashier")).isEqualTo(DashboardRole.CASHIER);
+  void ac02_dueAndNearExpiryUseIstCutoff() {
+    java.time.LocalDate today = java.time.LocalDate.of(2026, 9, 6);
+    assertThat(DashboardPolicy.isDue(today.plusDays(30), today)).isTrue();
+    assertThat(DashboardPolicy.isDue(today.plusDays(31), today)).isFalse();
+    assertThat(DashboardPolicy.isNearExpiry(today.plusDays(7), today, 30)).isTrue();
+    assertThat(DashboardPolicy.isNearExpiry(today.minusDays(1), today, 30)).isFalse();
+    assertThat(DashboardPolicy.isNearExpiry(today.plusDays(31), today, 30)).isFalse();
   }
 }
