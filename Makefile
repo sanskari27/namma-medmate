@@ -41,6 +41,10 @@ down: ## Stop local compose services
 logs: ## Follow compose logs (ARGS=server)
 	$(COMPOSE) -f compose.yaml logs -f $(ARGS)
 
+.PHONY: seed-local
+seed-local: ## Load local login accounts + demo operational data (Postgres :25432)
+	./scripts/seed-local.sh
+
 .PHONY: backend dispensary admin
 backend: deps ## Run Spring Boot on host (local profile)
 	cd $(SERVER) && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
