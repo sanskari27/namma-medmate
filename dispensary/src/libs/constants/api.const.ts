@@ -167,6 +167,9 @@ export const API = {
   tenantKyc: (tenantId: string) => `/api/v1/tenants/${tenantId}/kyc`,
   COMPLIANCE_LICENSES: '/api/v1/compliance/licenses',
   COMPLIANCE_LICENSES_DUE: '/api/v1/compliance/licenses/due',
+  WHATSAPP_TEMPLATES: '/api/v1/communications/whatsapp/templates',
+  whatsappTemplateVariables: (uniqueName: string) =>
+    `/api/v1/communications/whatsapp/templates/${uniqueName}/variables`,
   licenseRenew: (id: string) => `/api/v1/compliance/licenses/${id}/renew`,
   licenseEvidence: (id: string, evidenceId: string) =>
     `/api/v1/compliance/licenses/${id}/evidence/${evidenceId}`,

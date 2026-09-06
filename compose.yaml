@@ -57,6 +57,10 @@ services:
       RESEND_API_KEY: ${RESEND_API_KEY:-}
       RESEND_WEBHOOK_SECRET: ${RESEND_WEBHOOK_SECRET:-}
       RESEND_FROM: ${RESEND_FROM:-Namma MedMate <noreply@nammamedmate.com>}
+      META_WHATSAPP_TOKEN: ${META_WHATSAPP_TOKEN:-}
+      META_WHATSAPP_PHONE_NUMBER_ID: ${META_WHATSAPP_PHONE_NUMBER_ID:-}
+      META_WHATSAPP_WABA_ID: ${META_WHATSAPP_WABA_ID:-}
+      META_WHATSAPP_DISPLAY_NUMBER: ${META_WHATSAPP_DISPLAY_NUMBER:-}
     depends_on:
       postgres:
         condition: service_healthy

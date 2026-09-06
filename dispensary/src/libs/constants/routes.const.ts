@@ -28,6 +28,7 @@ export const ROUTES = {
   ACCOUNTANT: '/accountant',
   ACCOUNT: '/account',
   LICENSES: '/licenses',
+  WHATSAPP_TEMPLATES: '/whatsapp-templates',
   REGISTERS: '/registers',
   CONTROLLED_REGISTER: '/controlled-register',
   EMPLOYEES: '/employees',
@@ -120,6 +121,11 @@ export const NAV_SECTIONS = [
       { label: 'Account', path: ROUTES.ACCOUNT, hint: 'Pharmacy account' },
       { label: 'Licences', path: ROUTES.LICENSES, hint: 'Drug, GST, FSSAI and pharmacist papers' },
       {
+        label: 'WhatsApp slots',
+        path: ROUTES.WHATSAPP_TEMPLATES,
+        hint: 'Approved message slots for this pharmacy',
+      },
+      {
         label: 'Register book',
         path: ROUTES.REGISTERS,
         hint: 'H1, stock, licence and purchase books for this outlet',
@@ -168,6 +174,7 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.ACTIVITY &&
     item.path !== ROUTES.ACCOUNT &&
     item.path !== ROUTES.LICENSES &&
+    item.path !== ROUTES.WHATSAPP_TEMPLATES &&
     item.path !== ROUTES.REGISTERS &&
     item.path !== ROUTES.CONTROLLED_REGISTER &&
     item.path !== ROUTES.BRANCHES &&
