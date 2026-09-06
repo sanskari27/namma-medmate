@@ -35,7 +35,13 @@ public record DashboardView(
       StockSources sources) {}
 
   public record LowStockItem(
-      UUID productId, String sku, String productName, BigDecimal onHand, Integer reorderLevel) {}
+      UUID productId,
+      String sku,
+      String productName,
+      BigDecimal onHand,
+      Integer reorderLevel,
+      UUID branchId,
+      String branchName) {}
 
   public record TransferItem(UUID id, String status, String direction, String href) {}
 
@@ -55,6 +61,7 @@ public record DashboardView(
   public record BooksSources(String aging, String expenses) {}
 
   public record OwnerDesk(
+      Instant asOf,
       long todaySalesPaise,
       int todayBillCount,
       List<BranchSales> branches,
@@ -62,7 +69,45 @@ public record DashboardView(
       long payablesTotalPaise,
       long expenseTotalPaise,
       int lowStockCount,
-      OwnerSources sources) {}
+      OwnerSources sources,
+      DashboardWidget<SalesPayload> sales,
+      DashboardWidget<CountItemsPayload<LowStockItem>> lowStock,
+      DashboardWidget<CountItemsPayload<ExpiryItem>> expiry,
+      DashboardWidget<CountItemsPayload<WorkItem>> approvals,
+      DashboardWidget<AgingPayload> receivables,
+      DashboardWidget<AgingPayload> payables,
+      DashboardWidget<CountItemsPayload<TopProductItem>> topProducts,
+      DashboardWidget<CountItemsPayload<TransferItem>> transfers,
+      DashboardWidget<CompliancePayload> compliance,
+      DashboardWidget<CountItemsPayload<WorkItem>> openPurchaseOrders) {}
+
+  public record SalesPayload(
+      long todaySalesPaise, int todayBillCount, List<BranchSales> branches) {}
+
+  public record CountItemsPayload<T>(int count, List<T> items) {}
+
+  public record ExpiryItem(
+      UUID productId,
+      String sku,
+      String productName,
+      String batchNumber,
+      LocalDate expiresOn,
+      BigDecimal quantity,
+      UUID branchId,
+      String branchName) {}
+
+  public record WorkItem(UUID id, String label, String status, String href) {}
+
+  public record AgingPayload(long totalPaise, List<BucketItem> buckets) {}
+
+  public record TopProductItem(
+      UUID productId, String sku, String productName, BigDecimal quantity, long salesPaise) {}
+
+  public record CompliancePayload(
+      String tenantStatus, String kycStatus, int licenseDueCount, List<LicenseDueItem> licenses) {}
+
+  public record LicenseDueItem(
+      UUID id, String docType, LocalDate expiresOn, UUID branchId, String href) {}
 
   public record BranchSales(UUID id, String name, long todaySalesPaise) {}
 

@@ -20,6 +20,76 @@ export interface LowStockItem {
   productName: string;
   onHand: number | string;
   reorderLevel: number | null;
+  branchId?: string | null;
+  branchName?: string | null;
+}
+
+export type WidgetStatus = 'OK' | 'FAILED';
+
+export interface DashboardWidget<T> {
+  key: string;
+  status: WidgetStatus | string;
+  asOf: string;
+  href: string;
+  error?: string | null;
+  data?: T | null;
+}
+
+export interface SalesPayload {
+  todaySalesPaise: number;
+  todayBillCount: number;
+  branches: BranchSales[];
+}
+
+export interface CountItemsPayload<T> {
+  count: number;
+  items: T[];
+}
+
+export interface ExpiryItem {
+  productId: string;
+  sku: string;
+  productName: string;
+  batchNumber: string;
+  expiresOn: string;
+  quantity: number | string;
+  branchId?: string | null;
+  branchName?: string | null;
+}
+
+export interface WorkItem {
+  id: string;
+  label: string;
+  status: string;
+  href: string;
+}
+
+export interface AgingPayload {
+  totalPaise: number;
+  buckets: BucketItem[];
+}
+
+export interface TopProductItem {
+  productId: string;
+  sku: string;
+  productName: string;
+  quantity: number | string;
+  salesPaise: number;
+}
+
+export interface LicenseDueItem {
+  id: string;
+  docType: string;
+  expiresOn: string;
+  branchId?: string | null;
+  href: string;
+}
+
+export interface CompliancePayload {
+  tenantStatus: string;
+  kycStatus: string;
+  licenseDueCount: number;
+  licenses: LicenseDueItem[];
 }
 
 export interface TransferItem {
@@ -71,6 +141,7 @@ export interface AccountantDesk {
 }
 
 export interface OwnerDesk {
+  asOf?: string;
   todaySalesPaise: number;
   todayBillCount: number;
   branches: BranchSales[];
@@ -79,6 +150,16 @@ export interface OwnerDesk {
   expenseTotalPaise: number;
   lowStockCount: number;
   sources: { sales: string; stock: string; aging: string; expenses: string };
+  sales?: DashboardWidget<SalesPayload> | null;
+  lowStock?: DashboardWidget<CountItemsPayload<LowStockItem>> | null;
+  expiry?: DashboardWidget<CountItemsPayload<ExpiryItem>> | null;
+  approvals?: DashboardWidget<CountItemsPayload<WorkItem>> | null;
+  receivables?: DashboardWidget<AgingPayload> | null;
+  payables?: DashboardWidget<AgingPayload> | null;
+  topProducts?: DashboardWidget<CountItemsPayload<TopProductItem>> | null;
+  transfers?: DashboardWidget<CountItemsPayload<TransferItem>> | null;
+  compliance?: DashboardWidget<CompliancePayload> | null;
+  openPurchaseOrders?: DashboardWidget<CountItemsPayload<WorkItem>> | null;
 }
 
 export interface DashboardView {

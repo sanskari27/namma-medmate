@@ -1,7 +1,12 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 import { hasFinanceAccess } from '@/libs/financeAccess';
 import type { AuthUser } from '@/store';
-import type { DashboardRole, DashboardView } from '@/services/dashboards';
+import type {
+  DashboardRole,
+  DashboardView,
+  DashboardWidget,
+  OwnerDesk,
+} from '@/services/dashboards';
 
 export type PageStatus =
   | 'loading'
@@ -30,7 +35,7 @@ export const DESK_BLURB: Record<DashboardDesk, string> = {
   cashier: "Today's takings and held bills at this outlet.",
   inventory: 'Low stock, transfers, and deliveries waiting on this outlet.',
   accountant: 'Khata, stockist dues, and spend — not till work.',
-  owner: 'Sales, stock, and books at a glance. Pick this outlet or all outlets.',
+  owner: 'Sales, stock, licences, and books. Each strip shows when it was taken.',
 };
 
 export { hasFinanceAccess };
@@ -95,13 +100,7 @@ export function isEmptyView(desk: DashboardDesk, view: DashboardView | null): bo
     );
   }
   if (desk === 'owner' && view.owner) {
-    return (
-      view.owner.todayBillCount === 0 &&
-      view.owner.lowStockCount === 0 &&
-      view.owner.receivablesTotalPaise === 0 &&
-      view.owner.payablesTotalPaise === 0 &&
-      view.owner.expenseTotalPaise === 0
-    );
+    return isEmptyOwnerDesk(view.owner);
   }
   return false;
 }
@@ -115,7 +114,7 @@ export function emptyCopy(desk: DashboardDesk): string {
     case 'accountant':
       return 'Khata, stockist dues, and spend are clear for this view.';
     case 'owner':
-      return 'No sales, stock alerts, or books to glance at for this view.';
+      return 'No sales, stock alerts, licences, or books for this view.';
     default:
       return 'Nothing waiting on this desk.';
   }
@@ -130,7 +129,7 @@ export function successCopy(desk: DashboardDesk): string {
     case 'accountant':
       return 'Khata and spend for this view.';
     case 'owner':
-      return 'Shop glance for this view.';
+      return 'Shop glance with as-of time on every strip.';
     default:
       return 'Desk loaded for this outlet.';
   }
@@ -222,4 +221,87 @@ export function formatHeldAt(value: string): string {
 
 export function formatQty(value: number | string): string {
   return String(value);
+}
+
+export function formatAsOf(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  }).format(date);
+}
+
+export function formatDay(value: string | null | undefined): string {
+  if (!value) {
+    return '—';
+  }
+  const date = /^\d{4}-\d{2}-\d{2}$/.test(value)
+    ? new Date(`${value}T00:00:00+05:30`)
+    : new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeZone: 'Asia/Kolkata',
+  }).format(date);
+}
+
+export function ownerWidgetList(owner: OwnerDesk): DashboardWidget<unknown>[] {
+  return [
+    owner.sales,
+    owner.lowStock,
+    owner.expiry,
+    owner.approvals,
+    owner.receivables,
+    owner.payables,
+    owner.topProducts,
+    owner.transfers,
+    owner.compliance,
+    owner.openPurchaseOrders,
+  ].filter((widget): widget is DashboardWidget<unknown> => widget != null);
+}
+
+function isEmptyOwnerDesk(owner: OwnerDesk): boolean {
+  const widgets = ownerWidgetList(owner);
+  if (widgets.some((widget) => widget.status === 'FAILED')) {
+    return false;
+  }
+  if (widgets.length > 0) {
+    return widgets.every(isQuietWidget);
+  }
+  return (
+    owner.todayBillCount === 0 &&
+    owner.lowStockCount === 0 &&
+    owner.receivablesTotalPaise === 0 &&
+    owner.payablesTotalPaise === 0 &&
+    owner.expenseTotalPaise === 0
+  );
+}
+
+function isQuietWidget(widget: DashboardWidget<unknown>): boolean {
+  const data = widget.data as Record<string, unknown> | null | undefined;
+  if (data == null) {
+    return true;
+  }
+  if (typeof data.todayBillCount === 'number') {
+    return data.todayBillCount === 0;
+  }
+  if (typeof data.count === 'number') {
+    return data.count === 0;
+  }
+  if (typeof data.licenseDueCount === 'number') {
+    return data.licenseDueCount === 0;
+  }
+  if (typeof data.totalPaise === 'number') {
+    return data.totalPaise === 0;
+  }
+  return true;
 }

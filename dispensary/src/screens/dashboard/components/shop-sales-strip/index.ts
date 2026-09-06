@@ -1,0 +1,1 @@
+export { ShopSalesStrip } from './ShopSalesStrip';
