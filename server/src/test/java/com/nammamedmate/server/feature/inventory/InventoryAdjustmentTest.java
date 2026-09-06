@@ -50,6 +50,7 @@ import com.nammamedmate.server.persistence.UserSessionRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.temporal.ChronoUnit;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.UUID;
@@ -354,17 +355,30 @@ class InventoryAdjustmentTest extends AbstractIntegrationTest {
                 .content(decideJson("APPROVED", first.path("version").asInt(), "ok")))
         .andExpect(status().isOk());
 
-    mockMvc
-        .perform(
-            get("/api/v1/inventory/adjustments/" + first.path("id").asText()).cookie(fx.cookie()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.reason").value("EXPIRY_WRITE_OFF"))
-        .andExpect(jsonPath("$.data.quantity").value(1))
-        .andExpect(jsonPath("$.data.batchId").value(fx.batchId().toString()))
-        .andExpect(jsonPath("$.data.requesterUserId").value(fx.ownerId().toString()))
-        .andExpect(jsonPath("$.data.approverUserId").value(fx.ownerId().toString()))
-        .andExpect(jsonPath("$.data.createdAt").value(first.path("createdAt").asText()))
-        .andExpect(jsonPath("$.data.decidedAt").isNotEmpty());
+    MvcResult after =
+        mockMvc
+            .perform(
+                get("/api/v1/inventory/adjustments/" + first.path("id").asText())
+                    .cookie(fx.cookie()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.reason").value("EXPIRY_WRITE_OFF"))
+            .andExpect(jsonPath("$.data.quantity").value(1))
+            .andExpect(jsonPath("$.data.batchId").value(fx.batchId().toString()))
+            .andExpect(jsonPath("$.data.requesterUserId").value(fx.ownerId().toString()))
+            .andExpect(jsonPath("$.data.approverUserId").value(fx.ownerId().toString()))
+            .andExpect(jsonPath("$.data.decidedAt").isNotEmpty())
+            .andReturn();
+    Instant created =
+        Instant.parse(first.path("createdAt").asText()).truncatedTo(ChronoUnit.MICROS);
+    Instant persisted =
+        Instant.parse(
+                objectMapper
+                    .readTree(after.getResponse().getContentAsString())
+                    .path("data")
+                    .path("createdAt")
+                    .asText())
+            .truncatedTo(ChronoUnit.MICROS);
+    assertThat(persisted).isEqualTo(created);
   }
 
   @Test

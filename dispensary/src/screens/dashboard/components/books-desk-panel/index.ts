@@ -1,0 +1,1 @@
+export { BooksDeskPanel } from './BooksDeskPanel';

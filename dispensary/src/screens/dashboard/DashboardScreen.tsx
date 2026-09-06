@@ -1,49 +1,53 @@
-import { AreaMetricChart } from '@molecules';
-import { Reveal, Card } from '@atoms';
-import { API } from '@/libs/constants/api.const';
-import { apiClient } from '@/services/axios';
-import { useEffect, useState } from 'react';
-
-interface HealthStatus {
-  status: string;
-  service: string;
-}
+import { BooksDeskPanel } from './components/books-desk-panel';
+import { DashboardDeskSwitch } from './components/dashboard-desk-switch';
+import { DashboardHeader } from './components/dashboard-header';
+import { DashboardOutletFilter } from './components/dashboard-outlet-filter';
+import { DashboardStatusBanner } from './components/dashboard-status-banner';
+import { ShopGlancePanel } from './components/shop-glance-panel';
+import { StockDeskPanel } from './components/stock-desk-panel';
+import { TillTodayPanel } from './components/till-today-panel';
+import { useDashboardPage } from './useDashboardPage';
 
 export default function DashboardScreen() {
-  const [apiStatus, setApiStatus] = useState<string>('checking…');
-
-  useEffect(() => {
-    apiClient
-      .get<HealthStatus>(API.HEALTH)
-      .then((res) => setApiStatus(`${res.data.status} (${res.data.service})`))
-      .catch(() => setApiStatus('unreachable'));
-  }, []);
-
-  const cards = [
-    { title: "Today's sales", value: '—', hint: 'Paise, this branch' },
-    { title: 'Low stock items', value: '—', hint: 'Below reorder' },
-    { title: 'Expiring batches (30d)', value: '—', hint: 'Check FEFO' },
-  ];
+  const page = useDashboardPage();
+  const busy = page.status === 'loading';
 
   return (
-    <Reveal className="space-y-6">
-      <div>
-        <h1 className="font-serif text-2xl font-semibold text-ink">Counter overview</h1>
-        <p className="mt-1 font-mono text-xs text-muted">API health: {apiStatus}</p>
-      </div>
-      <div className="grid gap-3 sm:grid-cols-3">
-        {cards.map((c) => (
-          <Card key={c.title}>
-            <p className="text-sm text-muted">{c.title}</p>
-            <p className="mt-2 font-mono text-2xl font-medium text-ink">{c.value}</p>
-            <p className="mt-1 text-xs text-muted">{c.hint}</p>
-          </Card>
-        ))}
-      </div>
-      <section>
-        <h2 className="mb-2 text-sm font-medium text-ink">Sales this week</h2>
-        <AreaMetricChart data={[]} emptyLabel="No bills recorded yet for this branch." />
-      </section>
-    </Reveal>
+    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+      <DashboardHeader
+        desk={page.desk}
+        denied={!page.allowed}
+        busy={busy}
+        refreshRef={page.refreshRef}
+        onRefresh={page.onRefresh}
+      />
+      <DashboardStatusBanner
+        status={page.status}
+        desk={page.desk}
+        statusId={page.statusId}
+        hint={page.statusHint}
+      />
+      {page.allowed && page.desk ? (
+        <>
+          <DashboardDeskSwitch
+            desks={page.permitted}
+            selected={page.desk}
+            disabled={busy}
+            onSelect={page.onDesk}
+          />
+          {page.owner && page.desk === 'owner' ? (
+            <DashboardOutletFilter
+              scope={page.scope}
+              disabled={busy}
+              onScope={page.onScope}
+            />
+          ) : null}
+          {page.desk === 'cashier' ? <TillTodayPanel data={page.view?.cashier} /> : null}
+          {page.desk === 'inventory' ? <StockDeskPanel data={page.view?.inventory} /> : null}
+          {page.desk === 'accountant' ? <BooksDeskPanel data={page.view?.accountant} /> : null}
+          {page.desk === 'owner' ? <ShopGlancePanel data={page.view?.owner} /> : null}
+        </>
+      ) : null}
+    </div>
   );
 }

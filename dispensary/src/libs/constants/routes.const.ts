@@ -61,7 +61,7 @@ export type NavSection = {
 export const DASHBOARD_NAV: NavItem = {
   label: 'Dashboard',
   path: ROUTES.DASHBOARD,
-  hint: 'Counter overview',
+  hint: 'Today at this outlet',
 };
 
 export const NAV_SECTIONS = [
