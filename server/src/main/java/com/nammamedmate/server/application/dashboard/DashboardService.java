@@ -12,6 +12,7 @@ import com.nammamedmate.server.application.inventory.StockTransferView;
 import com.nammamedmate.server.application.purchaseorder.QualityCheckService;
 import com.nammamedmate.server.application.sales.SalesInvoiceService;
 import com.nammamedmate.server.application.sales.SalesInvoiceView;
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.ApprovalRequest;
@@ -27,6 +28,8 @@ import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.PurchaseOrder;
 import com.nammamedmate.server.domain.PurchaseOrderStatus;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
+import com.nammamedmate.server.domain.ReportCapability;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceLine;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
@@ -80,6 +83,7 @@ public class DashboardService {
   private final QualityCheckService qualityCheckService;
   private final AgingService agingService;
   private final ExpenseService expenseService;
+  private final SubscriptionService subscriptionService;
   private final SalesInvoiceLineRepository salesInvoiceLineRepository;
   private final StockBatchRepository stockBatchRepository;
   private final StockTransferRepository stockTransferRepository;
@@ -104,6 +108,7 @@ public class DashboardService {
       QualityCheckService qualityCheckService,
       AgingService agingService,
       ExpenseService expenseService,
+      SubscriptionService subscriptionService,
       SalesInvoiceLineRepository salesInvoiceLineRepository,
       StockBatchRepository stockBatchRepository,
       StockTransferRepository stockTransferRepository,
@@ -126,6 +131,7 @@ public class DashboardService {
     this.qualityCheckService = qualityCheckService;
     this.agingService = agingService;
     this.expenseService = expenseService;
+    this.subscriptionService = subscriptionService;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
     this.stockBatchRepository = stockBatchRepository;
     this.stockTransferRepository = stockTransferRepository;
@@ -273,10 +279,19 @@ public class DashboardService {
   private DashboardView.AccountantDesk accountantDesk(
       AuthPrincipal principal, UUID requested, String scope) {
     String branchParam = requested == null ? null : requested.toString();
-    AgingView ar = agingService.receivables(principal, null, branchParam, scope);
-    AgingView ap = agingService.payables(principal, null, branchParam, scope);
     long expenses =
         expenseService.totals(principal, branchParam, scope, null, null, null).totalPaise();
+    if (!agingEntitled(principal)) {
+      return new DashboardView.AccountantDesk(
+          0L,
+          0L,
+          expenses,
+          List.of(),
+          new DashboardView.BooksSources(
+              DashboardPolicy.AGING_HREF, DashboardPolicy.EXPENSES_HREF));
+    }
+    AgingView ar = agingService.receivables(principal, null, branchParam, scope);
+    AgingView ap = agingService.payables(principal, null, branchParam, scope);
     return new DashboardView.AccountantDesk(
         ar.totalPaise(),
         ap.totalPaise(),
@@ -331,17 +346,23 @@ public class DashboardService {
             asOf,
             () -> ownerApprovals(tenantId, requested));
     DashboardWidget<DashboardView.AgingPayload> receivables =
-        widget(
-            DashboardPolicy.WIDGET_RECEIVABLES,
-            DashboardPolicy.AGING_HREF,
-            asOf,
-            () -> agingPayload(agingService.receivables(principal, null, branchParam, scope)));
+        agingEntitled(principal)
+            ? widget(
+                DashboardPolicy.WIDGET_RECEIVABLES,
+                DashboardPolicy.AGING_HREF,
+                asOf,
+                () -> agingPayload(agingService.receivables(principal, null, branchParam, scope)))
+            : DashboardWidgets.failed(
+                DashboardPolicy.WIDGET_RECEIVABLES, asOf, DashboardPolicy.AGING_HREF);
     DashboardWidget<DashboardView.AgingPayload> payables =
-        widget(
-            DashboardPolicy.WIDGET_PAYABLES,
-            DashboardPolicy.AGING_HREF,
-            asOf,
-            () -> agingPayload(agingService.payables(principal, null, branchParam, scope)));
+        agingEntitled(principal)
+            ? widget(
+                DashboardPolicy.WIDGET_PAYABLES,
+                DashboardPolicy.AGING_HREF,
+                asOf,
+                () -> agingPayload(agingService.payables(principal, null, branchParam, scope)))
+            : DashboardWidgets.failed(
+                DashboardPolicy.WIDGET_PAYABLES, asOf, DashboardPolicy.AGING_HREF);
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.TopProductItem>> topProducts =
         widget(
             DashboardPolicy.WIDGET_TOP_PRODUCTS,
@@ -404,6 +425,11 @@ public class DashboardService {
         transfers,
         compliance,
         openPurchaseOrders);
+  }
+
+  private boolean agingEntitled(AuthPrincipal principal) {
+    return ReportAccessPolicy.entitled(
+        subscriptionService.resolveReportPlan(principal.tenantId()), ReportCapability.AGING);
   }
 
   private <T> DashboardWidget<T> widget(String key, String href, Instant asOf, Supplier<T> load) {

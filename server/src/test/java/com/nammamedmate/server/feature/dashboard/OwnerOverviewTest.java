@@ -689,7 +689,7 @@ class OwnerOverviewTest extends AbstractIntegrationTest {
     TenantSubscription sub = new TenantSubscription();
     sub.setId(UUID.randomUUID());
     sub.setTenantId(tenantId);
-    sub.setPlanCode(PlanCode.FREE);
+    sub.setPlanCode(PlanCode.GROWTH);
     sub.setStatus(SubscriptionStatus.ACTIVE);
     sub.setStartedAt(T0);
     sub.setCreatedAt(T0);
