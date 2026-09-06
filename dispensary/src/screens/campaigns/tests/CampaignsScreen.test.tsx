@@ -21,17 +21,28 @@ vi.mock('@/services/campaigns', async () => {
   };
 });
 
+vi.mock('@/services/whatsappMessages', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    sendCampaignMessages: vi.fn(),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
 import {
   createCampaign,
   listCampaigns,
   previewCampaign,
   readyCampaign,
 } from '@/services/campaigns';
+import { sendCampaignMessages } from '@/services/whatsappMessages';
 
 const listMock = vi.mocked(listCampaigns);
 const createMock = vi.mocked(createCampaign);
 const previewMock = vi.mocked(previewCampaign);
 const readyMock = vi.mocked(readyCampaign);
+const sendMock = vi.mocked(sendCampaignMessages);
 
 const sample: Campaign = {
   id: 'c1',
@@ -94,6 +105,7 @@ describe('tag broadcasts', () => {
     createMock.mockReset();
     previewMock.mockReset();
     readyMock.mockReset();
+    sendMock.mockReset();
   });
 
   it('loading: waits for tag broadcasts', () => {
@@ -112,6 +124,10 @@ describe('tag broadcasts', () => {
     expect(screen.getByRole('link', { name: 'Pack for the CA' })).toHaveAttribute(
       'href',
       '/accountant',
+    );
+    expect(screen.getByRole('link', { name: 'WhatsApp sends' })).toHaveAttribute(
+      'href',
+      '/whatsapp-sends',
     );
   });
 
@@ -160,7 +176,7 @@ describe('tag broadcasts', () => {
     );
   });
 
-  it('success: save, count, and mark ready without sending', async () => {
+  it('success: save, count, ready, and send this list', async () => {
     const user = userEvent.setup();
     const counted = {
       ...sample,
@@ -196,11 +212,17 @@ describe('tag broadcasts', () => {
     expect(screen.getByText(/2 patients on these tags/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Ready to send' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Diabetes promo is ready to send. Delivery is a later step.',
+      'Diabetes promo is ready. Send this list when the till is set.',
+    );
+    sendMock.mockResolvedValue({ items: [], queued: 0, sent: 1, failed: 0 });
+    await user.click(screen.getByRole('button', { name: 'Send this list' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Sent this list: 1 sent, 0 failed. Open WhatsApp sends to retry.',
     );
     await waitFor(() => {
       expect(screen.getByRole('button', { name: 'New broadcast' })).toHaveFocus();
     });
+    expect(sendMock).toHaveBeenCalledWith('c1');
     expect(screen.queryByText('9402000001')).not.toBeInTheDocument();
   });
 

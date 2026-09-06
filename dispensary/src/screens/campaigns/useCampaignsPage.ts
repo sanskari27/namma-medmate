@@ -8,6 +8,7 @@ import {
   type CampaignTagOption,
   type CampaignTemplateOption,
 } from '@/services/campaigns';
+import { sendCampaignMessages } from '@/services/whatsappMessages';
 import type { RootState } from '@/store';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
@@ -38,6 +39,7 @@ export function useCampaignsPage() {
   const [creating, setCreating] = useState(false);
   const [form, setForm] = useState<FormState>(emptyForm());
   const [busy, setBusy] = useState(false);
+  const [sendHint, setSendHint] = useState<string | null>(null);
 
   const selected = items.find((row) => row.id === selectedId) ?? null;
 
@@ -148,7 +150,10 @@ export function useCampaignsPage() {
     setBusy(true);
     try {
       const saved = await previewCampaign(selected.id, selected.version);
-      applySaved(saved, `This list has ${saved.recipientCount ?? 0} patients. Nobody was sent a message.`);
+      applySaved(
+        saved,
+        `This list has ${saved.recipientCount ?? 0} patients. Nobody was sent a message.`,
+      );
     } catch (error) {
       setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
       setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
@@ -166,7 +171,30 @@ export function useCampaignsPage() {
     setBusy(true);
     try {
       const saved = await readyCampaign(selected.id, selected.version);
-      applySaved(saved, `${saved.name} is ready to send. Delivery is a later step.`);
+      applySaved(saved, `${saved.name} is ready. Send this list when the till is set.`);
+    } catch (error) {
+      setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
+      setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function onSend() {
+    if (!selected || selected.status !== 'READY_FOR_DELIVERY') {
+      setStatus('validation');
+      setStatusHint('Freeze this list before sending the shop update.');
+      return;
+    }
+    setBusy(true);
+    try {
+      const result = await sendCampaignMessages(selected.id);
+      setSendHint(`${result.sent} sent · ${result.failed} failed · ${result.queued} queued`);
+      setStatus('success');
+      setStatusHint(
+        `Sent this list: ${result.sent} sent, ${result.failed} failed. Open WhatsApp sends to retry.`,
+      );
+      addRef.current?.focus();
     } catch (error) {
       setStatus(isApiError(error) ? mapApiStatus(error) : 'failure');
       setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
@@ -188,6 +216,7 @@ export function useCampaignsPage() {
     creating,
     form,
     busy,
+    sendHint,
     addRef,
     startCreate,
     selectCampaign,
@@ -196,5 +225,6 @@ export function useCampaignsPage() {
     onSave,
     onPreview,
     onReady,
+    onSend,
   };
 }

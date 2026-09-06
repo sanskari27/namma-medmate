@@ -42,14 +42,18 @@ export default function CampaignsScreen() {
                     page.selected.status === 'DRAFT' &&
                     page.selected.previewedAt,
                 )}
+                canSend={Boolean(
+                  page.selected && page.selected.status === 'READY_FOR_DELIVERY',
+                )}
                 busy={page.busy}
                 onChange={page.onChange}
                 onToggleTag={page.toggleTag}
                 onSave={page.onSave}
                 onPreview={page.onPreview}
                 onReady={page.onReady}
+                onSend={page.onSend}
               />
-              <CampaignsPreviewPanel campaign={page.selected} />
+              <CampaignsPreviewPanel campaign={page.selected} sendHint={page.sendHint} />
             </div>
           ) : page.status === 'empty' ? (
             <CampaignsEmptyState />

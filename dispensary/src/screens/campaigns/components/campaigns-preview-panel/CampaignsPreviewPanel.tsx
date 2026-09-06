@@ -2,9 +2,10 @@ import type { Campaign } from '@/services/campaigns';
 
 export type CampaignsPreviewPanelProps = {
   campaign: Campaign | null;
+  sendHint?: string | null;
 };
 
-export function CampaignsPreviewPanel({ campaign }: CampaignsPreviewPanelProps) {
+export function CampaignsPreviewPanel({ campaign, sendHint }: CampaignsPreviewPanelProps) {
   if (!campaign) {
     return null;
   }
@@ -17,6 +18,7 @@ export function CampaignsPreviewPanel({ campaign }: CampaignsPreviewPanelProps) 
           ? 'Count this list to see how many patients match, without sending.'
           : `${count} patients on these tags. Names and phones stay off this screen.`}
       </p>
+      {sendHint ? <p className="mt-2 text-sm text-ink">{sendHint}</p> : null}
     </section>
   );
 }

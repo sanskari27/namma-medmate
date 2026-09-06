@@ -1,0 +1,1 @@
+export { WhatsappSendsHeader } from './WhatsappSendsHeader';
