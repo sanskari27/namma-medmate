@@ -16,4 +16,7 @@ public interface GoodsReceiptLineRepository extends JpaRepository<GoodsReceiptLi
 
   List<GoodsReceiptLine> findAllByTenantIdAndBranchIdAndPurchaseOrderLineId(
       UUID tenantId, UUID branchId, UUID purchaseOrderLineId);
+
+  List<GoodsReceiptLine> findAllByTenantIdAndGoodsReceiptIdIn(
+      UUID tenantId, Collection<UUID> goodsReceiptIds);
 }

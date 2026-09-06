@@ -1,6 +1,9 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.StockMovement;
+import com.nammamedmate.server.domain.StockMovementType;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -29,4 +32,21 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, UU
       @Param("branchId") UUID branchId,
       @Param("productId") UUID productId,
       @Param("batchId") UUID batchId);
+
+  @Query(
+      """
+      select m from StockMovement m
+      where m.tenantId = :tenantId
+        and m.branchId in :branchIds
+        and m.type in :types
+        and m.occurredAt >= :from
+        and m.occurredAt < :toExclusive
+      order by m.occurredAt asc
+      """)
+  List<StockMovement> findByTypesInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchIds") Collection<UUID> branchIds,
+      @Param("types") Collection<StockMovementType> types,
+      @Param("from") Instant from,
+      @Param("toExclusive") Instant toExclusive);
 }

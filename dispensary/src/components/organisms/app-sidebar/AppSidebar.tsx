@@ -1,6 +1,7 @@
 import {
   BadgePercent,
   Banknote,
+  BookOpen,
   Calculator,
   ChartColumn,
   ChevronDown,
@@ -94,6 +95,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.REPORTS]: ChartColumn,
   [ROUTES.EXPENSES]: Banknote,
   [ROUTES.AGING]: Scale,
+  [ROUTES.BOOKS]: BookOpen,
   [ROUTES.ACCOUNTANT]: Calculator,
   [ROUTES.ACCOUNT]: CircleUser,
   [ROUTES.LICENSES]: FileText,

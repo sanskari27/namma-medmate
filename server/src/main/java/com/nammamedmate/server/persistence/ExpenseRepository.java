@@ -35,4 +35,21 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
       @Param("fromDate") LocalDate fromDate,
       @Param("toDate") LocalDate toDate,
       @Param("status") ExpensePostingStatus status);
+
+  @Query(
+      """
+      select e from Expense e
+      where e.tenantId = :tenantId
+        and e.branchId in :branchIds
+        and e.status = :status
+        and e.occurredOn >= :fromDate
+        and e.occurredOn <= :toDate
+      order by e.occurredOn desc, e.createdAt desc
+      """)
+  List<Expense> findPostedInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchIds") Collection<UUID> branchIds,
+      @Param("status") ExpensePostingStatus status,
+      @Param("fromDate") LocalDate fromDate,
+      @Param("toDate") LocalDate toDate);
 }
