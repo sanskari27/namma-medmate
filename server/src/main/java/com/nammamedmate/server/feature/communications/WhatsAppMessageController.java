@@ -35,7 +35,8 @@ public class WhatsAppMessageController {
   }
 
   @GetMapping("/{id}")
-  public ApiResponse<WhatsAppMessageView> get(Authentication authentication, @PathVariable UUID id) {
+  public ApiResponse<WhatsAppMessageView> get(
+      Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(whatsAppMessageService.get(principal, id));
   }
