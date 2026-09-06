@@ -56,11 +56,7 @@ export function toQuery(
   return query;
 }
 
-export function filenameFor(key: string, format: 'csv' | 'pdf'): string {
-  return `${key.toLowerCase().replace(/_/g, '-')}-shop-book.${format}`;
-}
-
-export function shopBookTitle(key: string, fallback: string): string {
+export function sectionTitle(key: string, fallback: string): string {
   switch (key) {
     case 'DAY_BOOK':
       return 'Day book';
@@ -78,72 +74,12 @@ export function shopBookTitle(key: string, fallback: string): string {
       return 'GST for the CA (GSTR-3B)';
     case 'BRANCH_PNL':
       return 'Outlet P&L';
+    case 'RECEIVABLES':
+      return 'Khata dues';
+    case 'PAYABLES':
+      return 'Stockist dues';
     default:
       return fallback;
-  }
-}
-
-export function columnLabel(column: string): string {
-  switch (column) {
-    case 'occurredIst':
-    case 'dateIst':
-      return 'When (IST)';
-    case 'kind':
-      return 'Kind';
-    case 'reference':
-      return 'Ref';
-    case 'amountPaise':
-      return 'Amount';
-    case 'invoiceNumber':
-      return 'Bill no.';
-    case 'walkIn':
-      return 'Walk-in';
-    case 'taxablePaise':
-      return 'Taxable';
-    case 'cgstPaise':
-      return 'CGST';
-    case 'sgstPaise':
-      return 'SGST';
-    case 'igstPaise':
-      return 'IGST';
-    case 'totalPaise':
-      return 'Total';
-    case 'supplier':
-      return 'Stockist';
-    case 'invoicesPaise':
-      return 'Invoices';
-    case 'debitNotesPaise':
-      return 'Debit notes';
-    case 'netPaise':
-      return 'Net';
-    case 'category':
-      return 'Spend head';
-    case 'line':
-      return 'Line';
-    case 'section':
-      return 'GST section';
-    case 'gstin':
-      return 'GSTIN';
-    case 'hsn':
-      return 'HSN';
-    case 'branchName':
-      return 'Outlet';
-    case 'revenuePaise':
-      return 'Revenue';
-    case 'cogsPaise':
-      return 'COGS';
-    case 'expensesPaise':
-      return 'Spend';
-    case 'profitPaise':
-      return 'Profit';
-    case 'outwardTaxablePaise':
-      return 'Outward taxable';
-    case 'itcPaise':
-      return 'ITC';
-    case 'payablePaise':
-      return 'Payable';
-    default:
-      return column.replace(/([A-Z])/g, ' $1').replace(/^./, (ch) => ch.toUpperCase());
   }
 }
 
@@ -165,25 +101,50 @@ export function cellValue(column: string, value: string | undefined): string {
   return value;
 }
 
+export function columnLabel(column: string): string {
+  switch (column) {
+    case 'amountPaise':
+      return 'Amount';
+    case 'name':
+      return 'Party';
+    case 'days':
+      return 'Days';
+    case 'line':
+      return 'Line';
+    case 'category':
+      return 'Spend head';
+    case 'invoiceNumber':
+      return 'Bill no.';
+    case 'branchName':
+      return 'Outlet';
+    default:
+      return column.replace(/([A-Z])/g, ' $1').replace(/^./, (ch) => ch.toUpperCase());
+  }
+}
+
+export function packIsEmpty(sections: { items: unknown[] }[]): boolean {
+  return sections.every((section) => section.items.length === 0);
+}
+
 export function statusCopy(status: PageStatus, hint?: string | null): string | null {
   if (hint) {
     return hint;
   }
   switch (status) {
     case 'loading':
-      return 'Loading shop books…';
+      return 'Loading the CA pack…';
     case 'empty':
-      return 'No rows in this shop book yet. Complete a sale or post spend and it lands here.';
+      return 'Nothing to pack yet. Complete a sale or post spend, then take this file.';
     case 'validation':
       return 'Choose a period that starts on or before the end date.';
     case 'denied':
-      return 'Till staff cannot open shop books. Ask the owner for Accounts access.';
+      return 'Till staff cannot open the CA pack. Ask the owner for the Accountant desk.';
     case 'conflict':
-      return 'This book changed on another till. Reload, then take the sheet again.';
+      return 'This pack changed on another till. Reload, then download again.';
     case 'failure':
-      return 'Could not load shop books. Check the connection and try again.';
+      return 'Could not load the CA pack. Check the connection and try again.';
     case 'success':
-      return 'Shop book ready for this outlet.';
+      return 'CA pack ready for this outlet.';
     default:
       return null;
   }
@@ -220,13 +181,13 @@ export function apiStatusHint(code: string | null): string | null {
     return 'Use a date range of 366 days or less, with from before to.';
   }
   if (code === 'NO_ACTIVE_BRANCH') {
-    return 'Select an outlet before opening shop books.';
+    return 'Select an outlet before opening the CA pack.';
   }
   if (code === 'EXPORT_TOO_LARGE') {
-    return 'Narrow the date range. This shop book is too large to export in one file.';
+    return 'Narrow the date range. This pack is too large to export in one file.';
   }
   if (code === 'STALE_STATE') {
-    return 'This book changed on another till. Reload, then take the sheet again.';
+    return 'This pack changed on another till. Reload, then download again.';
   }
   return null;
 }

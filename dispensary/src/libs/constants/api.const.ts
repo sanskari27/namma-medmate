@@ -151,6 +151,8 @@ export const API = {
   FINANCE_REPORTS: '/api/v1/finance/reports',
   financeReport: (key: string) => `/api/v1/finance/reports/${key}`,
   financeReportExport: (key: string) => `/api/v1/finance/reports/${key}/export`,
+  FINANCE_CA_PACK: '/api/v1/finance/ca-pack',
+  FINANCE_CA_PACK_EXPORT: '/api/v1/finance/ca-pack/export',
   EXPENSES: '/api/v1/finance/expenses',
   EXPENSES_TOTALS: '/api/v1/finance/expenses/totals',
   expense: (id: string) => `/api/v1/finance/expenses/${id}`,

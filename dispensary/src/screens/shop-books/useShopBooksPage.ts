@@ -34,7 +34,7 @@ function downloadBlob(blob: Blob, filename: string) {
 
 export function useShopBooksPage() {
   const user = useSelector((state: RootState) => state.auth.user);
-  const allowed = hasFinanceAccess(user?.role, user?.modules);
+  const allowed = hasFinanceAccess(user?.role, user?.roles);
   const owner = user?.role === 'pharmacy_owner';
   const activeBranchId = user?.activeBranchId ?? null;
   const statusId = useId();

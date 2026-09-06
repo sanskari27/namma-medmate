@@ -34,12 +34,7 @@ export const emptyForm = (): FormState => ({
   newLabel: '',
 });
 
-export function hasFinanceAccess(role: string | undefined, modules: string[] | undefined): boolean {
-  if (role === 'pharmacy_owner') {
-    return true;
-  }
-  return modules?.includes('FINANCE') === true;
-}
+export { hasFinanceAccess } from '@/libs/financeAccess';
 
 export function statusCopy(
   status: PageStatus,

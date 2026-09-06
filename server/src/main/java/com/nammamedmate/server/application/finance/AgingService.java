@@ -1,23 +1,19 @@
 package com.nammamedmate.server.application.finance;
 
-import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.domain.AgingBucket;
 import com.nammamedmate.server.domain.AgingPolicy;
-import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.CustomerCreditAccount;
 import com.nammamedmate.server.domain.CustomerCreditLedgerEntry;
 import com.nammamedmate.server.domain.CustomerCreditLedgerType;
 import com.nammamedmate.server.domain.Location;
-import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.Supplier;
 import com.nammamedmate.server.domain.SupplierLedgerEntry;
 import com.nammamedmate.server.domain.SupplierLedgerType;
 import com.nammamedmate.server.domain.SupplierPayableAccount;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
-import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
 import com.nammamedmate.server.persistence.CustomerCreditLedgerEntryRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
@@ -55,9 +51,8 @@ public class AgingService {
   private final SupplierPayableAccountRepository payableAccountRepository;
   private final SupplierRepository supplierRepository;
   private final LocationRepository locationRepository;
-  private final AppUserRepository appUserRepository;
   private final UserBranchRepository userBranchRepository;
-  private final AccessQueryService accessQueryService;
+  private final FinanceAccessService financeAccessService;
   private final Clock clock;
 
   public AgingService(
@@ -69,9 +64,8 @@ public class AgingService {
       SupplierPayableAccountRepository payableAccountRepository,
       SupplierRepository supplierRepository,
       LocationRepository locationRepository,
-      AppUserRepository appUserRepository,
       UserBranchRepository userBranchRepository,
-      AccessQueryService accessQueryService,
+      FinanceAccessService financeAccessService,
       Clock clock) {
     this.creditLedgerRepository = creditLedgerRepository;
     this.creditAccountRepository = creditAccountRepository;
@@ -81,9 +75,8 @@ public class AgingService {
     this.payableAccountRepository = payableAccountRepository;
     this.supplierRepository = supplierRepository;
     this.locationRepository = locationRepository;
-    this.appUserRepository = appUserRepository;
     this.userBranchRepository = userBranchRepository;
-    this.accessQueryService = accessQueryService;
+    this.financeAccessService = financeAccessService;
     this.clock = clock;
   }
 
@@ -360,22 +353,8 @@ public class AgingService {
   }
 
   private Context requireFinance(AuthPrincipal principal) {
-    if (principal == null || principal.tenantId() == null) {
-      throw AgingPolicy.forbidden();
-    }
-    if (principal.role() != AppUserRole.pharmacy_owner
-        && principal.role() != AppUserRole.pharmacy_staff) {
-      throw AgingPolicy.forbidden();
-    }
-    AppUser user =
-        appUserRepository
-            .findById(principal.userId())
-            .filter(row -> row.getDeletedAt() == null)
-            .orElseThrow(AgingPolicy::forbidden);
-    if (!accessQueryService.effectiveModules(user).contains(ModuleCode.FINANCE)) {
-      throw AgingPolicy.forbidden();
-    }
-    return new Context(principal.tenantId(), principal.activeBranchId());
+    FinanceAccessService.Context access = financeAccessService.requireFinance(principal);
+    return new Context(access.tenantId(), access.sessionBranchId());
   }
 
   private static UUID parseUuid(String raw) {

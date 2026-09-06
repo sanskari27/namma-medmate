@@ -119,7 +119,11 @@ const gstr1: FinanceReportTable = {
   generatedAt: '2026-09-06T02:00:00Z',
 };
 
-function renderPage(role = 'pharmacy_owner', modules: string[] = ['FINANCE', 'SALES']) {
+function renderPage(
+  role = 'pharmacy_owner',
+  modules: string[] = ['FINANCE', 'SALES'],
+  desks: string[] = [],
+) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
@@ -133,7 +137,7 @@ function renderPage(role = 'pharmacy_owner', modules: string[] = ['FINANCE', 'SA
           tenantStatus: 'ACTIVE',
           emailVerified: true,
           modules,
-          roles: [],
+          roles: desks.map((code) => ({ id: code, name: code, code, kind: 'PREDEFINED' })),
           activeBranchId: 'br1',
           branches: [{ id: 'br1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' }],
         },
@@ -274,7 +278,7 @@ describe('Shop books', () => {
   it('staff sees this outlet only', async () => {
     listMock.mockResolvedValue(catalog);
     tableMock.mockResolvedValue(dayBook);
-    renderPage('pharmacy_staff', ['FINANCE']);
+    renderPage('pharmacy_staff', ['FINANCE'], ['accountant']);
     await screen.findByRole('table', { name: 'Day book' });
     expect(screen.queryByLabelText('Outlet')).not.toBeInTheDocument();
     expect(screen.queryByText('All outlets')).not.toBeInTheDocument();
