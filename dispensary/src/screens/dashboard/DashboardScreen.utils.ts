@@ -255,7 +255,7 @@ export function formatDay(value: string | null | undefined): string {
 }
 
 export function ownerWidgetList(owner: OwnerDesk): DashboardWidget<unknown>[] {
-  return [
+  const widgets: Array<DashboardWidget<unknown> | null | undefined> = [
     owner.sales,
     owner.lowStock,
     owner.expiry,
@@ -266,7 +266,8 @@ export function ownerWidgetList(owner: OwnerDesk): DashboardWidget<unknown>[] {
     owner.transfers,
     owner.compliance,
     owner.openPurchaseOrders,
-  ].filter((widget): widget is DashboardWidget<unknown> => widget != null);
+  ];
+  return widgets.filter((widget): widget is DashboardWidget<unknown> => widget != null);
 }
 
 function isEmptyOwnerDesk(owner: OwnerDesk): boolean {

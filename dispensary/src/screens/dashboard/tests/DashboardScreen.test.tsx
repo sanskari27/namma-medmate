@@ -28,7 +28,7 @@ function okWidget<T>(key: string, href: string, data: T): DashboardWidget<T> {
   return { key, status: 'OK', asOf: AS_OF, href, error: null, data };
 }
 
-function failedWidget(key: string, href: string): DashboardWidget<null> {
+function failedWidget<T>(key: string, href: string): DashboardWidget<T> {
   return { key, status: 'FAILED', asOf: AS_OF, href, error: 'UNAVAILABLE', data: null };
 }
 
