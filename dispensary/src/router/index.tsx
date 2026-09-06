@@ -29,6 +29,7 @@ import PrescriptionsScreen from '@/screens/prescriptions/PrescriptionsScreen';
 import RegistersScreen from '@/screens/registers/RegistersScreen';
 import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRegisterScreen';
 import ExpensesScreen from '@/screens/expenses/ExpensesScreen';
+import AgingScreen from '@/screens/aging/AgingScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
@@ -66,6 +67,7 @@ const router = createBrowserRouter([
           { path: ROUTES.PURCHASES, element: <PurchasesScreen /> },
           { path: ROUTES.OFFERS, element: <OffersScreen /> },
           { path: ROUTES.EXPENSES, element: <ExpensesScreen /> },
+          { path: ROUTES.AGING, element: <AgingScreen /> },
           { path: ROUTES.SUBSCRIPTION, element: <SubscriptionScreen /> },
           { path: ROUTES.KIOSK, element: <KioskScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },

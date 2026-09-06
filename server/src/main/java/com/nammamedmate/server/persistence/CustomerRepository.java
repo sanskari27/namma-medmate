@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Customer;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -17,6 +18,8 @@ public interface CustomerRepository extends JpaRepository<Customer, UUID> {
   Optional<Customer> findByTenantIdAndPhoneAndDeletedAtIsNull(UUID tenantId, String phone);
 
   List<Customer> findAllByTenantIdAndDeletedAtIsNullOrderByNameAsc(UUID tenantId);
+
+  List<Customer> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   @Query(
       """
