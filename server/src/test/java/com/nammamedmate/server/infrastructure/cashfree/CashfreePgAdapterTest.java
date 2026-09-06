@@ -1,11 +1,20 @@
 package com.nammamedmate.server.infrastructure.cashfree;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
+import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.nammamedmate.server.domain.PlanCode;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpMethod;
+import org.springframework.http.MediaType;
+import org.springframework.mock.http.client.MockClientHttpRequest;
+import org.springframework.test.web.client.MockRestServiceServer;
+import org.springframework.web.client.RestClient;
 
 class CashfreePgAdapterTest {
 
@@ -55,5 +64,37 @@ class CashfreePgAdapterTest {
     assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, signature)).isTrue();
     assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, "nope")).isFalse();
     assertThat(CashfreeWebhookSignature.valid("", timestamp, body, signature)).isFalse();
+  }
+
+  @Test
+  void configuredCreatePostsPgOrderWithClientSecret() {
+    RestClient.Builder builder = RestClient.builder();
+    MockRestServiceServer server = MockRestServiceServer.bindTo(builder).build();
+    server
+        .expect(requestTo("https://sandbox.cashfree.com/pg/orders"))
+        .andExpect(method(HttpMethod.POST))
+        .andExpect(header("x-client-id", "cf-id"))
+        .andExpect(header("x-client-secret", "cf-secret"))
+        .andExpect(
+            request -> {
+              assertThat(request.getURI().toString()).doesNotContain("/subscriptions");
+              assertThat(request.getHeaders().get("x-secret-id")).isNull();
+              String payload = ((MockClientHttpRequest) request).getBodyAsString();
+              assertThat(payload).contains("\"order_amount\":699.00");
+              assertThat(payload).doesNotContain("/pg/subscriptions");
+            })
+        .andRespond(
+            withSuccess(
+                "{\"payment_session_id\":\"sess_1\",\"order_id\":\"nmm_2\"}",
+                MediaType.APPLICATION_JSON));
+    CashfreePgAdapter adapter =
+        new CashfreePgAdapter(builder.build(), "cf-id", "cf-secret", "sandbox");
+    CashfreeOrderResult result =
+        adapter.createOrder(
+            new CashfreeCreateOrderRequest(
+                "nmm_2", UUID.randomUUID(), PlanCode.STARTER, 69900, "http://localhost:5173"));
+    assertThat(result.paymentSessionId()).isEqualTo("sess_1");
+    assertThat(result.checkoutUrl()).contains("sess_1");
+    server.verify();
   }
 }

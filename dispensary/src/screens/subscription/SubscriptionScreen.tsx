@@ -90,7 +90,6 @@ export default function SubscriptionScreen() {
         } else if (payment.status === 'FAILED') {
           setStatus('failure');
         }
-        restoreRef.current?.focus();
       } catch (err) {
         if (cancelled) {
           return;
@@ -110,6 +109,13 @@ export default function SubscriptionScreen() {
       cancelled = true;
     };
   }, [allowed, payOrder]);
+
+  useEffect(() => {
+    if (status !== 'success') {
+      return;
+    }
+    restoreRef.current?.focus();
+  }, [status, current]);
 
   async function onUpgrade(planCode: string) {
     if (!allowed) {
@@ -136,7 +142,6 @@ export default function SubscriptionScreen() {
       const next = await upgradePlan(planCode, crypto.randomUUID());
       setCurrent(next);
       setStatus('success');
-      restoreRef.current?.focus();
     } catch (err) {
       if (isApiError(err)) {
         if (err.status === 403) {
@@ -145,6 +150,8 @@ export default function SubscriptionScreen() {
           setStatus('conflict');
         } else if (err.code === 'PLAN_LIMIT') {
           setStatus('quota');
+        } else if (err.code === 'PROVIDER_UNAVAILABLE' || err.code === 'PAYMENT_REQUIRED') {
+          setStatus('unavailable');
         } else if (err.status === 400 || err.status === 422) {
           setStatus('validation');
         } else {
@@ -172,7 +179,7 @@ export default function SubscriptionScreen() {
         </p>
       ) : null}
 
-      {current ? <PlanUsagePanel current={current} /> : null}
+      {current ? <PlanUsagePanel current={current} headingRef={restoreRef} /> : null}
 
       {orderedPlans.length > 0 ? (
         <section aria-labelledby="plans-heading">
@@ -199,9 +206,6 @@ export default function SubscriptionScreen() {
           </p>
         </section>
       ) : null}
-      <button ref={restoreRef} type="button" className="sr-only" tabIndex={-1} aria-hidden="true">
-        Restore focus
-      </button>
     </div>
   );
 }

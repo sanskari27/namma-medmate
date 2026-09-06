@@ -1,16 +1,28 @@
 import { Label } from '@atoms';
 import type { CurrentSubscription } from '@/services/subscriptions';
+import type { Ref } from 'react';
 import { StallStrip } from '../stall-strip';
 import { floorDesks, formatIst, hasKiosk, hasLoyalty, planLabel } from '../../SubscriptionScreen.utils';
 
-export function PlanUsagePanel({ current }: { current: CurrentSubscription }) {
+export function PlanUsagePanel({
+  current,
+  headingRef,
+}: {
+  current: CurrentSubscription;
+  headingRef?: Ref<HTMLHeadingElement>;
+}) {
   return (
     <section
       aria-labelledby="usage-heading"
       className="border-l-4 border-l-brand border-y border-r border-line bg-surface"
     >
       <header className="flex flex-wrap items-baseline justify-between gap-2 border-b border-line px-3 py-2">
-        <h2 id="usage-heading" className="font-sans text-sm font-semibold">
+        <h2
+          id="usage-heading"
+          ref={headingRef}
+          tabIndex={-1}
+          className="font-sans text-sm font-semibold outline-none focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-focus"
+        >
           {planLabel(current.planCode)} licence
         </h2>
         <p className="font-mono text-xs text-muted">{current.status}</p>

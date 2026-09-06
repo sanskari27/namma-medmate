@@ -177,7 +177,7 @@ describe('pharmacy plan', () => {
     paymentMock.mockResolvedValue({ ...checkout, status: 'SUCCESS' });
     renderPage('pharmacy_owner', '/subscription?payment=nmm_abc');
     expect(await screen.findByRole('alert')).toHaveTextContent('Plan updated for this pharmacy.');
-    expect(await screen.findByRole('heading', { name: 'Starter licence' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Starter licence' })).toHaveFocus();
     expect(screen.getByText('1 of 2 outlets in use')).toBeInTheDocument();
   });
 
@@ -215,6 +215,27 @@ describe('pharmacy plan', () => {
     );
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Choose a higher plan before changing this pharmacy’s plan.',
+    );
+  });
+
+  it('failure: checkout is not available when the provider is blank', async () => {
+    const user = userEvent.setup();
+    currentMock.mockResolvedValue(free);
+    catalogueMock.mockResolvedValue(plans);
+    checkoutMock.mockRejectedValue(
+      new ApiError(
+        'Checkout is not available right now. Try again in a few minutes.',
+        422,
+        'PROVIDER_UNAVAILABLE',
+      ),
+    );
+    renderPage();
+    await screen.findByRole('heading', { name: 'Plan for this pharmacy' });
+    await user.click(
+      screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }),
+    );
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Checkout is not available right now. Try again in a few minutes.',
     );
   });
 });

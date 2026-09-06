@@ -10,6 +10,7 @@ export type PageStatus =
   | 'failure'
   | 'success'
   | 'quota'
+  | 'unavailable'
   | null;
 
 export const PLAN_ORDER = ['FREE', 'STARTER', 'GROWTH', 'PRO'] as const;
@@ -114,6 +115,11 @@ export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text
       return {
         icon: AlertCircle,
         text: 'This pharmacy already uses more outlets or till logins than that plan allows. Reduce usage first.',
+      };
+    case 'unavailable':
+      return {
+        icon: Unplug,
+        text: 'Checkout is not available right now. Try again in a few minutes.',
       };
     case 'failure':
       return {

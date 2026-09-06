@@ -40,7 +40,11 @@ public class CashfreePgAdapter {
       @Value("${app.cashfree.client-id:}") String clientId,
       @Value("${app.cashfree.client-secret:}") String clientSecret,
       @Value("${app.cashfree.env:sandbox}") String env) {
-    this(clientsFrom(clientId, clientSecret, env));
+    this(clientsFrom(RestClient.create(), clientId, clientSecret, env));
+  }
+
+  CashfreePgAdapter(RestClient restClient, String clientId, String clientSecret, String env) {
+    this(clientsFrom(restClient, clientId, clientSecret, env));
   }
 
   static CashfreePgAdapter withClients(OrderCreator creator, OrderFetcher fetcher) {
@@ -76,7 +80,8 @@ public class CashfreePgAdapter {
     return fetcher.fetch(orderId);
   }
 
-  private static Clients clientsFrom(String clientId, String clientSecret, String env) {
+  private static Clients clientsFrom(
+      RestClient client, String clientId, String clientSecret, String env) {
     if (clientId == null || clientId.isBlank() || clientSecret == null || clientSecret.isBlank()) {
       return new Clients(null, null, false);
     }
@@ -84,7 +89,6 @@ public class CashfreePgAdapter {
         "production".equalsIgnoreCase(env)
             ? "https://api.cashfree.com/pg"
             : "https://sandbox.cashfree.com/pg";
-    RestClient client = RestClient.create();
     OrderCreator creator =
         request -> {
           Map<String, Object> body = new LinkedHashMap<>();
@@ -109,7 +113,7 @@ public class CashfreePgAdapter {
                     .uri(base + "/orders")
                     .contentType(MediaType.APPLICATION_JSON)
                     .header("x-client-id", clientId)
-                    .header("x-secret-id", clientSecret)
+                    .header("x-client-secret", clientSecret)
                     .header("x-api-version", API_VERSION)
                     .body(body)
                     .retrieve()
@@ -137,7 +141,7 @@ public class CashfreePgAdapter {
                     .get()
                     .uri(base + "/orders/{id}", orderId)
                     .header("x-client-id", clientId)
-                    .header("x-secret-id", clientSecret)
+                    .header("x-client-secret", clientSecret)
                     .header("x-api-version", API_VERSION)
                     .retrieve()
                     .body(JsonNode.class);
