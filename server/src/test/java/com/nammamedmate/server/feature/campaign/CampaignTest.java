@@ -347,6 +347,47 @@ class CampaignTest extends AbstractIntegrationTest {
     verifyNoInteractions(metaWhatsAppAdapter);
   }
 
+  @Test
+  void ac05_stalePreviewOrReadyExpectedVersionConflicts() throws Exception {
+    Fixture fx = seed("camp-stale");
+    UUID diabetic = createTag(fx.cookie(), "diabetic");
+    UUID tagged = createCustomer(fx.cookie(), "Stale Patient", "9402000051");
+    assignTags(fx.cookie(), tagged, diabetic);
+    approveCampaignTemplate(fx.cookie());
+    UUID campaignId = createDraft(fx.cookie(), "Stale blast", diabetic);
+
+    mockMvc
+        .perform(
+            post(PATH + "/" + campaignId + "/preview")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"expectedVersion\":99}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value(CampaignPolicy.STALE_STATE));
+    assertThat(campaignRepository.findById(campaignId).orElseThrow().getPreviewedAt()).isNull();
+
+    mockMvc
+        .perform(
+            post(PATH + "/" + campaignId + "/preview")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"expectedVersion\":1}"))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(
+            post(PATH + "/" + campaignId + "/ready")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"expectedVersion\":1}"))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value(CampaignPolicy.STALE_STATE));
+    assertThat(recipientRepository.count()).isZero();
+    assertThat(campaignRepository.findById(campaignId).orElseThrow().getStatus())
+        .isEqualTo(CampaignStatus.DRAFT);
+    verifyNoInteractions(metaWhatsAppAdapter);
+  }
+
   private UUID createDraft(Cookie cookie, String name, UUID... tags) throws Exception {
     String body =
         mockMvc

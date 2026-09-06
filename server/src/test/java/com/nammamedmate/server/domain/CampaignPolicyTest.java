@@ -9,6 +9,7 @@ import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
+import org.springframework.http.HttpStatus;
 
 class CampaignPolicyTest {
 
@@ -99,5 +100,21 @@ class CampaignPolicyTest {
     UUID two = UUID.fromString("22222222-2222-2222-2222-222222222222");
     assertThat(CampaignPolicy.dedupe(List.of(one, two, one))).containsExactly(one, two);
     assertThat(CampaignPolicy.dedupe(Set.of(two, one))).containsExactlyInAnyOrder(one, two);
+  }
+
+  @Test
+  void ac05_staleVersionConflicts() {
+    assertThatThrownBy(() -> CampaignPolicy.requireVersion(2, 1))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              assertThat(api.getCode()).isEqualTo(CampaignPolicy.STALE_STATE);
+              assertThat(api.getStatus()).isEqualTo(HttpStatus.CONFLICT);
+            });
+    assertThatThrownBy(() -> CampaignPolicy.requireVersion(1, null))
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(CampaignPolicy.STALE_STATE);
+    CampaignPolicy.requireVersion(1, 1);
   }
 }
