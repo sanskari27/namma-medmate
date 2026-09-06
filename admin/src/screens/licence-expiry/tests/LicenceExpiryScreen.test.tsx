@@ -72,7 +72,9 @@ describe('HQ licence expiry', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'No tenant papers due in the next 30 days.',
     );
-    expect(screen.getByText('No pharmacies need a renewal chase from HQ today.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No pharmacies need a renewal chase from HQ today.'),
+    ).toBeInTheDocument();
   });
 
   it('denied: verification desks cannot open licence expiry', () => {
@@ -96,7 +98,9 @@ describe('HQ licence expiry', () => {
 
   it('conflict: stale due scan', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValueOnce([dueRow]).mockRejectedValueOnce(new ApiError('stale', 409, 'CONFLICT'));
+    listMock
+      .mockResolvedValueOnce([dueRow])
+      .mockRejectedValueOnce(new ApiError('stale', 409, 'CONFLICT'));
     renderPage('admin_super');
     await screen.findByText('KA-DL-100');
     await user.click(screen.getByRole('button', { name: 'Rescan platform' }));

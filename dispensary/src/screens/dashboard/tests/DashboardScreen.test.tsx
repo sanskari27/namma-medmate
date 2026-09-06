@@ -83,9 +83,7 @@ const inventoryFilled: DashboardView = {
         reorderLevel: 10,
       },
     ],
-    pendingTransfers: [
-      { id: 't1', status: 'REQUESTED', direction: 'IN', href: '/inventory' },
-    ],
+    pendingTransfers: [{ id: 't1', status: 'REQUESTED', direction: 'IN', href: '/inventory' }],
     pendingGrn: [
       {
         id: 'g1',
@@ -180,7 +178,9 @@ const ownerFilled: DashboardView = {
     }),
     approvals: okWidget('APPROVALS', '/approvals/pending', {
       count: 1,
-      items: [{ id: 'a1', label: 'INVENTORY_WRITE_OFF', status: 'PENDING', href: '/approvals/pending' }],
+      items: [
+        { id: 'a1', label: 'INVENTORY_WRITE_OFF', status: 'PENDING', href: '/approvals/pending' },
+      ],
     }),
     receivables: okWidget('RECEIVABLES', '/aging', {
       totalPaise: 12000,
@@ -273,11 +273,7 @@ const multiStaff: DashboardView = {
   permittedRoles: ['cashier', 'inventory'],
 };
 
-function userFor(
-  role: string,
-  modules: string[],
-  extras: Partial<AuthUser> = {},
-): AuthUser {
+function userFor(role: string, modules: string[], extras: Partial<AuthUser> = {}): AuthUser {
   return {
     userId: 'u1',
     displayName: 'Floor',
@@ -332,9 +328,7 @@ describe('DashboardScreen', () => {
   });
 
   it('validation: no active outlet', async () => {
-    fetchMock.mockRejectedValue(
-      new ApiError('Select an outlet first.', 422, 'NO_ACTIVE_BRANCH'),
-    );
+    fetchMock.mockRejectedValue(new ApiError('Select an outlet first.', 422, 'NO_ACTIVE_BRANCH'));
     renderPage(userFor('pharmacy_staff', ['SALES'], { activeBranchId: null }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Select an outlet before opening this desk.',
@@ -450,11 +444,12 @@ describe('DashboardScreen', () => {
       '/approvals/pending',
     );
     expect(screen.getByRole('link', { name: 'Licences' })).toHaveAttribute('href', '/licenses');
-    expect(screen.getByRole('link', { name: 'Outlet orders' })).toHaveAttribute('href', '/purchases');
-    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('owner', { scope: 'tenant' }),
+    expect(screen.getByRole('link', { name: 'Outlet orders' })).toHaveAttribute(
+      'href',
+      '/purchases',
     );
+    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('owner', { scope: 'tenant' }));
   });
 
   it('multi-desk switch does not duplicate widgets', async () => {

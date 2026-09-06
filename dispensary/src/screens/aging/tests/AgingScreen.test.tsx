@@ -158,7 +158,9 @@ describe('AgingScreen', () => {
 
   it('conflict: figures changed on another till', async () => {
     const user = userEvent.setup();
-    receivablesMock.mockResolvedValueOnce(report()).mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
+    receivablesMock
+      .mockResolvedValueOnce(report())
+      .mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     payablesMock.mockResolvedValue(report());
     renderPage();
     await screen.findByRole('heading', { name: 'Khata and stockist dues' });

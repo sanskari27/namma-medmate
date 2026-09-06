@@ -50,7 +50,10 @@ export function useShopBooksPage() {
   const [scope, setScope] = useState<OutletScope>('session');
   const [busy, setBusy] = useState(false);
 
-  const query = useCallback(() => toQuery(filters, owner ? scope : 'session'), [filters, owner, scope]);
+  const query = useCallback(
+    () => toQuery(filters, owner ? scope : 'session'),
+    [filters, owner, scope],
+  );
 
   const loadCatalog = useCallback(async () => {
     if (!allowed) {

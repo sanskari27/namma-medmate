@@ -10,9 +10,7 @@ import { useShopBooksPage } from './useShopBooksPage';
 
 export default function ShopBooksScreen() {
   const page = useShopBooksPage();
-  const tableTitle = page.table
-    ? shopBookTitle(page.table.key, page.table.title)
-    : 'Shop book';
+  const tableTitle = page.table ? shopBookTitle(page.table.key, page.table.title) : 'Shop book';
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
@@ -24,11 +22,7 @@ export default function ShopBooksScreen() {
         onSpreadsheet={page.onSpreadsheet}
         onPdf={page.onPdf}
       />
-      <ShopBooksStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-      />
+      <ShopBooksStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
       {page.allowed ? (
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <ShopBooksBookList
@@ -48,7 +42,10 @@ export default function ShopBooksScreen() {
             />
             {page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
               <>
-                <ShopBooksTotalsStrip totals={page.table.totals} allOutlets={page.scope === 'tenant'} />
+                <ShopBooksTotalsStrip
+                  totals={page.table.totals}
+                  allOutlets={page.scope === 'tenant'}
+                />
                 <ShopBooksTable
                   title={tableTitle}
                   columns={page.table.columns}

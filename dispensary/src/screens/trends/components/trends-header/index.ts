@@ -1,0 +1,1 @@
+export { TrendsHeader } from './TrendsHeader';

@@ -28,9 +28,7 @@ export function LicenseIdentityFields({
           className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink"
           value={form.docType}
           disabled={!creating}
-          onChange={(event) =>
-            onChange({ docType: event.target.value as FormState['docType'] })
-          }
+          onChange={(event) => onChange({ docType: event.target.value as FormState['docType'] })}
         >
           <option value="DRUG_LICENSE">Drug licence</option>
           <option value="GST">GST</option>

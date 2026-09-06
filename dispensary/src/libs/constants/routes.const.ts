@@ -100,7 +100,7 @@ export const NAV_SECTIONS = [
     id: 'business',
     label: 'Business',
     items: [
-      { label: 'Reports', path: ROUTES.REPORTS, hint: 'This branch numbers' },
+      { label: 'Compare weeks', path: ROUTES.REPORTS, hint: 'This week vs last week' },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
       { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },
@@ -179,7 +179,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.EXPENSES &&
     item.path !== ROUTES.AGING &&
     item.path !== ROUTES.BOOKS &&
-    item.path !== ROUTES.ACCOUNTANT,
+    item.path !== ROUTES.ACCOUNTANT &&
+    item.path !== ROUTES.REPORTS,
 ).map((item) => ({
   path: item.path,
   title: item.label,

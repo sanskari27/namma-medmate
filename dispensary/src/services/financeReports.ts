@@ -35,7 +35,9 @@ export type FinanceReportQuery = {
   scope?: string;
 };
 
-export async function listFinanceReports(query: FinanceReportQuery = {}): Promise<FinanceReportCatalogItem[]> {
+export async function listFinanceReports(
+  query: FinanceReportQuery = {},
+): Promise<FinanceReportCatalogItem[]> {
   const { data } = await apiClient.get<{ items: FinanceReportCatalogItem[] }>(API.FINANCE_REPORTS, {
     params: query,
   });

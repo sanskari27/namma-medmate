@@ -346,7 +346,9 @@ describe('POS connectivity guard', () => {
     pingHealthMock.mockResolvedValue({ status: 'UP' });
     window.dispatchEvent(new Event('online'));
     await waitFor(() => {
-      expect(screen.queryByRole('alertdialog', { name: 'Till is offline' })).not.toBeInTheDocument();
+      expect(
+        screen.queryByRole('alertdialog', { name: 'Till is offline' }),
+      ).not.toBeInTheDocument();
     });
     expect(pingHealthMock).toHaveBeenCalled();
     expect(screen.getByLabelText('Find medicine')).toHaveFocus();

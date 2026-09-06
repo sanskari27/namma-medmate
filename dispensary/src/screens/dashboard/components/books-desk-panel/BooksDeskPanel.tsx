@@ -35,7 +35,9 @@ export function BooksDeskPanel({ data }: BooksDeskPanelProps) {
           {data.receivableBuckets.map((bucket) => (
             <li key={bucket.key}>
               {bucket.label}{' '}
-              <span className="font-mono tabular-nums text-ink">{formatPaise(bucket.totalPaise)}</span>
+              <span className="font-mono tabular-nums text-ink">
+                {formatPaise(bucket.totalPaise)}
+              </span>
             </li>
           ))}
         </ul>

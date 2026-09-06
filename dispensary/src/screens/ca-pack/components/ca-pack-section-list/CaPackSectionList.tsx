@@ -11,11 +11,7 @@ export function CaPackSectionList({ sections }: CaPackSectionListProps) {
       {sections.map((section) => {
         const title = sectionTitle(section.key, section.title);
         return (
-          <section
-            key={section.key}
-            className="border border-line bg-surface"
-            aria-label={title}
-          >
+          <section key={section.key} className="border border-line bg-surface" aria-label={title}>
             <header className="border-b border-line px-3 py-2">
               <h2 className="text-sm font-semibold text-ink">{title}</h2>
               {section.totals.length > 0 ? (

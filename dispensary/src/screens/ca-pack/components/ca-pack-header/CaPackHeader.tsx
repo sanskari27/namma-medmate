@@ -20,8 +20,8 @@ export function CaPackHeader({
         <div>
           <h1 className="text-2xl font-semibold text-ink">Pack for the CA</h1>
           <p className="mt-1 text-sm text-muted">
-            Categorized shop figures the CA can file from — sales, spend, GST, and dues. Not
-            patient papers.
+            Categorized shop figures the CA can file from — sales, spend, GST, and dues. Not patient
+            papers.
           </p>
         </div>
         {denied ? null : (

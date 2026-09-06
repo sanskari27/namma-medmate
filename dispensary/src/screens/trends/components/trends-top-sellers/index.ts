@@ -1,0 +1,1 @@
+export { TrendsTopSellers } from './TrendsTopSellers';

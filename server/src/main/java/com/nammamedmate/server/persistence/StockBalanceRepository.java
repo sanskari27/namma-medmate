@@ -2,6 +2,7 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.StockBalance;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -13,6 +14,8 @@ import org.springframework.data.repository.query.Param;
 public interface StockBalanceRepository extends JpaRepository<StockBalance, UUID> {
 
   List<StockBalance> findAllByTenantIdAndBranchIdOrderByProductIdAsc(UUID tenantId, UUID branchId);
+
+  List<StockBalance> findAllByTenantIdAndBranchIdIn(UUID tenantId, Collection<UUID> branchIds);
 
   List<StockBalance> findAllByTenantIdAndBranchIdAndProductId(
       UUID tenantId, UUID branchId, UUID productId);

@@ -19,11 +19,7 @@ export default function RegistersScreen() {
         onSpreadsheet={page.onSpreadsheet}
         onPdf={page.onPdf}
       />
-      <RegistersStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-      />
+      <RegistersStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
       {page.allowed ? (
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <RegistersBookList

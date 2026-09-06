@@ -118,9 +118,7 @@ export function useRegistersPage() {
       downloadBlob(blob, filenameFor(selectedKey, format));
       setStatus('success');
       setStatusHint(
-        format === 'pdf'
-          ? 'PDF saved for this outlet.'
-          : 'Spreadsheet saved for this outlet.',
+        format === 'pdf' ? 'PDF saved for this outlet.' : 'Spreadsheet saved for this outlet.',
       );
       const focusTarget = format === 'pdf' ? pdfRef : spreadsheetRef;
       window.setTimeout(() => focusTarget.current?.focus(), 0);

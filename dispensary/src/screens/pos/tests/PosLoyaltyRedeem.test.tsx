@@ -474,9 +474,7 @@ describe('POS loyalty redeem', () => {
     getLoyaltyMock.mockRejectedValue(new Error('network'));
     renderPage();
     await savePatientDraft(user);
-    expect(
-      await screen.findByText(/Could not load points for this patient/),
-    ).toBeInTheDocument();
+    expect(await screen.findByText(/Could not load points for this patient/)).toBeInTheDocument();
   });
 
   it('denied: collect redeem on a frozen plan keeps the copy local', async () => {

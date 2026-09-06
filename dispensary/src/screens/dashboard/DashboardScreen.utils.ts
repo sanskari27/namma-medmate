@@ -9,14 +9,7 @@ import type {
 } from '@/services/dashboards';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type OutletScope = 'session' | 'tenant';
 

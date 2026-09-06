@@ -16,7 +16,9 @@ export function ReturnsRefundSummary({ preview }: ReturnsRefundSummaryProps) {
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-muted">Cash back</dt>
-          <dd className="font-mono tabular-nums text-ink">{formatPaise(preview.cashRefundPaise)}</dd>
+          <dd className="font-mono tabular-nums text-ink">
+            {formatPaise(preview.cashRefundPaise)}
+          </dd>
         </div>
         <div className="flex justify-between gap-3">
           <dt className="text-muted">Credit note</dt>

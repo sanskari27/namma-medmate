@@ -47,9 +47,7 @@ export async function listLicenses(): Promise<{ items: ComplianceLicense[] }> {
 }
 
 export async function listDueLicenses(): Promise<{ items: ComplianceLicense[] }> {
-  const { data } = await apiClient.get<{ items: ComplianceLicense[] }>(
-    API.COMPLIANCE_LICENSES_DUE,
-  );
+  const { data } = await apiClient.get<{ items: ComplianceLicense[] }>(API.COMPLIANCE_LICENSES_DUE);
   return data;
 }
 

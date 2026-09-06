@@ -8,7 +8,10 @@ import RegistersScreen from '@/screens/registers/RegistersScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
-import type { ComplianceReportCatalogItem, ComplianceReportTable } from '@/services/complianceReports';
+import type {
+  ComplianceReportCatalogItem,
+  ComplianceReportTable,
+} from '@/services/complianceReports';
 
 vi.mock('@/services/complianceReports', async () => {
   const axios = await import('@/services/axios');
@@ -35,7 +38,11 @@ const catalog: ComplianceReportCatalogItem[] = [
   { key: 'H1_SALES', title: 'Schedule H1 Sale Register', filters: ['from', 'to', 'productId'] },
   { key: 'PURCHASE', title: 'Purchase Register', filters: ['from', 'to', 'supplierId'] },
   { key: 'LICENSE_EXPIRY', title: 'Drug License Renewal/Expiry Records', filters: [] },
-  { key: 'TRACEABILITY', title: 'Batch Traceability Reports', filters: ['from', 'to', 'batchNumber'] },
+  {
+    key: 'TRACEABILITY',
+    title: 'Batch Traceability Reports',
+    filters: ['from', 'to', 'batchNumber'],
+  },
 ];
 
 const h1Table: ComplianceReportTable = {

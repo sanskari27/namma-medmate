@@ -115,7 +115,9 @@ export function CustomerLoyaltyAdjustDialog({
         setStatus('denied');
       } else if (
         isApiError(error) &&
-        (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'IDEMPOTENCY_CONFLICT')
+        (error.status === 409 ||
+          error.code === 'STALE_STATE' ||
+          error.code === 'IDEMPOTENCY_CONFLICT')
       ) {
         setStatus('conflict');
       } else if (isApiError(error) && (error.status === 400 || error.status === 422)) {
@@ -162,9 +164,7 @@ export function CustomerLoyaltyAdjustDialog({
             className="min-h-10 text-sm text-ink"
             aria-live="polite"
           >
-            {copy ? (
-              <p className="border border-line bg-brand-soft/40 px-3 py-2">{copy}</p>
-            ) : null}
+            {copy ? <p className="border border-line bg-brand-soft/40 px-3 py-2">{copy}</p> : null}
           </div>
           <div className="grid gap-1.5">
             <Label htmlFor={`${formId}-points`}>Points (+ or −)</Label>

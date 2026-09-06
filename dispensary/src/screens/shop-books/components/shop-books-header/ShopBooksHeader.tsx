@@ -24,8 +24,8 @@ export function ShopBooksHeader({
         <div>
           <h1 className="text-2xl font-semibold text-ink">Shop books</h1>
           <p className="mt-1 text-sm text-muted">
-            Day book, GST for the CA, and this shop&apos;s P&amp;L from till facts. Reports stays
-            the branch-numbers stub.
+            Day book, GST for the CA, and this shop&apos;s P&amp;L from till facts. Compare weeks is
+            this week vs last week.
           </p>
         </div>
         {denied ? null : (

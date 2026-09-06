@@ -5,14 +5,7 @@ import type {
 } from '@/services/prescriptionReferences';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type RxFilter = 'ACTIVE' | 'ARCHIVED';
 

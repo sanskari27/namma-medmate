@@ -1,4 +1,9 @@
-import { statusCopy, statusIcon, type DashboardDesk, type PageStatus } from '../../DashboardScreen.utils';
+import {
+  statusCopy,
+  statusIcon,
+  type DashboardDesk,
+  type PageStatus,
+} from '../../DashboardScreen.utils';
 
 export type DashboardStatusBannerProps = {
   status: PageStatus;

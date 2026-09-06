@@ -2,14 +2,7 @@ import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 import type { LicenseDocType, LicenseScope } from '@/services/licenses';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type FormState = {
   docType: LicenseDocType;

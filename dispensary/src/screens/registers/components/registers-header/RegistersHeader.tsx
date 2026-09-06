@@ -24,8 +24,8 @@ export function RegistersHeader({
         <div>
           <h1 className="text-2xl font-semibold text-ink">Register book</h1>
           <p className="mt-1 text-sm text-muted">
-            H1, stock, licence and purchase books for this outlet — one-click spreadsheet or PDF from
-            the till facts. Separate from branch numbers under Reports.
+            H1, stock, licence and purchase books for this outlet — one-click spreadsheet or PDF
+            from the till facts. Separate from Compare weeks.
           </p>
         </div>
         {denied ? null : (

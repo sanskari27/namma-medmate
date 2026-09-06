@@ -36,11 +36,7 @@ export default function DashboardScreen() {
             onSelect={page.onDesk}
           />
           {page.owner && page.desk === 'owner' ? (
-            <DashboardOutletFilter
-              scope={page.scope}
-              disabled={busy}
-              onScope={page.onScope}
-            />
+            <DashboardOutletFilter scope={page.scope} disabled={busy} onScope={page.onScope} />
           ) : null}
           {page.desk === 'cashier' ? <TillTodayPanel data={page.view?.cashier} /> : null}
           {page.desk === 'inventory' ? <StockDeskPanel data={page.view?.inventory} /> : null}

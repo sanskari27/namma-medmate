@@ -1,0 +1,1 @@
+export { TrendsStatusBanner } from './TrendsStatusBanner';

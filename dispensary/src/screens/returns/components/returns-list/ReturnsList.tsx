@@ -21,7 +21,10 @@ export function ReturnsList({ items }: ReturnsListProps) {
       </h2>
       <ul className="divide-y divide-line">
         {items.map((row) => (
-          <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2">
+          <li
+            key={row.id}
+            className="flex flex-wrap items-baseline justify-between gap-2 px-3 py-2"
+          >
             <div>
               <p className="text-sm text-ink">{row.invoiceNumber}</p>
               <p className="text-xs text-muted">{row.reason}</p>
