@@ -1,0 +1,1 @@
+export { ApprovedStructuresList } from './ApprovedStructuresList';
