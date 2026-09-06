@@ -165,7 +165,9 @@ describe('NDPS sale book', () => {
     expect(book).toHaveTextContent('RX-NDPS-1');
     await user.click(screen.getByRole('button', { name: 'NDPS sheet' }));
     await waitFor(() => expect(exportMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent('NDPS sheet saved for this outlet.');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'NDPS sheet saved for this outlet.',
+    );
     expect(screen.getByRole('button', { name: 'NDPS sheet' })).toHaveFocus();
   });
 

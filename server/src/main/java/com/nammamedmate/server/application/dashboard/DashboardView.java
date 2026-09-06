@@ -49,24 +49,27 @@ public record DashboardView(
 
   public record StockSources(String stock, String transfers, String grn) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record AccountantDesk(
-      long receivablesTotalPaise,
-      long payablesTotalPaise,
+      Long receivablesTotalPaise,
+      Long payablesTotalPaise,
       long expenseTotalPaise,
       List<BucketItem> receivableBuckets,
-      BooksSources sources) {}
+      BooksSources sources,
+      String agingHint) {}
 
   public record BucketItem(String key, String label, long totalPaise) {}
 
   public record BooksSources(String aging, String expenses) {}
 
+  @JsonInclude(JsonInclude.Include.NON_NULL)
   public record OwnerDesk(
       Instant asOf,
       long todaySalesPaise,
       int todayBillCount,
       List<BranchSales> branches,
-      long receivablesTotalPaise,
-      long payablesTotalPaise,
+      Long receivablesTotalPaise,
+      Long payablesTotalPaise,
       long expenseTotalPaise,
       int lowStockCount,
       OwnerSources sources,

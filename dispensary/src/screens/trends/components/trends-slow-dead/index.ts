@@ -1,0 +1,1 @@
+export { TrendsSlowDead } from './TrendsSlowDead';

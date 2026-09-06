@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Product;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -15,6 +16,8 @@ public interface ProductRepository extends JpaRepository<Product, UUID> {
   Optional<Product> findByTenantIdAndSku(UUID tenantId, String sku);
 
   List<Product> findAllByTenantIdOrderByNameAsc(UUID tenantId);
+
+  List<Product> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   @Query(
       """

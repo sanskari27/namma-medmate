@@ -21,9 +21,14 @@ export function PrescriptionDetailPanel({
     );
   }
   return (
-    <section className="flex min-h-0 flex-col gap-4 border border-line bg-surface p-3" aria-label="Rx detail">
+    <section
+      className="flex min-h-0 flex-col gap-4 border border-line bg-surface p-3"
+      aria-label="Rx detail"
+    >
       <div>
-        <h2 className="font-mono text-lg font-semibold text-ink">{selected.prescriptionReference}</h2>
+        <h2 className="font-mono text-lg font-semibold text-ink">
+          {selected.prescriptionReference}
+        </h2>
         <p className="text-sm text-muted">
           {selected.customerName} · {selected.branchName || 'This outlet'}
         </p>

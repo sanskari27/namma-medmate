@@ -1,14 +1,7 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type OutletScope = 'session' | 'tenant';
 
@@ -141,7 +134,8 @@ export function rupeesToPaise(value: string): number | null {
     return null;
   }
   const [rupees, fraction = ''] = cleaned.split('.');
-  const paise = Number.parseInt(rupees, 10) * 100 + Number.parseInt(fraction.padEnd(2, '0') || '0', 10);
+  const paise =
+    Number.parseInt(rupees, 10) * 100 + Number.parseInt(fraction.padEnd(2, '0') || '0', 10);
   return Number.isFinite(paise) ? paise : null;
 }
 

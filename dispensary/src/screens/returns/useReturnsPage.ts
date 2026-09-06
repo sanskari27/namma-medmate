@@ -38,31 +38,34 @@ export function useReturnsPage() {
   const [preview, setPreview] = useState<SalesReturn | null>(null);
   const [busy, setBusy] = useState(false);
 
-  const load = useCallback(async (keepStatus?: PageStatus) => {
-    if (!allowed) {
-      setStatus('denied');
-      return;
-    }
-    if (!keepStatus) {
-      setStatus('loading');
-      setStatusHint(null);
-    }
-    try {
-      const [returnList, invoiceList] = await Promise.all([
-        listSalesReturns(),
-        listSalesInvoices({ status: 'COMPLETED' }),
-      ]);
-      setReturns(returnList.items);
-      setInvoices(invoiceList.items);
-      if (!keepStatus) {
-        setStatus(invoiceList.items.length === 0 ? 'empty' : null);
+  const load = useCallback(
+    async (keepStatus?: PageStatus) => {
+      if (!allowed) {
+        setStatus('denied');
+        return;
       }
-    } catch (error) {
-      const mapped = isApiError(error) ? mapApiStatus(error) : 'failure';
-      setStatus(mapped);
-      setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
-    }
-  }, [allowed]);
+      if (!keepStatus) {
+        setStatus('loading');
+        setStatusHint(null);
+      }
+      try {
+        const [returnList, invoiceList] = await Promise.all([
+          listSalesReturns(),
+          listSalesInvoices({ status: 'COMPLETED' }),
+        ]);
+        setReturns(returnList.items);
+        setInvoices(invoiceList.items);
+        if (!keepStatus) {
+          setStatus(invoiceList.items.length === 0 ? 'empty' : null);
+        }
+      } catch (error) {
+        const mapped = isApiError(error) ? mapApiStatus(error) : 'failure';
+        setStatus(mapped);
+        setStatusHint(isApiError(error) ? apiStatusHint(error.code) : null);
+      }
+    },
+    [allowed],
+  );
 
   useEffect(() => {
     void load();
@@ -99,7 +102,9 @@ export function useReturnsPage() {
       setInvoice(null);
       setPreview(null);
       const mapped = isApiError(error) ? mapApiStatus(error) : 'failure';
-      setStatus(mapped === 'failure' && isApiError(error) && error.status === 404 ? 'empty' : mapped);
+      setStatus(
+        mapped === 'failure' && isApiError(error) && error.status === 404 ? 'empty' : mapped,
+      );
       setStatusHint(
         isApiError(error) && error.status === 404
           ? 'No collected bill matches that number at this outlet.'

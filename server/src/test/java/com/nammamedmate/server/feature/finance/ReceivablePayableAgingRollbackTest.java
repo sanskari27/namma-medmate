@@ -143,7 +143,7 @@ class ReceivablePayableAgingRollbackTest extends AbstractIntegrationTest {
 
   private Fixture seed(String tag) throws Exception {
     Tenant tenant = persistTenant(tag, "Aging " + tag);
-    persistPlan(tenant.getId(), PlanCode.FREE);
+    persistPlan(tenant.getId(), PlanCode.GROWTH);
     AppUser owner =
         persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
     Location branch = persistBranch(tenant.getId(), "Main", "BR01", true);

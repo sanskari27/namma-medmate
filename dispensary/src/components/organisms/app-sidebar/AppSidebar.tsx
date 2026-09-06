@@ -34,6 +34,7 @@ import {
   ShoppingBag,
   Stamp,
   Store,
+  Table2,
   Tag,
   Truck,
   UserCog,
@@ -70,6 +71,7 @@ import {
 } from '@/libs/constants/routes.const';
 import { cn } from '@/libs/cn';
 import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
+import { hasReportingAccess, isReportingNavPath } from '@/libs/reportingAccess';
 import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { switchSessionBranch } from '@/services/sessionBranch';
@@ -94,6 +96,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.OFFERS]: Tag,
   [ROUTES.KIOSK]: MonitorSmartphone,
   [ROUTES.REPORTS]: ChartColumn,
+  [ROUTES.CUSTOM_REPORTS]: Table2,
   [ROUTES.EXPENSES]: Banknote,
   [ROUTES.AGING]: Scale,
   [ROUTES.BOOKS]: BookOpen,
@@ -139,6 +142,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const displayName = user?.displayName ?? 'Chemist';
   const isOwner = user?.role === 'pharmacy_owner';
   const canSeeFinance = hasFinanceAccess(user?.role, user?.roles);
+  const canSeeReporting = hasReportingAccess(user?.role, user?.modules);
   const branches = user?.branches ?? [];
   const activeBranchId = user?.activeBranchId ?? null;
   const selectedId =
@@ -354,16 +358,17 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
                 <ul className="flex flex-col gap-0.5">
                   {section.items
                     .filter((item) => canSeeFinance || !isFinanceNavPath(item.path))
+                    .filter((item) => canSeeReporting || !isReportingNavPath(item.path))
                     .map((item) => (
-                    <li key={item.path}>
-                      <RailLink
-                        item={item}
-                        collapsed={collapsed}
-                        reduceMotion={Boolean(reduceMotion)}
-                        onNavigate={onNavigate}
-                      />
-                    </li>
-                  ))}
+                      <li key={item.path}>
+                        <RailLink
+                          item={item}
+                          collapsed={collapsed}
+                          reduceMotion={Boolean(reduceMotion)}
+                          onNavigate={onNavigate}
+                        />
+                      </li>
+                    ))}
                 </ul>
               ) : null}
             </div>

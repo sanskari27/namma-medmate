@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.finance;
 
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AgingBucket;
 import com.nammamedmate.server.domain.AgingPolicy;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -8,6 +9,8 @@ import com.nammamedmate.server.domain.CustomerCreditAccount;
 import com.nammamedmate.server.domain.CustomerCreditLedgerEntry;
 import com.nammamedmate.server.domain.CustomerCreditLedgerType;
 import com.nammamedmate.server.domain.Location;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
+import com.nammamedmate.server.domain.ReportCapability;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.Supplier;
 import com.nammamedmate.server.domain.SupplierLedgerEntry;
@@ -53,6 +56,7 @@ public class AgingService {
   private final LocationRepository locationRepository;
   private final UserBranchRepository userBranchRepository;
   private final FinanceAccessService financeAccessService;
+  private final SubscriptionService subscriptionService;
   private final Clock clock;
 
   public AgingService(
@@ -66,6 +70,7 @@ public class AgingService {
       LocationRepository locationRepository,
       UserBranchRepository userBranchRepository,
       FinanceAccessService financeAccessService,
+      SubscriptionService subscriptionService,
       Clock clock) {
     this.creditLedgerRepository = creditLedgerRepository;
     this.creditAccountRepository = creditAccountRepository;
@@ -77,6 +82,7 @@ public class AgingService {
     this.locationRepository = locationRepository;
     this.userBranchRepository = userBranchRepository;
     this.financeAccessService = financeAccessService;
+    this.subscriptionService = subscriptionService;
     this.clock = clock;
   }
 
@@ -301,6 +307,8 @@ public class AgingService {
   private QueryScope resolve(
       AuthPrincipal principal, LocalDate asOfRaw, String branchIdRaw, String scope) {
     Context ctx = requireFinance(principal);
+    ReportAccessPolicy.assertEntitled(
+        subscriptionService.resolveReportPlan(principal.tenantId()), ReportCapability.AGING);
     LocalDate today = AgingPolicy.today(clock.instant());
     LocalDate asOf = AgingPolicy.requireAsOf(asOfRaw, today);
     List<UUID> branchIds = resolveListBranches(principal, ctx, branchIdRaw, scope);

@@ -9,7 +9,11 @@ export type PrescriptionsFilterProps = {
 
 const OPTIONS: RxFilter[] = ['ACTIVE', 'ARCHIVED'];
 
-export function PrescriptionsFilter({ filter, onChange, disabled = false }: PrescriptionsFilterProps) {
+export function PrescriptionsFilter({
+  filter,
+  onChange,
+  disabled = false,
+}: PrescriptionsFilterProps) {
   return (
     <div role="tablist" aria-label="Rx status" className="flex gap-1">
       {OPTIONS.map((option) => {

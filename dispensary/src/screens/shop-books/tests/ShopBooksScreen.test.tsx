@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -282,5 +282,104 @@ describe('Shop books', () => {
     await screen.findByRole('table', { name: 'Day book' });
     expect(screen.queryByLabelText('Outlet')).not.toBeInTheDocument();
     expect(screen.queryByText('All outlets')).not.toBeInTheDocument();
+  });
+
+  it('denied PLAN_LIMIT: Free catalog keeps gated books listed without row leak', async () => {
+    const user = userEvent.setup();
+    const freeCatalog: FinanceReportCatalogItem[] = [
+      {
+        key: 'PROFIT_AND_LOSS',
+        title: 'Profit & Loss',
+        filters: ['from', 'to'],
+        entitled: false,
+        minPlan: 'GROWTH',
+        upgradeHint: 'Shop P&L is on Growth. Open the plan to turn it on.',
+      },
+      {
+        key: 'DAY_BOOK',
+        title: 'Day Book',
+        filters: ['from', 'to'],
+        entitled: true,
+        minPlan: 'FREE',
+      },
+      {
+        key: 'SALES_SUMMARY',
+        title: 'Sales Summary',
+        filters: ['from', 'to'],
+        entitled: true,
+        minPlan: 'FREE',
+      },
+      {
+        key: 'PURCHASE_SUMMARY',
+        title: 'Purchase Summary',
+        filters: ['from', 'to'],
+        entitled: true,
+        minPlan: 'FREE',
+      },
+      {
+        key: 'EXPENSE_SUMMARY',
+        title: 'Expense Summary',
+        filters: ['from', 'to'],
+        entitled: false,
+        minPlan: 'STARTER',
+        upgradeHint: 'Shop spend is on Starter. Open the plan to turn it on.',
+      },
+      {
+        key: 'GSTR1',
+        title: 'GSTR-1 style sales',
+        filters: ['from', 'to'],
+        entitled: false,
+        minPlan: 'GROWTH',
+        upgradeHint: 'GST for the CA is on Growth. Open the plan to turn it on.',
+      },
+    ];
+    listMock.mockResolvedValue(freeCatalog);
+    tableMock.mockResolvedValue(dayBook);
+    renderPage();
+    const book = await screen.findByRole('table', { name: 'Day book' });
+    expect(book).toHaveTextContent('INV-1');
+    expect(screen.getAllByText('On Growth').length).toBeGreaterThan(0);
+    expect(screen.getByText('On Starter')).toBeInTheDocument();
+    expect(tableMock.mock.calls.every((call) => call[0] === 'DAY_BOOK')).toBe(true);
+    await user.click(screen.getByRole('button', { name: 'Shop P&L, On Growth' }));
+    const upgrade = await screen.findByRole('region', { name: 'Plan required for this shop book' });
+    expect(upgrade).toHaveTextContent('Shop P&L is on Growth');
+    await waitFor(() =>
+      expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveFocus(),
+    );
+    expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+      'href',
+      ROUTES.SUBSCRIPTION,
+    );
+    expect(screen.queryByText('Purchase-price COGS')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Reconciliation totals')).not.toBeInTheDocument();
+    expect(tableMock).not.toHaveBeenCalledWith('PROFIT_AND_LOSS', expect.anything());
+    expect(tableMock).not.toHaveBeenCalledWith('GSTR1', expect.anything());
+  });
+
+  it('denied PLAN_LIMIT: direct fetch hides rows and points to the plan', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(catalog);
+    tableMock.mockImplementation(async (key) => {
+      if (key === 'GSTR1') {
+        throw new ApiError(
+          'GST for the CA is on Growth. Open the plan to turn it on.',
+          422,
+          'PLAN_LIMIT',
+        );
+      }
+      return dayBook;
+    });
+    renderPage();
+    await screen.findByRole('table', { name: 'Day book' });
+    await user.click(screen.getByRole('button', { name: 'GST for the CA (GSTR-1)' }));
+    const upgrade = await screen.findByRole('region', { name: 'Plan required for this shop book' });
+    expect(upgrade).toHaveTextContent('This shop book is on Growth. Open the plan to turn it on.');
+    expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+      'href',
+      ROUTES.SUBSCRIPTION,
+    );
+    expect(screen.queryByText('B2B')).not.toBeInTheDocument();
+    expect(screen.queryByText('INV-1')).not.toBeInTheDocument();
   });
 });

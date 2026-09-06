@@ -17,6 +17,11 @@ public final class DashboardWidgets {
         key, DashboardPolicy.FAILED, asOf, href, DashboardPolicy.UNAVAILABLE, null);
   }
 
+  public static <T> DashboardWidget<T> planLimited(
+      String key, Instant asOf, String href, String hint) {
+    return new DashboardWidget<>(key, DashboardPolicy.PLAN_LIMIT, asOf, href, hint, null);
+  }
+
   public static <T> DashboardWidget<T> load(
       String key, Instant asOf, String href, Supplier<T> source) {
     try {

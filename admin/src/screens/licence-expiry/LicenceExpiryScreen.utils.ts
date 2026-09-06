@@ -2,14 +2,7 @@ import type { AdminDueLicense, LicenseDocType, LicenseScope } from '@/services/l
 import { Ban, BadgeCheck, FileWarning, Unplug } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export function isMaster(role: string | undefined): boolean {
   return role === 'admin_super';
@@ -28,7 +21,10 @@ export function statusCopy(status: PageStatus): { icon: typeof Ban; text: string
     case 'conflict':
       return { icon: Unplug, text: 'The due list moved during this scan. Rescan the platform.' };
     case 'failure':
-      return { icon: Unplug, text: 'Could not load tenant licence expiries. Retry from this desk.' };
+      return {
+        icon: Unplug,
+        text: 'Could not load tenant licence expiries. Retry from this desk.',
+      };
     case 'success':
       return {
         icon: BadgeCheck,

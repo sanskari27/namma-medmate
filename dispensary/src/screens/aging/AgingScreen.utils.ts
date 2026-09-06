@@ -1,14 +1,7 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type OutletScope = 'session' | 'tenant';
 
@@ -66,7 +59,7 @@ export function statusIcon(status: PageStatus) {
 }
 
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
+  if (error.code === 'PLAN_LIMIT' || error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
   if (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'CONFLICT') {
@@ -79,6 +72,9 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
 }
 
 export function apiStatusHint(code: string | null): string | null {
+  if (code === 'PLAN_LIMIT') {
+    return 'Khata and stockist aging is on Growth. Open the plan to turn it on.';
+  }
   if (code === 'FUTURE_AS_OF') {
     return 'As-of date must be today or earlier.';
   }

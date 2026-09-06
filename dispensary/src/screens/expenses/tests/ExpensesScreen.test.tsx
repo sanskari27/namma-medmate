@@ -221,7 +221,9 @@ describe('shop spend', () => {
     fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Water bill' } });
     await user.click(screen.getByRole('button', { name: 'Add a category' }));
     await waitFor(() => expect(categoryCreateMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent('Category added to the shop books.');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Category added to the shop books.',
+    );
   });
 
   it('owner all outlets consolidates tenant totals', async () => {

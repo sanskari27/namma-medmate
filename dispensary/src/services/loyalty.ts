@@ -4,12 +4,7 @@ import { API } from '@/libs/constants/api.const';
 export { ApiError, isApiError };
 
 export type LoyaltyLedgerType =
-  | 'EARN'
-  | 'REDEEM'
-  | 'SETTLEMENT_EARN'
-  | 'RETURN_EARN'
-  | 'RETURN_REDEEM'
-  | 'ADJUSTMENT';
+  'EARN' | 'REDEEM' | 'SETTLEMENT_EARN' | 'RETURN_EARN' | 'RETURN_REDEEM' | 'ADJUSTMENT';
 
 export interface LoyaltyLedgerEntry {
   id: string;

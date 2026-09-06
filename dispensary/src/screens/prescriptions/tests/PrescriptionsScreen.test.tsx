@@ -131,7 +131,9 @@ describe('Rx file', () => {
   });
 
   it('denied: cashier cannot open the Rx file', () => {
-    renderPage('pharmacy_staff', [{ id: 'r1', name: 'Cashier', code: 'cashier', kind: 'PREDEFINED' }]);
+    renderPage('pharmacy_staff', [
+      { id: 'r1', name: 'Cashier', code: 'cashier', kind: 'PREDEFINED' },
+    ]);
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Only a pharmacist or owner can open the Rx file. Ask them at this counter.',
     );
@@ -142,11 +144,7 @@ describe('Rx file', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue({ items: [active] });
     archiveMock.mockRejectedValue(
-      new ApiError(
-        'This Rx is still valid and still has quantity left.',
-        422,
-        'PREMATURE_ARCHIVE',
-      ),
+      new ApiError('This Rx is still valid and still has quantity left.', 422, 'PREMATURE_ARCHIVE'),
     );
     renderPage();
     await screen.findByText('RX-90');

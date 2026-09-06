@@ -1,10 +1,6 @@
 import { Button } from '@atoms';
 import { isApiError } from '@/services/axios';
-import {
-  downloadInvoicePdf,
-  emailInvoiceCopy,
-  openInvoicePdf,
-} from '@/services/salesInvoices';
+import { downloadInvoicePdf, emailInvoiceCopy, openInvoicePdf } from '@/services/salesInvoices';
 import { useState } from 'react';
 import { invoiceOutputHint, mapApiStatus, type PageStatus } from '../../PosScreen.utils';
 
@@ -30,18 +26,16 @@ export function PosInvoiceOutput({
   const [busy, setBusy] = useState(false);
   const showEmail = collected && !walkIn;
   const message = collected
-    ? invoiceOutputHint(
-        status,
-        status === 'success' && lastAction === 'email' ? 'email' : null,
-      ) ?? 'Print or download the A4 bill. Send a copy when this patient has email.'
+    ? (invoiceOutputHint(status, status === 'success' && lastAction === 'email' ? 'email' : null) ??
+      'Print or download the A4 bill. Send a copy when this patient has email.')
     : invoiceOutputHint('empty');
   const alert =
-    status === 'denied' ||
-    status === 'failure' ||
-    status === 'conflict' ||
-    status === 'validation';
-  const live =
-    alert ? 'alert' : status === 'loading' || status === 'success' ? 'status' : undefined;
+    status === 'denied' || status === 'failure' || status === 'conflict' || status === 'validation';
+  const live = alert
+    ? 'alert'
+    : status === 'loading' || status === 'success'
+      ? 'status'
+      : undefined;
 
   const runPdf = async (print: boolean) => {
     if (!invoiceId || !collected || disabled) {

@@ -1,0 +1,1 @@
+export { RegistersUpgrade } from './RegistersUpgrade';

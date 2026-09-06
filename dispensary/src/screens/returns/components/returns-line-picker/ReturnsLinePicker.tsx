@@ -33,9 +33,7 @@ export function ReturnsLinePicker({ invoice, qtyByLine, onQtyChange }: ReturnsLi
                 <p className="text-ink">{line.productName}</p>
                 <p className="font-mono text-xs text-muted">{line.sku}</p>
               </td>
-              <td className="px-3 py-2 font-mono text-xs text-ink">
-                {line.batchNumber ?? '—'}
-              </td>
+              <td className="px-3 py-2 font-mono text-xs text-ink">{line.batchNumber ?? '—'}</td>
               <td className="px-3 py-2 font-mono tabular-nums text-ink">
                 {lineQuantity(line.quantity)}
               </td>

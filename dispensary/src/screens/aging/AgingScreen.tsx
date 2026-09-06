@@ -10,9 +10,14 @@ export default function AgingScreen() {
 
   return (
     <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <AgingHeader />
-      <AgingStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
-      {page.allowed ? (
+      <AgingHeader planGate={page.planGate} />
+      <AgingStatusBanner
+        status={page.status}
+        statusId={page.statusId}
+        hint={page.statusHint}
+        planGate={page.planGate}
+      />
+      {page.allowed && !page.planGate ? (
         <>
           <AgingFilterBar
             asOf={page.asOf}

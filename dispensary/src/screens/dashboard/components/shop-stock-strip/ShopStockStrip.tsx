@@ -38,9 +38,13 @@ export function ShopStockStrip({ lowStock, expiry }: ShopStockStripProps) {
             </thead>
             <tbody>
               {short.map((row) => (
-                <tr key={`${row.branchId ?? 'x'}-${row.productId}`} className="border-b border-line last:border-0">
+                <tr
+                  key={`${row.branchId ?? 'x'}-${row.productId}`}
+                  className="border-b border-line last:border-0"
+                >
                   <td className="py-1 text-ink">
-                    <span className="font-mono text-xs text-muted">{row.sku}</span> {row.productName}
+                    <span className="font-mono text-xs text-muted">{row.sku}</span>{' '}
+                    {row.productName}
                   </td>
                   <td className="py-1 font-mono tabular-nums text-ink">{formatQty(row.onHand)}</td>
                   <td className="py-1 font-mono tabular-nums text-muted">
@@ -74,7 +78,10 @@ export function ShopStockStrip({ lowStock, expiry }: ShopStockStripProps) {
             </thead>
             <tbody>
               {near.map((row) => (
-                <tr key={`${row.branchId ?? 'x'}-${row.productId}-${row.batchNumber}`} className="border-b border-line last:border-0">
+                <tr
+                  key={`${row.branchId ?? 'x'}-${row.productId}-${row.batchNumber}`}
+                  className="border-b border-line last:border-0"
+                >
                   <td className="py-1 text-ink">{row.productName}</td>
                   <td className="py-1 font-mono text-ink">{row.batchNumber}</td>
                   <td className="py-1 font-mono text-muted">{formatDay(row.expiresOn)}</td>

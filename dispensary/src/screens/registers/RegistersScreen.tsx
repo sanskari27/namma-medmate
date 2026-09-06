@@ -4,6 +4,7 @@ import { RegistersFilters } from './components/registers-filters';
 import { RegistersHeader } from './components/registers-header';
 import { RegistersStatusBanner } from './components/registers-status-banner';
 import { RegistersTable } from './components/registers-table';
+import { RegistersUpgrade } from './components/registers-upgrade';
 import { useRegistersPage } from './useRegistersPage';
 
 export default function RegistersScreen() {
@@ -14,7 +15,7 @@ export default function RegistersScreen() {
       <RegistersHeader
         spreadsheetRef={page.spreadsheetRef}
         pdfRef={page.pdfRef}
-        denied={!page.allowed}
+        denied={!page.allowed || page.planGate}
         busy={page.busy}
         onSpreadsheet={page.onSpreadsheet}
         onPdf={page.onPdf}
@@ -23,6 +24,7 @@ export default function RegistersScreen() {
         status={page.status}
         statusId={page.statusId}
         hint={page.statusHint}
+        planGate={page.planGate}
       />
       {page.allowed ? (
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
@@ -35,11 +37,18 @@ export default function RegistersScreen() {
             <RegistersFilters
               filters={page.filters}
               showBatch={page.showBatch}
-              disabled={page.busy}
+              disabled={page.busy || page.planGate}
               onChange={page.onChangeFilters}
               onApply={page.onApplyFilters}
             />
-            {page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
+            {page.planGate ? (
+              <RegistersUpgrade
+                hint={
+                  page.upgradeHint ?? 'Near-expiry is on Starter. Open the plan to turn it on.'
+                }
+                linkRef={page.upgradeRef}
+              />
+            ) : page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
               <RegistersTable
                 title={page.table.title}
                 columns={page.table.columns}

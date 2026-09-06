@@ -7,11 +7,7 @@ export type AgingBucketsStripProps = {
   allOutlets: boolean;
 };
 
-export function AgingBucketsStrip({
-  receivables,
-  payables,
-  allOutlets,
-}: AgingBucketsStripProps) {
+export function AgingBucketsStrip({ receivables, payables, allOutlets }: AgingBucketsStripProps) {
   const outlet = allOutlets ? 'All outlets' : 'This outlet';
   return (
     <section aria-label="Aging buckets" className="overflow-x-auto border border-line bg-surface">

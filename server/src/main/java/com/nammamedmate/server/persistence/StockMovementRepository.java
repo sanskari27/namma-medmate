@@ -49,4 +49,19 @@ public interface StockMovementRepository extends JpaRepository<StockMovement, UU
       @Param("types") Collection<StockMovementType> types,
       @Param("from") Instant from,
       @Param("toExclusive") Instant toExclusive);
+
+  @Query(
+      """
+      select m from StockMovement m
+      where m.tenantId = :tenantId
+        and m.branchId in :branchIds
+        and m.occurredAt >= :from
+        and m.occurredAt < :toExclusive
+      order by m.occurredAt asc
+      """)
+  List<StockMovement> findInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchIds") Collection<UUID> branchIds,
+      @Param("from") Instant from,
+      @Param("toExclusive") Instant toExclusive);
 }

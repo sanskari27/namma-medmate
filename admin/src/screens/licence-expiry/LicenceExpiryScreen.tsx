@@ -23,7 +23,9 @@ export default function LicenceExpiryScreen() {
       {page.allowed && page.status !== 'loading' && page.status !== 'denied' ? (
         page.items.length > 0 ? (
           <LicenceExpiryDueList items={page.items} />
-        ) : page.status === 'failure' || page.status === 'conflict' || page.status === 'validation' ? null : (
+        ) : page.status === 'failure' ||
+          page.status === 'conflict' ||
+          page.status === 'validation' ? null : (
           <LicenceExpiryEmptyState />
         )
       ) : null}

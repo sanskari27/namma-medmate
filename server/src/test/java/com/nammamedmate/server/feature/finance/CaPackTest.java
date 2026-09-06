@@ -562,7 +562,7 @@ class CaPackTest extends AbstractIntegrationTest {
 
   private Fixture seed(String tag) throws Exception {
     Tenant tenant = persistTenant(tag, "Ca " + tag);
-    persistPlan(tenant.getId(), PlanCode.FREE);
+    persistPlan(tenant.getId(), PlanCode.GROWTH);
     persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
     Location branch = persistBranch(tenant.getId(), "Main", "BR01", true);
     Cookie cookie = login("owner@" + tag + ".local");

@@ -23,10 +23,7 @@ import {
   type CustomerHistoryItem,
 } from '@/services/customers';
 import { getCustomerCredit, setCustomerCreditLimit, type CustomerCredit } from '@/services/credit';
-import {
-  getCustomerLoyalty,
-  type CustomerLoyalty,
-} from '@/services/loyalty';
+import { getCustomerLoyalty, type CustomerLoyalty } from '@/services/loyalty';
 import {
   createCustomerRefill,
   createTenantTag,

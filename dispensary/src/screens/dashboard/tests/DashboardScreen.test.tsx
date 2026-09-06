@@ -32,6 +32,10 @@ function failedWidget<T>(key: string, href: string): DashboardWidget<T> {
   return { key, status: 'FAILED', asOf: AS_OF, href, error: 'UNAVAILABLE', data: null };
 }
 
+function planLimitWidget<T>(key: string, href: string, error: string): DashboardWidget<T> {
+  return { key, status: 'PLAN_LIMIT', asOf: AS_OF, href, error, data: null };
+}
+
 const cashierFilled: DashboardView = {
   role: 'cashier',
   asOf: '2026-09-06',
@@ -83,9 +87,7 @@ const inventoryFilled: DashboardView = {
         reorderLevel: 10,
       },
     ],
-    pendingTransfers: [
-      { id: 't1', status: 'REQUESTED', direction: 'IN', href: '/inventory' },
-    ],
+    pendingTransfers: [{ id: 't1', status: 'REQUESTED', direction: 'IN', href: '/inventory' }],
     pendingGrn: [
       {
         id: 'g1',
@@ -180,7 +182,9 @@ const ownerFilled: DashboardView = {
     }),
     approvals: okWidget('APPROVALS', '/approvals/pending', {
       count: 1,
-      items: [{ id: 'a1', label: 'INVENTORY_WRITE_OFF', status: 'PENDING', href: '/approvals/pending' }],
+      items: [
+        { id: 'a1', label: 'INVENTORY_WRITE_OFF', status: 'PENDING', href: '/approvals/pending' },
+      ],
     }),
     receivables: okWidget('RECEIVABLES', '/aging', {
       totalPaise: 12000,
@@ -273,11 +277,7 @@ const multiStaff: DashboardView = {
   permittedRoles: ['cashier', 'inventory'],
 };
 
-function userFor(
-  role: string,
-  modules: string[],
-  extras: Partial<AuthUser> = {},
-): AuthUser {
+function userFor(role: string, modules: string[], extras: Partial<AuthUser> = {}): AuthUser {
   return {
     userId: 'u1',
     displayName: 'Floor',
@@ -332,9 +332,7 @@ describe('DashboardScreen', () => {
   });
 
   it('validation: no active outlet', async () => {
-    fetchMock.mockRejectedValue(
-      new ApiError('Select an outlet first.', 422, 'NO_ACTIVE_BRANCH'),
-    );
+    fetchMock.mockRejectedValue(new ApiError('Select an outlet first.', 422, 'NO_ACTIVE_BRANCH'));
     renderPage(userFor('pharmacy_staff', ['SALES'], { activeBranchId: null }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Select an outlet before opening this desk.',
@@ -450,11 +448,12 @@ describe('DashboardScreen', () => {
       '/approvals/pending',
     );
     expect(screen.getByRole('link', { name: 'Licences' })).toHaveAttribute('href', '/licenses');
-    expect(screen.getByRole('link', { name: 'Outlet orders' })).toHaveAttribute('href', '/purchases');
-    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
-    await waitFor(() =>
-      expect(fetchMock).toHaveBeenCalledWith('owner', { scope: 'tenant' }),
+    expect(screen.getByRole('link', { name: 'Outlet orders' })).toHaveAttribute(
+      'href',
+      '/purchases',
     );
+    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('owner', { scope: 'tenant' }));
   });
 
   it('multi-desk switch does not duplicate widgets', async () => {
@@ -550,5 +549,61 @@ describe('DashboardScreen', () => {
     expect(screen.getByText('Could not load this strip.')).toBeInTheDocument();
     expect(screen.queryByText('SUBMITTED')).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Licences and KYC' })).toBeInTheDocument();
+  });
+
+  it('denied PLAN_LIMIT: shop glance khata shows Open the plan without amounts', async () => {
+    fetchMock.mockResolvedValue({
+      ...ownerFilled,
+      owner: {
+        ...ownerFilled.owner!,
+        receivablesTotalPaise: undefined,
+        payablesTotalPaise: undefined,
+        receivables: planLimitWidget(
+          'RECEIVABLES',
+          '/subscription',
+          'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+        ),
+        payables: planLimitWidget(
+          'PAYABLES',
+          '/subscription',
+          'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+        ),
+      },
+    });
+    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
+    expect(await screen.findByRole('heading', { name: 'Khata' })).toBeInTheDocument();
+    expect(screen.getAllByRole('link', { name: 'Open the plan' }).length).toBeGreaterThan(0);
+    expect(screen.getAllByRole('link', { name: 'Open the plan' })[0]).toHaveAttribute(
+      'href',
+      '/subscription',
+    );
+    expect(screen.queryByText('Could not load this strip.')).not.toBeInTheDocument();
+    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
+  });
+
+  it('denied PLAN_LIMIT: accountant desk hides dues and links to the plan', async () => {
+    fetchMock.mockResolvedValue({
+      ...accountantFilled,
+      accountant: {
+        expenseTotalPaise: 150000,
+        sources: { aging: '/aging', expenses: '/expenses' },
+        agingHint: 'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+      },
+    });
+    renderPage(
+      userFor('pharmacy_staff', ['FINANCE'], {
+        roles: [{ id: 'r1', name: 'Accountant', code: 'accountant', kind: 'PREDEFINED' }],
+      }),
+    );
+    expect(await screen.findByRole('heading', { name: 'Khata and spend' })).toBeInTheDocument();
+    expect(
+      screen.getByText(/Khata and stockist aging is on Growth. Open the plan to turn it on./),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+      'href',
+      '/subscription',
+    );
+    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Khata dues' })).not.toBeInTheDocument();
   });
 });

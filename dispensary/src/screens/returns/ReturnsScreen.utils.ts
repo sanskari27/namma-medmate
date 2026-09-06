@@ -3,14 +3,7 @@ import type { SalesReturnRefundMode } from '@/services/salesReturns';
 import { AlertCircle, CheckCircle2, RotateCcw, WifiOff } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type LineDraft = Record<string, string>;
 

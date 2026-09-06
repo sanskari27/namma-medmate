@@ -7,11 +7,7 @@ export type PrescriptionListPanelProps = {
   onSelect: (id: string) => void;
 };
 
-export function PrescriptionListPanel({
-  items,
-  selectedId,
-  onSelect,
-}: PrescriptionListPanelProps) {
+export function PrescriptionListPanel({ items, selectedId, onSelect }: PrescriptionListPanelProps) {
   if (items.length === 0) {
     return (
       <p className="border border-dashed border-line px-3 py-6 text-sm text-muted">

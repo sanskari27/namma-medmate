@@ -7,6 +7,9 @@ export type FinanceReportCatalogItem = {
   key: string;
   title: string;
   filters: string[];
+  entitled?: boolean;
+  minPlan?: string;
+  upgradeHint?: string | null;
 };
 
 export type FinanceReportTotal = {
@@ -35,7 +38,9 @@ export type FinanceReportQuery = {
   scope?: string;
 };
 
-export async function listFinanceReports(query: FinanceReportQuery = {}): Promise<FinanceReportCatalogItem[]> {
+export async function listFinanceReports(
+  query: FinanceReportQuery = {},
+): Promise<FinanceReportCatalogItem[]> {
   const { data } = await apiClient.get<{ items: FinanceReportCatalogItem[] }>(API.FINANCE_REPORTS, {
     params: query,
   });

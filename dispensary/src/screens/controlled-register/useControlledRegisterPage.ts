@@ -117,15 +117,30 @@ export function useControlledRegisterPage() {
   };
 
   const products = useMemo(
-    () => uniqueOptions(items, (row) => row.productId, (row) => row.productName),
+    () =>
+      uniqueOptions(
+        items,
+        (row) => row.productId,
+        (row) => row.productName,
+      ),
     [items],
   );
   const patients = useMemo(
-    () => uniqueOptions(items, (row) => row.patientId, (row) => row.patientName),
+    () =>
+      uniqueOptions(
+        items,
+        (row) => row.patientId,
+        (row) => row.patientName,
+      ),
     [items],
   );
   const pharmacists = useMemo(
-    () => uniqueOptions(items, (row) => row.pharmacistUserId, (row) => row.pharmacistName),
+    () =>
+      uniqueOptions(
+        items,
+        (row) => row.pharmacistUserId,
+        (row) => row.pharmacistName,
+      ),
     [items],
   );
 

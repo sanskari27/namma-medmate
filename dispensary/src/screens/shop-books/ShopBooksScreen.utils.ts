@@ -1,14 +1,7 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export type OutletScope = 'session' | 'tenant';
 
@@ -58,6 +51,26 @@ export function toQuery(
 
 export function filenameFor(key: string, format: 'csv' | 'pdf'): string {
   return `${key.toLowerCase().replace(/_/g, '-')}-shop-book.${format}`;
+}
+
+export function bookEntitled(book: { entitled?: boolean } | null | undefined): boolean {
+  return book?.entitled !== false;
+}
+
+export function firstEntitledKey(
+  books: Array<{ key: string; entitled?: boolean }>,
+): string | null {
+  return books.find((book) => bookEntitled(book))?.key ?? books[0]?.key ?? null;
+}
+
+export function planLabel(minPlan?: string): string | null {
+  if (minPlan === 'STARTER') {
+    return 'On Starter';
+  }
+  if (minPlan === 'GROWTH' || minPlan === 'PRO') {
+    return 'On Growth';
+  }
+  return null;
 }
 
 export function shopBookTitle(key: string, fallback: string): string {
@@ -200,7 +213,7 @@ export function statusIcon(status: PageStatus) {
 }
 
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
+  if (error.code === 'PLAN_LIMIT' || error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
   if (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'CONFLICT') {
@@ -213,6 +226,9 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
 }
 
 export function apiStatusHint(code: string | null): string | null {
+  if (code === 'PLAN_LIMIT') {
+    return 'This shop book is on Growth. Open the plan to turn it on.';
+  }
   if (code === 'FUTURE_AS_OF') {
     return 'Report dates must be today or earlier.';
   }

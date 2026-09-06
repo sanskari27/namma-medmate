@@ -2,6 +2,7 @@ package com.nammamedmate.server.application.finance;
 
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Expense;
 import com.nammamedmate.server.domain.ExpensePostingStatus;
@@ -12,7 +13,10 @@ import com.nammamedmate.server.domain.GoodsReceiptLine;
 import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PaymentMode;
+import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PurchaseOrderLine;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
+import com.nammamedmate.server.domain.ReportCapability;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceLine;
 import com.nammamedmate.server.domain.SalesInvoicePayment;
@@ -77,6 +81,7 @@ public class FinanceReportService {
   private final LocationRepository locationRepository;
   private final UserBranchRepository userBranchRepository;
   private final FinanceAccessService financeAccessService;
+  private final SubscriptionService subscriptionService;
   private final AuditService auditService;
   private final FinanceReportPdfRenderer pdfRenderer;
   private final Clock clock;
@@ -96,6 +101,7 @@ public class FinanceReportService {
       LocationRepository locationRepository,
       UserBranchRepository userBranchRepository,
       FinanceAccessService financeAccessService,
+      SubscriptionService subscriptionService,
       AuditService auditService,
       FinanceReportPdfRenderer pdfRenderer,
       Clock clock) {
@@ -113,6 +119,7 @@ public class FinanceReportService {
     this.locationRepository = locationRepository;
     this.userBranchRepository = userBranchRepository;
     this.financeAccessService = financeAccessService;
+    this.subscriptionService = subscriptionService;
     this.auditService = auditService;
     this.pdfRenderer = pdfRenderer;
     this.clock = clock;
@@ -121,9 +128,20 @@ public class FinanceReportService {
   @Transactional(readOnly = true)
   public FinanceReportCatalogView catalog(AuthPrincipal principal, String branchId, String scope) {
     resolve(principal, null, null, branchId, scope, false);
+    PlanCode plan = subscriptionService.resolveReportPlan(principal.tenantId());
     List<FinanceReportCatalogItem> items = new ArrayList<>();
     for (FinanceReportKey key : FinanceReportPolicy.catalog()) {
-      items.add(new FinanceReportCatalogItem(key.name(), key.title(), key.filters()));
+      ReportCapability capability = ReportAccessPolicy.capability(key);
+      ReportAccessPolicy.CatalogEntitlement entitlement =
+          ReportAccessPolicy.entitlement(plan, capability);
+      items.add(
+          new FinanceReportCatalogItem(
+              key.name(),
+              key.title(),
+              key.filters(),
+              entitlement.entitled(),
+              entitlement.minPlan(),
+              entitlement.upgradeHint()));
     }
     return new FinanceReportCatalogView(items);
   }
@@ -139,6 +157,9 @@ public class FinanceReportService {
     FinanceReportKey report = FinanceReportPolicy.requireKey(key);
     QueryScope query =
         resolve(principal, from, to, branchId, scope, report == FinanceReportKey.BRANCH_PNL);
+    ReportAccessPolicy.assertEntitled(
+        subscriptionService.resolveReportPlan(principal.tenantId()),
+        ReportAccessPolicy.capability(report));
     return build(query, report);
   }
 

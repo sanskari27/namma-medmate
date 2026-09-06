@@ -97,7 +97,9 @@ export function CustomerLoyaltySection({
             </div>
             <div className="border border-line px-2.5 py-2">
               <dt className="text-xs text-muted">Value</dt>
-              <dd className="font-mono tabular-nums text-ink">₹{balance.toLocaleString('en-IN')}</dd>
+              <dd className="font-mono tabular-nums text-ink">
+                ₹{balance.toLocaleString('en-IN')}
+              </dd>
             </div>
           </dl>
 

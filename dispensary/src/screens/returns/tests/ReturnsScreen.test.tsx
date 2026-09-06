@@ -172,7 +172,9 @@ async function openBill() {
     target: { value: invoice.invoiceNumber },
   });
   await user.click(screen.getByRole('button', { name: 'Find bill' }));
-  expect(await screen.findByRole('heading', { name: `Bill ${invoice.invoiceNumber}` })).toBeVisible();
+  expect(
+    await screen.findByRole('heading', { name: `Bill ${invoice.invoiceNumber}` }),
+  ).toBeVisible();
   return user;
 }
 
@@ -258,23 +260,21 @@ describe('counter returns', () => {
       id: 'ret-1',
       createdAt: '2026-09-05T09:00:00Z',
     });
-    listReturnsMock
-      .mockResolvedValueOnce({ items: [] })
-      .mockResolvedValue({
-        items: [
-          {
-            id: 'ret-1',
-            salesInvoiceId: invoice.id,
-            invoiceNumber: invoice.invoiceNumber,
-            customerId: invoice.customerId,
-            reason: 'Wrong strength',
-            decision: 'APPROVED',
-            refundMode: 'CASH',
-            refundTotalPaise: 11200,
-            createdAt: '2026-09-05T09:00:00Z',
-          },
-        ],
-      });
+    listReturnsMock.mockResolvedValueOnce({ items: [] }).mockResolvedValue({
+      items: [
+        {
+          id: 'ret-1',
+          salesInvoiceId: invoice.id,
+          invoiceNumber: invoice.invoiceNumber,
+          customerId: invoice.customerId,
+          reason: 'Wrong strength',
+          decision: 'APPROVED',
+          refundMode: 'CASH',
+          refundTotalPaise: 11200,
+          createdAt: '2026-09-05T09:00:00Z',
+        },
+      ],
+    });
     renderPage();
     await screen.findByRole('heading', { name: 'Take a sale back' });
     const user = await openBill();
