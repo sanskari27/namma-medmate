@@ -86,9 +86,12 @@ export function isEmptyView(desk: DashboardDesk, view: DashboardView | null): bo
     );
   }
   if (desk === 'accountant' && view.accountant) {
+    if (view.accountant.agingHint) {
+      return false;
+    }
     return (
-      view.accountant.receivablesTotalPaise === 0 &&
-      view.accountant.payablesTotalPaise === 0 &&
+      (view.accountant.receivablesTotalPaise ?? 0) === 0 &&
+      (view.accountant.payablesTotalPaise ?? 0) === 0 &&
       view.accountant.expenseTotalPaise === 0
     );
   }
@@ -265,7 +268,7 @@ export function ownerWidgetList(owner: OwnerDesk): DashboardWidget<unknown>[] {
 
 function isEmptyOwnerDesk(owner: OwnerDesk): boolean {
   const widgets = ownerWidgetList(owner);
-  if (widgets.some((widget) => widget.status === 'FAILED')) {
+  if (widgets.some((widget) => widget.status === 'FAILED' || widget.status === 'PLAN_LIMIT')) {
     return false;
   }
   if (widgets.length > 0) {
@@ -274,8 +277,8 @@ function isEmptyOwnerDesk(owner: OwnerDesk): boolean {
   return (
     owner.todayBillCount === 0 &&
     owner.lowStockCount === 0 &&
-    owner.receivablesTotalPaise === 0 &&
-    owner.payablesTotalPaise === 0 &&
+    (owner.receivablesTotalPaise ?? 0) === 0 &&
+    (owner.payablesTotalPaise ?? 0) === 0 &&
     owner.expenseTotalPaise === 0
   );
 }

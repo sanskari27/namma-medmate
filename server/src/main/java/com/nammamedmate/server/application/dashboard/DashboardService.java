@@ -283,12 +283,12 @@ public class DashboardService {
         expenseService.totals(principal, branchParam, scope, null, null, null).totalPaise();
     if (!agingEntitled(principal)) {
       return new DashboardView.AccountantDesk(
-          0L,
-          0L,
+          null,
+          null,
           expenses,
-          List.of(),
-          new DashboardView.BooksSources(
-              DashboardPolicy.AGING_HREF, DashboardPolicy.EXPENSES_HREF));
+          null,
+          new DashboardView.BooksSources(DashboardPolicy.AGING_HREF, DashboardPolicy.EXPENSES_HREF),
+          ReportAccessPolicy.upgradeHint(ReportCapability.AGING));
     }
     AgingView ar = agingService.receivables(principal, null, branchParam, scope);
     AgingView ap = agingService.payables(principal, null, branchParam, scope);
@@ -302,7 +302,8 @@ public class DashboardService {
                     new DashboardView.BucketItem(
                         bucket.key().name(), bucket.label(), bucket.totalPaise()))
             .toList(),
-        new DashboardView.BooksSources(DashboardPolicy.AGING_HREF, DashboardPolicy.EXPENSES_HREF));
+        new DashboardView.BooksSources(DashboardPolicy.AGING_HREF, DashboardPolicy.EXPENSES_HREF),
+        null);
   }
 
   private DashboardView.OwnerDesk ownerDesk(
@@ -352,8 +353,11 @@ public class DashboardService {
                 DashboardPolicy.AGING_HREF,
                 asOf,
                 () -> agingPayload(agingService.receivables(principal, null, branchParam, scope)))
-            : DashboardWidgets.failed(
-                DashboardPolicy.WIDGET_RECEIVABLES, asOf, DashboardPolicy.AGING_HREF);
+            : DashboardWidgets.planLimited(
+                DashboardPolicy.WIDGET_RECEIVABLES,
+                asOf,
+                DashboardPolicy.SUBSCRIPTION_HREF,
+                ReportAccessPolicy.upgradeHint(ReportCapability.AGING));
     DashboardWidget<DashboardView.AgingPayload> payables =
         agingEntitled(principal)
             ? widget(
@@ -361,8 +365,11 @@ public class DashboardService {
                 DashboardPolicy.AGING_HREF,
                 asOf,
                 () -> agingPayload(agingService.payables(principal, null, branchParam, scope)))
-            : DashboardWidgets.failed(
-                DashboardPolicy.WIDGET_PAYABLES, asOf, DashboardPolicy.AGING_HREF);
+            : DashboardWidgets.planLimited(
+                DashboardPolicy.WIDGET_PAYABLES,
+                asOf,
+                DashboardPolicy.SUBSCRIPTION_HREF,
+                ReportAccessPolicy.upgradeHint(ReportCapability.AGING));
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.TopProductItem>> topProducts =
         widget(
             DashboardPolicy.WIDGET_TOP_PRODUCTS,
@@ -398,8 +405,8 @@ public class DashboardService {
     int todayBillCount = sales.data() == null ? 0 : sales.data().todayBillCount();
     List<DashboardView.BranchSales> branches =
         sales.data() == null ? List.of() : sales.data().branches();
-    long ar = receivables.data() == null ? 0L : receivables.data().totalPaise();
-    long ap = payables.data() == null ? 0L : payables.data().totalPaise();
+    Long ar = receivables.data() == null ? null : receivables.data().totalPaise();
+    Long ap = payables.data() == null ? null : payables.data().totalPaise();
     int lowStockCount = lowStock.data() == null ? 0 : lowStock.data().count();
     return new DashboardView.OwnerDesk(
         asOf,

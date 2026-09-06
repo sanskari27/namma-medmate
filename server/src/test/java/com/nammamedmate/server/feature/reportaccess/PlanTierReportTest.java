@@ -17,6 +17,7 @@ import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.AuditEvent;
 import com.nammamedmate.server.domain.BranchStatus;
 import com.nammamedmate.server.domain.BranchType;
+import com.nammamedmate.server.domain.DashboardPolicy;
 import com.nammamedmate.server.domain.FinanceReportPolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PlanCode;
@@ -230,6 +231,53 @@ class PlanTierReportTest extends AbstractIntegrationTest {
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("FORBIDDEN"))
         .andExpect(jsonPath("$.data").doesNotExist());
+  }
+
+  @Test
+  void ac03_freeOwnerGlanceAndCaPackOmitGatedBooksWithoutRollback() throws Exception {
+    Fixture fx = seed("pt-ac03-dash", PlanCode.FREE);
+    Stocked product = stocked(fx, "PT-GLANCE", "Glance Pack");
+    completeCash(fx, createDraft(fx, product, "pt-glance-d"), 1, "pt-glance-c");
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/owner").param("scope", "tenant").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.owner.sales.status").value("OK"))
+        .andExpect(jsonPath("$.data.owner.receivables.status").value(DashboardPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data.owner.payables.status").value(DashboardPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data.owner.receivables.data").doesNotExist())
+        .andExpect(jsonPath("$.data.owner.payables.data").doesNotExist())
+        .andExpect(jsonPath("$.data.owner.receivablesTotalPaise").doesNotExist())
+        .andExpect(jsonPath("$.data.owner.payablesTotalPaise").doesNotExist())
+        .andExpect(
+            jsonPath("$.data.owner.receivables.error")
+                .value(org.hamcrest.Matchers.containsString("Growth")))
+        .andExpect(jsonPath("$.data.owner.receivables.href").value("/subscription"));
+    mockMvc
+        .perform(get("/api/v1/dashboards/accountant").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.accountant.receivablesTotalPaise").doesNotExist())
+        .andExpect(jsonPath("$.data.accountant.payablesTotalPaise").doesNotExist())
+        .andExpect(jsonPath("$.data.accountant.receivableBuckets").doesNotExist())
+        .andExpect(
+            jsonPath("$.data.accountant.agingHint")
+                .value(org.hamcrest.Matchers.containsString("Growth")))
+        .andExpect(jsonPath("$.data.accountant.expenseTotalPaise").isNumber());
+    mockMvc
+        .perform(
+            get("/api/v1/finance/ca-pack")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.sections[*].key", hasItem("DAY_BOOK")))
+        .andExpect(jsonPath("$.data.sections[*].key", hasItem("SALES_SUMMARY")))
+        .andExpect(jsonPath("$.data.sections[*].key", hasItem("PURCHASE_SUMMARY")))
+        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("GSTR1"))))
+        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("PROFIT_AND_LOSS"))))
+        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("RECEIVABLES"))))
+        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("PAYABLES"))))
+        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("EXPENSE_SUMMARY"))));
   }
 
   @Test

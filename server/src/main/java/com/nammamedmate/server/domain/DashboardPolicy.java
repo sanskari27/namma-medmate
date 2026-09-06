@@ -32,6 +32,8 @@ public final class DashboardPolicy {
   public static final String OK = "OK";
   public static final String FAILED = "FAILED";
   public static final String UNAVAILABLE = "UNAVAILABLE";
+  public static final String PLAN_LIMIT = "PLAN_LIMIT";
+  public static final String SUBSCRIPTION_HREF = "/subscription";
   public static final String WIDGET_SALES = "SALES";
   public static final String WIDGET_LOW_STOCK = "LOW_STOCK";
   public static final String WIDGET_EXPIRY = "EXPIRY";

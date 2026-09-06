@@ -19,6 +19,7 @@ export function ShopBooksStrip({ receivables, payables, sources }: ShopBooksStri
         status={receivables?.status}
         href={receivables?.href ?? '/aging'}
         linkLabel="Khata dues"
+        error={receivables?.error}
       >
         <p className="mt-2 text-sm text-muted">
           Patients owe us{' '}
@@ -33,6 +34,7 @@ export function ShopBooksStrip({ receivables, payables, sources }: ShopBooksStri
         status={payables?.status}
         href={payables?.href ?? '/aging'}
         linkLabel="Stockist dues"
+        error={payables?.error}
       >
         <p className="mt-2 text-sm text-muted">
           We owe stockists{' '}

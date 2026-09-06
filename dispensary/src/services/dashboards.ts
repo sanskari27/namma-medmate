@@ -133,11 +133,12 @@ export interface InventoryDesk {
 }
 
 export interface AccountantDesk {
-  receivablesTotalPaise: number;
-  payablesTotalPaise: number;
+  receivablesTotalPaise?: number | null;
+  payablesTotalPaise?: number | null;
   expenseTotalPaise: number;
-  receivableBuckets: BucketItem[];
+  receivableBuckets?: BucketItem[] | null;
   sources: { aging: string; expenses: string };
+  agingHint?: string | null;
 }
 
 export interface OwnerDesk {
@@ -145,8 +146,8 @@ export interface OwnerDesk {
   todaySalesPaise: number;
   todayBillCount: number;
   branches: BranchSales[];
-  receivablesTotalPaise: number;
-  payablesTotalPaise: number;
+  receivablesTotalPaise?: number | null;
+  payablesTotalPaise?: number | null;
   expenseTotalPaise: number;
   lowStockCount: number;
   sources: { sales: string; stock: string; aging: string; expenses: string };

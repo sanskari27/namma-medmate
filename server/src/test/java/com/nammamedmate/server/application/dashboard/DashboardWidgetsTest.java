@@ -23,6 +23,12 @@ class DashboardWidgetsTest {
             () -> {
               throw new IllegalStateException("stock down");
             });
+    DashboardWidget<String> gated =
+        DashboardWidgets.planLimited(
+            DashboardPolicy.WIDGET_RECEIVABLES,
+            AS_OF,
+            DashboardPolicy.SUBSCRIPTION_HREF,
+            "Khata and stockist aging is on Growth. Open the plan to turn it on.");
     assertThat(ok.status()).isEqualTo(DashboardPolicy.OK);
     assertThat(ok.data()).isEqualTo("ok");
     assertThat(ok.error()).isNull();
@@ -30,5 +36,9 @@ class DashboardWidgetsTest {
     assertThat(failed.data()).isNull();
     assertThat(failed.error()).isEqualTo(DashboardPolicy.UNAVAILABLE);
     assertThat(failed.asOf()).isEqualTo(AS_OF);
+    assertThat(gated.status()).isEqualTo(DashboardPolicy.PLAN_LIMIT);
+    assertThat(gated.data()).isNull();
+    assertThat(gated.error()).contains("Growth");
+    assertThat(gated.href()).isEqualTo(DashboardPolicy.SUBSCRIPTION_HREF);
   }
 }
