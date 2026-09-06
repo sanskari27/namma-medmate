@@ -61,7 +61,9 @@ public class WhatsAppTemplateService {
     Map<String, WhatsAppTenantTemplate> overlays = overlaysByName(tenantId);
     List<WhatsAppTemplateView> templates =
         structureRepository.findAllByOrderByUniqueNameAsc().stream()
-            .map(structure -> toTemplate(tenantId, structure, overlays.get(structure.getUniqueName())))
+            .map(
+                structure ->
+                    toTemplate(tenantId, structure, overlays.get(structure.getUniqueName())))
             .toList();
     return new WhatsAppOwnerCatalogue(providerView(), templates);
   }
@@ -177,7 +179,8 @@ public class WhatsAppTemplateService {
   }
 
   private WhatsAppProviderView providerView() {
-    Optional<WhatsAppProviderStatus> stored = providerStatusRepository.findFirstByOrderBySyncedAtDesc();
+    Optional<WhatsAppProviderStatus> stored =
+        providerStatusRepository.findFirstByOrderBySyncedAtDesc();
     if (stored.isPresent()) {
       WhatsAppProviderStatus row = stored.get();
       return new WhatsAppProviderView(
@@ -214,8 +217,7 @@ public class WhatsAppTemplateService {
 
   private static WhatsAppTemplateView toTemplate(
       UUID tenantId, WhatsAppApprovedStructure structure, WhatsAppTenantTemplate overlay) {
-    Map<String, String> variables =
-        overlay == null ? Map.of() : Map.copyOf(overlay.getVariables());
+    Map<String, String> variables = overlay == null ? Map.of() : Map.copyOf(overlay.getVariables());
     int version = overlay == null ? 0 : overlay.getVersion();
     return new WhatsAppTemplateView(
         structure.getUniqueName(),

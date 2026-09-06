@@ -135,8 +135,7 @@ class WhatsAppTemplateTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"variables\":{\"pharmacy_name\":\"Shop A\"}}"))
         .andExpect(status().isOk())
-        .andExpect(
-            jsonPath("$.data.namespaceName").value(a.tenantId() + "_refill_due"));
+        .andExpect(jsonPath("$.data.namespaceName").value(a.tenantId() + "_refill_due"));
     mockMvc
         .perform(
             put(PATH + "/refill_due/variables")
@@ -144,8 +143,7 @@ class WhatsAppTemplateTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"variables\":{\"pharmacy_name\":\"Shop B\"}}"))
         .andExpect(status().isOk())
-        .andExpect(
-            jsonPath("$.data.namespaceName").value(b.tenantId() + "_refill_due"));
+        .andExpect(jsonPath("$.data.namespaceName").value(b.tenantId() + "_refill_due"));
 
     mockMvc
         .perform(get(PATH + "/refill_due").cookie(a.cookie()))
@@ -195,9 +193,11 @@ class WhatsAppTemplateTest extends AbstractIntegrationTest {
                 .content("{\"variables\":{\"pharmacy_name\":\"Varshmaan\"}}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.variables.pharmacy_name").value("Varshmaan"))
-        .andExpect(jsonPath("$.data.preview").value(org.hamcrest.Matchers.containsString("Varshmaan")))
         .andExpect(
-            jsonPath("$.data.preview").value(org.hamcrest.Matchers.containsString("{{customer_name}}")))
+            jsonPath("$.data.preview").value(org.hamcrest.Matchers.containsString("Varshmaan")))
+        .andExpect(
+            jsonPath("$.data.preview")
+                .value(org.hamcrest.Matchers.containsString("{{customer_name}}")))
         .andExpect(
             jsonPath("$.data.body")
                 .value(
@@ -209,7 +209,8 @@ class WhatsAppTemplateTest extends AbstractIntegrationTest {
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.data.templates[0].uniqueName").exists())
             .andReturn();
-    JsonNode templates = objectMapper.readTree(get.getResponse().getContentAsString()).at("/data/templates");
+    JsonNode templates =
+        objectMapper.readTree(get.getResponse().getContentAsString()).at("/data/templates");
     JsonNode refill = null;
     for (JsonNode node : templates) {
       if ("refill_due".equals(node.path("uniqueName").asText())) {
@@ -278,9 +279,7 @@ class WhatsAppTemplateTest extends AbstractIntegrationTest {
         .perform(get(PATH + "/no_such_template").cookie(fx.cookie()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("NOT_FOUND"));
-    mockMvc
-        .perform(get(PATH + "/refill_due").cookie(master))
-        .andExpect(status().isForbidden());
+    mockMvc.perform(get(PATH + "/refill_due").cookie(master)).andExpect(status().isForbidden());
 
     WhatsAppApprovedStructure pending = new WhatsAppApprovedStructure();
     pending.setId(UUID.randomUUID());

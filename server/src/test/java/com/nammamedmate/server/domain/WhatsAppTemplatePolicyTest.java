@@ -62,8 +62,7 @@ class WhatsAppTemplatePolicyTest {
 
   @Test
   void ac05_unapprovedStructureIsRejected() {
-    assertThatThrownBy(
-            () -> WhatsAppTemplatePolicy.requireApproved(WhatsAppApprovalStatus.PENDING))
+    assertThatThrownBy(() -> WhatsAppTemplatePolicy.requireApproved(WhatsAppApprovalStatus.PENDING))
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(WhatsAppTemplatePolicy.UNAPPROVED_TEMPLATE);
@@ -86,7 +85,6 @@ class WhatsAppTemplatePolicyTest {
         WhatsAppTemplatePolicy.preview(
             "Hi {{customer_name}}, visit {{pharmacy_name}} for {{medicine_name}}.",
             Map.of("pharmacy_name", "Varshmaan"));
-    assertThat(preview)
-        .isEqualTo("Hi {{customer_name}}, visit Varshmaan for {{medicine_name}}.");
+    assertThat(preview).isEqualTo("Hi {{customer_name}}, visit Varshmaan for {{medicine_name}}.");
   }
 }

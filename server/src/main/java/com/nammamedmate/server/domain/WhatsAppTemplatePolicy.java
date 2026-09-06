@@ -101,9 +101,7 @@ public final class WhatsAppTemplatePolicy {
 
   public static ApiException namespaceCollision() {
     return new ApiException(
-        HttpStatus.CONFLICT,
-        NAMESPACE_COLLISION,
-        "This tenant namespace is already used.");
+        HttpStatus.CONFLICT, NAMESPACE_COLLISION, "This tenant namespace is already used.");
   }
 
   public static ApiException shape() {
