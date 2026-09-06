@@ -31,6 +31,7 @@ import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRe
 import ExpensesScreen from '@/screens/expenses/ExpensesScreen';
 import AgingScreen from '@/screens/aging/AgingScreen';
 import ShopBooksScreen from '@/screens/shop-books/ShopBooksScreen';
+import CaPackScreen from '@/screens/ca-pack/CaPackScreen';
 import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
 import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
@@ -70,6 +71,7 @@ const router = createBrowserRouter([
           { path: ROUTES.EXPENSES, element: <ExpensesScreen /> },
           { path: ROUTES.AGING, element: <AgingScreen /> },
           { path: ROUTES.BOOKS, element: <ShopBooksScreen /> },
+          { path: ROUTES.ACCOUNTANT, element: <CaPackScreen /> },
           { path: ROUTES.SUBSCRIPTION, element: <SubscriptionScreen /> },
           { path: ROUTES.KIOSK, element: <KioskScreen /> },
           { path: ROUTES.USERS, element: <StaffAccountsScreen /> },

@@ -32,7 +32,7 @@ export function useExpensesPage() {
   const user = useSelector((state: RootState) => state.auth.user);
   const statusId = useId();
   const addRef = useRef<HTMLButtonElement | null>(null);
-  const allowed = hasFinanceAccess(user?.role, user?.modules);
+  const allowed = hasFinanceAccess(user?.role, user?.roles);
   const owner = user?.role === 'pharmacy_owner';
 
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');

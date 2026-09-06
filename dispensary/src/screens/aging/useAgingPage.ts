@@ -37,7 +37,7 @@ export function useAgingPage() {
   const user = useSelector((state: RootState) => state.auth.user);
   const statusId = useId();
   const applyRef = useRef<HTMLButtonElement | null>(null);
-  const allowed = hasFinanceAccess(user?.role, user?.modules);
+  const allowed = hasFinanceAccess(user?.role, user?.roles);
   const owner = user?.role === 'pharmacy_owner';
   const initialAsOf = todayIst();
 

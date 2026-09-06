@@ -357,10 +357,7 @@ class ReceivablePayableAgingTest extends AbstractIntegrationTest {
 
     AppUser accountant =
         persistUser(fx.tenantId(), "books@aging-iso.local", AppUserRole.pharmacy_staff);
-    UUID financeRole = createRole(fx.cookie(), "Accounts desk", "[\"FINANCE\"]");
-    mockMvc
-        .perform(putRoles(accountant.getId(), fx.cookie(), financeRole))
-        .andExpect(status().isOk());
+    assignAccountant(fx.cookie(), accountant.getId());
     assignBranch(fx.cookie(), accountant.getId(), fx.branchId());
     Cookie books = login("books@aging-iso.local");
     selectBranch(books, fx.branchId());
@@ -395,6 +392,28 @@ class ReceivablePayableAgingTest extends AbstractIntegrationTest {
         .cookie(owner)
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"roleIds\":[\"" + roleId + "\"]}");
+  }
+
+  private void assignAccountant(Cookie owner, UUID userId) throws Exception {
+    mockMvc
+        .perform(putRoles(userId, owner, predefinedId(owner, "accountant")))
+        .andExpect(status().isOk());
+  }
+
+  private UUID predefinedId(Cookie cookie, String code) throws Exception {
+    String body =
+        mockMvc
+            .perform(get("/api/v1/roles").cookie(cookie))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    for (JsonNode role : objectMapper.readTree(body).path("data").path("roles")) {
+      if (code.equals(role.path("code").asText())) {
+        return UUID.fromString(role.path("id").asText());
+      }
+    }
+    throw new AssertionError("missing predefined role " + code);
   }
 
   private UUID createRole(Cookie owner, String name, String modulesJson) throws Exception {

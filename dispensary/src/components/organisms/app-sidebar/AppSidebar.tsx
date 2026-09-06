@@ -69,6 +69,7 @@ import {
   type NavItem,
 } from '@/libs/constants/routes.const';
 import { cn } from '@/libs/cn';
+import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
 import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { switchSessionBranch } from '@/services/sessionBranch';
@@ -137,6 +138,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const user = useSelector((s: RootState) => s.auth.user);
   const displayName = user?.displayName ?? 'Chemist';
   const isOwner = user?.role === 'pharmacy_owner';
+  const canSeeFinance = hasFinanceAccess(user?.role, user?.roles);
   const branches = user?.branches ?? [];
   const activeBranchId = user?.activeBranchId ?? null;
   const selectedId =
@@ -350,7 +352,9 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
               )}
               {open ? (
                 <ul className="flex flex-col gap-0.5">
-                  {section.items.map((item) => (
+                  {section.items
+                    .filter((item) => canSeeFinance || !isFinanceNavPath(item.path))
+                    .map((item) => (
                     <li key={item.path}>
                       <RailLink
                         item={item}

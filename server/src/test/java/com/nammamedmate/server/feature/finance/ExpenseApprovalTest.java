@@ -144,8 +144,7 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
     assertThat(approvalRequestRepository.findAll()).isEmpty();
 
     AppUser books = persistUser(fx.tenantId(), "books@post-now.local", AppUserRole.pharmacy_staff);
-    UUID finRole = createRole(fx.cookie(), "Books", "[\"FINANCE\"]");
-    mockMvc.perform(putRoles(books.getId(), fx.cookie(), finRole)).andExpect(status().isOk());
+    assignAccountant(fx.cookie(), books.getId());
     assignBranch(fx.cookie(), books.getId(), fx.branchId());
     Cookie accountant = login("books@post-now.local");
     selectBranch(accountant, fx.branchId());
@@ -308,8 +307,7 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
 
     Location annex = persistBranch(fx.tenantId(), "Annex", "BR02", false);
     AppUser books = persistUser(fx.tenantId(), "books@scope-exp.local", AppUserRole.pharmacy_staff);
-    UUID finRole = createRole(fx.cookie(), "Books", "[\"FINANCE\"]");
-    mockMvc.perform(putRoles(books.getId(), fx.cookie(), finRole)).andExpect(status().isOk());
+    assignAccountant(fx.cookie(), books.getId());
     assignBranch(fx.cookie(), books.getId(), fx.branchId());
     Cookie accountant = login("books@scope-exp.local");
     selectBranch(accountant, fx.branchId());
@@ -442,6 +440,28 @@ class ExpenseApprovalTest extends AbstractIntegrationTest {
         .cookie(owner)
         .contentType(MediaType.APPLICATION_JSON)
         .content("{\"roleIds\":[\"" + roleId + "\"]}");
+  }
+
+  private void assignAccountant(Cookie owner, UUID userId) throws Exception {
+    mockMvc
+        .perform(putRoles(userId, owner, predefinedId(owner, "accountant")))
+        .andExpect(status().isOk());
+  }
+
+  private UUID predefinedId(Cookie cookie, String code) throws Exception {
+    String body =
+        mockMvc
+            .perform(get("/api/v1/roles").cookie(cookie))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    for (JsonNode role : objectMapper.readTree(body).path("data").path("roles")) {
+      if (code.equals(role.path("code").asText())) {
+        return UUID.fromString(role.path("id").asText());
+      }
+    }
+    throw new AssertionError("missing predefined role " + code);
   }
 
   private UUID createRole(Cookie owner, String name, String modulesJson) throws Exception {

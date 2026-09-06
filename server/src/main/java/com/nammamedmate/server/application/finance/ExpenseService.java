@@ -1,9 +1,7 @@
 package com.nammamedmate.server.application.finance;
 
-import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
-import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Expense;
 import com.nammamedmate.server.domain.ExpenseCategory;
@@ -11,10 +9,8 @@ import com.nammamedmate.server.domain.ExpenseEvidence;
 import com.nammamedmate.server.domain.ExpensePolicy;
 import com.nammamedmate.server.domain.ExpensePostingStatus;
 import com.nammamedmate.server.domain.Location;
-import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.infrastructure.finance.ExpenseFileStorage;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
-import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ExpenseCategoryRepository;
 import com.nammamedmate.server.persistence.ExpenseEvidenceRepository;
 import com.nammamedmate.server.persistence.ExpenseRepository;
@@ -44,9 +40,8 @@ public class ExpenseService {
   private final ExpenseCategoryRepository categoryRepository;
   private final ExpenseEvidenceRepository evidenceRepository;
   private final LocationRepository locationRepository;
-  private final AppUserRepository appUserRepository;
   private final UserBranchRepository userBranchRepository;
-  private final AccessQueryService accessQueryService;
+  private final FinanceAccessService financeAccessService;
   private final AuditService auditService;
   private final ExpenseFileStorage fileStorage;
   private final Clock clock;
@@ -56,9 +51,8 @@ public class ExpenseService {
       ExpenseCategoryRepository categoryRepository,
       ExpenseEvidenceRepository evidenceRepository,
       LocationRepository locationRepository,
-      AppUserRepository appUserRepository,
       UserBranchRepository userBranchRepository,
-      AccessQueryService accessQueryService,
+      FinanceAccessService financeAccessService,
       AuditService auditService,
       ExpenseFileStorage fileStorage,
       Clock clock) {
@@ -66,9 +60,8 @@ public class ExpenseService {
     this.categoryRepository = categoryRepository;
     this.evidenceRepository = evidenceRepository;
     this.locationRepository = locationRepository;
-    this.appUserRepository = appUserRepository;
     this.userBranchRepository = userBranchRepository;
-    this.accessQueryService = accessQueryService;
+    this.financeAccessService = financeAccessService;
     this.auditService = auditService;
     this.fileStorage = fileStorage;
     this.clock = clock;
@@ -391,22 +384,8 @@ public class ExpenseService {
   }
 
   private Context requireFinance(AuthPrincipal principal) {
-    if (principal == null || principal.tenantId() == null) {
-      throw ExpensePolicy.forbidden();
-    }
-    if (principal.role() != AppUserRole.pharmacy_owner
-        && principal.role() != AppUserRole.pharmacy_staff) {
-      throw ExpensePolicy.forbidden();
-    }
-    AppUser user =
-        appUserRepository
-            .findById(principal.userId())
-            .filter(row -> row.getDeletedAt() == null)
-            .orElseThrow(ExpensePolicy::forbidden);
-    if (!accessQueryService.effectiveModules(user).contains(ModuleCode.FINANCE)) {
-      throw ExpensePolicy.forbidden();
-    }
-    return new Context(principal.tenantId(), principal.activeBranchId());
+    FinanceAccessService.Context access = financeAccessService.requireFinance(principal);
+    return new Context(access.tenantId(), access.sessionBranchId());
   }
 
   private Map<UUID, String> branchNames(UUID tenantId, List<UUID> branchIds) {

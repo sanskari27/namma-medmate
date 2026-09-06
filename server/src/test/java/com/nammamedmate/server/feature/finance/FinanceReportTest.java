@@ -234,14 +234,7 @@ class FinanceReportTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.items[*].kind", hasItem("Cash")));
 
     AppUser books = persistUser(fx.tenantId(), "books@fr-ac03.local", AppUserRole.pharmacy_staff);
-    UUID finRole = createRole(fx.cookie(), "Books", "[\"FINANCE\"]");
-    mockMvc
-        .perform(
-            put("/api/v1/users/" + books.getId() + "/roles")
-                .cookie(fx.cookie())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"roleIds\":[\"" + finRole + "\"]}"))
-        .andExpect(status().isOk());
+    assignAccountant(fx.cookie(), books.getId());
     assignBranch(fx.cookie(), books.getId(), fx.branchId());
     Cookie accountant = login("books@fr-ac03.local");
     selectBranch(accountant, fx.branchId());
@@ -687,6 +680,33 @@ class FinanceReportTest extends AbstractIntegrationTest {
             .getResponse()
             .getContentAsString();
     return UUID.fromString(objectMapper.readTree(body).path("data").path("id").asText());
+  }
+
+  private void assignAccountant(Cookie owner, UUID userId) throws Exception {
+    UUID roleId = predefinedId(owner, "accountant");
+    mockMvc
+        .perform(
+            put("/api/v1/users/" + userId + "/roles")
+                .cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleIds\":[\"" + roleId + "\"]}"))
+        .andExpect(status().isOk());
+  }
+
+  private UUID predefinedId(Cookie cookie, String code) throws Exception {
+    String body =
+        mockMvc
+            .perform(get("/api/v1/roles").cookie(cookie))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    for (JsonNode role : objectMapper.readTree(body).path("data").path("roles")) {
+      if (code.equals(role.path("code").asText())) {
+        return UUID.fromString(role.path("id").asText());
+      }
+    }
+    throw new AssertionError("missing predefined role " + code);
   }
 
   private void assignBranch(Cookie owner, UUID userId, UUID branchId) throws Exception {

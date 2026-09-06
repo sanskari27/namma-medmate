@@ -1,9 +1,7 @@
 package com.nammamedmate.server.application.finance;
 
-import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
-import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Expense;
 import com.nammamedmate.server.domain.ExpensePostingStatus;
@@ -13,7 +11,6 @@ import com.nammamedmate.server.domain.GoodsReceipt;
 import com.nammamedmate.server.domain.GoodsReceiptLine;
 import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import com.nammamedmate.server.domain.Location;
-import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.PurchaseOrderLine;
 import com.nammamedmate.server.domain.SalesInvoice;
@@ -28,7 +25,6 @@ import com.nammamedmate.server.domain.SupplierLedgerEntry;
 import com.nammamedmate.server.domain.SupplierLedgerType;
 import com.nammamedmate.server.infrastructure.pdf.FinanceReportPdfRenderer;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
-import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ExpenseRepository;
 import com.nammamedmate.server.persistence.GoodsReceiptLineRepository;
 import com.nammamedmate.server.persistence.GoodsReceiptRepository;
@@ -79,9 +75,8 @@ public class FinanceReportService {
   private final GoodsReceiptLineRepository goodsReceiptLineRepository;
   private final PurchaseOrderLineRepository purchaseOrderLineRepository;
   private final LocationRepository locationRepository;
-  private final AppUserRepository appUserRepository;
   private final UserBranchRepository userBranchRepository;
-  private final AccessQueryService accessQueryService;
+  private final FinanceAccessService financeAccessService;
   private final AuditService auditService;
   private final FinanceReportPdfRenderer pdfRenderer;
   private final Clock clock;
@@ -99,9 +94,8 @@ public class FinanceReportService {
       GoodsReceiptLineRepository goodsReceiptLineRepository,
       PurchaseOrderLineRepository purchaseOrderLineRepository,
       LocationRepository locationRepository,
-      AppUserRepository appUserRepository,
       UserBranchRepository userBranchRepository,
-      AccessQueryService accessQueryService,
+      FinanceAccessService financeAccessService,
       AuditService auditService,
       FinanceReportPdfRenderer pdfRenderer,
       Clock clock) {
@@ -117,9 +111,8 @@ public class FinanceReportService {
     this.goodsReceiptLineRepository = goodsReceiptLineRepository;
     this.purchaseOrderLineRepository = purchaseOrderLineRepository;
     this.locationRepository = locationRepository;
-    this.appUserRepository = appUserRepository;
     this.userBranchRepository = userBranchRepository;
-    this.accessQueryService = accessQueryService;
+    this.financeAccessService = financeAccessService;
     this.auditService = auditService;
     this.pdfRenderer = pdfRenderer;
     this.clock = clock;
@@ -878,22 +871,8 @@ public class FinanceReportService {
   }
 
   private Context requireFinance(AuthPrincipal principal) {
-    if (principal == null || principal.tenantId() == null) {
-      throw FinanceReportPolicy.forbidden();
-    }
-    if (principal.role() != AppUserRole.pharmacy_owner
-        && principal.role() != AppUserRole.pharmacy_staff) {
-      throw FinanceReportPolicy.forbidden();
-    }
-    AppUser user =
-        appUserRepository
-            .findById(principal.userId())
-            .filter(row -> row.getDeletedAt() == null)
-            .orElseThrow(FinanceReportPolicy::forbidden);
-    if (!accessQueryService.effectiveModules(user).contains(ModuleCode.FINANCE)) {
-      throw FinanceReportPolicy.forbidden();
-    }
-    return new Context(principal.tenantId(), principal.activeBranchId());
+    FinanceAccessService.Context access = financeAccessService.requireFinance(principal);
+    return new Context(access.tenantId(), access.sessionBranchId());
   }
 
   private static UUID parseUuid(String raw) {

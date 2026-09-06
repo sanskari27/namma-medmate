@@ -21,12 +21,7 @@ export const BUCKET_LABELS: Record<AgingBucketKey, string> = {
   D90_PLUS: '90+ days',
 };
 
-export function hasFinanceAccess(role: string | undefined, modules: string[] | undefined): boolean {
-  if (role === 'pharmacy_owner') {
-    return true;
-  }
-  return modules?.includes('FINANCE') === true;
-}
+export { hasFinanceAccess } from '@/libs/financeAccess';
 
 export function todayIst(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
