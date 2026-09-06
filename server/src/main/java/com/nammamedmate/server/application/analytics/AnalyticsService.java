@@ -95,7 +95,7 @@ public class AnalyticsService {
     AppUser user = requireUser(principal);
     Set<ModuleCode> modules = accessQueryService.effectiveModules(user);
     AnalyticsPolicy.requireAccess(user.getRole(), modules);
-    AnalyticsPolicy.assertEntitled(subscriptionService.resolvePlan(principal.tenantId()));
+    AnalyticsPolicy.assertEntitled(subscriptionService.resolveReportPlan(principal.tenantId()));
     AnalyticsCompare compare = AnalyticsPolicy.requireCompare(compareRaw);
     String scope = AnalyticsPolicy.requireScope(user.getRole(), scopeRaw);
     int limit = AnalyticsPolicy.requireLimit(limitRaw);

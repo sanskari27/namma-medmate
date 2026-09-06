@@ -11,9 +11,11 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
 import {
   apiStatusHint,
+  bookEntitled,
   emptyFilters,
   filenameFor,
   filtersValid,
+  firstEntitledKey,
   hasFinanceAccess,
   isFutureRange,
   mapApiStatus,
@@ -40,6 +42,7 @@ export function useShopBooksPage() {
   const statusId = useId();
   const spreadsheetRef = useRef<HTMLButtonElement | null>(null);
   const pdfRef = useRef<HTMLButtonElement | null>(null);
+  const upgradeRef = useRef<HTMLAnchorElement | null>(null);
 
   const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
   const [statusHint, setStatusHint] = useState<string | null>(null);
@@ -49,6 +52,7 @@ export function useShopBooksPage() {
   const [filters, setFilters] = useState<FilterState>(emptyFilters());
   const [scope, setScope] = useState<OutletScope>('session');
   const [busy, setBusy] = useState(false);
+  const [planLimit, setPlanLimit] = useState(false);
 
   const query = useCallback(
     () => toQuery(filters, owner ? scope : 'session'),
@@ -70,7 +74,12 @@ export function useShopBooksPage() {
     try {
       const items = await listFinanceReports(query());
       setBooks(items);
-      setSelectedKey((current) => current ?? items[0]?.key ?? null);
+      setSelectedKey((current) => {
+        if (current && items.some((item) => item.key === current)) {
+          return current;
+        }
+        return firstEntitledKey(items);
+      });
       if (items.length === 0) {
         setStatus('empty');
       }
@@ -85,8 +94,22 @@ export function useShopBooksPage() {
     }
   }, [allowed, activeBranchId, query]);
 
+  const selectedBook = books.find((book) => book.key === selectedKey) ?? null;
+  const planGate = (selectedBook != null && !bookEntitled(selectedBook)) || planLimit;
+
   const loadTable = useCallback(async () => {
     if (!allowed || !selectedKey) {
+      return;
+    }
+    const selected = books.find((book) => book.key === selectedKey);
+    if (selected && !bookEntitled(selected)) {
+      setTable(null);
+      setPlanLimit(false);
+      setStatus('denied');
+      setStatusHint(
+        selected.upgradeHint ?? 'This shop book is on Growth. Open the plan to turn it on.',
+      );
+      window.setTimeout(() => upgradeRef.current?.focus(), 0);
       return;
     }
     if (!filtersValid(filters) || isFutureRange(filters)) {
@@ -100,6 +123,7 @@ export function useShopBooksPage() {
     }
     setStatus('loading');
     setStatusHint(null);
+    setPlanLimit(false);
     try {
       const next = await getFinanceReport(selectedKey, query());
       setTable(next);
@@ -108,12 +132,17 @@ export function useShopBooksPage() {
       if (isApiError(error)) {
         setStatus(mapApiStatus(error));
         setStatusHint(apiStatusHint(error.code) ?? error.message);
+        if (error.code === 'PLAN_LIMIT') {
+          setTable(null);
+          setPlanLimit(true);
+          window.setTimeout(() => upgradeRef.current?.focus(), 0);
+        }
         return;
       }
       setStatus('failure');
       setStatusHint(null);
     }
-  }, [allowed, selectedKey, filters, query]);
+  }, [allowed, selectedKey, books, filters, query]);
 
   useEffect(() => {
     void loadCatalog();
@@ -139,7 +168,7 @@ export function useShopBooksPage() {
   };
 
   const onExport = async (format: 'csv' | 'pdf') => {
-    if (!selectedKey) {
+    if (!selectedKey || planGate) {
       return;
     }
     if (!filtersValid(filters) || isFutureRange(filters)) {
@@ -188,8 +217,11 @@ export function useShopBooksPage() {
     filters,
     scope,
     busy,
+    planGate,
+    upgradeHint: selectedBook?.upgradeHint ?? null,
     spreadsheetRef,
     pdfRef,
+    upgradeRef,
     onSelectBook: setSelectedKey,
     onChangeFilters: setFilters,
     onScope: setScope,

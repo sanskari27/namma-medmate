@@ -43,6 +43,7 @@ export function useAgingPage() {
   const [statusHint, setStatusHint] = useState<string | null>(null);
   const [receivables, setReceivables] = useState<AgingReport | null>(null);
   const [payables, setPayables] = useState<AgingReport | null>(null);
+  const [planGate, setPlanGate] = useState(false);
 
   const query = useCallback((): AgingQuery => {
     return {
@@ -54,19 +55,23 @@ export function useAgingPage() {
   const load = useCallback(async () => {
     if (!allowed) {
       setStatus('denied');
+      setPlanGate(false);
       return;
     }
     if (isFutureAsOf(asOf)) {
       setStatus('validation');
       setStatusHint('As-of date must be today or earlier.');
+      setPlanGate(false);
       return;
     }
     setStatus('loading');
     setStatusHint(null);
+    setPlanGate(false);
     try {
       const [ar, ap] = await Promise.all([getReceivables(query()), getPayables(query())]);
       setReceivables(ar);
       setPayables(ap);
+      setPlanGate(false);
       if (ar.totalPaise === 0 && ap.totalPaise === 0) {
         setStatus('empty');
       } else {
@@ -74,12 +79,19 @@ export function useAgingPage() {
       }
     } catch (error) {
       if (isApiError(error)) {
+        const gated = error.code === 'PLAN_LIMIT';
         setStatus(mapApiStatus(error));
         setStatusHint(apiStatusHint(error.code) ?? error.message);
+        if (gated) {
+          setReceivables(null);
+          setPayables(null);
+          setPlanGate(true);
+        }
         return;
       }
       setStatus('failure');
       setStatusHint(null);
+      setPlanGate(false);
     }
   }, [allowed, asOf, query]);
 
@@ -115,6 +127,7 @@ export function useAgingPage() {
     setScope,
     status,
     statusHint,
+    planGate,
     receivables: receivables ?? emptyReport(asOf),
     payables: payables ?? emptyReport(asOf),
     applyAsOf,

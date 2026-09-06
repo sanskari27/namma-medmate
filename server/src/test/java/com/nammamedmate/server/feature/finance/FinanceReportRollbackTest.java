@@ -214,7 +214,7 @@ class FinanceReportRollbackTest extends AbstractIntegrationTest {
 
   private Cookie loginOwner(String tag) throws Exception {
     Tenant tenant = persistTenant(tag, "Fr " + tag);
-    persistPlan(tenant.getId(), PlanCode.FREE);
+    persistPlan(tenant.getId(), PlanCode.GROWTH);
     persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
     persistBranch(tenant.getId(), "Main", "BR01", true);
     return login("owner@" + tag + ".local");

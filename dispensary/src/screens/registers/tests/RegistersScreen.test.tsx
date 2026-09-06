@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
@@ -179,5 +179,41 @@ describe('Register book', () => {
     await waitFor(() => expect(exportMock).toHaveBeenCalled());
     expect(await screen.findByRole('status')).toHaveTextContent('PDF saved for this outlet.');
     expect(screen.getByRole('button', { name: 'Take PDF' })).toHaveFocus();
+  });
+
+  it('denied PLAN_LIMIT: near-expiry stays listed without row leak', async () => {
+    const user = userEvent.setup();
+    const gatedCatalog: ComplianceReportCatalogItem[] = [
+      ...catalog,
+      {
+        key: 'NEAR_EXPIRY',
+        title: 'Near-Expiry / Expiry Report',
+        filters: ['from', 'to'],
+        entitled: false,
+        minPlan: 'STARTER',
+        upgradeHint: 'Near-expiry is on Starter. Open the plan to turn it on.',
+      },
+    ];
+    listMock.mockResolvedValue(gatedCatalog);
+    tableMock.mockResolvedValue(h1Table);
+    renderPage();
+    const book = await screen.findByRole('table', { name: 'Schedule H1 Sale Register' });
+    expect(book).toHaveTextContent('Alprazolam');
+    expect(screen.getByText('On Starter')).toBeInTheDocument();
+    expect(tableMock.mock.calls.every((call) => call[0] === 'H1_SALES')).toBe(true);
+    await user.click(
+      screen.getByRole('button', { name: 'Near-Expiry / Expiry Report, On Starter' }),
+    );
+    const upgrade = await screen.findByRole('region', { name: 'Plan required for this register' });
+    expect(upgrade).toHaveTextContent('Near-expiry is on Starter');
+    await waitFor(() =>
+      expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveFocus(),
+    );
+    expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+      'href',
+      ROUTES.SUBSCRIPTION,
+    );
+    expect(screen.queryByText('Alprazolam')).not.toBeInTheDocument();
+    expect(tableMock).not.toHaveBeenCalledWith('NEAR_EXPIRY', expect.anything());
   });
 });

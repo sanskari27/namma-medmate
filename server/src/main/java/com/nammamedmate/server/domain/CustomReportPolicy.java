@@ -35,8 +35,6 @@ public final class CustomReportPolicy {
   public static final String ACTION = "CUSTOM_REPORT_EXPORT";
   public static final String SCOPE_BRANCH = "branch";
   public static final String SCOPE_TENANT = "tenant";
-  private static final String GROWTH_MESSAGE =
-      "Growth or Pro is required to build an ad-hoc report.";
   private static final Set<CustomReportOperator> TEXT_OPS =
       EnumSet.of(CustomReportOperator.EQ, CustomReportOperator.NEQ, CustomReportOperator.CONTAINS);
   private static final Set<CustomReportOperator> COMPARE_OPS =
@@ -276,9 +274,7 @@ public final class CustomReportPolicy {
   }
 
   public static void assertEntitled(PlanCode plan) {
-    if (plan != PlanCode.GROWTH && plan != PlanCode.PRO) {
-      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT, GROWTH_MESSAGE);
-    }
+    ReportAccessPolicy.assertEntitled(plan, ReportCapability.CUSTOM_REPORT);
   }
 
   public static void requireAccess(AppUserRole role, Set<ModuleCode> modules) {

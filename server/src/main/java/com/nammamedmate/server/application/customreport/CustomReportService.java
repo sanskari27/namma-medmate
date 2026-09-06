@@ -129,7 +129,7 @@ public class CustomReportService {
   @Transactional(readOnly = true)
   public CustomReportCatalogView catalog(AuthPrincipal principal) {
     Actor actor = authorize(principal);
-    CustomReportPolicy.assertEntitled(subscriptionService.resolvePlan(actor.tenantId()));
+    CustomReportPolicy.assertEntitled(subscriptionService.resolveReportPlan(actor.tenantId()));
     List<CustomReportCatalogView.DatasetItem> datasets = new ArrayList<>();
     for (CustomReportDataset dataset : CustomReportPolicy.datasets()) {
       List<CustomReportCatalogView.FieldItem> fields = new ArrayList<>();
@@ -205,7 +205,7 @@ public class CustomReportService {
       throw CustomReportPolicy.shape();
     }
     Actor actor = authorize(principal);
-    CustomReportPolicy.assertEntitled(subscriptionService.resolvePlan(actor.tenantId()));
+    CustomReportPolicy.assertEntitled(subscriptionService.resolveReportPlan(actor.tenantId()));
     CustomReportDataset dataset = CustomReportPolicy.requireDataset(query.dataset());
     List<CustomReportPolicy.Field> columns =
         CustomReportPolicy.requireColumns(dataset, query.columns());

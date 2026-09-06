@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.compliance;
 import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.ComplianceLicense;
 import com.nammamedmate.server.domain.ComplianceReportKey;
@@ -13,9 +14,12 @@ import com.nammamedmate.server.domain.GoodsReceipt;
 import com.nammamedmate.server.domain.GoodsReceiptLine;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
+import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.PurchaseReturn;
 import com.nammamedmate.server.domain.PurchaseReturnLine;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
+import com.nammamedmate.server.domain.ReportCapability;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceLine;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
@@ -99,6 +103,7 @@ public class ComplianceReportService {
   private final StockMovementRepository stockMovementRepository;
   private final LocationRepository locationRepository;
   private final AuditService auditService;
+  private final SubscriptionService subscriptionService;
   private final ComplianceRegisterPdfRenderer pdfRenderer;
   private final Clock clock;
 
@@ -124,6 +129,7 @@ public class ComplianceReportService {
       StockMovementRepository stockMovementRepository,
       LocationRepository locationRepository,
       AuditService auditService,
+      SubscriptionService subscriptionService,
       ComplianceRegisterPdfRenderer pdfRenderer,
       Clock clock) {
     this.appUserRepository = appUserRepository;
@@ -147,6 +153,7 @@ public class ComplianceReportService {
     this.locationRepository = locationRepository;
     this.stockMovementRepository = stockMovementRepository;
     this.auditService = auditService;
+    this.subscriptionService = subscriptionService;
     this.pdfRenderer = pdfRenderer;
     this.clock = clock;
   }
@@ -154,12 +161,24 @@ public class ComplianceReportService {
   @Transactional(readOnly = true)
   public ComplianceReportCatalogView catalog(AuthPrincipal principal, UUID branchId) {
     requireViewer(principal, branchId);
+    PlanCode plan = subscriptionService.resolveReportPlan(principal.tenantId());
     List<ComplianceReportCatalogItem> items =
         ComplianceReportPolicy.catalog().stream()
             .map(
-                key ->
-                    new ComplianceReportCatalogItem(
-                        key.name(), key.title(), List.copyOf(key.filters())))
+                key -> {
+                  ReportCapability capability = ReportAccessPolicy.capability(key);
+                  ReportAccessPolicy.CatalogEntitlement entitlement =
+                      capability == null
+                          ? ReportAccessPolicy.openEntitlement()
+                          : ReportAccessPolicy.entitlement(plan, capability);
+                  return new ComplianceReportCatalogItem(
+                      key.name(),
+                      key.title(),
+                      List.copyOf(key.filters()),
+                      entitlement.entitled(),
+                      entitlement.minPlan(),
+                      entitlement.upgradeHint());
+                })
             .toList();
     return new ComplianceReportCatalogView(items);
   }
@@ -176,6 +195,11 @@ public class ComplianceReportService {
       String batchNumber) {
     Context ctx = requireViewer(principal, branchId);
     ComplianceReportKey report = ComplianceReportPolicy.requireKey(key);
+    ReportCapability capability = ReportAccessPolicy.capability(report);
+    if (capability != null) {
+      ReportAccessPolicy.assertEntitled(
+          subscriptionService.resolveReportPlan(principal.tenantId()), capability);
+    }
     Instant[] window = ComplianceReportPolicy.resolveWindow(from, to, Instant.now(clock));
     String batch = ComplianceReportPolicy.requireBatchNumber(report, batchNumber);
     return build(ctx, report, window[0], window[1], productId, supplierId, batch);

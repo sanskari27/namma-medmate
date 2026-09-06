@@ -5,6 +5,7 @@ import com.nammamedmate.server.domain.PlanCatalogue;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PlanLimits;
 import com.nammamedmate.server.domain.PlanModuleEntitlements;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
 import com.nammamedmate.server.domain.SubscriptionOverrideEvent;
 import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.SubscriptionUpgradeIntent;
@@ -285,6 +286,17 @@ public class SubscriptionService {
     return tenantSubscriptionRepository
         .findByTenantId(tenantId)
         .map(TenantSubscription::getPlanCode)
+        .orElse(PlanCode.FREE);
+  }
+
+  @Transactional(readOnly = true)
+  public PlanCode resolveReportPlan(UUID tenantId) {
+    if (tenantId == null) {
+      return PlanCode.FREE;
+    }
+    return tenantSubscriptionRepository
+        .findByTenantId(tenantId)
+        .map(sub -> ReportAccessPolicy.reportPlan(sub.getPlanCode(), sub.getStatus()))
         .orElse(PlanCode.FREE);
   }
 

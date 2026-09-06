@@ -5,6 +5,7 @@ import { ShopBooksHeader } from './components/shop-books-header';
 import { ShopBooksStatusBanner } from './components/shop-books-status-banner';
 import { ShopBooksTable } from './components/shop-books-table';
 import { ShopBooksTotalsStrip } from './components/shop-books-totals-strip';
+import { ShopBooksUpgrade } from './components/shop-books-upgrade';
 import { shopBookTitle } from './ShopBooksScreen.utils';
 import { useShopBooksPage } from './useShopBooksPage';
 
@@ -17,12 +18,17 @@ export default function ShopBooksScreen() {
       <ShopBooksHeader
         spreadsheetRef={page.spreadsheetRef}
         pdfRef={page.pdfRef}
-        denied={!page.allowed}
+        denied={!page.allowed || page.planGate}
         busy={page.busy}
         onSpreadsheet={page.onSpreadsheet}
         onPdf={page.onPdf}
       />
-      <ShopBooksStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
+      <ShopBooksStatusBanner
+        status={page.status}
+        statusId={page.statusId}
+        hint={page.statusHint}
+        planGate={page.planGate}
+      />
       {page.allowed ? (
         <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
           <ShopBooksBookList
@@ -35,12 +41,20 @@ export default function ShopBooksScreen() {
               filters={page.filters}
               owner={page.owner}
               scope={page.scope}
-              disabled={page.busy}
+              disabled={page.busy || page.planGate}
               onChange={page.onChangeFilters}
               onScope={page.onScope}
               onApply={page.onApplyFilters}
             />
-            {page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
+            {page.planGate ? (
+              <ShopBooksUpgrade
+                hint={
+                  page.upgradeHint ??
+                  'This shop book is on Growth. Open the plan to turn it on.'
+                }
+                linkRef={page.upgradeRef}
+              />
+            ) : page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
               <>
                 <ShopBooksTotalsStrip
                   totals={page.table.totals}

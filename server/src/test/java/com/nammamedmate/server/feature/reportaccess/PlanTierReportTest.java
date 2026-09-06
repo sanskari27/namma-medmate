@@ -1,4 +1,4 @@
-package com.nammamedmate.server.feature.finance;
+package com.nammamedmate.server.feature.reportaccess;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.hamcrest.Matchers.hasItem;
@@ -6,8 +6,6 @@ import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,11 +17,10 @@ import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.AuditEvent;
 import com.nammamedmate.server.domain.BranchStatus;
 import com.nammamedmate.server.domain.BranchType;
-import com.nammamedmate.server.domain.Customer;
-import com.nammamedmate.server.domain.FinanceAccessPolicy;
 import com.nammamedmate.server.domain.FinanceReportPolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PlanCode;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
 import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
@@ -31,12 +28,11 @@ import com.nammamedmate.server.domain.TenantSubscription;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.AuditEventRepository;
-import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.SalesInvoiceRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
 import jakarta.servlet.http.Cookie;
-import java.nio.charset.StandardCharsets;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
@@ -51,19 +47,13 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
-class CaPackTest extends AbstractIntegrationTest {
+class PlanTierReportTest extends AbstractIntegrationTest {
 
   private static final String PASSWORD = "counter-pass-1";
   private static final Instant T0 = Instant.parse("2026-09-06T02:00:00Z");
   private static final long TOTAL = 11_200L;
   private static final long COST = 5_000L;
-  private static final long RENT = 2_000L;
   private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
-  private static final String ALLERGY = "Penicillin anaphylaxis";
-  private static final String PATIENT = "Penicillin Patient";
-  private static final String RX = "RX-PENICILLIN-9";
-  private static final String DOCTOR = "Dr Hidden Prescriber";
-  private static final String CONDITION = "Type 2 diabetes tag";
 
   @Autowired private MockMvc mockMvc;
   @Autowired private ObjectMapper objectMapper;
@@ -72,288 +62,286 @@ class CaPackTest extends AbstractIntegrationTest {
   @Autowired private TenantSubscriptionRepository tenantSubscriptionRepository;
   @Autowired private LocationRepository locationRepository;
   @Autowired private AuditEventRepository auditEventRepository;
-  @Autowired private CustomerRepository customerRepository;
+  @Autowired private SalesInvoiceRepository salesInvoiceRepository;
   @Autowired private PasswordEncoder passwordEncoder;
 
   @Test
-  void ac01_onlyOwnerAndAccountantAccessFinanceAndCaPack() throws Exception {
-    Fixture fx = seed("ca-ac01");
-    Stocked product = stocked(fx, "CA-1", "CA Pack");
-    completeCash(fx, createDraft(fx, product, "ca-1"), 1, "ca-1-c");
+  void ac01_freeIncludesDayBookSalesAndPurchaseAndListsGatedBooksWithoutRows() throws Exception {
+    Fixture fx = seed("pt-ac01", PlanCode.FREE);
+    Stocked product = stocked(fx, "PT-FREE", "Free Pack");
+    completeCash(fx, createDraft(fx, product, "pt-free-d"), 1, "pt-free-c");
 
     mockMvc
         .perform(
-            get("/api/v1/finance/ca-pack")
+            get("/api/v1/finance/reports/DAY_BOOK")
                 .param("from", today().toString())
                 .param("to", today().toString())
                 .cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
-        .andExpect(jsonPath("$.data.sections[*].key", hasItem("PROFIT_AND_LOSS")))
-        .andExpect(jsonPath("$.data.sections[*].key", hasItem("SALES_SUMMARY")));
-
-    Cookie accountant = staffWithPredefined(fx, "accountant", "books@ca-ac01.local");
+        .andExpect(jsonPath("$.data.items[*].reference", hasItem(not(""))));
     mockMvc
         .perform(
-            get("/api/v1/finance/ca-pack")
+            get("/api/v1/finance/reports/SALES_SUMMARY")
                 .param("from", today().toString())
                 .param("to", today().toString())
-                .cookie(accountant))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.sections[*].key", hasItem("EXPENSE_SUMMARY")));
-    mockMvc.perform(get("/api/v1/finance/reports").cookie(accountant)).andExpect(status().isOk());
-    mockMvc.perform(get("/api/v1/finance/expenses").cookie(accountant)).andExpect(status().isOk());
-    mockMvc
-        .perform(get("/api/v1/finance/receivables").cookie(accountant))
-        .andExpect(status().isOk());
-
-    Cookie cashier = staffWithPredefined(fx, "cashier", "till@ca-ac01.local");
-    mockMvc
-        .perform(get("/api/v1/finance/ca-pack").cookie(cashier))
-        .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("FORBIDDEN"));
-    mockMvc
-        .perform(get("/api/v1/finance/reports").cookie(cashier))
-        .andExpect(status().isForbidden());
-
-    Cookie pharmacist = staffWithPredefined(fx, "pharmacist", "rx@ca-ac01.local");
-    mockMvc
-        .perform(get("/api/v1/finance/ca-pack").cookie(pharmacist))
-        .andExpect(status().isForbidden());
-
-    AppUser custom = persistUser(fx.tenantId(), "custom@ca-ac01.local", AppUserRole.pharmacy_staff);
-    UUID finRole = createRole(fx.cookie(), "Night books", "[\"FINANCE\"]");
-    mockMvc
-        .perform(
-            put("/api/v1/users/" + custom.getId() + "/roles")
-                .cookie(fx.cookie())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"roleIds\":[\"" + finRole + "\"]}"))
-        .andExpect(status().isOk());
-    assignBranch(fx.cookie(), custom.getId(), fx.branchId());
-    Cookie customBooks = login("custom@ca-ac01.local");
-    selectBranch(customBooks, fx.branchId());
-    mockMvc
-        .perform(get("/api/v1/finance/ca-pack").cookie(customBooks))
-        .andExpect(status().isForbidden());
-    mockMvc
-        .perform(get("/api/v1/finance/expenses").cookie(customBooks))
-        .andExpect(status().isForbidden());
-    mockMvc
-        .perform(get("/api/v1/finance/receivables").cookie(customBooks))
-        .andExpect(status().isForbidden());
-  }
-
-  @Test
-  void ac02_ownerConsolidatesAndDrillsDownAccountantStaysOnAssignedOutlet() throws Exception {
-    Fixture fx = seed("ca-ac02");
-    Location annex = persistBranch(fx.tenantId(), "Annex", "BR02", false);
-    Stocked product = stocked(fx, "CA-2", "CA Two");
-    completeCash(fx, createDraft(fx, product, "ca-2"), 1, "ca-2-c");
-    postRentOn(fx, annex.getId(), RENT, today(), "ca-2-rent");
-
-    mockMvc
-        .perform(
-            get("/api/v1/finance/ca-pack")
-                .param("from", today().toString())
-                .param("to", today().toString())
-                .param("scope", "tenant")
                 .cookie(fx.cookie()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.scope").value("tenant"))
-        .andExpect(jsonPath("$.data.sections[*].key", hasItem("BRANCH_PNL")))
+        .andExpect(jsonPath("$.data.key").value("SALES_SUMMARY"))
+        .andExpect(jsonPath("$.data.items").isArray());
+    mockMvc
+        .perform(
+            get("/api/v1/finance/reports/PURCHASE_SUMMARY")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.key").value("PURCHASE_SUMMARY"));
+
+    mockMvc
+        .perform(get("/api/v1/finance/reports").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items[?(@.key=='DAY_BOOK')].entitled").value(hasItem(true)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='SALES_SUMMARY')].entitled").value(hasItem(true)))
         .andExpect(
-            jsonPath(
-                "$.data.sections[?(@.key=='BRANCH_PNL')].items[*].branchName", hasItem("Main")))
-        .andExpect(
-            jsonPath(
-                "$.data.sections[?(@.key=='BRANCH_PNL')].items[*].branchName", hasItem("Annex")));
-
-    mockMvc
-        .perform(
-            get("/api/v1/finance/ca-pack")
-                .param("from", today().toString())
-                .param("to", today().toString())
-                .param("branchId", annex.getId().toString())
-                .cookie(fx.cookie()))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.scope").value("branch"))
-        .andExpect(jsonPath("$.data.branchId").value(annex.getId().toString()))
-        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("BRANCH_PNL"))));
-
-    Cookie accountant = staffWithPredefined(fx, "accountant", "books@ca-ac02.local");
-    mockMvc
-        .perform(get("/api/v1/finance/ca-pack").param("scope", "tenant").cookie(accountant))
-        .andExpect(status().isForbidden());
-    mockMvc
-        .perform(
-            get("/api/v1/finance/ca-pack")
-                .param("branchId", annex.getId().toString())
-                .cookie(accountant))
-        .andExpect(status().isNotFound());
-    mockMvc
-        .perform(
-            get("/api/v1/finance/ca-pack")
-                .param("from", today().toString())
-                .param("to", today().toString())
-                .cookie(accountant))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.scope").value("branch"))
-        .andExpect(jsonPath("$.data.sections[*].key", not(hasItem("BRANCH_PNL"))));
+            jsonPath("$.data.items[?(@.key=='PURCHASE_SUMMARY')].entitled").value(hasItem(true)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='EXPENSE_SUMMARY')].entitled").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].entitled").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='PROFIT_AND_LOSS')].entitled").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].upgradeHint").value(hasItem(not(""))))
+        .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].items").doesNotExist())
+        .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].totals").doesNotExist());
   }
 
   @Test
-  void ac03_caPackHasCategorizedFinanceNotPersonalMedicalData() throws Exception {
-    Fixture fx = seed("ca-ac03");
-    persistMedicalCustomer(fx.tenantId());
-    Stocked product = stocked(fx, "CA-3", "CA Three");
-    completeCash(fx, createDraft(fx, product, "ca-3"), 1, "ca-3-c");
-    postRent(fx, RENT, today(), "ca-3-rent");
-
-    MvcResult preview =
-        mockMvc
-            .perform(
-                get("/api/v1/finance/ca-pack")
-                    .param("from", today().toString())
-                    .param("to", today().toString())
-                    .cookie(fx.cookie()))
-            .andExpect(status().isOk())
-            .andExpect(jsonPath("$.data.sections[*].key", hasItem("PROFIT_AND_LOSS")))
-            .andExpect(jsonPath("$.data.sections[*].key", hasItem("GSTR1")))
-            .andExpect(jsonPath("$.data.sections[*].key", hasItem("GSTR3B")))
-            .andExpect(jsonPath("$.data.sections[*].key", hasItem("RECEIVABLES")))
-            .andExpect(jsonPath("$.data.sections[*].key", hasItem("PAYABLES")))
-            .andExpect(
-                jsonPath(
-                        "$.data.sections[?(@.key=='PROFIT_AND_LOSS')].totals[?(@.key=='profit')].amountPaise")
-                    .value(hasItem(4200)))
-            .andReturn();
-    String json = preview.getResponse().getContentAsString();
-    assertThat(json).doesNotContain(ALLERGY, PATIENT, RX, DOCTOR, CONDITION);
-
-    MvcResult pdf =
-        mockMvc
-            .perform(
-                get("/api/v1/finance/ca-pack/export")
-                    .param("from", today().toString())
-                    .param("to", today().toString())
-                    .cookie(fx.cookie()))
-            .andExpect(status().isOk())
-            .andExpect(content().contentTypeCompatibleWith(MediaType.APPLICATION_PDF))
-            .andExpect(
-                header()
-                    .string(
-                        "Content-Disposition", org.hamcrest.Matchers.containsString("ca-pack.pdf")))
-            .andReturn();
-    String pdfText =
-        new String(pdf.getResponse().getContentAsByteArray(), StandardCharsets.ISO_8859_1);
-    assertThat(pdfText).contains("Pack for the CA");
-    assertThat(pdfText).contains("Profit & Loss");
-    assertThat(pdfText).contains("GSTR-1");
-    assertThat(pdfText).doesNotContain(ALLERGY, PATIENT, RX, DOCTOR, CONDITION);
-  }
-
-  @Test
-  void ac04_caExportIsAudited() throws Exception {
-    Fixture fx = seed("ca-ac04");
+  void ac02_starterAddsExpenseAndNearExpiryWhileGrowthUnlocksGstAgingAnalyticsAndCustom()
+      throws Exception {
+    Fixture starter = seed("pt-ac02-s", PlanCode.STARTER);
+    postRent(starter, 2_000L, today(), "pt-starter-rent");
     mockMvc
         .perform(
-            get("/api/v1/finance/ca-pack/export")
+            get("/api/v1/finance/reports/EXPENSE_SUMMARY")
                 .param("from", today().toString())
                 .param("to", today().toString())
-                .cookie(fx.cookie()))
+                .cookie(starter.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.key").value("EXPENSE_SUMMARY"));
+    mockMvc
+        .perform(get("/api/v1/compliance/reports/NEAR_EXPIRY").cookie(starter.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.key").value("NEAR_EXPIRY"));
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(starter.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data").doesNotExist());
+    mockMvc
+        .perform(get("/api/v1/finance/receivables").cookie(starter.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data").doesNotExist());
+    mockMvc
+        .perform(get("/api/v1/analytics").cookie(starter.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT));
+    mockMvc
+        .perform(get("/api/v1/reports/custom").cookie(starter.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT));
+
+    Fixture growth = seed("pt-ac02-g", PlanCode.GROWTH);
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(growth.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.key").value("GSTR1"));
+    mockMvc
+        .perform(get("/api/v1/finance/reports/PROFIT_AND_LOSS").cookie(growth.cookie()))
         .andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/finance/receivables").cookie(growth.cookie()))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/finance/payables").cookie(growth.cookie()))
+        .andExpect(status().isOk());
+    mockMvc.perform(get("/api/v1/analytics").cookie(growth.cookie())).andExpect(status().isOk());
+    mockMvc.perform(get("/api/v1/reports/custom").cookie(growth.cookie())).andExpect(status().isOk());
+
+    Fixture pro = seed("pt-ac02-p", PlanCode.PRO);
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR3B").cookie(pro.cookie()))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/compliance/reports/NEAR_EXPIRY").cookie(pro.cookie()))
+        .andExpect(status().isOk());
+  }
+
+  @Test
+  void ac03_deniedReportsReturnPlanLimitWithoutLeakingRowsAndCashierStaysForbidden()
+      throws Exception {
+    Fixture fx = seed("pt-ac03", PlanCode.FREE);
+    Stocked product = stocked(fx, "PT-DENY", "Deny Pack");
+    completeCash(fx, createDraft(fx, product, "pt-deny-d"), 1, "pt-deny-c");
+
+    mockMvc
+        .perform(
+            get("/api/v1/finance/reports/GSTR1")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data").doesNotExist())
+        .andExpect(jsonPath("$.message").value(org.hamcrest.Matchers.containsString("Growth")));
+    mockMvc
+        .perform(
+            get("/api/v1/finance/reports/GSTR1/export")
+                .param("format", "csv")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data").doesNotExist());
     List<AuditEvent> audits =
         auditEventRepository.findByTenantIdAndCreatedAtGreaterThanEqualOrderByCreatedAtDesc(
             fx.tenantId(), Instant.now().minusSeconds(60));
     assertThat(audits.stream().map(AuditEvent::getAction))
-        .contains(FinanceAccessPolicy.CA_EXPORT_ACTION);
-    assertThat(
-            audits.stream()
-                .filter(event -> FinanceAccessPolicy.CA_EXPORT_ACTION.equals(event.getAction())))
-        .isNotEmpty()
-        .allSatisfy(
-            event -> {
-              assertThat(event.getOutcome()).isEqualTo("SUCCESS");
-              assertThat(event.getContextJson()).contains("pdf");
-              assertThat(event.getContextJson()).doesNotContain(ALLERGY);
-            });
+        .doesNotContain(FinanceReportPolicy.ACTION);
+
+    AppUser cashier = persistUser(fx.tenantId(), "till@pt-ac03.local", AppUserRole.pharmacy_staff);
+    UUID salesRole = createRole(fx.cookie(), "Till", "[\"SALES\"]");
+    mockMvc
+        .perform(
+            put("/api/v1/users/" + cashier.getId() + "/roles")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleIds\":[\"" + salesRole + "\"]}"))
+        .andExpect(status().isOk());
+    assignBranch(fx.cookie(), cashier.getId(), fx.branchId());
+    Cookie till = login("till@pt-ac03.local");
+    selectBranch(till, fx.branchId());
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(till))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("FORBIDDEN"))
+        .andExpect(jsonPath("$.data").doesNotExist());
   }
 
   @Test
-  void ac05_cashierUnassignedCrossTenantAndOverBroadRevealNothing() throws Exception {
-    Fixture fx = seed("ca-ac05");
-    mockMvc.perform(get("/api/v1/finance/ca-pack")).andExpect(status().isUnauthorized());
-    mockMvc
-        .perform(get("/api/v1/finance/ca-pack/export").param("format", "csv").cookie(fx.cookie()))
-        .andExpect(status().isBadRequest())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+  void ac04_downgradeKeepsHistoricalSaleButRemovesGatedAccess() throws Exception {
+    Fixture fx = seed("pt-ac04", PlanCode.GROWTH);
+    Stocked product = stocked(fx, "PT-DOWN", "Down Pack");
+    UUID invoiceId = createDraft(fx, product, "pt-down-d");
+    completeCash(fx, invoiceId, 1, "pt-down-c");
+
     mockMvc
         .perform(
-            get("/api/v1/finance/ca-pack")
-                .param("from", "2024-01-01")
-                .param("to", "2026-01-10")
+            get("/api/v1/finance/reports/GSTR1")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items").isArray());
+
+    setPlan(fx.tenantId(), PlanCode.FREE, SubscriptionStatus.ACTIVE);
+
+    mockMvc
+        .perform(get("/api/v1/sales/invoices/" + invoiceId).cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.id").value(invoiceId.toString()));
+    assertThat(salesInvoiceRepository.findById(invoiceId)).isPresent();
+    mockMvc
+        .perform(
+            get("/api/v1/finance/reports/DAY_BOOK")
+                .param("from", today().toString())
+                .param("to", today().toString())
+                .cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items").isArray());
+    mockMvc
+        .perform(
+            get("/api/v1/finance/reports/GSTR1")
+                .param("from", today().toString())
+                .param("to", today().toString())
                 .cookie(fx.cookie()))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value(FinanceReportPolicy.RANGE_UNSUPPORTED));
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT))
+        .andExpect(jsonPath("$.data").doesNotExist());
+  }
 
-    Tenant other = persistTenant("other-ca", "Other Ca");
-    persistPlan(other.getId(), PlanCode.FREE);
-    persistUser(other.getId(), "owner@other-ca.local", AppUserRole.pharmacy_owner);
-    Location otherBranch = persistBranch(other.getId(), "Other", "BR01", true);
-    Cookie otherCookie = login("owner@other-ca.local");
-    selectBranch(otherCookie, otherBranch.getId());
+  @Test
+  void ac05_isolationExpiredPlanLiveEntitlementAndUnknownKeys() throws Exception {
+    Fixture fx = seed("pt-ac05", PlanCode.GROWTH);
+    Fixture other = seed("pt-ac05-b", PlanCode.GROWTH);
+
+    mockMvc.perform(get("/api/v1/finance/reports/GSTR1")).andExpect(status().isUnauthorized());
     mockMvc
         .perform(
-            get("/api/v1/finance/ca-pack")
+            get("/api/v1/finance/reports/GSTR1")
                 .param("branchId", fx.branchId().toString())
-                .cookie(otherCookie))
+                .cookie(other.cookie()))
+        .andExpect(status().isNotFound())
+        .andExpect(jsonPath("$.code").value("NOT_FOUND"))
+        .andExpect(jsonPath("$.data").doesNotExist());
+    mockMvc
+        .perform(get("/api/v1/finance/reports/TDS").cookie(fx.cookie()))
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("NOT_FOUND"));
+
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(fx.cookie()))
+        .andExpect(status().isOk());
+    setPlan(fx.tenantId(), PlanCode.GROWTH, SubscriptionStatus.EXPIRED);
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(fx.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT));
+    mockMvc
+        .perform(get("/api/v1/finance/reports/DAY_BOOK").cookie(fx.cookie()))
+        .andExpect(status().isOk());
+
+    setPlan(fx.tenantId(), PlanCode.GROWTH, SubscriptionStatus.ACTIVE);
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(fx.cookie()))
+        .andExpect(status().isOk());
+    setPlan(fx.tenantId(), PlanCode.FREE, SubscriptionStatus.ACTIVE);
+    mockMvc
+        .perform(get("/api/v1/finance/reports/GSTR1").cookie(fx.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value(ReportAccessPolicy.PLAN_LIMIT));
+
+    mockMvc
+        .perform(get("/api/v1/compliance/reports").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items[?(@.key=='NEAR_EXPIRY')].entitled").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='H1_SALES')].entitled").value(hasItem(true)));
   }
 
   private LocalDate today() {
     return LocalDate.now(IST);
   }
 
-  private void persistMedicalCustomer(UUID tenantId) {
-    Customer customer = new Customer();
-    customer.setId(UUID.randomUUID());
-    customer.setTenantId(tenantId);
-    customer.setName(PATIENT);
-    customer.setPhone("9000000099");
-    customer.setAllergies(ALLERGY);
-    customer.setChronicConditions(CONDITION);
-    customer.setCreatedAt(T0);
-    customer.setUpdatedAt(T0);
-    customerRepository.saveAndFlush(customer);
-  }
-
   private void postRent(Fixture fx, long amount, LocalDate occurredOn, String key)
       throws Exception {
-    postRentOn(fx, fx.branchId(), amount, occurredOn, key);
-  }
-
-  private void postRentOn(Fixture fx, UUID branchId, long amount, LocalDate occurredOn, String key)
-      throws Exception {
     UUID rentId = categoryId(listCategories(fx.cookie()), "RENT");
+    String json =
+        """
+        {
+          "categoryId":"%s",
+          "amountPaise":%d,
+          "occurredOn":"%s",
+          "notes":"rent",
+          "branchId":"%s",
+          "idempotencyKey":"%s"
+        }
+        """
+            .formatted(rentId, amount, occurredOn, fx.branchId(), key);
     mockMvc
         .perform(
             post("/api/v1/finance/expenses")
                 .cookie(fx.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(
-                    """
-                    {
-                      "categoryId":"%s",
-                      "amountPaise":%d,
-                      "occurredOn":"%s",
-                      "notes":"rent",
-                      "branchId":"%s",
-                      "idempotencyKey":"%s"
-                    }
-                    """
-                        .formatted(rentId, amount, occurredOn, branchId, key)))
+                .content(json))
         .andExpect(status().isOk());
   }
 
@@ -493,38 +481,6 @@ class CaPackTest extends AbstractIntegrationTest {
     return new Stocked(productId, batchId);
   }
 
-  private Cookie staffWithPredefined(Fixture fx, String roleCode, String email) throws Exception {
-    AppUser staff = persistUser(fx.tenantId(), email, AppUserRole.pharmacy_staff);
-    UUID roleId = predefinedId(fx.cookie(), roleCode);
-    mockMvc
-        .perform(
-            put("/api/v1/users/" + staff.getId() + "/roles")
-                .cookie(fx.cookie())
-                .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"roleIds\":[\"" + roleId + "\"]}"))
-        .andExpect(status().isOk());
-    assignBranch(fx.cookie(), staff.getId(), fx.branchId());
-    Cookie cookie = login(email);
-    selectBranch(cookie, fx.branchId());
-    return cookie;
-  }
-
-  private UUID predefinedId(Cookie cookie, String code) throws Exception {
-    String body =
-        mockMvc
-            .perform(get("/api/v1/roles").cookie(cookie))
-            .andExpect(status().isOk())
-            .andReturn()
-            .getResponse()
-            .getContentAsString();
-    for (JsonNode role : objectMapper.readTree(body).path("data").path("roles")) {
-      if (code.equals(role.path("code").asText())) {
-        return UUID.fromString(role.path("id").asText());
-      }
-    }
-    throw new AssertionError("missing predefined role " + code);
-  }
-
   private UUID createRole(Cookie owner, String name, String modulesJson) throws Exception {
     String body =
         mockMvc
@@ -560,14 +516,34 @@ class CaPackTest extends AbstractIntegrationTest {
         .andExpect(status().isOk());
   }
 
-  private Fixture seed(String tag) throws Exception {
-    Tenant tenant = persistTenant(tag, "Ca " + tag);
-    persistPlan(tenant.getId(), PlanCode.GROWTH);
+  private Fixture seed(String tag, PlanCode plan) throws Exception {
+    Tenant tenant = persistTenant(tag, "Pt " + tag);
+    persistPlan(tenant.getId(), plan, SubscriptionStatus.ACTIVE);
     persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
     Location branch = persistBranch(tenant.getId(), "Main", "BR01", true);
     Cookie cookie = login("owner@" + tag + ".local");
     selectBranch(cookie, branch.getId());
     return new Fixture(tenant.getId(), branch.getId(), cookie);
+  }
+
+  private void persistPlan(UUID tenantId, PlanCode plan, SubscriptionStatus status) {
+    TenantSubscription sub = new TenantSubscription();
+    sub.setId(UUID.randomUUID());
+    sub.setTenantId(tenantId);
+    sub.setPlanCode(plan);
+    sub.setStatus(status);
+    sub.setStartedAt(T0);
+    sub.setCreatedAt(T0);
+    sub.setUpdatedAt(T0);
+    tenantSubscriptionRepository.save(sub);
+  }
+
+  private void setPlan(UUID tenantId, PlanCode plan, SubscriptionStatus status) {
+    TenantSubscription sub = tenantSubscriptionRepository.findByTenantId(tenantId).orElseThrow();
+    sub.setPlanCode(plan);
+    sub.setStatus(status);
+    sub.setUpdatedAt(Instant.now());
+    tenantSubscriptionRepository.saveAndFlush(sub);
   }
 
   private Location persistBranch(UUID tenantId, String name, String code, boolean defaultBranch) {
@@ -582,6 +558,7 @@ class CaPackTest extends AbstractIntegrationTest {
     branch.setPincode("560001");
     branch.setContactPhone("9876543210");
     branch.setDrugLicenseNumber("DL-" + code);
+    branch.setGstin("29ABCDE1234F1Z5");
     Map<String, Object> hours = new LinkedHashMap<>();
     Map<String, Object> mon = new LinkedHashMap<>();
     mon.put("open", "09:00");
@@ -604,18 +581,6 @@ class CaPackTest extends AbstractIntegrationTest {
     branch.setCreatedAt(T0);
     branch.setUpdatedAt(T0);
     return locationRepository.saveAndFlush(branch);
-  }
-
-  private void persistPlan(UUID tenantId, PlanCode plan) {
-    TenantSubscription sub = new TenantSubscription();
-    sub.setId(UUID.randomUUID());
-    sub.setTenantId(tenantId);
-    sub.setPlanCode(plan);
-    sub.setStatus(SubscriptionStatus.ACTIVE);
-    sub.setStartedAt(T0);
-    sub.setCreatedAt(T0);
-    sub.setUpdatedAt(T0);
-    tenantSubscriptionRepository.save(sub);
   }
 
   private Tenant persistTenant(String slug, String name) {

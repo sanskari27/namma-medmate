@@ -15,6 +15,16 @@ export const emptyFilters = (): FilterState => ({
   batchNumber: '',
 });
 
+export function bookEntitled(book: { entitled?: boolean } | null | undefined): boolean {
+  return book?.entitled !== false;
+}
+
+export function firstEntitledKey(
+  books: Array<{ key: string; entitled?: boolean }>,
+): string | null {
+  return books.find((book) => bookEntitled(book))?.key ?? books[0]?.key ?? null;
+}
+
 export function hasRegisterAccess(modules: string[] | undefined): boolean {
   return modules?.includes('COMPLIANCE') === true;
 }
@@ -108,7 +118,7 @@ export function statusIcon(status: PageStatus) {
 }
 
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
+  if (error.code === 'PLAN_LIMIT' || error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
   if (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'CONFLICT') {
@@ -118,4 +128,14 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
     return 'validation';
   }
   return 'failure';
+}
+
+export function apiStatusHint(code: string | null): string | null {
+  if (code === 'PLAN_LIMIT') {
+    return 'Near-expiry is on Starter. Open the plan to turn it on.';
+  }
+  if (code === 'STALE_STATE') {
+    return 'This book changed on another till. Reload, then take the sheet again.';
+  }
+  return null;
 }

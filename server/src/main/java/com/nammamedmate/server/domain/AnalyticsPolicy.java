@@ -33,9 +33,6 @@ public final class AnalyticsPolicy {
   public static final String FREQ_FOUR_PLUS = "VISITS_4_PLUS";
   public static final String SCOPE_BRANCH = "branch";
   public static final String SCOPE_TENANT = "tenant";
-  private static final String GROWTH_MESSAGE =
-      "Growth or Pro is required to compare weeks and open trend charts.";
-
   private AnalyticsPolicy() {}
 
   public record Window(LocalDate from, LocalDate to, LocalDate priorFrom, LocalDate priorTo) {
@@ -134,9 +131,7 @@ public final class AnalyticsPolicy {
   }
 
   public static void assertEntitled(PlanCode plan) {
-    if (plan != PlanCode.GROWTH && plan != PlanCode.PRO) {
-      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT, GROWTH_MESSAGE);
-    }
+    ReportAccessPolicy.assertEntitled(plan, ReportCapability.ANALYTICS);
   }
 
   public static void requireAccess(AppUserRole role, Set<ModuleCode> modules) {

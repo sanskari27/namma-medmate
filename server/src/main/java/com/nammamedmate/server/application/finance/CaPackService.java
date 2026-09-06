@@ -2,10 +2,14 @@ package com.nammamedmate.server.application.finance;
 
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.FinanceAccessPolicy;
 import com.nammamedmate.server.domain.FinanceReportKey;
 import com.nammamedmate.server.domain.FinanceReportPolicy;
+import com.nammamedmate.server.domain.PlanCode;
+import com.nammamedmate.server.domain.ReportAccessPolicy;
+import com.nammamedmate.server.domain.ReportCapability;
 import com.nammamedmate.server.infrastructure.pdf.CaPackPdfRenderer;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import java.time.Instant;
@@ -32,16 +36,19 @@ public class CaPackService {
 
   private final FinanceReportService financeReportService;
   private final AgingService agingService;
+  private final SubscriptionService subscriptionService;
   private final AuditService auditService;
   private final CaPackPdfRenderer pdfRenderer;
 
   public CaPackService(
       FinanceReportService financeReportService,
       AgingService agingService,
+      SubscriptionService subscriptionService,
       AuditService auditService,
       CaPackPdfRenderer pdfRenderer) {
     this.financeReportService = financeReportService;
     this.agingService = agingService;
+    this.subscriptionService = subscriptionService;
     this.auditService = auditService;
     this.pdfRenderer = pdfRenderer;
   }
@@ -51,7 +58,11 @@ public class CaPackService {
       AuthPrincipal principal, LocalDate from, LocalDate to, String branchId, String scope) {
     List<CaPackSection> sections = new ArrayList<>();
     FinanceReportTableView first = null;
+    PlanCode plan = subscriptionService.resolveReportPlan(principal.tenantId());
     for (FinanceReportKey key : CORE_KEYS) {
+      if (!ReportAccessPolicy.entitled(plan, ReportAccessPolicy.capability(key))) {
+        continue;
+      }
       FinanceReportTableView table =
           financeReportService.table(principal, key.name(), from, to, branchId, scope);
       if (first == null) {
@@ -60,21 +71,27 @@ public class CaPackService {
       sections.add(fromTable(table));
     }
     boolean tenantScope = "tenant".equalsIgnoreCase(scope == null ? "" : scope.trim());
-    if (principal.role() == AppUserRole.pharmacy_owner && tenantScope) {
+    if (principal.role() == AppUserRole.pharmacy_owner
+        && tenantScope
+        && ReportAccessPolicy.entitled(plan, ReportCapability.BRANCH_PNL)) {
       sections.add(
           fromTable(
               financeReportService.table(
                   principal, FinanceReportKey.BRANCH_PNL.name(), from, to, branchId, scope)));
     }
     LocalDate asOf = first == null ? to : first.to();
-    sections.add(
-        fromAging(
-            "RECEIVABLES",
-            "Khata dues",
-            agingService.receivables(principal, asOf, branchId, scope)));
-    sections.add(
-        fromAging(
-            "PAYABLES", "Stockist dues", agingService.payables(principal, asOf, branchId, scope)));
+    if (ReportAccessPolicy.entitled(plan, ReportCapability.AGING)) {
+      sections.add(
+          fromAging(
+              "RECEIVABLES",
+              "Khata dues",
+              agingService.receivables(principal, asOf, branchId, scope)));
+      sections.add(
+          fromAging(
+              "PAYABLES",
+              "Stockist dues",
+              agingService.payables(principal, asOf, branchId, scope)));
+    }
     Instant generatedAt = first == null ? Instant.now() : first.generatedAt();
     return new CaPackView(
         first == null ? from : first.from(),

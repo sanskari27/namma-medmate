@@ -218,4 +218,35 @@ describe('AgingScreen', () => {
     );
     expect(screen.getByRole('columnheader', { name: 'All outlets' })).toBeInTheDocument();
   });
+
+  it('denied PLAN_LIMIT: hides buckets and parties and links to the plan', async () => {
+    receivablesMock.mockRejectedValue(
+      new ApiError(
+        'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+        422,
+        'PLAN_LIMIT',
+      ),
+    );
+    payablesMock.mockRejectedValue(
+      new ApiError(
+        'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+        422,
+        'PLAN_LIMIT',
+      ),
+    );
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Khata and stockist aging is on Growth. Open the plan to turn it on.',
+    );
+    expect(screen.getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+      'href',
+      '/subscription',
+    );
+    expect(screen.getByText(/Growth unlocks these aged books/)).toBeInTheDocument();
+    expect(screen.queryByText('Khata Buyer')).not.toBeInTheDocument();
+    expect(screen.queryByText('Acme Stockist')).not.toBeInTheDocument();
+    expect(screen.queryByText('0–30 days')).not.toBeInTheDocument();
+    expect(screen.queryByText('No khata remaining as of this date.')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('As of')).not.toBeInTheDocument();
+  });
 });

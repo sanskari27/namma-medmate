@@ -7,6 +7,9 @@ export type FinanceReportCatalogItem = {
   key: string;
   title: string;
   filters: string[];
+  entitled?: boolean;
+  minPlan?: string;
+  upgradeHint?: string | null;
 };
 
 export type FinanceReportTotal = {
