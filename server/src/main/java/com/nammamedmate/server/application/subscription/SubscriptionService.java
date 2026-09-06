@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.subscription;
 
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.CashfreeBillingPolicy;
 import com.nammamedmate.server.domain.PlanCatalogue;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PlanLimits;
@@ -88,6 +89,7 @@ public class SubscriptionService {
     if (targetPlan == null) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
+    CashfreeBillingPolicy.requirePaymentForPaidUpgrade(targetPlan);
     String key = requireIdempotencyKey(idempotencyKey);
     var existing = upgradeIntentRepository.findByIdempotencyKey(key);
     if (existing.isPresent()) {
@@ -127,44 +129,7 @@ public class SubscriptionService {
   @Transactional
   public SubscriptionCurrentView paymentCallback(
       AuthPrincipal principal, UUID intentId, String idempotencyKey) {
-    UUID tenantId = requireOwner(principal);
-    String key = requireIdempotencyKey(idempotencyKey);
-    SubscriptionUpgradeIntent intent =
-        upgradeIntentRepository
-            .findById(intentId)
-            .filter(row -> row.getTenantId().equals(tenantId))
-            .orElseThrow(
-                () ->
-                    new ApiException(
-                        HttpStatus.NOT_FOUND, "NOT_FOUND", "Upgrade intent not found."));
-
-    if (intent.getStatus() == UpgradeIntentStatus.APPLIED) {
-      return toCurrentView(requireSubscription(tenantId), tenantId);
-    }
-
-    var priorKey = upgradeIntentRepository.findByIdempotencyKey(key);
-    if (priorKey.isPresent() && !priorKey.get().getId().equals(intent.getId())) {
-      throw new ApiException(
-          HttpStatus.CONFLICT, "IDEMPOTENCY_CONFLICT", "Idempotency key already used.");
-    }
-
-    TenantSubscription subscription = requireSubscription(tenantId);
-    assertUsageFits(tenantId, intent.getTargetPlan(), subscription.getBranchLimitOverride());
-
-    Instant now = Instant.now(clock);
-    intent.setStatus(UpgradeIntentStatus.APPLIED);
-    intent.setAppliedAt(now);
-    intent.setUpdatedAt(now);
-    if (intent.getIdempotencyKey() == null || intent.getIdempotencyKey().isBlank()) {
-      intent.setIdempotencyKey(key);
-    }
-    upgradeIntentRepository.save(intent);
-
-    subscription.setPlanCode(intent.getTargetPlan());
-    subscription.setStatus(SubscriptionStatus.ACTIVE);
-    subscription.setUpdatedAt(now);
-    tenantSubscriptionRepository.save(subscription);
-    return toCurrentView(subscription, tenantId);
+    throw CashfreeBillingPolicy.notFound();
   }
 
   @Transactional(readOnly = true)

@@ -45,3 +45,33 @@ export async function upgradePlan(
   });
   return data;
 }
+
+export interface CashfreePayment {
+  id: string;
+  tenantId: string;
+  planCode: string;
+  amountPaise: number;
+  status: string;
+  checkoutUrl: string | null;
+  providerOrderId: string;
+  errorCode: string | null;
+  createdAt: string;
+}
+
+export async function startCashfreeCheckout(
+  planCode: string,
+  idempotencyKey: string,
+): Promise<CashfreePayment> {
+  const { data } = await apiClient.post<CashfreePayment>(API.SUBSCRIPTIONS_CASHFREE, {
+    planCode,
+    idempotencyKey,
+  });
+  return data;
+}
+
+export async function getCashfreePayment(orderId: string): Promise<CashfreePayment> {
+  const { data } = await apiClient.get<CashfreePayment>(API.SUBSCRIPTIONS_CASHFREE, {
+    params: { orderId },
+  });
+  return data;
+}

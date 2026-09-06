@@ -279,9 +279,9 @@ class LoyaltyTest extends AbstractIntegrationTest {
             post("/api/v1/subscriptions/upgrade")
                 .cookie(fx.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"planCode\":\"STARTER\",\"idempotencyKey\":\"loy-down-plan\"}"))
+                .content("{\"planCode\":\"FREE\",\"idempotencyKey\":\"loy-down-plan\"}"))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"));
+        .andExpect(jsonPath("$.data.planCode").value("FREE"));
 
     mockMvc
         .perform(get("/api/v1/customers/" + customerId + "/loyalty").cookie(fx.cookie()))

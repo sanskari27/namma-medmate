@@ -18,12 +18,11 @@ import com.nammamedmate.server.domain.KycSubmissionStatus;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.SubscriptionStatus;
-import com.nammamedmate.server.domain.SubscriptionUpgradeIntent;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.TenantSubscription;
-import com.nammamedmate.server.domain.UpgradeIntentStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
+import com.nammamedmate.server.infrastructure.cashfree.CashfreePgAdapter;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.KycDocumentRepository;
 import com.nammamedmate.server.persistence.KycSubmissionRepository;
@@ -47,6 +46,7 @@ import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.mock.mockito.MockBean;
 import org.springframework.http.MediaType;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.test.web.servlet.MockMvc;
@@ -56,6 +56,8 @@ class SubscriptionTest extends AbstractIntegrationTest {
 
   private static final String PASSWORD = "counter-pass-1";
   private static final Instant T0 = Instant.parse("2026-09-03T10:00:00Z");
+
+  @MockBean private CashfreePgAdapter cashfreePgAdapter;
 
   @Autowired private MockMvc mockMvc;
   @Autowired private TenantRepository tenantRepository;
@@ -186,24 +188,12 @@ class SubscriptionTest extends AbstractIntegrationTest {
                 .cookie(cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(upgradeBody("STARTER", key)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"))
-        .andExpect(jsonPath("$.data.status").value("ACTIVE"));
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("PAYMENT_REQUIRED"));
 
-    mockMvc
-        .perform(
-            post("/api/v1/subscriptions/upgrade")
-                .cookie(cookie)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(upgradeBody("STARTER", key)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"));
-
-    assertThat(subscriptionUpgradeIntentRepository.findByIdempotencyKey(key)).isPresent();
-    assertThat(subscriptionUpgradeIntentRepository.count()).isEqualTo(1);
     assertThat(
             tenantSubscriptionRepository.findByTenantId(tenant.getId()).orElseThrow().getPlanCode())
-        .isEqualTo(PlanCode.STARTER);
+        .isEqualTo(PlanCode.FREE);
   }
 
   @Test
@@ -289,23 +279,9 @@ class SubscriptionTest extends AbstractIntegrationTest {
     persistPlan(tenant.getId(), PlanCode.FREE);
     persistOwner(tenant.getId(), "owner@pay.local");
     Cookie cookie = login("owner@pay.local");
-    String upgradeKey = UUID.randomUUID().toString();
-
-    mockMvc
-        .perform(
-            post("/api/v1/subscriptions/upgrade")
-                .cookie(cookie)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(upgradeBody("STARTER", upgradeKey)))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"));
-
-    SubscriptionUpgradeIntent intent =
-        subscriptionUpgradeIntentRepository.findByIdempotencyKey(upgradeKey).orElseThrow();
-    assertThat(intent.getStatus()).isEqualTo(UpgradeIntentStatus.APPLIED);
     String callbackBody =
         "{\"intentId\":\""
-            + intent.getId()
+            + UUID.randomUUID()
             + "\",\"idempotencyKey\":\""
             + UUID.randomUUID()
             + "\"}";
@@ -316,25 +292,18 @@ class SubscriptionTest extends AbstractIntegrationTest {
                 .cookie(cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(callbackBody))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"));
-
+        .andExpect(status().isNotFound());
     mockMvc
         .perform(
             post("/api/v1/subscriptions/payment-callback")
                 .cookie(cookie)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(callbackBody))
-        .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.planCode").value("STARTER"));
+        .andExpect(status().isNotFound());
 
-    assertThat(subscriptionUpgradeIntentRepository.count()).isEqualTo(1);
     assertThat(
             tenantSubscriptionRepository.findByTenantId(tenant.getId()).orElseThrow().getPlanCode())
-        .isEqualTo(PlanCode.STARTER);
-    assertThat(
-            subscriptionUpgradeIntentRepository.findById(intent.getId()).orElseThrow().getStatus())
-        .isEqualTo(UpgradeIntentStatus.APPLIED);
+        .isEqualTo(PlanCode.FREE);
   }
 
   @Test
@@ -346,18 +315,6 @@ class SubscriptionTest extends AbstractIntegrationTest {
     persistPlan(tenantB.getId(), PlanCode.FREE);
     persistOwner(tenantB.getId(), "owner@pay-b.local");
 
-    Cookie cookieA = login("owner@pay-a.local");
-    String upgradeKey = UUID.randomUUID().toString();
-    mockMvc
-        .perform(
-            post("/api/v1/subscriptions/upgrade")
-                .cookie(cookieA)
-                .contentType(MediaType.APPLICATION_JSON)
-                .content(upgradeBody("STARTER", upgradeKey)))
-        .andExpect(status().isOk());
-    SubscriptionUpgradeIntent intent =
-        subscriptionUpgradeIntentRepository.findByIdempotencyKey(upgradeKey).orElseThrow();
-
     Cookie cookieB = login("owner@pay-b.local");
     String denied =
         mockMvc
@@ -367,7 +324,7 @@ class SubscriptionTest extends AbstractIntegrationTest {
                     .contentType(MediaType.APPLICATION_JSON)
                     .content(
                         "{\"intentId\":\""
-                            + intent.getId()
+                            + UUID.randomUUID()
                             + "\",\"idempotencyKey\":\""
                             + UUID.randomUUID()
                             + "\"}"))
@@ -381,14 +338,13 @@ class SubscriptionTest extends AbstractIntegrationTest {
                 .findByTenantId(tenantA.getId())
                 .orElseThrow()
                 .getPlanCode())
-        .isEqualTo(PlanCode.STARTER);
+        .isEqualTo(PlanCode.FREE);
     assertThat(
             tenantSubscriptionRepository
                 .findByTenantId(tenantB.getId())
                 .orElseThrow()
                 .getPlanCode())
         .isEqualTo(PlanCode.FREE);
-    assertThat(subscriptionUpgradeIntentRepository.count()).isEqualTo(1);
   }
 
   @Test

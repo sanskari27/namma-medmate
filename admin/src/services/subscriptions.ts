@@ -40,6 +40,18 @@ export interface OverridePayload {
   reason: string;
 }
 
+export interface AdminCashfreePayment {
+  id: string;
+  tenantId: string;
+  tenantName: string;
+  planCode: string;
+  amountPaise: number;
+  status: string;
+  errorCode: string | null;
+  exception: boolean;
+  createdAt: string;
+}
+
 export async function listSubscriptions(): Promise<AdminSubscription[]> {
   const { data } = await apiClient.get<{ items: AdminSubscription[] }>(API.ADMIN_SUBSCRIPTIONS);
   return data.items;
@@ -59,6 +71,13 @@ export async function overrideSubscription(
 export async function listOverrideHistory(tenantId: string): Promise<OverrideEvent[]> {
   const { data } = await apiClient.get<{ items: OverrideEvent[] }>(
     `${API.ADMIN_SUBSCRIPTIONS}/${tenantId}/overrides`,
+  );
+  return data.items;
+}
+
+export async function listCashfreePayments(): Promise<AdminCashfreePayment[]> {
+  const { data } = await apiClient.get<{ items: AdminCashfreePayment[] }>(
+    API.ADMIN_SUBSCRIPTION_PAYMENTS,
   );
   return data.items;
 }

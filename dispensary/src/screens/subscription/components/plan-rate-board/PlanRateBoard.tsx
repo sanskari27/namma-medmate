@@ -147,10 +147,20 @@ export function PlanRateBoard({ plans, current, pendingPlan, onSwitch }: PlanRat
                           type="button"
                           size="sm"
                           disabled={pendingPlan !== null}
-                          aria-label={`Switch this pharmacy to ${planLabel(plan.planCode)}`}
+                          aria-label={
+                            plan.pricePaiseMonthly > 0
+                              ? `Pay this pharmacy’s plan for ${planLabel(plan.planCode)}`
+                              : `Switch this pharmacy to ${planLabel(plan.planCode)}`
+                          }
                           onClick={() => onSwitch(plan.planCode)}
                         >
-                          {pendingPlan === plan.planCode ? 'Switching…' : 'Switch plan'}
+                          {pendingPlan === plan.planCode
+                            ? plan.pricePaiseMonthly > 0
+                              ? 'Opening checkout…'
+                              : 'Switching…'
+                            : plan.pricePaiseMonthly > 0
+                              ? 'Pay this plan'
+                              : 'Switch plan'}
                         </Button>
                       </>
                     )}

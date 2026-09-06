@@ -1,0 +1,1 @@
+export { TenantPlanTable } from './TenantPlanTable';
