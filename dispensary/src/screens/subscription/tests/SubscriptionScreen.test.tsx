@@ -163,9 +163,7 @@ describe('pharmacy plan', () => {
     expect(
       await screen.findByRole('heading', { name: 'Plan for this pharmacy' }),
     ).toBeInTheDocument();
-    await user.click(
-      screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }));
     await waitFor(() => expect(checkoutMock).toHaveBeenCalled());
     expect(upgradeMock).not.toHaveBeenCalled();
     expect(assign).toHaveBeenCalledWith('https://sandbox.cashfree.com/checkout/1');
@@ -210,9 +208,7 @@ describe('pharmacy plan', () => {
     checkoutMock.mockRejectedValue(new ApiError('bad', 400, 'VALIDATION_ERROR'));
     renderPage();
     await screen.findByRole('heading', { name: 'Plan for this pharmacy' });
-    await user.click(
-      screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Choose a higher plan before changing this pharmacy’s plan.',
     );
@@ -231,9 +227,7 @@ describe('pharmacy plan', () => {
     );
     renderPage();
     await screen.findByRole('heading', { name: 'Plan for this pharmacy' });
-    await user.click(
-      screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }),
-    );
+    await user.click(screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Checkout is not available right now. Try again in a few minutes.',
     );

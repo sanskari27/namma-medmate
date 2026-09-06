@@ -6,7 +6,7 @@ import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@atoms';
 import DashboardLayout from '@/layouts/DashboardLayout';
-import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
+import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, notificationsReducer } from '@/store';
 
 vi.mock('@/services/auth', async () => {
@@ -99,10 +99,8 @@ function renderDashboard(
               <Route element={<DashboardLayout />}>
                 <Route path={ROUTES.DASHBOARD} element={<div>Counter overview</div>} />
                 <Route path={ROUTES.SALES} element={<div>Sales page</div>} />
+                <Route path={ROUTES.ACCOUNT} element={<div>Account page</div>} />
                 <Route path={ROUTES.DISTRIBUTORS} element={<div>Distributors page</div>} />
-                {STUB_PAGES.map((page) => (
-                  <Route key={page.path} path={page.path} element={<div>{page.title} page</div>} />
-                ))}
                 <Route path={ROUTES.LOGIN} element={<div>Pharmacy sign in</div>} />
               </Route>
             </Routes>
@@ -227,7 +225,6 @@ describe('dispensary counter rail', () => {
       'aria-current',
       'page',
     );
-    expect(within(nav).getByRole('link', { name: 'Orders, 1 held bill' })).toBeInTheDocument();
     expect(within(nav).getByRole('link', { name: 'Prescriptions' })).toBeInTheDocument();
 
     await user.click(within(nav).getByRole('link', { name: 'Sales' }));
@@ -264,7 +261,7 @@ describe('dispensary counter rail', () => {
     await user.click(screen.getByRole('button', { name: 'Close' }));
     await user.click(screen.getByRole('button', { name: /account for chemist/i }));
     await user.click(screen.getByRole('menuitem', { name: 'Account settings' }));
-    expect(screen.getByText('Settings page')).toBeInTheDocument();
+    expect(screen.getByText('Account page')).toBeInTheDocument();
   });
 
   it('signs the chemist out from the account footer', async () => {

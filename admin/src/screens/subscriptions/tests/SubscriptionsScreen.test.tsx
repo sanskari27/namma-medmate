@@ -204,33 +204,43 @@ describe('HQ pharmacy-to-platform charges', () => {
   it('loading: waits for pharmacy-to-platform charges', async () => {
     paymentsMock.mockReturnValue(new Promise(() => undefined));
     renderPage('admin_super');
-    expect(await screen.findByRole('heading', { name: 'Pharmacy-to-platform charges' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Pharmacy-to-platform charges' }),
+    ).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent('Loading pharmacy-to-platform charges…');
   });
 
   it('empty: no checkout exceptions on the ledger', async () => {
     paymentsMock.mockResolvedValue([]);
     renderPage('admin_super');
-    expect(await screen.findByRole('heading', { name: 'Pharmacy-to-platform charges' })).toBeInTheDocument();
+    expect(
+      await screen.findByRole('heading', { name: 'Pharmacy-to-platform charges' }),
+    ).toBeInTheDocument();
     expect(screen.getByText('No checkout exceptions on this ledger.')).toBeInTheDocument();
   });
 
   it('denied: verification desk cannot inspect charges', () => {
     renderPage('admin_verification');
-    expect(screen.queryByRole('heading', { name: 'Pharmacy-to-platform charges' })).not.toBeInTheDocument();
+    expect(
+      screen.queryByRole('heading', { name: 'Pharmacy-to-platform charges' }),
+    ).not.toBeInTheDocument();
     expect(paymentsMock).not.toHaveBeenCalled();
   });
 
   it('failure: cannot load pharmacy-to-platform charges', async () => {
     paymentsMock.mockRejectedValue(new ApiError('down', 500, 'DOWN'));
     renderPage('admin_super');
-    expect(await screen.findByText('Could not load pharmacy-to-platform charges. Try again.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('Could not load pharmacy-to-platform charges. Try again.'),
+    ).toBeInTheDocument();
   });
 
   it('validation: charge record is not usable', async () => {
     paymentsMock.mockRejectedValue(new ApiError('bad', 422, 'VALIDATION_ERROR'));
     renderPage('admin_super');
-    expect(await screen.findByText('That charge record is not usable. Refresh the ledger.')).toBeInTheDocument();
+    expect(
+      await screen.findByText('That charge record is not usable. Refresh the ledger.'),
+    ).toBeInTheDocument();
   });
 
   it('conflict: checkout ledger changed', async () => {

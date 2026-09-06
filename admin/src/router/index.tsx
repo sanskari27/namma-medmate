@@ -19,7 +19,6 @@ import LicenceExpiryScreen from '@/screens/licence-expiry/LicenceExpiryScreen';
 import WhatsappProviderScreen from '@/screens/whatsapp-provider/WhatsappProviderScreen';
 import PharmaciesScreen from '@/screens/pharmacies/PharmaciesScreen';
 import SubscriptionsScreen from '@/screens/subscriptions/SubscriptionsScreen';
-import StubScreen from '@/screens/stub/StubScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
@@ -43,7 +42,6 @@ const router = createBrowserRouter([
           { path: ROUTES.LICENCE_EXPIRY, element: <LicenceExpiryScreen /> },
           { path: ROUTES.WHATSAPP_TEMPLATES, element: <WhatsappProviderScreen /> },
           { path: ROUTES.SUBSCRIPTIONS, element: <SubscriptionsScreen /> },
-          { path: ROUTES.LEADS, element: <StubScreen title="Lead pipeline" /> },
           { path: ROUTES.SUPPORT, element: <SupportSessionScreen /> },
           { path: ROUTES.OPERATOR_PASSWORD, element: <OperatorPasswordScreen /> },
           { path: ROUTES.OPERATORS, element: <OperatorsScreen /> },
@@ -52,7 +50,6 @@ const router = createBrowserRouter([
           { path: ROUTES.WORKFLOWS, element: <WorkflowDesksScreen /> },
           { path: ROUTES.SIGN_OFFS, element: <HqSignOffsScreen /> },
           { path: ROUTES.ACTIVITY, element: <PlatformActivityScreen /> },
-          { path: ROUTES.SETTINGS, element: <StubScreen title="Platform settings" /> },
         ],
       },
     ],

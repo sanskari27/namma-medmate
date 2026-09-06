@@ -6,11 +6,7 @@ export type CampaignsStatusBannerProps = {
   hint?: string | null;
 };
 
-export function CampaignsStatusBanner({
-  status,
-  statusId,
-  hint,
-}: CampaignsStatusBannerProps) {
+export function CampaignsStatusBanner({ status, statusId, hint }: CampaignsStatusBannerProps) {
   const text = statusCopy(status, hint);
   if (!text) {
     return <div id={statusId} className="min-h-5" />;

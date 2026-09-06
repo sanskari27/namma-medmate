@@ -5,20 +5,15 @@ export const ROUTES = {
   REGISTER: '/register',
   VERIFY_EMAIL: '/verify-email',
   DASHBOARD: '/',
-  ORDERS: '/orders',
   SALES: '/pos',
   RETURNS: '/returns',
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
   CAMPAIGNS: '/campaigns',
   CREDIT: '/credit',
-  CRM: '/crm',
   INVENTORY: '/inventory',
-  RACKS: '/racks',
   PURCHASES: '/purchases',
-  REORDER: '/reorder',
   DISTRIBUTORS: '/distributors',
-  ONLINE_STORE: '/online-store',
   OFFERS: '/offers',
   KIOSK: '/kiosk',
   BOOKS: '/books',
@@ -33,18 +28,13 @@ export const ROUTES = {
   WHATSAPP_SENDS: '/whatsapp-sends',
   REGISTERS: '/registers',
   CONTROLLED_REGISTER: '/controlled-register',
-  EMPLOYEES: '/employees',
   USERS: '/users',
   ROLES: '/roles',
   APPROVALS: '/approvals',
   APPROVALS_PENDING: '/approvals/pending',
   ACTIVITY: '/activity',
   BRANCHES: '/branches',
-  INVOICE_SETTINGS: '/invoice-settings',
   SUBSCRIPTION: '/subscription',
-  REFER: '/refer',
-  SETTINGS: '/settings',
-  HELP: '/help',
 } as const;
 
 export type AppRoute = (typeof ROUTES)[keyof typeof ROUTES];
@@ -73,19 +63,12 @@ export const NAV_SECTIONS = [
     id: 'billing',
     label: 'Billing / POS',
     items: [
-      {
-        label: 'Orders',
-        path: ROUTES.ORDERS,
-        hint: 'Held bills at this counter',
-        badge: { count: 1, label: '1 held bill' },
-      },
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
       { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },
       { label: 'Credit / Khata', path: ROUTES.CREDIT, hint: 'Khata balances' },
-      { label: 'CRM / Patients', path: ROUTES.CRM, hint: 'Patient records at this pharmacy' },
     ],
   },
   {
@@ -93,9 +76,7 @@ export const NAV_SECTIONS = [
     label: 'Catalogue',
     items: [
       { label: 'Inventory', path: ROUTES.INVENTORY, hint: 'Stock on this floor' },
-      { label: 'Rack & Locations', path: ROUTES.RACKS, hint: 'Where the pack sits' },
       { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Outlet purchase orders' },
-      { label: 'Reorder / Distributor', path: ROUTES.REORDER, hint: 'What to indent next' },
       { label: 'Distributors', path: ROUTES.DISTRIBUTORS, hint: 'Supplier book' },
       { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },
       { label: 'Self-Order Kiosk', path: ROUTES.KIOSK, hint: 'Kiosk at this branch' },
@@ -143,7 +124,6 @@ export const NAV_SECTIONS = [
         path: ROUTES.CONTROLLED_REGISTER,
         hint: 'Who this outlet sold Schedule stock to',
       },
-      { label: 'Employees', path: ROUTES.EMPLOYEES, hint: 'Staff on this floor' },
       { label: 'Staff accounts', path: ROUTES.USERS, hint: 'Who can sign in at this pharmacy' },
       { label: 'Floor roles', path: ROUTES.ROLES, hint: 'What each staff login can access' },
       {
@@ -158,11 +138,7 @@ export const NAV_SECTIONS = [
       },
       { label: 'Floor activity', path: ROUTES.ACTIVITY, hint: 'Who signed in and what they did' },
       { label: 'Outlets', path: ROUTES.BRANCHES, hint: 'Branches at this pharmacy' },
-      { label: 'Invoice Settings', path: ROUTES.INVOICE_SETTINGS, hint: 'Bill header and GSTIN' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
-      { label: 'Refer & Earn', path: ROUTES.REFER, hint: 'Refer another chemist' },
-      { label: 'Settings', path: ROUTES.SETTINGS, hint: 'Counter preferences' },
-      { label: 'Help & Support', path: ROUTES.HELP, hint: 'Get help at this counter' },
     ],
   },
 ] as const satisfies readonly NavSection[];
@@ -171,43 +147,5 @@ export const MODULE_NAV_ITEMS: readonly NavItem[] = [
   DASHBOARD_NAV,
   ...NAV_SECTIONS.flatMap((section) => [...section.items]),
 ];
-
-export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
-  (item) =>
-    item.path !== ROUTES.DASHBOARD &&
-    item.path !== ROUTES.USERS &&
-    item.path !== ROUTES.ROLES &&
-    item.path !== ROUTES.APPROVALS &&
-    item.path !== ROUTES.APPROVALS_PENDING &&
-    item.path !== ROUTES.ACTIVITY &&
-    item.path !== ROUTES.ACCOUNT &&
-    item.path !== ROUTES.LICENSES &&
-    item.path !== ROUTES.WHATSAPP_TEMPLATES &&
-    item.path !== ROUTES.WHATSAPP_SENDS &&
-    item.path !== ROUTES.REGISTERS &&
-    item.path !== ROUTES.CONTROLLED_REGISTER &&
-    item.path !== ROUTES.BRANCHES &&
-    item.path !== ROUTES.SUBSCRIPTION &&
-    item.path !== ROUTES.KIOSK &&
-    item.path !== ROUTES.CUSTOMERS &&
-    item.path !== ROUTES.CAMPAIGNS &&
-    item.path !== ROUTES.CREDIT &&
-    item.path !== ROUTES.INVENTORY &&
-    item.path !== ROUTES.SALES &&
-    item.path !== ROUTES.RETURNS &&
-    item.path !== ROUTES.PRESCRIPTIONS &&
-    item.path !== ROUTES.DISTRIBUTORS &&
-    item.path !== ROUTES.PURCHASES &&
-    item.path !== ROUTES.OFFERS &&
-    item.path !== ROUTES.EXPENSES &&
-    item.path !== ROUTES.AGING &&
-    item.path !== ROUTES.BOOKS &&
-    item.path !== ROUTES.ACCOUNTANT &&
-    item.path !== ROUTES.REPORTS &&
-    item.path !== ROUTES.CUSTOM_REPORTS,
-).map((item) => ({
-  path: item.path,
-  title: item.label,
-}));
 
 export const NAV_ITEMS = MODULE_NAV_ITEMS.map(({ label, path }) => ({ label, path }));

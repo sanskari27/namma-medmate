@@ -9,7 +9,13 @@ import {
   type OverrideEvent,
 } from '@/services/subscriptions';
 import { FormEvent, useEffect, useId, useState } from 'react';
-import { dialogCopy, formatIstDate, formatIstStamp, planLabel, type DialogStatus } from '../../SubscriptionsScreen.utils';
+import {
+  dialogCopy,
+  formatIstDate,
+  formatIstStamp,
+  planLabel,
+  type DialogStatus,
+} from '../../SubscriptionsScreen.utils';
 
 export function OverrideFileDialog({
   open,
@@ -114,8 +120,8 @@ export function OverrideFileDialog({
             <div>
               <dt>Current occupancy</dt>
               <dd className="text-ink">
-                {selected.branchesUsed}/{selected.effectiveBranchLimit} outlets, {selected.usersUsed}/
-                {selected.maxUsers ?? 'open'} users
+                {selected.branchesUsed}/{selected.effectiveBranchLimit} outlets,{' '}
+                {selected.usersUsed}/{selected.maxUsers ?? 'open'} users
               </dd>
             </div>
             <div>

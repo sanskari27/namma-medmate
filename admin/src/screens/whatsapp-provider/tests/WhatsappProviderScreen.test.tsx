@@ -88,7 +88,9 @@ describe('HQ WABA templates', () => {
     expect(screen.getByRole('status')).toHaveTextContent(
       'No approved WhatsApp structures on the platform WABA.',
     );
-    expect(screen.getByText('No Meta-approved structures are published on this number.')).toBeInTheDocument();
+    expect(
+      screen.getByText('No Meta-approved structures are published on this number.'),
+    ).toBeInTheDocument();
   });
 
   it('denied: verification desks cannot open WABA templates', () => {

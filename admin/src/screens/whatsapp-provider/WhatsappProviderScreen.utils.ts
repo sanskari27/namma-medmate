@@ -2,14 +2,7 @@ import type { WhatsAppStructure } from '@/services/whatsappTemplates';
 import { Ban, BadgeCheck, Radio, Unplug } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export function isMaster(role: string | undefined): boolean {
   return role === 'admin_super';

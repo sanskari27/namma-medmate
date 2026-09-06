@@ -43,9 +43,7 @@ export default function RegistersScreen() {
             />
             {page.planGate ? (
               <RegistersUpgrade
-                hint={
-                  page.upgradeHint ?? 'Near-expiry is on Starter. Open the plan to turn it on.'
-                }
+                hint={page.upgradeHint ?? 'Near-expiry is on Starter. Open the plan to turn it on.'}
                 linkRef={page.upgradeRef}
               />
             ) : page.status === 'loading' || page.status === 'denied' ? null : page.table ? (

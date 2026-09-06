@@ -87,7 +87,8 @@ export function useWhatsappSendsPage() {
       setStatusHint(
         saved.status === 'SENT'
           ? 'This WhatsApp send went out from the counter.'
-          : (apiStatusHint(saved.failureCode) ?? 'This send is still failed. Check the number or slots.'),
+          : (apiStatusHint(saved.failureCode) ??
+              'This send is still failed. Check the number or slots.'),
       );
       retryRef.current?.focus();
     } catch (error) {

@@ -37,9 +37,8 @@ import CaPackScreen from '@/screens/ca-pack/CaPackScreen';
 import CampaignsScreen from '@/screens/campaigns/CampaignsScreen';
 import TrendsScreen from '@/screens/trends/TrendsScreen';
 import CustomReportsScreen from '@/screens/custom-reports/CustomReportsScreen';
-import StubScreen from '@/screens/stub/StubScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
-import { ROUTES, STUB_PAGES } from '@/libs/constants/routes.const';
+import { ROUTES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
   {
@@ -89,10 +88,6 @@ const router = createBrowserRouter([
           { path: ROUTES.APPROVALS, element: <SignOffRulesScreen /> },
           { path: ROUTES.APPROVALS_PENDING, element: <WaitingSignOffScreen /> },
           { path: ROUTES.ACTIVITY, element: <FloorActivityScreen /> },
-          ...STUB_PAGES.map((page) => ({
-            path: page.path,
-            element: <StubScreen title={page.title} />,
-          })),
         ],
       },
     ],

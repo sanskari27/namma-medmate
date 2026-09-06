@@ -174,7 +174,11 @@ export default function SubscriptionScreen() {
 
       {banner ? <PlanStatusBanner statusId={statusId} banner={banner} /> : null}
       {paymentNote && !banner ? (
-        <p role="alert" aria-live="polite" className="border border-line bg-brand-soft px-3 py-2 text-sm text-ink">
+        <p
+          role="alert"
+          aria-live="polite"
+          className="border border-line bg-brand-soft px-3 py-2 text-sm text-ink"
+        >
           {paymentNote}
         </p>
       ) : null}

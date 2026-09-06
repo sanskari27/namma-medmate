@@ -32,7 +32,8 @@ const refill: WhatsAppTemplate = {
   runtimeSlots: ['customer_name', 'medicine_name'],
   status: 'APPROVED',
   variables: {},
-  preview: 'Hi {{customer_name}}, your refill for {{medicine_name}} is due. Visit {{pharmacy_name}} to restock.',
+  preview:
+    'Hi {{customer_name}}, your refill for {{medicine_name}} is due. Visit {{pharmacy_name}} to restock.',
   version: 0,
 };
 

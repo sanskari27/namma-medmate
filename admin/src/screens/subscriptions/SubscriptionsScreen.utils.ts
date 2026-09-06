@@ -1,7 +1,8 @@
 import { Ban, BadgeCheck, ScrollText, Unplug } from 'lucide-react';
 
 export type PageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
-export type DialogStatus = 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'loading' | null;
+export type DialogStatus =
+  'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'loading' | null;
 
 export function isMaster(role: string | undefined): boolean {
   return role === 'admin_super';
@@ -82,14 +83,7 @@ export function dialogCopy(status: DialogStatus): string | null {
 }
 
 export type PayStatus =
-  | 'loading'
-  | 'empty'
-  | 'denied'
-  | 'failure'
-  | 'validation'
-  | 'conflict'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'denied' | 'failure' | 'validation' | 'conflict' | 'success' | null;
 
 export function paymentStatusLabel(status: string): string {
   switch (status) {

@@ -2,13 +2,7 @@ import type { statusCopy } from '../../SubscriptionScreen.utils';
 
 type Banner = NonNullable<ReturnType<typeof statusCopy>>;
 
-export function PlanStatusBanner({
-  statusId,
-  banner,
-}: {
-  statusId: string;
-  banner: Banner;
-}) {
+export function PlanStatusBanner({ statusId, banner }: { statusId: string; banner: Banner }) {
   return (
     <p
       id={statusId}

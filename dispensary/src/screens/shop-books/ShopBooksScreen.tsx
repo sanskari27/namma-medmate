@@ -49,8 +49,7 @@ export default function ShopBooksScreen() {
             {page.planGate ? (
               <ShopBooksUpgrade
                 hint={
-                  page.upgradeHint ??
-                  'This shop book is on Growth. Open the plan to turn it on.'
+                  page.upgradeHint ?? 'This shop book is on Growth. Open the plan to turn it on.'
                 }
                 linkRef={page.upgradeRef}
               />

@@ -2,7 +2,13 @@ import { Label } from '@atoms';
 import type { CurrentSubscription } from '@/services/subscriptions';
 import type { Ref } from 'react';
 import { StallStrip } from '../stall-strip';
-import { floorDesks, formatIst, hasKiosk, hasLoyalty, planLabel } from '../../SubscriptionScreen.utils';
+import {
+  floorDesks,
+  formatIst,
+  hasKiosk,
+  hasLoyalty,
+  planLabel,
+} from '../../SubscriptionScreen.utils';
 
 export function PlanUsagePanel({
   current,

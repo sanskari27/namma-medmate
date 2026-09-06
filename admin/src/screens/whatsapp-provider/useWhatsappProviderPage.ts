@@ -24,7 +24,10 @@ export function useWhatsappProviderPage() {
   const [busy, setBusy] = useState(false);
 
   const applyCatalogue = useCallback(
-    (next: { provider: WhatsAppProvider; structures: WhatsAppStructure[] }, mode: 'initial' | 'rescan') => {
+    (
+      next: { provider: WhatsAppProvider; structures: WhatsAppStructure[] },
+      mode: 'initial' | 'rescan',
+    ) => {
       setProvider(next.provider);
       setStructures(next.structures);
       if (mode === 'rescan') {

@@ -17,11 +17,7 @@ export default function CampaignsScreen() {
         showCaLink={page.canSeeCa}
         onAdd={page.startCreate}
       />
-      <CampaignsStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-      />
+      <CampaignsStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
       {page.allowed ? (
         <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
           <CampaignsListPanel
@@ -38,13 +34,9 @@ export default function CampaignsScreen() {
                 creating={page.creating}
                 canPreview={Boolean(page.selected && page.selected.status === 'DRAFT')}
                 canReady={Boolean(
-                  page.selected &&
-                    page.selected.status === 'DRAFT' &&
-                    page.selected.previewedAt,
+                  page.selected && page.selected.status === 'DRAFT' && page.selected.previewedAt,
                 )}
-                canSend={Boolean(
-                  page.selected && page.selected.status === 'READY_FOR_DELIVERY',
-                )}
+                canSend={Boolean(page.selected && page.selected.status === 'READY_FOR_DELIVERY')}
                 busy={page.busy}
                 onChange={page.onChange}
                 onToggleTag={page.toggleTag}

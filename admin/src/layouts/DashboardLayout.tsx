@@ -12,8 +12,6 @@ import {
   KeyRound,
   LayoutDashboard,
   MessageCircle,
-  Settings,
-  Funnel,
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -35,7 +33,6 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.LICENCE_EXPIRY]: FileWarning,
   [ROUTES.WHATSAPP_TEMPLATES]: MessageCircle,
   [ROUTES.SUBSCRIPTIONS]: CreditCard,
-  [ROUTES.LEADS]: Funnel,
   [ROUTES.SUPPORT]: Headset,
   [ROUTES.OPERATORS]: UserRound,
   [ROUTES.STAFF_VERIFICATIONS]: ClipboardList,
@@ -43,7 +40,6 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.WORKFLOWS]: GitBranch,
   [ROUTES.SIGN_OFFS]: ClipboardCheck,
   [ROUTES.ACTIVITY]: FileClock,
-  [ROUTES.SETTINGS]: Settings,
   [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };
 

@@ -1,14 +1,7 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
 
 export type PageStatus =
-  | 'loading'
-  | 'empty'
-  | 'validation'
-  | 'denied'
-  | 'conflict'
-  | 'failure'
-  | 'success'
-  | null;
+  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
 
 export function isOwner(role: string | undefined): boolean {
   return role === 'pharmacy_owner';
@@ -68,7 +61,7 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
 
 export function apiStatusHint(code: string | null): string | null {
   if (code === 'UNKNOWN_VARIABLE') {
-    return 'That slot is not on the approved message. Save only this pharmacy\'s name.';
+    return "That slot is not on the approved message. Save only this pharmacy's name.";
   }
   if (code === 'UNAPPROVED_TEMPLATE') {
     return 'This message is not approved yet. Pick an approved template.';

@@ -30,7 +30,9 @@ export function planLabel(code: string): string {
   }
 }
 
-export function isPaidPlan(plan: PlanOffer | { planCode: string; pricePaiseMonthly?: number }): boolean {
+export function isPaidPlan(
+  plan: PlanOffer | { planCode: string; pricePaiseMonthly?: number },
+): boolean {
   if ('pricePaiseMonthly' in plan && typeof plan.pricePaiseMonthly === 'number') {
     return plan.pricePaiseMonthly > 0;
   }

@@ -19,9 +19,7 @@ export function bookEntitled(book: { entitled?: boolean } | null | undefined): b
   return book?.entitled !== false;
 }
 
-export function firstEntitledKey(
-  books: Array<{ key: string; entitled?: boolean }>,
-): string | null {
+export function firstEntitledKey(books: Array<{ key: string; entitled?: boolean }>): string | null {
   return books.find((book) => bookEntitled(book))?.key ?? books[0]?.key ?? null;
 }
 

@@ -6,19 +6,14 @@ import {
   ChartColumn,
   ChevronDown,
   ChevronsUpDown,
-  CircleHelp,
   CircleUser,
   ClipboardCheck,
   ClipboardList,
   Contact,
   FileText,
   Gauge,
-  Gift,
-  HeartPulse,
   History,
-  IdCard,
   KeyRound,
-  LayoutGrid,
   LogOut,
   MapPin,
   Megaphone,
@@ -30,13 +25,11 @@ import {
   PanelLeftClose,
   PanelLeftOpen,
   Pill,
-  RefreshCw,
   Scale,
   ScanBarcode,
   Settings,
   ShoppingBag,
   Stamp,
-  Store,
   Table2,
   Tag,
   Truck,
@@ -85,19 +78,14 @@ const PHARMACY_NAME = 'This pharmacy';
 
 const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.DASHBOARD]: Gauge,
-  [ROUTES.ORDERS]: ClipboardList,
   [ROUTES.SALES]: ScanBarcode,
   [ROUTES.PRESCRIPTIONS]: Pill,
   [ROUTES.CUSTOMERS]: Users,
   [ROUTES.CAMPAIGNS]: Megaphone,
   [ROUTES.CREDIT]: Wallet,
-  [ROUTES.CRM]: HeartPulse,
   [ROUTES.INVENTORY]: Package,
-  [ROUTES.RACKS]: LayoutGrid,
   [ROUTES.PURCHASES]: ShoppingBag,
-  [ROUTES.REORDER]: RefreshCw,
   [ROUTES.DISTRIBUTORS]: Truck,
-  [ROUTES.ONLINE_STORE]: Store,
   [ROUTES.OFFERS]: Tag,
   [ROUTES.KIOSK]: MonitorSmartphone,
   [ROUTES.REPORTS]: ChartColumn,
@@ -111,17 +99,12 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.WHATSAPP_TEMPLATES]: MessageCircle,
   [ROUTES.WHATSAPP_SENDS]: MessagesSquare,
   [ROUTES.REGISTERS]: ClipboardList,
-  [ROUTES.EMPLOYEES]: IdCard,
   [ROUTES.USERS]: UserCog,
   [ROUTES.ROLES]: KeyRound,
   [ROUTES.APPROVALS]: Stamp,
   [ROUTES.APPROVALS_PENDING]: ClipboardCheck,
   [ROUTES.ACTIVITY]: History,
-  [ROUTES.INVOICE_SETTINGS]: FileText,
   [ROUTES.SUBSCRIPTION]: BadgePercent,
-  [ROUTES.REFER]: Gift,
-  [ROUTES.SETTINGS]: Settings,
-  [ROUTES.HELP]: CircleHelp,
 };
 
 function initials(name: string) {
@@ -421,20 +404,11 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
             <DropdownMenuItem
               onSelect={() => {
                 onNavigate?.();
-                navigate(ROUTES.SETTINGS);
+                navigate(ROUTES.ACCOUNT);
               }}
             >
               <Settings className="size-4" aria-hidden />
               Account settings
-            </DropdownMenuItem>
-            <DropdownMenuItem
-              onSelect={() => {
-                onNavigate?.();
-                navigate(ROUTES.HELP);
-              }}
-            >
-              <CircleHelp className="size-4" aria-hidden />
-              Help & Support
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem
