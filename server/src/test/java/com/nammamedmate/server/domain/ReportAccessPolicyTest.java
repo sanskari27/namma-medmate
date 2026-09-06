@@ -23,14 +23,16 @@ class ReportAccessPolicyTest {
     assertThat(ReportAccessPolicy.entitled(PlanCode.FREE, ReportCapability.BRANCH_PNL)).isFalse();
     assertThat(ReportAccessPolicy.entitled(PlanCode.FREE, ReportCapability.AGING)).isFalse();
     assertThat(ReportAccessPolicy.entitled(PlanCode.FREE, ReportCapability.ANALYTICS)).isFalse();
-    assertThat(ReportAccessPolicy.entitled(PlanCode.FREE, ReportCapability.CUSTOM_REPORT)).isFalse();
+    assertThat(ReportAccessPolicy.entitled(PlanCode.FREE, ReportCapability.CUSTOM_REPORT))
+        .isFalse();
   }
 
   @Test
   void ac02_starterAddsExpenseAndNearExpiryGrowthAddsTheRest() {
     assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.EXPENSE_SUMMARY))
         .isTrue();
-    assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.NEAR_EXPIRY)).isTrue();
+    assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.NEAR_EXPIRY))
+        .isTrue();
     assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.GST)).isFalse();
     assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.AGING)).isFalse();
     assertThat(ReportAccessPolicy.entitled(PlanCode.STARTER, ReportCapability.ANALYTICS)).isFalse();
@@ -39,7 +41,8 @@ class ReportAccessPolicyTest {
     assertThat(ReportAccessPolicy.entitled(PlanCode.GROWTH, ReportCapability.GST)).isTrue();
     assertThat(ReportAccessPolicy.entitled(PlanCode.GROWTH, ReportCapability.AGING)).isTrue();
     assertThat(ReportAccessPolicy.entitled(PlanCode.GROWTH, ReportCapability.ANALYTICS)).isTrue();
-    assertThat(ReportAccessPolicy.entitled(PlanCode.GROWTH, ReportCapability.CUSTOM_REPORT)).isTrue();
+    assertThat(ReportAccessPolicy.entitled(PlanCode.GROWTH, ReportCapability.CUSTOM_REPORT))
+        .isTrue();
     assertThat(ReportAccessPolicy.entitled(PlanCode.PRO, ReportCapability.BRANCH_PNL)).isTrue();
     assertThat(ReportAccessPolicy.entitled(PlanCode.PRO, ReportCapability.NEAR_EXPIRY)).isTrue();
   }
@@ -61,8 +64,7 @@ class ReportAccessPolicyTest {
     assertThat(gst.entitled()).isFalse();
     assertThat(gst.minPlan()).isEqualTo("GROWTH");
     assertThat(gst.upgradeHint()).contains("Growth");
-    assertThatThrownBy(
-            () -> ReportAccessPolicy.assertEntitled(PlanCode.FREE, ReportCapability.GST))
+    assertThatThrownBy(() -> ReportAccessPolicy.assertEntitled(PlanCode.FREE, ReportCapability.GST))
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(ReportAccessPolicy.PLAN_LIMIT);

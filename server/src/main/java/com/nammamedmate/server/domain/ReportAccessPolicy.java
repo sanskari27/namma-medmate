@@ -32,7 +32,9 @@ public final class ReportAccessPolicy {
     return switch (min) {
       case FREE -> true;
       case STARTER ->
-          effective == PlanCode.STARTER || effective == PlanCode.GROWTH || effective == PlanCode.PRO;
+          effective == PlanCode.STARTER
+              || effective == PlanCode.GROWTH
+              || effective == PlanCode.PRO;
       case GROWTH, PRO -> effective == PlanCode.GROWTH || effective == PlanCode.PRO;
     };
   }
@@ -52,7 +54,8 @@ public final class ReportAccessPolicy {
 
   public static CatalogEntitlement entitlement(PlanCode plan, ReportCapability capability) {
     boolean ok = entitled(plan, capability);
-    return new CatalogEntitlement(ok, minPlan(capability).name(), ok ? null : upgradeHint(capability));
+    return new CatalogEntitlement(
+        ok, minPlan(capability).name(), ok ? null : upgradeHint(capability));
   }
 
   public static CatalogEntitlement openEntitlement() {

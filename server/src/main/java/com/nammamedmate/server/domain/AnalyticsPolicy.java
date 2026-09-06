@@ -33,6 +33,7 @@ public final class AnalyticsPolicy {
   public static final String FREQ_FOUR_PLUS = "VISITS_4_PLUS";
   public static final String SCOPE_BRANCH = "branch";
   public static final String SCOPE_TENANT = "tenant";
+
   private AnalyticsPolicy() {}
 
   public record Window(LocalDate from, LocalDate to, LocalDate priorFrom, LocalDate priorTo) {

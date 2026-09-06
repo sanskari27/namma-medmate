@@ -102,12 +102,15 @@ class PlanTierReportTest extends AbstractIntegrationTest {
         .perform(get("/api/v1/finance/reports").cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[?(@.key=='DAY_BOOK')].entitled").value(hasItem(true)))
-        .andExpect(jsonPath("$.data.items[?(@.key=='SALES_SUMMARY')].entitled").value(hasItem(true)))
+        .andExpect(
+            jsonPath("$.data.items[?(@.key=='SALES_SUMMARY')].entitled").value(hasItem(true)))
         .andExpect(
             jsonPath("$.data.items[?(@.key=='PURCHASE_SUMMARY')].entitled").value(hasItem(true)))
-        .andExpect(jsonPath("$.data.items[?(@.key=='EXPENSE_SUMMARY')].entitled").value(hasItem(false)))
+        .andExpect(
+            jsonPath("$.data.items[?(@.key=='EXPENSE_SUMMARY')].entitled").value(hasItem(false)))
         .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].entitled").value(hasItem(false)))
-        .andExpect(jsonPath("$.data.items[?(@.key=='PROFIT_AND_LOSS')].entitled").value(hasItem(false)))
+        .andExpect(
+            jsonPath("$.data.items[?(@.key=='PROFIT_AND_LOSS')].entitled").value(hasItem(false)))
         .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].upgradeHint").value(hasItem(not(""))))
         .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].items").doesNotExist())
         .andExpect(jsonPath("$.data.items[?(@.key=='GSTR1')].totals").doesNotExist());
@@ -164,7 +167,9 @@ class PlanTierReportTest extends AbstractIntegrationTest {
         .perform(get("/api/v1/finance/payables").cookie(growth.cookie()))
         .andExpect(status().isOk());
     mockMvc.perform(get("/api/v1/analytics").cookie(growth.cookie())).andExpect(status().isOk());
-    mockMvc.perform(get("/api/v1/reports/custom").cookie(growth.cookie())).andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/reports/custom").cookie(growth.cookie()))
+        .andExpect(status().isOk());
 
     Fixture pro = seed("pt-ac02-p", PlanCode.PRO);
     mockMvc
