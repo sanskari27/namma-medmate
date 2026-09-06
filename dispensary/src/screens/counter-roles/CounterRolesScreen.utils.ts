@@ -22,6 +22,8 @@ export function moduleLabel(code: string): string {
       return 'Approvals';
     case 'LOYALTY':
       return 'Loyalty';
+    case 'CAMPAIGNS':
+      return 'Campaigns';
     case 'KIOSK':
       return 'Self-order kiosk';
     case 'ONLINE_STORE':

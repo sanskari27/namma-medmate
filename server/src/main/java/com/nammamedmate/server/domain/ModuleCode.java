@@ -5,6 +5,7 @@ public enum ModuleCode {
   INVENTORY(true, false),
   PROCUREMENT(true, false),
   CRM(true, false),
+  CAMPAIGNS(true, false),
   FINANCE(true, false),
   REPORTING(true, false),
   COMPLIANCE(true, false),
