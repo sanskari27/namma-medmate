@@ -37,4 +37,19 @@ public interface SupplierLedgerEntryRepository extends JpaRepository<SupplierLed
       @Param("tenantId") UUID tenantId,
       @Param("branchIds") Collection<UUID> branchIds,
       @Param("cutoff") Instant cutoff);
+
+  @Query(
+      """
+      select e from SupplierLedgerEntry e
+      where e.tenantId = :tenantId
+        and e.branchId in :branchIds
+        and e.occurredAt >= :from
+        and e.occurredAt < :toExclusive
+      order by e.occurredAt asc, e.id asc
+      """)
+  List<SupplierLedgerEntry> findAllInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchIds") Collection<UUID> branchIds,
+      @Param("from") Instant from,
+      @Param("toExclusive") Instant toExclusive);
 }

@@ -1,7 +1,10 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.GoodsReceipt;
+import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -39,4 +42,21 @@ public interface GoodsReceiptRepository extends JpaRepository<GoodsReceipt, UUID
 
   long countByTenantIdAndBranchIdAndReceiptNumberStartingWith(
       UUID tenantId, UUID branchId, String receiptNumber);
+
+  @Query(
+      """
+      select r from GoodsReceipt r
+      where r.tenantId = :tenantId
+        and r.branchId in :branchIds
+        and r.status = :status
+        and r.checkedAt >= :from
+        and r.checkedAt < :toExclusive
+      order by r.checkedAt asc
+      """)
+  List<GoodsReceipt> findCheckedInWindow(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchIds") Collection<UUID> branchIds,
+      @Param("status") GoodsReceiptStatus status,
+      @Param("from") Instant from,
+      @Param("toExclusive") Instant toExclusive);
 }

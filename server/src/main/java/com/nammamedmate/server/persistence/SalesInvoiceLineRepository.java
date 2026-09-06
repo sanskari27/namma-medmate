@@ -14,6 +14,9 @@ public interface SalesInvoiceLineRepository extends JpaRepository<SalesInvoiceLi
   List<SalesInvoiceLine> findAllByTenantIdAndBranchIdAndSalesInvoiceIdIn(
       UUID tenantId, UUID branchId, Collection<UUID> salesInvoiceIds);
 
+  List<SalesInvoiceLine> findAllByTenantIdAndSalesInvoiceIdIn(
+      UUID tenantId, Collection<UUID> salesInvoiceIds);
+
   void deleteBySalesInvoiceIdAndTenantIdAndBranchId(
       UUID salesInvoiceId, UUID tenantId, UUID branchId);
 }

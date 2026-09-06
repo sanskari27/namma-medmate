@@ -20,6 +20,7 @@ export const ROUTES = {
   ONLINE_STORE: '/online-store',
   OFFERS: '/offers',
   KIOSK: '/kiosk',
+  BOOKS: '/books',
   REPORTS: '/reports',
   EXPENSES: '/expenses',
   AGING: '/aging',
@@ -102,6 +103,7 @@ export const NAV_SECTIONS = [
       { label: 'Reports', path: ROUTES.REPORTS, hint: 'This branch numbers' },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
+      { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },
       { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Books for the CA' },
     ],
   },
@@ -175,7 +177,8 @@ export const STUB_PAGES = MODULE_NAV_ITEMS.filter(
     item.path !== ROUTES.PURCHASES &&
     item.path !== ROUTES.OFFERS &&
     item.path !== ROUTES.EXPENSES &&
-    item.path !== ROUTES.AGING,
+    item.path !== ROUTES.AGING &&
+    item.path !== ROUTES.BOOKS,
 ).map((item) => ({
   path: item.path,
   title: item.label,

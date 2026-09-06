@@ -1,0 +1,1 @@
+export { ShopBooksTotalsStrip } from './ShopBooksTotalsStrip';

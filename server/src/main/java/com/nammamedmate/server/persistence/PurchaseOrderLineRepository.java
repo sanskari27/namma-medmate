@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.PurchaseOrderLine;
+import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -11,6 +12,8 @@ public interface PurchaseOrderLineRepository extends JpaRepository<PurchaseOrder
 
   List<PurchaseOrderLine> findAllByPurchaseOrderIdAndTenantIdAndBranchIdOrderBySortOrderAsc(
       UUID purchaseOrderId, UUID tenantId, UUID branchId);
+
+  List<PurchaseOrderLine> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
   void deleteByPurchaseOrderIdAndTenantIdAndBranchId(
       UUID purchaseOrderId, UUID tenantId, UUID branchId);
