@@ -44,8 +44,7 @@ public class PrescriptionFileStorage {
       throw new ApiException(
           HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Prescription file must be under 8 MB");
     }
-    String key =
-        tenantId + "/" + invoiceId + "/" + UUID.randomUUID() + extensionFor(contentType);
+    String key = tenantId + "/" + invoiceId + "/" + UUID.randomUUID() + extensionFor(contentType);
     Path target = root.resolve(key).normalize();
     if (!target.startsWith(root)) {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid storage path");

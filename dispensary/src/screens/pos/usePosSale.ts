@@ -2,12 +2,17 @@ import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import type { AppDispatch, RootState } from '@/store';
+import { getCustomer } from '@/services/customers';
 import {
   canDispenseControlled,
   hasLoyaltyAccess,
   hasSalesAccess,
 } from './PosScreen.utils';
-import { accessResolved } from './store/pos.slice';
+import {
+  accessResolved,
+  continueAsWalkIn,
+  selectCustomer,
+} from './store/pos.slice';
 import {
   selectPosAllowed,
   selectPosStatus,
@@ -31,7 +36,10 @@ export function usePosSale() {
   const dispatch = useDispatch<AppDispatch>();
   const [searchParams, setSearchParams] = useSearchParams();
   const continueId = searchParams.get('continue');
+  const customerId = searchParams.get('customer');
+  const walkInPrefill = searchParams.get('walkIn') === '1';
   const continueHandled = useRef<string | null>(null);
+  const customerPrefillHandled = useRef<string | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasSalesAccess(user?.modules);
   const storeAllowed = useSelector(selectPosAllowed);
@@ -60,13 +68,49 @@ export function usePosSale() {
       await dispatch(loadBootstrap());
       const result = await dispatch(continueInvoice(continueId));
       if (continueInvoice.fulfilled.match(result) && result.payload.customer) {
-        void dispatch(loadCustomerCredit());
+        void dispatch(loadCustomerCredit(result.payload.customer.id));
       }
       const next = new URLSearchParams(searchParams);
       next.delete('continue');
       setSearchParams(next, { replace: true });
     })();
   }, [dispatch, storeAllowed, continueId, searchParams, setSearchParams]);
+
+  useEffect(() => {
+    if (!storeAllowed || continueId) {
+      return;
+    }
+    const prefillKey = walkInPrefill ? 'walkIn' : customerId;
+    if (!prefillKey || customerPrefillHandled.current === prefillKey) {
+      return;
+    }
+    customerPrefillHandled.current = prefillKey;
+    void (async () => {
+      if (walkInPrefill) {
+        dispatch(continueAsWalkIn());
+      } else if (customerId) {
+        try {
+          const customer = await getCustomer(customerId);
+          dispatch(selectCustomer(customer));
+          void dispatch(loadCustomerCredit(customer.id));
+        } catch {
+          customerPrefillHandled.current = null;
+        }
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete('customer');
+      next.delete('walkIn');
+      setSearchParams(next, { replace: true });
+    })();
+  }, [
+    dispatch,
+    storeAllowed,
+    continueId,
+    customerId,
+    walkInPrefill,
+    searchParams,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     if (!storeAllowed) {

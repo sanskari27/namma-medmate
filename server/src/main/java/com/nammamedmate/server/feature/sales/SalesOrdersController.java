@@ -98,7 +98,8 @@ public class SalesOrdersController {
           row.payments().stream()
               .map(
                   payment ->
-                      new PaymentResponse(payment.mode(), payment.amountPaise(), payment.reference()))
+                      new PaymentResponse(
+                          payment.mode(), payment.amountPaise(), payment.reference()))
               .toList(),
           row.lines().stream()
               .map(

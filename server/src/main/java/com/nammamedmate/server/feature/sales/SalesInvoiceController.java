@@ -116,8 +116,8 @@ public class SalesInvoiceController {
   }
 
   @GetMapping("/{id}/prescription")
-  public ResponseEntity<Resource> prescription(
-      Authentication authentication, @PathVariable UUID id) throws Exception {
+  public ResponseEntity<Resource> prescription(Authentication authentication, @PathVariable UUID id)
+      throws Exception {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     PrescriptionAttachmentStream stream = salesInvoiceService.openPrescription(principal, id);
     MediaType mediaType = MediaType.parseMediaType(stream.contentType());

@@ -33,11 +33,11 @@ import com.nammamedmate.server.persistence.StockBatchRepository;
 import com.nammamedmate.server.persistence.StockMovementRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -134,7 +134,9 @@ public class SalesReturnService {
     for (SalesReturnLine line :
         salesReturnLineRepository.findAllByTenantIdAndBranchIdAndSalesReturnIdIn(
             ctx.tenantId(), ctx.branchId(), returnIds)) {
-      linesByReturn.computeIfAbsent(line.getSalesReturnId(), ignored -> new ArrayList<>()).add(line);
+      linesByReturn
+          .computeIfAbsent(line.getSalesReturnId(), ignored -> new ArrayList<>())
+          .add(line);
     }
 
     Map<UUID, SalesInvoice> invoices = new HashMap<>();

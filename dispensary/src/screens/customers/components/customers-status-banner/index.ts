@@ -1,1 +1,1 @@
-export * from './CustomersStatusBanner';
+export { CustomersStatusBanner } from './CustomersStatusBanner';

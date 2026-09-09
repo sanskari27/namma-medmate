@@ -2,6 +2,8 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.CustomerLoyaltyAccount;
 import jakarta.persistence.LockModeType;
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -13,6 +15,9 @@ public interface CustomerLoyaltyAccountRepository
     extends JpaRepository<CustomerLoyaltyAccount, UUID> {
 
   Optional<CustomerLoyaltyAccount> findByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  List<CustomerLoyaltyAccount> findAllByTenantIdAndCustomerIdIn(
+      UUID tenantId, Collection<UUID> customerIds);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query(

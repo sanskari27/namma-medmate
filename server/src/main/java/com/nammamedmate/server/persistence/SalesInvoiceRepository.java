@@ -74,4 +74,60 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
       @Param("tenantId") UUID tenantId,
       @Param("customerId") UUID customerId,
       @Param("status") SalesInvoiceStatus status);
+
+  @Query(
+      """
+      select i.customerId, count(i), coalesce(sum(i.totalPaise), 0), max(i.completedAt),
+             coalesce(sum(i.loyaltyEarnedPoints), 0)
+      from SalesInvoice i
+      where i.tenantId = :tenantId
+        and i.status = :status
+        and i.customerId is not null
+      group by i.customerId
+      """)
+  List<Object[]> aggregateCompletedByCustomer(
+      @Param("tenantId") UUID tenantId, @Param("status") SalesInvoiceStatus status);
+
+  @Query(
+      """
+      select count(i), coalesce(sum(i.totalPaise), 0), max(i.completedAt),
+             coalesce(sum(i.loyaltyEarnedPoints), 0)
+      from SalesInvoice i
+      where i.tenantId = :tenantId
+        and i.status = :status
+        and i.customerId is null
+      """)
+  List<Object[]> aggregateWalkInCompleted(
+      @Param("tenantId") UUID tenantId, @Param("status") SalesInvoiceStatus status);
+
+  @Query(
+      """
+      select i.customerId, coalesce(sum(l.quantity), 0)
+      from SalesInvoiceLine l, SalesInvoice i
+      where l.salesInvoiceId = i.id
+        and i.tenantId = :tenantId
+        and i.status = :status
+        and i.customerId is not null
+      group by i.customerId
+      """)
+  List<Object[]> sumUnitsByCustomer(
+      @Param("tenantId") UUID tenantId, @Param("status") SalesInvoiceStatus status);
+
+  @Query(
+      """
+      select coalesce(sum(l.quantity), 0)
+      from SalesInvoiceLine l, SalesInvoice i
+      where l.salesInvoiceId = i.id
+        and i.tenantId = :tenantId
+        and i.status = :status
+        and i.customerId is null
+      """)
+  Object sumWalkInUnits(
+      @Param("tenantId") UUID tenantId, @Param("status") SalesInvoiceStatus status);
+
+  List<SalesInvoice> findTop40ByTenantIdAndStatusAndCustomerIdIsNullOrderByCompletedAtDesc(
+      UUID tenantId, SalesInvoiceStatus status);
+
+  List<SalesInvoice> findTop40ByTenantIdAndStatusAndCustomerIdOrderByCompletedAtDesc(
+      UUID tenantId, SalesInvoiceStatus status, UUID customerId);
 }

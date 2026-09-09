@@ -281,7 +281,8 @@ public class PrescriptionReferenceService {
                             invoice.getTotalPaise()))
                 .toList()
             : List.of();
-    long billedPaise = invoices.stream().mapToLong(PrescriptionReferenceView.SourceInvoice::totalPaise).sum();
+    long billedPaise =
+        invoices.stream().mapToLong(PrescriptionReferenceView.SourceInvoice::totalPaise).sum();
     return new PrescriptionReferenceView(
         row.getId(),
         row.getTenantId(),

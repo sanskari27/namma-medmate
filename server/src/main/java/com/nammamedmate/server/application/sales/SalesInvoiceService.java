@@ -48,8 +48,8 @@ import com.nammamedmate.server.domain.SalesPrescriptionFulfillment;
 import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.StockBatch;
 import com.nammamedmate.server.domain.TaxJurisdiction;
-import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.infrastructure.sales.PrescriptionFileStorage;
+import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ApprovalRequestRepository;
 import com.nammamedmate.server.persistence.ApprovalRuleRepository;
@@ -203,12 +203,12 @@ public class SalesInvoiceService {
   }
 
   @Transactional
-  public SalesInvoiceView attachPrescription(
-      AuthPrincipal principal, UUID id, MultipartFile file) {
+  public SalesInvoiceView attachPrescription(AuthPrincipal principal, UUID id, MultipartFile file) {
     Context ctx = requireReady(principal);
     SalesInvoice invoice = requireInvoice(id, ctx);
     if (file == null || file.isEmpty()) {
-      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Prescription file required");
+      throw new ApiException(
+          HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Prescription file required");
     }
     String key = prescriptionFileStorage.store(ctx.tenantId(), invoice.getId(), file);
     invoice.setPrescriptionAttachmentStorageKey(key);
@@ -869,9 +869,7 @@ public class SalesInvoiceService {
                     row.getCustomerId(), command.customerId()));
         rxRequestedBase.merge(product.getId(), baseQuantity, BigDecimal::add);
         rxPrescribed.merge(
-            product.getId(),
-            prescribed == null ? BigDecimal.ZERO : prescribed,
-            BigDecimal::max);
+            product.getId(), prescribed == null ? BigDecimal.ZERO : prescribed, BigDecimal::max);
       }
       StockBatch batch = resolveBatch(product, item.batchId(), ctx);
       SalesInvoiceLine prior = previous.get(item.productId());
@@ -1364,8 +1362,7 @@ public class SalesInvoiceService {
     Map<String, UUID> productIds = new HashMap<>();
     Map<String, UUID> batchIds = new HashMap<>();
     for (SalesInvoiceLine line : lines) {
-      String key =
-          line.getProductId() + "|" + (line.getBatchId() == null ? "" : line.getBatchId());
+      String key = line.getProductId() + "|" + (line.getBatchId() == null ? "" : line.getBatchId());
       demand.merge(key, line.getBaseQuantity(), BigDecimal::add);
       productIds.put(key, line.getProductId());
       batchIds.put(key, line.getBatchId());

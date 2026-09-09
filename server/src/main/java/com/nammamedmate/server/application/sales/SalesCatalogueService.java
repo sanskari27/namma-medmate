@@ -104,7 +104,8 @@ public class SalesCatalogueService {
 
     Map<UUID, BigDecimal> onHandByProduct = new HashMap<>();
     for (StockBalance balance :
-        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(tenantId, branchId)) {
+        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(
+            tenantId, branchId)) {
       onHandByProduct.merge(balance.getProductId(), balance.getQuantity(), BigDecimal::add);
     }
 
@@ -164,7 +165,9 @@ public class SalesCatalogueService {
     for (SalesInvoiceLine line :
         salesInvoiceLineRepository.findAllByTenantIdAndBranchIdAndSalesInvoiceIdIn(
             tenantId, branchId, completedIds)) {
-      linesByInvoice.computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>()).add(line);
+      linesByInvoice
+          .computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>())
+          .add(line);
     }
     // Newest invoices first; keep first price seen per product.
     for (UUID invoiceId : completedIds) {

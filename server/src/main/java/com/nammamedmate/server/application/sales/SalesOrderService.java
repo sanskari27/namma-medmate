@@ -80,7 +80,9 @@ public class SalesOrderService {
     for (SalesInvoiceLine line :
         salesInvoiceLineRepository.findAllByTenantIdAndBranchIdAndSalesInvoiceIdIn(
             tenantId, branchId, invoiceIds)) {
-      linesByInvoice.computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>()).add(line);
+      linesByInvoice
+          .computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>())
+          .add(line);
     }
 
     Map<UUID, List<SalesInvoicePayment>> paymentsByInvoice = new HashMap<>();
@@ -125,9 +127,7 @@ public class SalesOrderService {
       List<SalesInvoicePayment> payments,
       Customer customer) {
     List<SalesInvoiceLine> ordered =
-        lines.stream()
-            .sorted(Comparator.comparingInt(SalesInvoiceLine::getSortOrder))
-            .toList();
+        lines.stream().sorted(Comparator.comparingInt(SalesInvoiceLine::getSortOrder)).toList();
     List<SalesInvoicePayment> orderedPayments =
         payments.stream()
             .sorted(Comparator.comparingInt(SalesInvoicePayment::getSortOrder))

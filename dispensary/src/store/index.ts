@@ -6,6 +6,7 @@ import { posReducer } from '@/screens/pos/store/pos.slice';
 import { ordersReducer } from '@/screens/orders/store/orders.slice';
 import { prescriptionsReducer } from '@/screens/prescriptions/store/prescriptions.slice';
 import { returnsReducer } from '@/screens/returns/store/returns.slice';
+import { customersReducer } from '@/screens/customers/store/customers.slice';
 
 export {
   authReducer,
@@ -34,6 +35,7 @@ export const store = configureStore({
     orders: ordersReducer,
     returns: returnsReducer,
     prescriptions: prescriptionsReducer,
+    customers: customersReducer,
   },
 });
 

@@ -17,6 +17,45 @@ export interface Customer {
   chronicConditions: string | null;
   createdAt: string;
   updatedAt: string;
+  walkInAggregate?: boolean;
+  orderCount?: number;
+  storeOrders?: number;
+  onlineOrders?: number;
+  unitsSold?: number;
+  lastVisitAt?: string | null;
+  loyaltyPoints?: number;
+  lifetimeValuePaise?: number;
+  creditDuePaise?: number;
+  chronicRx?: boolean;
+}
+
+export interface CustomerDirectoryItem {
+  id: string | null;
+  walkInAggregate: boolean;
+  name: string;
+  phone: string | null;
+  email: string | null;
+  chronicConditions: string | null;
+  orderCount: number;
+  storeOrders: number;
+  onlineOrders: number;
+  unitsSold: number;
+  lastVisitAt: string | null;
+  loyaltyPoints: number;
+  lifetimeValuePaise: number;
+  creditDuePaise: number;
+  chronicRx: boolean;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CustomerDirectoryPurchase {
+  invoiceId: string;
+  invoiceNumber: string;
+  amountPaise: number;
+  itemSummary: string | null;
+  paymentLabel: string;
+  occurredAt: string;
 }
 
 export interface CustomerInput {
@@ -32,9 +71,74 @@ export interface CustomerInput {
 }
 
 export async function listCustomers(q?: string): Promise<Customer[]> {
-  const { data } = await apiClient.get<{ items: Customer[] }>(API.CUSTOMERS, {
+  const items = await listCustomerDirectory(q);
+  return items
+    .filter((row) => !row.walkInAggregate && row.id)
+    .map((row) => ({
+      id: row.id!,
+      tenantId: '',
+      name: row.name,
+      phone: row.phone ?? '',
+      email: row.email,
+      dateOfBirth: null,
+      gender: null,
+      address: null,
+      bloodGroup: null,
+      allergies: null,
+      chronicConditions: row.chronicConditions,
+      createdAt: row.createdAt ?? '',
+      updatedAt: row.updatedAt ?? '',
+      walkInAggregate: false,
+      orderCount: row.orderCount,
+      storeOrders: row.storeOrders,
+      onlineOrders: row.onlineOrders,
+      unitsSold: row.unitsSold,
+      lastVisitAt: row.lastVisitAt,
+      loyaltyPoints: row.loyaltyPoints,
+      lifetimeValuePaise: row.lifetimeValuePaise,
+      creditDuePaise: row.creditDuePaise,
+      chronicRx: row.chronicRx,
+    }));
+}
+
+export async function listCustomerDirectory(q?: string): Promise<CustomerDirectoryItem[]> {
+  const { data } = await apiClient.get<{ items: CustomerDirectoryItem[] }>(API.CUSTOMERS, {
     params: q ? { q } : undefined,
   });
+  return data.items.map((row) => ({
+    id: row.id ?? null,
+    walkInAggregate: Boolean(row.walkInAggregate),
+    name: row.name,
+    phone: row.phone ?? null,
+    email: row.email ?? null,
+    chronicConditions: row.chronicConditions ?? null,
+    orderCount: row.orderCount ?? 0,
+    storeOrders: row.storeOrders ?? 0,
+    onlineOrders: row.onlineOrders ?? 0,
+    unitsSold: row.unitsSold ?? 0,
+    lastVisitAt: row.lastVisitAt ?? null,
+    loyaltyPoints: row.loyaltyPoints ?? 0,
+    lifetimeValuePaise: row.lifetimeValuePaise ?? 0,
+    creditDuePaise: row.creditDuePaise ?? 0,
+    chronicRx: Boolean(row.chronicRx),
+    createdAt: row.createdAt ?? null,
+    updatedAt: row.updatedAt ?? null,
+  }));
+}
+
+export async function listCustomerDirectoryPurchases(input: {
+  customerId?: string | null;
+  walkIn?: boolean;
+}): Promise<CustomerDirectoryPurchase[]> {
+  if (input.walkIn) {
+    const { data } = await apiClient.get<{ items: CustomerDirectoryPurchase[] }>(
+      API.CUSTOMERS_WALK_IN_PURCHASES,
+    );
+    return data.items;
+  }
+  const { data } = await apiClient.get<{ items: CustomerDirectoryPurchase[] }>(
+    API.customerPurchases(input.customerId!),
+  );
   return data.items;
 }
 

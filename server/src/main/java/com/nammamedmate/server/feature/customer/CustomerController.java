@@ -1,5 +1,7 @@
 package com.nammamedmate.server.feature.customer;
 
+import com.nammamedmate.server.application.customer.CustomerDirectoryService;
+import com.nammamedmate.server.application.customer.CustomerDirectoryView;
 import com.nammamedmate.server.application.customer.CustomerMergePreview;
 import com.nammamedmate.server.application.customer.CustomerMergeService;
 import com.nammamedmate.server.application.customer.CustomerService;
@@ -35,14 +37,17 @@ public class CustomerController {
   private final CustomerService customerService;
   private final CustomerMergeService customerMergeService;
   private final CustomerHistoryService customerHistoryService;
+  private final CustomerDirectoryService customerDirectoryService;
 
   public CustomerController(
       CustomerService customerService,
       CustomerMergeService customerMergeService,
-      CustomerHistoryService customerHistoryService) {
+      CustomerHistoryService customerHistoryService,
+      CustomerDirectoryService customerDirectoryService) {
     this.customerService = customerService;
     this.customerMergeService = customerMergeService;
     this.customerHistoryService = customerHistoryService;
+    this.customerDirectoryService = customerDirectoryService;
   }
 
   @GetMapping
@@ -51,7 +56,48 @@ public class CustomerController {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
         new CustomerListResponse(
-            customerService.list(principal, q).stream().map(this::toResponse).toList()));
+            customerDirectoryService.list(principal, q).stream()
+                .map(this::toListResponse)
+                .toList()));
+  }
+
+  @GetMapping("/{id}/purchases")
+  public ApiResponse<DirectoryPurchasesResponse> customerPurchases(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @RequestParam(defaultValue = "false") boolean walkIn) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        new DirectoryPurchasesResponse(
+            customerDirectoryService.purchases(principal, walkIn ? null : id, walkIn).stream()
+                .map(
+                    row ->
+                        new DirectoryPurchaseResponse(
+                            row.invoiceId(),
+                            row.invoiceNumber(),
+                            row.amountPaise(),
+                            row.itemSummary(),
+                            row.paymentLabel(),
+                            row.occurredAt()))
+                .toList()));
+  }
+
+  @GetMapping("/walk-in/purchases")
+  public ApiResponse<DirectoryPurchasesResponse> walkInPurchases(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        new DirectoryPurchasesResponse(
+            customerDirectoryService.purchases(principal, null, true).stream()
+                .map(
+                    row ->
+                        new DirectoryPurchaseResponse(
+                            row.invoiceId(),
+                            row.invoiceNumber(),
+                            row.amountPaise(),
+                            row.itemSummary(),
+                            row.paymentLabel(),
+                            row.occurredAt()))
+                .toList()));
   }
 
   @GetMapping("/{id}")
@@ -158,6 +204,64 @@ public class CustomerController {
         view.allergies(),
         view.chronicConditions(),
         view.createdAt(),
+        view.updatedAt(),
+        false,
+        0,
+        0,
+        0,
+        0L,
+        null,
+        0L,
+        0L,
+        0L,
+        view.chronicConditions() != null && !view.chronicConditions().isBlank());
+  }
+
+  private CustomerResponse toListResponse(CustomerDirectoryView view) {
+    return new CustomerResponse(
+        view.id(),
+        null,
+        view.name(),
+        view.phone(),
+        view.email(),
+        null,
+        null,
+        null,
+        null,
+        null,
+        view.chronicConditions(),
+        view.createdAt(),
+        view.updatedAt(),
+        view.walkInAggregate(),
+        view.orderCount(),
+        view.storeOrders(),
+        view.onlineOrders(),
+        view.unitsSold(),
+        view.lastVisitAt(),
+        view.loyaltyPoints(),
+        view.lifetimeValuePaise(),
+        view.creditDuePaise(),
+        view.chronicRx());
+  }
+
+  private DirectoryItemResponse toDirectoryResponse(CustomerDirectoryView view) {
+    return new DirectoryItemResponse(
+        view.id(),
+        view.walkInAggregate(),
+        view.name(),
+        view.phone(),
+        view.email(),
+        view.chronicConditions(),
+        view.orderCount(),
+        view.storeOrders(),
+        view.onlineOrders(),
+        view.unitsSold(),
+        view.lastVisitAt(),
+        view.loyaltyPoints(),
+        view.lifetimeValuePaise(),
+        view.creditDuePaise(),
+        view.chronicRx(),
+        view.createdAt(),
         view.updatedAt());
   }
 
@@ -194,6 +298,37 @@ public class CustomerController {
 
   public record CustomerListResponse(List<CustomerResponse> items) {}
 
+  public record DirectoryListResponse(List<DirectoryItemResponse> items) {}
+
+  public record DirectoryPurchasesResponse(List<DirectoryPurchaseResponse> items) {}
+
+  public record DirectoryItemResponse(
+      UUID id,
+      boolean walkInAggregate,
+      String name,
+      String phone,
+      String email,
+      String chronicConditions,
+      int orderCount,
+      int storeOrders,
+      int onlineOrders,
+      long unitsSold,
+      Instant lastVisitAt,
+      long loyaltyPoints,
+      long lifetimeValuePaise,
+      long creditDuePaise,
+      boolean chronicRx,
+      Instant createdAt,
+      Instant updatedAt) {}
+
+  public record DirectoryPurchaseResponse(
+      UUID invoiceId,
+      String invoiceNumber,
+      long amountPaise,
+      String itemSummary,
+      String paymentLabel,
+      Instant occurredAt) {}
+
   public record HistoryResponse(List<HistoryItemResponse> items) {}
 
   public record HistoryItemResponse(
@@ -221,7 +356,17 @@ public class CustomerController {
       String allergies,
       String chronicConditions,
       Instant createdAt,
-      Instant updatedAt) {}
+      Instant updatedAt,
+      boolean walkInAggregate,
+      int orderCount,
+      int storeOrders,
+      int onlineOrders,
+      long unitsSold,
+      Instant lastVisitAt,
+      long loyaltyPoints,
+      long lifetimeValuePaise,
+      long creditDuePaise,
+      boolean chronicRx) {}
 
   public record UpsertCustomerRequest(
       @NotBlank @Size(max = 200) String name,

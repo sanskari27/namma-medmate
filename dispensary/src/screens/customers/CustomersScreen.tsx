@@ -1,883 +1,117 @@
-import {
-  CustomerCreateDialog,
-  CustomerFamilyDialog,
-  CustomerMergeDialog,
-  CreditSettleDialog,
-  DoctorReferenceDialog,
-} from '@templates';
-import {
-  getFamilyCredit,
-  getFamilyForCustomer,
-  getFamilyHistory,
-  isApiError,
-  removeFamilyMember,
-  type CustomerFamily,
-  type FamilyCredit,
-  type FamilyHistoryItem,
-} from '@/services/customerFamilies';
-import {
-  getCustomerHistory,
-  listCustomers,
-  updateCustomer,
-  type Customer,
-  type CustomerHistoryItem,
-} from '@/services/customers';
-import { getCustomerCredit, setCustomerCreditLimit, type CustomerCredit } from '@/services/credit';
-import { getCustomerLoyalty, type CustomerLoyalty } from '@/services/loyalty';
-import {
-  createCustomerRefill,
-  createTenantTag,
-  deleteCustomerRefill,
-  listCustomerRefills,
-  listCustomerTags,
-  listDueRefills,
-  listTenantTags,
-  replaceCustomerTags,
-  updateCustomerRefill,
-  type CustomerRefill,
-  type CustomerTag,
-  type DueRefill,
-} from '@/services/customerRefills';
-import {
-  listDoctors,
-  listTopReferringDoctors,
-  type Doctor,
-  type TopReferringDoctor,
-} from '@/services/doctors';
-import type { RootState } from '@/store';
-import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import { CustomerCreditSection } from './components/customer-credit-section';
-import { CustomerLoyaltySection } from './components/customer-loyalty-section';
-import { CustomerDoctorSection } from './components/customer-doctor-section';
-import { CustomerDueRefillsStrip } from './components/customer-due-refills-strip';
-import { CustomerFamilyCreditSection } from './components/customer-family-credit-section';
-import { CustomerFamilyHistory } from './components/customer-family-history';
-import { CustomerFamilySection } from './components/customer-family-section';
-import { CustomerListPanel } from './components/customer-list-panel';
-import { CustomerProfilePanel } from './components/customer-profile-panel';
-import { CustomerPurchaseHistory } from './components/customer-purchase-history';
-import { CustomerRefillSection } from './components/customer-refill-section';
-import { CustomerTagsSection } from './components/customer-tags-section';
-import { CustomersHeader } from './components/customers-header';
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { CustomerCreateDialog, CreditSettleDialog } from '@templates';
+import type { AppDispatch, RootState } from '@/store';
+import { CustomersDetailDialog } from './components/customers-detail-dialog';
 import { CustomersStatusBanner } from './components/customers-status-banner';
+import { CustomersSummary } from './components/customers-summary';
+import { CustomersTable } from './components/customers-table';
+import { CustomersToolbar } from './components/customers-toolbar';
+import { CUSTOMERS_CONTENT } from './CustomersScreen.content';
+import './CustomersScreen.css';
+import { hasCrmAccess } from './CustomersScreen.utils';
 import {
-  emptyForm,
-  hasCrmAccess,
-  hasHealthFlag,
-  hasLoyaltyAccess,
-  statusCopy,
-  toForm,
-  toInput,
-  type FormState,
-  type PageStatus,
-} from './CustomersScreen.utils';
+  selectCreateCustomerOpen,
+  selectCustomerCredit,
+  selectCustomersStatus,
+  selectSelectedCustomer,
+  selectSettleOpen,
+} from './store/customers.selectors';
+import {
+  closeCreateCustomer,
+  closeSettleCredit,
+  markCustomerAction,
+} from './store/customers.slice';
+import { loadCustomerDetail, loadCustomers } from './store/customers.thunks';
+import { rowKey } from './CustomersScreen.utils';
 
 export default function CustomersScreen() {
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector(selectCustomersStatus);
+  const createOpen = useSelector(selectCreateCustomerOpen);
+  const settleOpen = useSelector(selectSettleOpen);
+  const selected = useSelector(selectSelectedCustomer);
+  const credit = useSelector(selectCustomerCredit);
   const user = useSelector((state: RootState) => state.auth.user);
-  const formId = useId();
-  const statusId = useId();
-  const addRef = useRef<HTMLButtonElement | null>(null);
-  const mergeRef = useRef<HTMLButtonElement | null>(null);
-  const familyLinkRef = useRef<HTMLButtonElement | null>(null);
-  const doctorAddRef = useRef<HTMLButtonElement | null>(null);
-  const settleRef = useRef<HTMLButtonElement | null>(null);
-  const loyaltyAdjustRef = useRef<HTMLButtonElement | null>(null);
-  const [status, setStatus] = useState<PageStatus>('loading');
-  const [customers, setCustomers] = useState<Customer[]>([]);
-  const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [createOpen, setCreateOpen] = useState(false);
-  const [mergeOpen, setMergeOpen] = useState(false);
-  const [familyOpen, setFamilyOpen] = useState(false);
-  const [doctorOpen, setDoctorOpen] = useState(false);
-  const [settleOpen, setSettleOpen] = useState(false);
-  const [settleTarget, setSettleTarget] = useState<{
-    customerId: string;
-    customerName: string;
-    balancePaise: number;
-    version: number;
-  } | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [limitBusy, setLimitBusy] = useState(false);
-  const [family, setFamily] = useState<CustomerFamily | null>(null);
-  const [familyLoading, setFamilyLoading] = useState(false);
-  const [familyCredit, setFamilyCredit] = useState<FamilyCredit | null>(null);
-  const [familyCreditLoading, setFamilyCreditLoading] = useState(false);
-  const [unlinkBusy, setUnlinkBusy] = useState(false);
-  const [historyItems, setHistoryItems] = useState<FamilyHistoryItem[]>([]);
-  const [historyLoading, setHistoryLoading] = useState(false);
-  const [memberFilter, setMemberFilter] = useState('');
-  const [typeFilter, setTypeFilter] = useState('');
-  const [purchaseItems, setPurchaseItems] = useState<CustomerHistoryItem[]>([]);
-  const [purchaseLoading, setPurchaseLoading] = useState(false);
-  const [purchaseTypeFilter, setPurchaseTypeFilter] = useState('');
-  const [doctors, setDoctors] = useState<Doctor[]>([]);
-  const [topReferring, setTopReferring] = useState<TopReferringDoctor[]>([]);
-  const [doctorsLoading, setDoctorsLoading] = useState(false);
-  const [credit, setCredit] = useState<CustomerCredit | null>(null);
-  const [creditLoading, setCreditLoading] = useState(false);
-  const [loyalty, setLoyalty] = useState<CustomerLoyalty | null>(null);
-  const [loyaltyLoading, setLoyaltyLoading] = useState(false);
-  const [refills, setRefills] = useState<CustomerRefill[]>([]);
-  const [refillsLoading, setRefillsLoading] = useState(false);
-  const [refillBusy, setRefillBusy] = useState(false);
-  const [dueRefills, setDueRefills] = useState<DueRefill[]>([]);
-  const [dueLoading, setDueLoading] = useState(false);
-  const [tagCatalog, setTagCatalog] = useState<CustomerTag[]>([]);
-  const [customerTags, setCustomerTags] = useState<CustomerTag[]>([]);
-  const [tagsLoading, setTagsLoading] = useState(false);
-  const [tagBusy, setTagBusy] = useState(false);
-
   const allowed = hasCrmAccess(user?.modules);
-  const canSetLimit = user?.role === 'pharmacy_owner';
-  const canAdjustLoyalty = user?.role === 'pharmacy_owner';
-  const loyaltyEntitled = hasLoyaltyAccess(user?.modules);
-  const selected = customers.find((row) => row.id === selectedId) ?? null;
-  const flagged = customers.filter(hasHealthFlag).length;
-  const banner = statusCopy(status);
-
-  const load = useCallback(
-    async (search?: string) => {
-      if (!allowed) {
-        setStatus('denied');
-        return;
-      }
-      setStatus('loading');
-      try {
-        const items = await listCustomers(search);
-        setCustomers(items);
-        setStatus(items.length === 0 ? 'empty' : null);
-      } catch (error) {
-        if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-          setStatus('denied');
-        } else {
-          setStatus('failure');
-        }
-      }
-    },
-    [allowed],
-  );
-
-  const loadFamily = useCallback(async (customerId: string) => {
-    setFamilyLoading(true);
-    try {
-      const next = await getFamilyForCustomer(customerId);
-      setFamily(next);
-    } catch {
-      setFamily(null);
-      setStatus('failure');
-    } finally {
-      setFamilyLoading(false);
-    }
-  }, []);
-
-  const loadHistory = useCallback(async (familyId: string, memberId?: string, type?: string) => {
-    setHistoryLoading(true);
-    try {
-      const items = await getFamilyHistory(familyId, {
-        memberId: memberId || undefined,
-        type: type || undefined,
-      });
-      setHistoryItems(items);
-    } catch {
-      setHistoryItems([]);
-      setStatus('failure');
-    } finally {
-      setHistoryLoading(false);
-    }
-  }, []);
-
-  const loadFamilyCredit = useCallback(async (familyId: string) => {
-    setFamilyCreditLoading(true);
-    try {
-      const next = await getFamilyCredit(familyId);
-      setFamilyCredit(next);
-    } catch {
-      setFamilyCredit(null);
-      setStatus('failure');
-    } finally {
-      setFamilyCreditLoading(false);
-    }
-  }, []);
-
-  const loadPurchaseHistory = useCallback(async (customerId: string) => {
-    setPurchaseLoading(true);
-    try {
-      const items = await getCustomerHistory(customerId);
-      setPurchaseItems(items);
-    } catch {
-      setPurchaseItems([]);
-      setStatus('failure');
-    } finally {
-      setPurchaseLoading(false);
-    }
-  }, []);
-
-  const loadDoctors = useCallback(async () => {
-    setDoctorsLoading(true);
-    try {
-      const [nextDoctors, nextTop] = await Promise.all([listDoctors(), listTopReferringDoctors(5)]);
-      setDoctors(nextDoctors);
-      setTopReferring(nextTop);
-    } catch {
-      setDoctors([]);
-      setTopReferring([]);
-      setStatus('failure');
-    } finally {
-      setDoctorsLoading(false);
-    }
-  }, []);
-
-  const loadCredit = useCallback(async (customerId: string) => {
-    setCreditLoading(true);
-    try {
-      const next = await getCustomerCredit(customerId);
-      setCredit(next);
-    } catch {
-      setCredit(null);
-      setStatus('failure');
-    } finally {
-      setCreditLoading(false);
-    }
-  }, []);
-
-  const loadLoyalty = useCallback(async (customerId: string) => {
-    setLoyaltyLoading(true);
-    try {
-      const next = await getCustomerLoyalty(customerId);
-      setLoyalty(next);
-    } catch {
-      setLoyalty(null);
-      setStatus('failure');
-    } finally {
-      setLoyaltyLoading(false);
-    }
-  }, []);
-
-  const loadRefills = useCallback(async (customerId: string) => {
-    setRefillsLoading(true);
-    try {
-      const items = await listCustomerRefills(customerId);
-      setRefills(items);
-    } catch {
-      setRefills([]);
-      setStatus('failure');
-    } finally {
-      setRefillsLoading(false);
-    }
-  }, []);
-
-  const loadDueRefills = useCallback(async () => {
-    setDueLoading(true);
-    try {
-      const items = await listDueRefills();
-      setDueRefills(items);
-    } catch {
-      setDueRefills([]);
-      setStatus('failure');
-    } finally {
-      setDueLoading(false);
-    }
-  }, []);
-
-  const loadTagCatalog = useCallback(async () => {
-    try {
-      const items = await listTenantTags();
-      setTagCatalog(items);
-    } catch {
-      setTagCatalog([]);
-      setStatus('failure');
-    }
-  }, []);
-
-  const loadCustomerTags = useCallback(async (customerId: string) => {
-    setTagsLoading(true);
-    try {
-      const items = await listCustomerTags(customerId);
-      setCustomerTags(items);
-    } catch {
-      setCustomerTags([]);
-      setStatus('failure');
-    } finally {
-      setTagsLoading(false);
-    }
-  }, []);
+  const addRef = useRef<HTMLButtonElement | null>(null);
+  const settleRef = useRef<HTMLButtonElement | null>(null);
 
   useEffect(() => {
-    void load();
-  }, [load]);
-
-  useEffect(() => {
-    if (!allowed) {
-      return;
-    }
-    void loadDoctors();
-    void loadDueRefills();
-    void loadTagCatalog();
-  }, [allowed, loadDoctors, loadDueRefills, loadTagCatalog]);
-
-  useEffect(() => {
-    if (!selectedId) {
-      setFamily(null);
-      setFamilyCredit(null);
-      setHistoryItems([]);
-      setMemberFilter('');
-      setTypeFilter('');
-      setPurchaseItems([]);
-      setPurchaseTypeFilter('');
-      setCredit(null);
-      setLoyalty(null);
-      setRefills([]);
-      setCustomerTags([]);
-      return;
-    }
-    void loadFamily(selectedId);
-    void loadPurchaseHistory(selectedId);
-    void loadCredit(selectedId);
-    void loadLoyalty(selectedId);
-    void loadRefills(selectedId);
-    void loadCustomerTags(selectedId);
-  }, [
-    selectedId,
-    loadFamily,
-    loadPurchaseHistory,
-    loadCredit,
-    loadLoyalty,
-    loadRefills,
-    loadCustomerTags,
-  ]);
-
-  useEffect(() => {
-    if (!family?.id) {
-      setHistoryItems([]);
-      setFamilyCredit(null);
-      return;
-    }
-    void loadHistory(family.id, memberFilter || undefined, typeFilter || undefined);
-    void loadFamilyCredit(family.id);
-  }, [family?.id, memberFilter, typeFilter, loadHistory, loadFamilyCredit]);
-
-  function selectCustomer(customer: Customer) {
-    setSelectedId(customer.id);
-    setForm(toForm(customer));
-    setStatus(null);
-  }
-
-  function clearSelection() {
-    setSelectedId(null);
-    setForm(emptyForm);
-  }
-
-  function updateField<K extends keyof FormState>(key: K, value: FormState[K]) {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  }
-
-  async function onSave(event: FormEvent) {
-    event.preventDefault();
-    if (!selectedId) {
-      return;
-    }
-    if (!form.name.trim() || !form.phone.trim()) {
-      setStatus('validation');
-      return;
-    }
-    setBusy(true);
-    try {
-      const updated = await updateCustomer(selectedId, toInput(form));
-      setCustomers((prev) => prev.map((row) => (row.id === updated.id ? updated : row)));
-      setForm(toForm(updated));
-      setStatus('success');
-    } catch (error) {
-      if (isApiError(error) && error.code === 'PHONE_TAKEN') {
-        setStatus('conflict');
-      } else if (isApiError(error) && error.status === 400) {
-        setStatus('validation');
-      } else if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-        setStatus('denied');
-      } else {
-        setStatus('failure');
-      }
-    } finally {
-      setBusy(false);
-    }
-  }
-
-  async function onSearch(event: FormEvent) {
-    event.preventDefault();
-    await load(query.trim() || undefined);
-  }
-
-  async function onSetLimit(limitPaise: number) {
-    if (!selectedId || !credit) {
-      return;
-    }
-    setLimitBusy(true);
-    try {
-      const next = await setCustomerCreditLimit(selectedId, limitPaise, credit.version);
-      setCredit(next);
-      setStatus('success');
-    } catch (error) {
-      if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-        setStatus('denied');
-      } else if (isApiError(error) && (error.status === 409 || error.code === 'STALE_STATE')) {
-        setStatus('conflict');
-        void loadCredit(selectedId);
-      } else if (isApiError(error) && error.status === 400) {
-        setStatus('validation');
-      } else {
-        setStatus('failure');
-      }
-    } finally {
-      setLimitBusy(false);
-    }
-  }
-
-  function mapRefillError(error: unknown) {
-    if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-      setStatus('denied');
-    } else if (
-      isApiError(error) &&
-      (error.status === 409 ||
-        error.code === 'STALE_STATE' ||
-        error.code === 'DUPLICATE_REFILL' ||
-        error.code === 'DUPLICATE_TAG' ||
-        error.code === 'TAG_IN_USE')
-    ) {
-      setStatus('conflict');
-    } else if (isApiError(error) && error.status === 400) {
-      setStatus('validation');
-    } else {
-      setStatus('failure');
-    }
-  }
-
-  async function onAddRefill(input: {
-    medicineName: string;
-    intervalDays?: number;
-    nextDueOn?: string;
-  }) {
-    if (!selectedId) {
-      return;
-    }
-    if (!input.medicineName.trim()) {
-      setStatus('validation');
-      return;
-    }
-    setRefillBusy(true);
-    try {
-      await createCustomerRefill(selectedId, input);
-      await loadRefills(selectedId);
-      await loadDueRefills();
-      setStatus('success');
-    } catch (error) {
-      mapRefillError(error);
-      if (isApiError(error) && error.code === 'STALE_STATE') {
-        void loadRefills(selectedId);
-      }
-    } finally {
-      setRefillBusy(false);
-    }
-  }
-
-  async function onUpdateRefill(
-    refillId: string,
-    input: { intervalDays: number; nextDueOn: string; expectedVersion: number },
-  ) {
-    if (!selectedId) {
-      return;
-    }
-    setRefillBusy(true);
-    try {
-      await updateCustomerRefill(selectedId, refillId, input);
-      await loadRefills(selectedId);
-      await loadDueRefills();
-      setStatus('success');
-    } catch (error) {
-      mapRefillError(error);
-      if (isApiError(error) && (error.status === 409 || error.code === 'STALE_STATE')) {
-        void loadRefills(selectedId);
-      }
-    } finally {
-      setRefillBusy(false);
-    }
-  }
-
-  async function onRemoveRefill(refillId: string) {
-    if (!selectedId) {
-      return;
-    }
-    setRefillBusy(true);
-    try {
-      await deleteCustomerRefill(selectedId, refillId);
-      await loadRefills(selectedId);
-      await loadDueRefills();
-      setStatus('success');
-    } catch (error) {
-      mapRefillError(error);
-    } finally {
-      setRefillBusy(false);
-    }
-  }
-
-  async function onCreateTag(name: string) {
-    if (!name.trim()) {
-      setStatus('validation');
-      return;
-    }
-    setTagBusy(true);
-    try {
-      const created = await createTenantTag(name.trim());
-      setTagCatalog((prev) =>
-        [...prev, created].sort((a, b) =>
-          a.name.localeCompare(b.name, undefined, { sensitivity: 'base' }),
-        ),
-      );
-      setStatus('success');
-    } catch (error) {
-      mapRefillError(error);
-    } finally {
-      setTagBusy(false);
-    }
-  }
-
-  async function onReplaceTags(tagIds: string[]) {
-    if (!selectedId) {
-      return;
-    }
-    setTagBusy(true);
-    try {
-      const next = await replaceCustomerTags(selectedId, tagIds);
-      setCustomerTags(next);
-      setStatus('success');
-    } catch (error) {
-      mapRefillError(error);
-      void loadCustomerTags(selectedId);
-    } finally {
-      setTagBusy(false);
-    }
-  }
-
-  async function onUnlinkMember(customerId: string) {
-    if (!family) {
-      return;
-    }
-    setUnlinkBusy(true);
-    try {
-      const next = await removeFamilyMember(family.id, customerId);
-      if (next.members.length === 0) {
-        setFamily(null);
-        setFamilyCredit(null);
-        setHistoryItems([]);
-      } else {
-        setFamily(next);
-      }
-      setStatus('success');
-    } catch (error) {
-      if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-        setStatus('denied');
-      } else if (isApiError(error) && error.status === 409) {
-        setStatus('conflict');
-      } else {
-        setStatus('failure');
-      }
-    } finally {
-      setUnlinkBusy(false);
-    }
-  }
+    if (!allowed) return;
+    void dispatch(loadCustomers());
+  }, [dispatch, allowed]);
 
   if (!allowed) {
     return (
-      <div className="flex h-full min-h-0 w-full flex-col gap-4">
-        <CustomersHeader addButtonId={`${formId}-add`} denied onAdd={() => undefined} />
-        <CustomersStatusBanner status="denied" statusId={statusId} asAlert />
+      <div className="cust" aria-label={CUSTOMERS_CONTENT.regionLabel}>
+        <div className="cust-banner" data-tone="alert" role="alert">
+          <strong>{CUSTOMERS_CONTENT.denied}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'denied') {
+    return (
+      <div className="cust" aria-label={CUSTOMERS_CONTENT.regionLabel}>
+        <CustomersStatusBanner />
       </div>
     );
   }
 
   return (
-    <div className="flex h-full min-h-0 w-full flex-col gap-4">
-      <div className="shrink-0 space-y-4">
-        <CustomersHeader
-          addButtonId={`${formId}-add`}
-          addButtonRef={addRef}
-          onAdd={() => setCreateOpen(true)}
-        />
+    <div className="cust" aria-label={CUSTOMERS_CONTENT.regionLabel}>
+      <CustomersStatusBanner />
+      {status === 'loading' || status === 'idle' ? (
+        <div className="cust-card">
+          <div className="cust-loading" role="status">
+            {CUSTOMERS_CONTENT.status.loading}
+          </div>
+        </div>
+      ) : (
+        <>
+          <CustomersSummary />
+          <CustomersToolbar />
+          <CustomersTable />
+        </>
+      )}
 
-        {status !== 'loading' && status !== 'failure' && status !== 'denied' ? (
-          <p className="flex flex-wrap gap-x-4 gap-y-1 text-xs text-muted">
-            <span>
-              <span className="font-mono tabular-nums text-ink">{customers.length}</span> on floor
-            </span>
-            <span>
-              <span className="font-mono tabular-nums text-ink">{flagged}</span> with allergy or
-              chronic note
-            </span>
-          </p>
-        ) : null}
-
-        <CustomersStatusBanner status={status} statusId={statusId} />
-
-        <CustomerDueRefillsStrip
-          items={dueRefills}
-          loading={dueLoading}
-          onSelectCustomer={(customerId) => {
-            const row = customers.find((c) => c.id === customerId);
-            if (row) {
-              selectCustomer(row);
-            } else {
-              setSelectedId(customerId);
-            }
-          }}
-        />
-      </div>
-
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)] xl:grid-cols-[minmax(0,26rem)_minmax(0,1fr)]">
-        <CustomerListPanel
-          formId={formId}
-          customers={customers}
-          selectedId={selectedId}
-          query={query}
-          showEmptyHint={customers.length === 0 && status !== 'loading'}
-          onQueryChange={setQuery}
-          onSearch={onSearch}
-          onSelect={selectCustomer}
-        />
-        <CustomerProfilePanel
-          formId={formId}
-          statusId={statusId}
-          selected={selected}
-          form={form}
-          busy={busy}
-          describedByStatus={Boolean(banner)}
-          onChange={updateField}
-          onSave={onSave}
-          onClose={clearSelection}
-          mergeButtonRef={mergeRef}
-          onMerge={() => setMergeOpen(true)}
-          creditSection={
-            selected ? (
-              <CustomerCreditSection
-                credit={credit}
-                loading={creditLoading}
-                canSetLimit={canSetLimit}
-                limitBusy={limitBusy}
-                settleButtonRef={settleRef}
-                onSetLimit={(limitPaise) => {
-                  void onSetLimit(limitPaise);
-                }}
-                onSettle={() => {
-                  if (!selected || !credit) {
-                    return;
-                  }
-                  setSettleTarget({
-                    customerId: selected.id,
-                    customerName: selected.name,
-                    balancePaise: credit.balancePaise,
-                    version: credit.version,
-                  });
-                  setSettleOpen(true);
-                }}
-              />
-            ) : null
-          }
-          loyaltySection={
-            selected ? (
-              <CustomerLoyaltySection
-                loyalty={loyalty}
-                loading={loyaltyLoading}
-                entitled={loyaltyEntitled}
-                canAdjust={canAdjustLoyalty}
-                adjustButtonRef={loyaltyAdjustRef}
-                onAdjusted={() => {
-                  if (selectedId) {
-                    void loadLoyalty(selectedId);
-                  }
-                  setStatus('success');
-                }}
-              />
-            ) : null
-          }
-          refillSection={
-            selected ? (
-              <CustomerRefillSection
-                refills={refills}
-                loading={refillsLoading}
-                busy={refillBusy}
-                onAdd={(input) => {
-                  void onAddRefill(input);
-                }}
-                onUpdate={(refillId, input) => {
-                  void onUpdateRefill(refillId, input);
-                }}
-                onRemove={(refillId) => {
-                  void onRemoveRefill(refillId);
-                }}
-              />
-            ) : null
-          }
-          tagsSection={
-            selected ? (
-              <CustomerTagsSection
-                catalog={tagCatalog}
-                assigned={customerTags}
-                loading={tagsLoading}
-                busy={tagBusy}
-                onCreateTag={(name) => {
-                  void onCreateTag(name);
-                }}
-                onReplace={(tagIds) => {
-                  void onReplaceTags(tagIds);
-                }}
-              />
-            ) : null
-          }
-          purchaseHistory={
-            selected ? (
-              <CustomerPurchaseHistory
-                items={purchaseItems}
-                loading={purchaseLoading}
-                typeFilter={purchaseTypeFilter}
-                onTypeFilter={setPurchaseTypeFilter}
-              />
-            ) : null
-          }
-          doctorSection={
-            selected ? (
-              <CustomerDoctorSection
-                doctors={doctors}
-                topReferring={topReferring}
-                loading={doctorsLoading}
-                addButtonRef={doctorAddRef}
-                onAdd={() => setDoctorOpen(true)}
-              />
-            ) : null
-          }
-          familySection={
-            selected ? (
-              <CustomerFamilySection
-                family={family}
-                familyLoading={familyLoading}
-                selectedCustomerId={selected.id}
-                linkButtonRef={familyLinkRef}
-                unlinkBusy={unlinkBusy}
-                onLink={() => setFamilyOpen(true)}
-                onUnlink={(id) => {
-                  void onUnlinkMember(id);
-                }}
-              />
-            ) : null
-          }
-          familyCreditSection={
-            selected && family ? (
-              <CustomerFamilyCreditSection
-                credit={familyCredit}
-                loading={familyCreditLoading}
-                onSettleMember={(member) => {
-                  setSettleTarget(member);
-                  setSettleOpen(true);
-                }}
-              />
-            ) : null
-          }
-          familyHistory={
-            selected ? (
-              <CustomerFamilyHistory
-                familyId={family?.id ?? null}
-                members={family?.members ?? []}
-                items={historyItems}
-                loading={historyLoading}
-                memberFilter={memberFilter}
-                typeFilter={typeFilter}
-                onMemberFilter={setMemberFilter}
-                onTypeFilter={setTypeFilter}
-              />
-            ) : null
-          }
-        />
-      </div>
+      <CustomersDetailDialog />
 
       <CustomerCreateDialog
         open={createOpen}
-        onOpenChange={setCreateOpen}
+        onOpenChange={(open) => {
+          if (!open) dispatch(closeCreateCustomer());
+        }}
         onCloseFocus={() => addRef.current?.focus()}
-        onPhoneConflict={(phone) => {
-          setQuery(phone);
-          void load(phone);
-          setStatus('conflict');
+        onPhoneConflict={() => {
+          dispatch(markCustomerAction('conflict'));
         }}
-        onCreated={(customer) => {
-          setCustomers((prev) =>
-            [...prev.filter((row) => row.id !== customer.id), customer].sort((a, b) =>
-              a.name.localeCompare(b.name),
-            ),
-          );
-          selectCustomer(customer);
-          setStatus('success');
+        onCreated={() => {
+          dispatch(closeCreateCustomer());
+          dispatch(markCustomerAction('success'));
+          void dispatch(loadCustomers());
         }}
       />
 
-      <CustomerMergeDialog
-        open={mergeOpen}
-        survivor={selected}
-        candidates={customers}
-        onOpenChange={setMergeOpen}
-        onCloseFocus={() => mergeRef.current?.focus()}
-        onMerged={(merged) => {
-          void load(query.trim() || undefined).then(() => {
-            selectCustomer(merged);
-            setStatus('success');
-          });
-        }}
-      />
-
-      <CustomerFamilyDialog
-        open={familyOpen}
-        primary={selected}
-        candidates={customers}
-        existingFamily={family}
-        onOpenChange={setFamilyOpen}
-        onCloseFocus={() => familyLinkRef.current?.focus()}
-        onLinked={(next) => {
-          setFamily(next);
-          setStatus('success');
-          void loadFamilyCredit(next.id);
-        }}
-      />
-
-      <DoctorReferenceDialog
-        open={doctorOpen}
-        onOpenChange={setDoctorOpen}
-        onCloseFocus={() => doctorAddRef.current?.focus()}
-        onSaved={() => {
-          void loadDoctors();
-          setStatus('success');
-        }}
-      />
-
-      {settleTarget ? (
+      {selected && !selected.walkInAggregate && credit ? (
         <CreditSettleDialog
           open={settleOpen}
-          customerId={settleTarget.customerId}
-          customerName={settleTarget.customerName}
-          balancePaise={settleTarget.balancePaise}
-          version={settleTarget.version}
+          customerId={selected.id!}
+          customerName={selected.name}
+          balancePaise={credit.balancePaise}
+          version={credit.version}
           onOpenChange={(open) => {
-            setSettleOpen(open);
-            if (!open) {
-              setSettleTarget(null);
-            }
+            if (!open) dispatch(closeSettleCredit());
           }}
           onCloseFocus={() => settleRef.current?.focus()}
           onSettled={() => {
-            if (selectedId) {
-              void loadCredit(selectedId);
-            }
-            if (family?.id) {
-              void loadFamilyCredit(family.id);
-            }
-            setStatus('success');
+            dispatch(closeSettleCredit());
+            dispatch(markCustomerAction('settled'));
+            const key = rowKey(selected);
+            void dispatch(loadCustomerDetail(key));
+            void dispatch(loadCustomers());
           }}
         />
       ) : null}
