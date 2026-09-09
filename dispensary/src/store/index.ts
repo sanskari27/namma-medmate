@@ -1,6 +1,7 @@
 import { configureStore } from '@reduxjs/toolkit';
 import { authReducer } from './auth.slice';
 import { notificationsReducer } from './notifications.slice';
+import { dashboardReducer } from '@/screens/dashboard/store/dashboard.slice';
 
 export {
   authReducer,
@@ -21,7 +22,7 @@ export {
 } from './notifications.slice';
 
 export const store = configureStore({
-  reducer: { auth: authReducer, notifications: notificationsReducer },
+  reducer: { auth: authReducer, notifications: notificationsReducer, dashboard: dashboardReducer },
 });
 
 export type RootState = ReturnType<typeof store.getState>;

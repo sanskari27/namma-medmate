@@ -162,6 +162,7 @@ export const API = {
   CUSTOM_REPORT_PREVIEW: '/api/v1/reports/custom/preview',
   CUSTOM_REPORT_EXPORT: '/api/v1/reports/custom/export',
   dashboard: (role: string) => `/api/v1/dashboards/${role}`,
+  DASHBOARD_HOME: '/api/v1/dashboards/home',
   EXPENSES: '/api/v1/finance/expenses',
   EXPENSES_TOTALS: '/api/v1/finance/expenses/totals',
   expense: (id: string) => `/api/v1/finance/expenses/${id}`,

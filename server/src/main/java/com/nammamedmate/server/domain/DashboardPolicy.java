@@ -29,6 +29,7 @@ public final class DashboardPolicy {
   public static final String LICENSES_HREF = "/licenses";
   public static final String ACCOUNT_HREF = "/account";
   public static final String PURCHASES_HREF = "/purchases";
+  public static final String PRESCRIPTIONS_HREF = "/prescriptions";
   public static final String OK = "OK";
   public static final String FAILED = "FAILED";
   public static final String UNAVAILABLE = "UNAVAILABLE";

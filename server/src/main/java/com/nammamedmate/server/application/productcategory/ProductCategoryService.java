@@ -45,9 +45,10 @@ public class ProductCategoryService {
   }
 
   @Transactional
-  public ProductCategoryView create(AuthPrincipal principal, String name) {
+  public ProductCategoryView create(AuthPrincipal principal, String name, String icon) {
     UUID tenantId = requireInventoryAccess(principal);
     String normalized = requireName(name);
+    String normalizedIcon = normalizeIcon(icon);
     productCategoryRepository
         .findByTenantIdAndNameIgnoreCase(tenantId, normalized)
         .ifPresent(
@@ -63,6 +64,7 @@ public class ProductCategoryService {
     category.setId(UUID.randomUUID());
     category.setTenantId(tenantId);
     category.setName(normalized);
+    category.setIcon(normalizedIcon);
     category.setCreatedAt(now);
     category.setUpdatedAt(now);
     return toView(productCategoryRepository.save(category));
@@ -98,11 +100,23 @@ public class ProductCategoryService {
     return trimmed;
   }
 
+  private static String normalizeIcon(String icon) {
+    if (icon == null || icon.isBlank()) {
+      return null;
+    }
+    String trimmed = icon.trim();
+    if (trimmed.length() > 16) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    return trimmed;
+  }
+
   private static ProductCategoryView toView(ProductCategory category) {
     return new ProductCategoryView(
         category.getId(),
         category.getTenantId(),
         category.getName(),
+        category.getIcon(),
         category.getCreatedAt(),
         category.getUpdatedAt());
   }

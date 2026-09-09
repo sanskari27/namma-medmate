@@ -19,6 +19,7 @@ public record ProductView(
     String brandName,
     UUID manufacturerId,
     UUID categoryId,
+    String categoryIcon,
     ProductType productType,
     DosageForm dosageForm,
     String therapeuticClass,

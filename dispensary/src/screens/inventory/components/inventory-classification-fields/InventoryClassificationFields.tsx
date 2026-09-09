@@ -1,6 +1,9 @@
 import { Button, Input, Label } from '@atoms';
 import type { Manufacturer } from '@/services/manufacturers';
-import type { ProductCategory } from '@/services/productCategories';
+import {
+  CATEGORY_ICON_PRESETS,
+  type ProductCategory,
+} from '@/services/productCategories';
 import {
   DOSAGE_FORMS,
   PRODUCT_ROUTES,
@@ -15,11 +18,13 @@ export type InventoryClassificationFieldsProps = {
   categories: ProductCategory[];
   manufacturers: Manufacturer[];
   newCategoryName: string;
+  newCategoryIcon: string;
   newManufacturerName: string;
   categoryBusy: boolean;
   manufacturerBusy: boolean;
   onChange: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   onNewCategoryNameChange: (value: string) => void;
+  onNewCategoryIconChange: (value: string) => void;
   onNewManufacturerNameChange: (value: string) => void;
   onCreateCategory: () => void;
   onCreateManufacturer: () => void;
@@ -33,11 +38,13 @@ export function InventoryClassificationFields({
   categories,
   manufacturers,
   newCategoryName,
+  newCategoryIcon,
   newManufacturerName,
   categoryBusy,
   manufacturerBusy,
   onChange,
   onNewCategoryNameChange,
+  onNewCategoryIconChange,
   onNewManufacturerNameChange,
   onCreateCategory,
   onCreateManufacturer,
@@ -58,28 +65,58 @@ export function InventoryClassificationFields({
             <option value="">Select category</option>
             {categories.map((cat) => (
               <option key={cat.id} value={cat.id}>
+                {cat.icon ? `${cat.icon} ` : ''}
                 {cat.name}
               </option>
             ))}
           </select>
-          <div className="mt-1 flex gap-2">
-            <Input
-              id={`${formId}-new-category`}
-              value={newCategoryName}
-              onChange={(e) => onNewCategoryNameChange(e.target.value)}
-              placeholder="New category name"
-              aria-label="New category name"
-              className="h-9"
-            />
-            <Button
-              type="button"
-              variant="outline"
-              className="shrink-0"
-              disabled={categoryBusy || !newCategoryName.trim()}
-              onClick={onCreateCategory}
-            >
-              Add category
-            </Button>
+          <div className="mt-2 grid gap-2 rounded-md border border-line bg-canvas p-2.5">
+            <p className="text-xs font-medium text-ink">Add category</p>
+            <div className="flex flex-wrap gap-1.5" role="group" aria-label="Category icon">
+              {CATEGORY_ICON_PRESETS.map((icon) => (
+                <button
+                  key={icon}
+                  type="button"
+                  className={`inline-grid size-8 place-items-center rounded-md border text-base transition-colors ${
+                    newCategoryIcon === icon
+                      ? 'border-brand bg-brand-soft'
+                      : 'border-line bg-surface hover:border-brand'
+                  }`}
+                  aria-pressed={newCategoryIcon === icon}
+                  aria-label={`Use icon ${icon}`}
+                  onClick={() => onNewCategoryIconChange(newCategoryIcon === icon ? '' : icon)}
+                >
+                  {icon}
+                </button>
+              ))}
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Input
+                id={`${formId}-new-category-icon`}
+                value={newCategoryIcon}
+                onChange={(e) => onNewCategoryIconChange(e.target.value.slice(0, 16))}
+                placeholder="Icon / emoji"
+                aria-label="Category icon or emoji"
+                className="h-9 w-24"
+              />
+              <Input
+                id={`${formId}-new-category`}
+                value={newCategoryName}
+                onChange={(e) => onNewCategoryNameChange(e.target.value)}
+                placeholder="New category name"
+                aria-label="New category name"
+                className="h-9 min-w-[10rem] flex-1"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                className="shrink-0"
+                disabled={categoryBusy || !newCategoryName.trim()}
+                onClick={onCreateCategory}
+              >
+                Add category
+              </Button>
+            </div>
           </div>
         </div>
 

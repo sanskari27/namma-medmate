@@ -536,7 +536,8 @@ public class DashboardService {
                 batch.getExpiresOn(),
                 balance.getQuantity(),
                 branchId,
-                name));
+                name,
+                null));
       }
     }
     return new DashboardView.CountItemsPayload<>(items.size(), items);
@@ -750,7 +751,7 @@ public class DashboardService {
         .orElseThrow(DashboardPolicy::forbidden);
   }
 
-  private String branchName(UUID tenantId, UUID branchId) {
+  public String branchName(UUID tenantId, UUID branchId) {
     return locationRepository
         .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
         .map(Location::getName)
@@ -799,7 +800,8 @@ public class DashboardService {
     }
 
     private DashboardView.TopProductItem toItem() {
-      return new DashboardView.TopProductItem(productId, sku, productName, quantity, salesPaise);
+      return new DashboardView.TopProductItem(
+          productId, sku, productName, quantity, salesPaise, null);
     }
   }
 }

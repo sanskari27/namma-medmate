@@ -65,6 +65,7 @@ export interface Product {
   brandName: string | null;
   manufacturerId: string | null;
   categoryId: string;
+  categoryIcon: string | null;
   productType: ProductType;
   dosageForm: DosageForm;
   therapeuticClass: string | null;

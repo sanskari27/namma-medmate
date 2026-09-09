@@ -141,19 +141,23 @@ export function statusCopy(
   }
   switch (status) {
     case 'loading':
-      return "Loading this outlet's desk…";
+      return desk ? "Loading this outlet's desk…" : 'Loading today at a glance…';
     case 'empty':
-      return desk ? emptyCopy(desk) : 'Nothing waiting on this desk.';
+      return desk ? emptyCopy(desk) : 'Quiet counter so far — no bills or alerts yet.';
     case 'validation':
       return 'Select an outlet before opening this desk.';
     case 'denied':
-      return 'This desk is not on your floor roles. Ask the owner.';
+      return desk
+        ? 'This desk is not on your floor roles. Ask the owner.'
+        : 'This counter dashboard is not on your floor roles. Ask the owner.';
     case 'conflict':
       return 'These figures changed on another till. Refresh, then look again.';
     case 'failure':
-      return 'Could not load this desk. Check the connection and try again.';
+      return desk
+        ? 'Could not load this desk. Check the connection and try again.'
+        : 'Could not load the dashboard. Check the connection and try again.';
     case 'success':
-      return desk ? successCopy(desk) : null;
+      return desk ? successCopy(desk) : 'Today at a glance.';
     default:
       return null;
   }
@@ -170,6 +174,9 @@ export function statusIcon(status: PageStatus) {
 }
 
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
+  if (error.status === 401 || error.code === 'UNAUTHORIZED') {
+    return 'failure';
+  }
   if (error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';
   }
@@ -183,6 +190,9 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
 }
 
 export function apiStatusHint(code: string | null): string | null {
+  if (code === 'UNAUTHORIZED') {
+    return 'Your session expired. Sign in again to reload the dashboard.';
+  }
   if (code === 'NO_ACTIVE_BRANCH') {
     return 'Select an outlet before opening this desk.';
   }
@@ -201,6 +211,25 @@ export function formatPaise(paise: number): string {
     currency: 'INR',
     maximumFractionDigits: 2,
   }).format(paise / 100);
+}
+
+/** Formats a donut tooltip value for revenue (paise) or order counts. */
+export function formatDonutTooltip(
+  metric: 'revenue' | 'orders',
+  value: unknown,
+  salesPaise: number | undefined,
+): string {
+  if (metric === 'revenue' && salesPaise != null) {
+    return formatPaise(salesPaise);
+  }
+  return String(value ?? 0);
+}
+
+export function salesTrendPct(todayPaise: number, yesterdayPaise: number): number | null {
+  if (yesterdayPaise === 0) {
+    return todayPaise > 0 ? 100 : null;
+  }
+  return Math.round(((todayPaise - yesterdayPaise) / yesterdayPaise) * 100);
 }
 
 export function formatHeldAt(value: string): string {
@@ -245,9 +274,39 @@ export function formatDay(value: string | null | undefined): string {
     return value;
   }
   return new Intl.DateTimeFormat('en-IN', {
-    dateStyle: 'medium',
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
     timeZone: 'Asia/Kolkata',
   }).format(date);
+}
+
+export function greetingForHour(hour: number): string {
+  if (hour < 12) {
+    return 'Good morning';
+  }
+  if (hour < 17) {
+    return 'Good afternoon';
+  }
+  return 'Good evening';
+}
+
+export function periodLabel(period: string): string {
+  switch (period) {
+    case '30D':
+      return 'last 30 days';
+    case '12M':
+      return 'last 12 months';
+    default:
+      return 'last 7 days';
+  }
+}
+
+export function pctOf(part: number, total: number): number {
+  if (total <= 0) {
+    return 0;
+  }
+  return Math.round((part / total) * 100);
 }
 
 export function ownerWidgetList(owner: OwnerDesk): DashboardWidget<unknown>[] {

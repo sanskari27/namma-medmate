@@ -21,12 +21,14 @@ export type InventoryFormPanelProps = {
   categories: ProductCategory[];
   manufacturers: Manufacturer[];
   newCategoryName: string;
+  newCategoryIcon: string;
   newManufacturerName: string;
   categoryBusy: boolean;
   manufacturerBusy: boolean;
   onChange: <K extends keyof FormState>(key: K, value: FormState[K]) => void;
   onUnitRowsChange: (rows: UnitRow[]) => void;
   onNewCategoryNameChange: (value: string) => void;
+  onNewCategoryIconChange: (value: string) => void;
   onNewManufacturerNameChange: (value: string) => void;
   onCreateCategory: () => void;
   onCreateManufacturer: () => void;
@@ -44,12 +46,14 @@ export function InventoryFormPanel({
   categories,
   manufacturers,
   newCategoryName,
+  newCategoryIcon,
   newManufacturerName,
   categoryBusy,
   manufacturerBusy,
   onChange,
   onUnitRowsChange,
   onNewCategoryNameChange,
+  onNewCategoryIconChange,
   onNewManufacturerNameChange,
   onCreateCategory,
   onCreateManufacturer,
@@ -112,11 +116,13 @@ export function InventoryFormPanel({
             categories={categories}
             manufacturers={manufacturers}
             newCategoryName={newCategoryName}
+            newCategoryIcon={newCategoryIcon}
             newManufacturerName={newManufacturerName}
             categoryBusy={categoryBusy}
             manufacturerBusy={manufacturerBusy}
             onChange={onChange}
             onNewCategoryNameChange={onNewCategoryNameChange}
+            onNewCategoryIconChange={onNewCategoryIconChange}
             onNewManufacturerNameChange={onNewManufacturerNameChange}
             onCreateCategory={onCreateCategory}
             onCreateManufacturer={onCreateManufacturer}

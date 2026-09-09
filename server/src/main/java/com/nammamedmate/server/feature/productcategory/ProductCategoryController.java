@@ -39,18 +39,25 @@ public class ProductCategoryController {
   public ApiResponse<CategoryResponse> create(
       Authentication authentication, @Valid @RequestBody CreateCategoryRequest request) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(toResponse(productCategoryService.create(principal, request.name())));
+    return ApiResponse.ok(
+        toResponse(productCategoryService.create(principal, request.name(), request.icon())));
   }
 
   private CategoryResponse toResponse(ProductCategoryView view) {
     return new CategoryResponse(
-        view.id(), view.tenantId(), view.name(), view.createdAt(), view.updatedAt());
+        view.id(),
+        view.tenantId(),
+        view.name(),
+        view.icon(),
+        view.createdAt(),
+        view.updatedAt());
   }
 
   public record CategoryListResponse(List<CategoryResponse> items) {}
 
   public record CategoryResponse(
-      UUID id, UUID tenantId, String name, Instant createdAt, Instant updatedAt) {}
+      UUID id, UUID tenantId, String name, String icon, Instant createdAt, Instant updatedAt) {}
 
-  public record CreateCategoryRequest(@NotBlank @Size(max = 200) String name) {}
+  public record CreateCategoryRequest(
+      @NotBlank @Size(max = 200) String name, @Size(max = 16) String icon) {}
 }

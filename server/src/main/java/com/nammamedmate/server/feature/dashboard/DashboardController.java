@@ -2,6 +2,8 @@ package com.nammamedmate.server.feature.dashboard;
 
 import com.nammamedmate.server.application.dashboard.DashboardService;
 import com.nammamedmate.server.application.dashboard.DashboardView;
+import com.nammamedmate.server.application.dashboard.HomeDashboardService;
+import com.nammamedmate.server.application.dashboard.HomeDashboardView;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import org.springframework.security.core.Authentication;
@@ -16,9 +18,19 @@ import org.springframework.web.bind.annotation.RestController;
 public class DashboardController {
 
   private final DashboardService dashboardService;
+  private final HomeDashboardService homeDashboardService;
 
-  public DashboardController(DashboardService dashboardService) {
+  public DashboardController(
+      DashboardService dashboardService, HomeDashboardService homeDashboardService) {
     this.dashboardService = dashboardService;
+    this.homeDashboardService = homeDashboardService;
+  }
+
+  @GetMapping("/home")
+  public ApiResponse<HomeDashboardView> home(
+      Authentication authentication, @RequestParam(required = false) String period) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(homeDashboardService.open(principal, period));
   }
 
   @GetMapping("/{role}")

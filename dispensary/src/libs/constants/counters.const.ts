@@ -7,3 +7,5 @@ export type CounterId = (typeof COUNTERS)[number]['id'];
 
 export const COUNTER_STORAGE_KEY = 'dispensary.counterId';
 export const PHARMACY_NAME = 'This pharmacy';
+export const ALL_OUTLETS_LABEL = 'All outlets';
+export const FALLBACK_STAFF_NAME = 'Pharmacist';

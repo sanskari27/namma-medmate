@@ -1,4 +1,4 @@
-import { Button, Input, Label } from '@atoms';
+import { Button, CategoryMark, Input, Label } from '@atoms';
 import { ProductUnitSelect } from '@templates';
 import type { StockBatchDetail } from '@/services/inventory';
 import type { Product, ProductUnit } from '@/services/products';
@@ -90,11 +90,14 @@ export function PosDraftLines({
                   onClick={() => onAdd(product)}
                   disabled={busy}
                 >
-                  <span>
-                    <span className="font-medium text-ink">{product.name}</span>
-                    <span className="ml-2 font-mono text-xs text-muted">{product.sku}</span>
+                  <span className="flex min-w-0 items-center gap-2">
+                    <CategoryMark icon={product.categoryIcon} size="sm" />
+                    <span className="min-w-0">
+                      <span className="font-medium text-ink">{product.name}</span>
+                      <span className="ml-2 font-mono text-xs text-muted">{product.sku}</span>
+                    </span>
                   </span>
-                  <Plus className="size-4 text-brand" aria-hidden />
+                  <Plus className="size-4 shrink-0 text-brand" aria-hidden />
                   <span className="sr-only">Add {product.name}</span>
                 </button>
               </li>
@@ -113,9 +116,12 @@ export function PosDraftLines({
                 className="space-y-2 rounded border border-line px-2 py-2 text-sm"
               >
                 <div className="flex items-start justify-between gap-2">
-                  <div>
-                    <p className="font-medium text-ink">{line.product.name}</p>
-                    <p className="font-mono text-xs text-muted">{line.product.sku}</p>
+                  <div className="flex min-w-0 items-start gap-2">
+                    <CategoryMark icon={line.product.categoryIcon} size="sm" />
+                    <div>
+                      <p className="font-medium text-ink">{line.product.name}</p>
+                      <p className="font-mono text-xs text-muted">{line.product.sku}</p>
+                    </div>
                   </div>
                   <Button
                     type="button"

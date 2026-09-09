@@ -1,3 +1,4 @@
+import { CategoryMark } from '@atoms';
 import type { Product } from '@/services/products';
 
 export type InventoryListRowProps = {
@@ -26,12 +27,7 @@ export function InventoryListRow({
           active ? 'bg-brand-soft' : 'hover:bg-canvas'
         }`}
       >
-        <span
-          className={`mt-1 h-8 w-1 shrink-0 rounded-sm ${
-            product.isDiscontinued ? 'bg-warn' : 'bg-brand'
-          }`}
-          aria-hidden
-        />
+        <CategoryMark icon={product.categoryIcon} size="sm" className="mt-0.5" />
         <span className="min-w-0 flex-1">
           <span id={nameId} className="block truncate text-sm font-medium text-ink">
             {product.name}

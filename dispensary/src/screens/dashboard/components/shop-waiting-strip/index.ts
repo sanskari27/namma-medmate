@@ -1,1 +1,0 @@
-export { ShopWaitingStrip } from './ShopWaitingStrip';

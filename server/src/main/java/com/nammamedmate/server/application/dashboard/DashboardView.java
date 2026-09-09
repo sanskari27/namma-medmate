@@ -97,14 +97,20 @@ public record DashboardView(
       LocalDate expiresOn,
       BigDecimal quantity,
       UUID branchId,
-      String branchName) {}
+      String branchName,
+      String categoryIcon) {}
 
   public record WorkItem(UUID id, String label, String status, String href) {}
 
   public record AgingPayload(long totalPaise, List<BucketItem> buckets) {}
 
   public record TopProductItem(
-      UUID productId, String sku, String productName, BigDecimal quantity, long salesPaise) {}
+      UUID productId,
+      String sku,
+      String productName,
+      BigDecimal quantity,
+      long salesPaise,
+      String categoryIcon) {}
 
   public record CompliancePayload(
       String tenantStatus, String kycStatus, int licenseDueCount, List<LicenseDueItem> licenses) {}

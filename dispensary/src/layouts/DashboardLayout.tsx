@@ -2,7 +2,6 @@ import { useCallback, useEffect, useState } from 'react';
 import { Outlet, Link, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
-  CounterAlertBell,
   AppSidebar,
   ShellHeader,
   CounterPasswordChange,
@@ -13,6 +12,7 @@ import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@molecule
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
+import { SHELL } from '@/libs/constants/shell.const';
 import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 
@@ -74,13 +74,12 @@ export default function DashboardLayout() {
           onToggleCollapsed={() => setCollapsed((value) => !value)}
           onOpenMobile={() => setMobileOpen(true)}
           trailing={
-            <div className="flex items-center gap-3">
-              <CounterAlertBell />
+            <div className="flex items-center gap-2">
               <Tooltip>
                 <TooltipTrigger asChild>
-                  <span className="text-sm font-medium text-ink">{displayName}</span>
+                  <span className="hidden text-sm font-medium text-ink sm:inline">{displayName}</span>
                 </TooltipTrigger>
-                <TooltipContent>Signed in at this counter</TooltipContent>
+                <TooltipContent>{SHELL.signedInTooltip}</TooltipContent>
               </Tooltip>
               <Button
                 type="button"
@@ -89,7 +88,7 @@ export default function DashboardLayout() {
                 className="hidden sm:inline-flex"
                 onClick={leaveCounter}
               >
-                Sign out
+                {SHELL.signOutLabel}
               </Button>
             </div>
           }

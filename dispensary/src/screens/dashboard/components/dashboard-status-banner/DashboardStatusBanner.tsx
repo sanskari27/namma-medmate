@@ -10,6 +10,8 @@ export type DashboardStatusBannerProps = {
   desk: DashboardDesk | null;
   statusId: string;
   hint?: string | null;
+  onRefresh?: () => void;
+  busy?: boolean;
 };
 
 export function DashboardStatusBanner({
@@ -17,10 +19,12 @@ export function DashboardStatusBanner({
   desk,
   statusId,
   hint,
+  onRefresh,
+  busy = false,
 }: DashboardStatusBannerProps) {
   const text = statusCopy(status, desk, hint);
   if (!text) {
-    return <div id={statusId} className="min-h-10" />;
+    return <div id={statusId} className="min-h-0" />;
   }
   const Icon = statusIcon(status);
   const role = status === 'denied' ? 'alert' : 'status';
@@ -28,10 +32,15 @@ export function DashboardStatusBanner({
     <p
       id={statusId}
       role={role}
-      className="flex min-h-10 items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
+      className="dash-status"
     >
       <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{text}</span>
+      <span className="flex-1">{text}</span>
+      {onRefresh && status !== 'loading' && status !== 'denied' ? (
+        <button type="button" className="dash-chipbtn" disabled={busy} onClick={onRefresh}>
+          Refresh
+        </button>
+      ) : null}
     </p>
   );
 }

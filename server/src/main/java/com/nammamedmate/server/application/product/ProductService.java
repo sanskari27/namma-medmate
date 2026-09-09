@@ -5,6 +5,7 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
+import com.nammamedmate.server.domain.ProductCategory;
 import com.nammamedmate.server.domain.ProductType;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -15,7 +16,9 @@ import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -69,13 +72,17 @@ public class ProductService {
         q.isEmpty()
             ? productRepository.findAllByTenantIdOrderByNameAsc(tenantId)
             : productRepository.searchByTenant(tenantId, q);
-    return rows.stream().map(ProductService::toView).toList();
+    Map<UUID, String> categoryIcons = categoryIcons(tenantId);
+    return rows.stream()
+        .map(product -> toView(product, categoryIcons.get(product.getCategoryId())))
+        .toList();
   }
 
   @Transactional(readOnly = true)
   public ProductView get(AuthPrincipal principal, UUID id) {
     UUID tenantId = requireInventoryAccess(principal);
-    return toView(requireProduct(id, tenantId));
+    Product product = requireProduct(id, tenantId);
+    return toView(product, categoryIcon(tenantId, product.getCategoryId()));
   }
 
   @Transactional
@@ -99,7 +106,7 @@ public class ProductService {
     product.setUpdatedAt(now);
     Product saved = productRepository.save(product);
     productUnitService.syncPackConversion(saved);
-    return toView(saved);
+    return toView(saved, categoryIcon(tenantId, saved.getCategoryId()));
   }
 
   @Transactional
@@ -118,7 +125,7 @@ public class ProductService {
     product.setUpdatedAt(clock.instant());
     Product saved = productRepository.save(product);
     productUnitService.syncPackConversion(saved);
-    return toView(saved);
+    return toView(saved, categoryIcon(tenantId, saved.getCategoryId()));
   }
 
   private UUID requireInventoryAccess(AuthPrincipal principal) {
@@ -300,7 +307,7 @@ public class ProductService {
     product.setActive(normalized.active());
   }
 
-  private static ProductView toView(Product product) {
+  private static ProductView toView(Product product, String categoryIcon) {
     return new ProductView(
         product.getId(),
         product.getTenantId(),
@@ -311,6 +318,7 @@ public class ProductService {
         product.getBrandName(),
         product.getManufacturerId(),
         product.getCategoryId(),
+        categoryIcon,
         product.getProductType(),
         product.getDosageForm(),
         product.getTherapeuticClass(),
@@ -343,6 +351,22 @@ public class ProductService {
         product.isActive(),
         product.getCreatedAt(),
         product.getUpdatedAt());
+  }
+
+  private Map<UUID, String> categoryIcons(UUID tenantId) {
+    Map<UUID, String> icons = new HashMap<>();
+    for (ProductCategory category :
+        productCategoryRepository.findAllByTenantIdOrderByNameAsc(tenantId)) {
+      icons.put(category.getId(), category.getIcon());
+    }
+    return icons;
+  }
+
+  private String categoryIcon(UUID tenantId, UUID categoryId) {
+    return productCategoryRepository
+        .findByIdAndTenantId(categoryId, tenantId)
+        .map(ProductCategory::getIcon)
+        .orElse(null);
   }
 
   private static BigDecimal normalizeGstRate(BigDecimal gstRate) {

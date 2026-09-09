@@ -50,6 +50,7 @@ export function CatalogueWorkspace({
   const [form, setForm] = useState<FormState>(emptyForm);
   const [busy, setBusy] = useState(false);
   const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('💊');
   const [newManufacturerName, setNewManufacturerName] = useState('');
   const [categoryBusy, setCategoryBusy] = useState(false);
   const [manufacturerBusy, setManufacturerBusy] = useState(false);
@@ -168,10 +169,11 @@ export function CatalogueWorkspace({
     if (!name) return;
     setCategoryBusy(true);
     try {
-      const created = await createProductCategory(name);
+      const created = await createProductCategory(name, newCategoryIcon.trim() || null);
       setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
       onChange('categoryId', created.id);
       setNewCategoryName('');
+      setNewCategoryIcon('💊');
     } catch {
       setBoth('failure');
     } finally {
@@ -220,12 +222,14 @@ export function CatalogueWorkspace({
         categories={categories}
         manufacturers={manufacturers}
         newCategoryName={newCategoryName}
+        newCategoryIcon={newCategoryIcon}
         newManufacturerName={newManufacturerName}
         categoryBusy={categoryBusy}
         manufacturerBusy={manufacturerBusy}
         onChange={onChange}
         onUnitRowsChange={(rows: UnitRow[]) => setForm((prev) => ({ ...prev, unitRows: rows }))}
         onNewCategoryNameChange={setNewCategoryName}
+        onNewCategoryIconChange={setNewCategoryIcon}
         onNewManufacturerNameChange={setNewManufacturerName}
         onCreateCategory={() => void onCreateCategory()}
         onCreateManufacturer={() => void onCreateManufacturer()}

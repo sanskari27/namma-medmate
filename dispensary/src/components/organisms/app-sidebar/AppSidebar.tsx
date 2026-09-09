@@ -17,13 +17,10 @@ import {
   LogOut,
   MapPin,
   Megaphone,
-  Menu,
   MessageCircle,
   MessagesSquare,
   MonitorSmartphone,
   Package,
-  PanelLeftClose,
-  PanelLeftOpen,
   Pill,
   Scale,
   ScanBarcode,
@@ -40,7 +37,7 @@ import {
   type LucideIcon,
 } from 'lucide-react';
 import { motion, useReducedMotion } from 'motion/react';
-import { useEffect, useState, type ReactNode } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { NavLink, useLocation, useNavigate } from 'react-router-dom';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
@@ -60,21 +57,19 @@ import {
 } from '@molecules';
 import {
   DASHBOARD_NAV,
-  MODULE_NAV_ITEMS,
   NAV_SECTIONS,
   ROUTES,
   type NavItem,
-} from '@/libs/constants/routes.const';
-import { cn } from '@/libs/cn';
+} from '@/libs/constants/routes.const';import { cn } from '@/libs/cn';
 import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
 import { hasReportingAccess, isReportingNavPath } from '@/libs/reportingAccess';
 import { hasCampaignAccess, isCampaignNavPath } from '@/libs/campaignAccess';
+import { ALL_OUTLETS_LABEL, PHARMACY_NAME } from '@/libs/constants/counters.const';
 import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { switchSessionBranch } from '@/services/sessionBranch';
 
 const ALL_OUTLETS_ID = 'all';
-const PHARMACY_NAME = 'This pharmacy';
 
 const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.DASHBOARD]: Gauge,
@@ -140,7 +135,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
     activeBranchId ?? (isOwner ? ALL_OUTLETS_ID : (branches[0]?.id ?? ALL_OUTLETS_ID));
   const selectedLabel =
     selectedId === ALL_OUTLETS_ID
-      ? 'All outlets'
+      ? ALL_OUTLETS_LABEL
       : (branches.find((branch) => branch.id === selectedId)?.name ?? 'This outlet');
   const selectedCode =
     selectedId === ALL_OUTLETS_ID
@@ -275,9 +270,9 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
                 <DropdownMenuLabel>This outlet</DropdownMenuLabel>
                 <DropdownMenuRadioGroup value={selectedId} onValueChange={selectOutlet}>
                   {isOwner ? (
-                    <DropdownMenuRadioItem value={ALL_OUTLETS_ID} aria-label="All outlets">
+                    <DropdownMenuRadioItem value={ALL_OUTLETS_ID} aria-label={ALL_OUTLETS_LABEL}>
                       <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-                        <span className="truncate">All outlets</span>
+                        <span className="truncate">{ALL_OUTLETS_LABEL}</span>
                         <span className="font-mono text-[10px] text-muted">ALL</span>
                       </span>
                     </DropdownMenuRadioItem>
@@ -530,63 +525,5 @@ function RailLink({
         {item.badge ? ` (${item.badge.label})` : ''}
       </TooltipContent>
     </Tooltip>
-  );
-}
-
-export function RailCollapseToggle({
-  collapsed,
-  onToggle,
-}: {
-  collapsed: boolean;
-  onToggle: () => void;
-}) {
-  const Icon = collapsed ? PanelLeftOpen : PanelLeftClose;
-  return (
-    <button
-      type="button"
-      aria-pressed={collapsed}
-      aria-label={collapsed ? 'Expand module rail' : 'Collapse module rail'}
-      onClick={onToggle}
-      className="hidden cursor-pointer rounded-md p-1.5 text-muted hover:bg-brand-soft hover:text-ink md:inline-flex"
-    >
-      <Icon className="size-4" aria-hidden />
-    </button>
-  );
-}
-
-type ShellHeaderProps = {
-  collapsed: boolean;
-  onToggleCollapsed: () => void;
-  onOpenMobile: () => void;
-  trailing?: ReactNode;
-};
-
-export function ShellHeader({
-  collapsed,
-  onToggleCollapsed,
-  onOpenMobile,
-  trailing,
-}: ShellHeaderProps) {
-  const { pathname } = useLocation();
-  const current = MODULE_NAV_ITEMS.find((item) => item.path === pathname);
-
-  return (
-    <header className="flex h-11 items-center justify-between border-b border-line bg-surface px-3 md:px-5">
-      <div className="flex min-w-0 items-center gap-2">
-        <button
-          type="button"
-          className="inline-flex cursor-pointer rounded-md p-1.5 text-ink hover:bg-brand-soft md:hidden"
-          aria-label="Open module rail"
-          onClick={onOpenMobile}
-        >
-          <Menu className="size-4" aria-hidden />
-        </button>
-        <RailCollapseToggle collapsed={collapsed} onToggle={onToggleCollapsed} />
-        <p className="truncate text-sm font-medium text-ink">
-          {current?.label ?? 'Pharmacy workspace'}
-        </p>
-      </div>
-      {trailing}
-    </header>
   );
 }

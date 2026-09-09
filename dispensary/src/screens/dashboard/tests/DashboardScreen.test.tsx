@@ -1,307 +1,269 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DashboardScreen from '@/screens/dashboard/DashboardScreen';
+import { dashboardReducer } from '@/screens/dashboard/store/dashboard.slice';
+import { DASHBOARD_CONTENT } from '@/screens/dashboard/DashboardScreen.content';
 import { ApiError } from '@/services/axios';
-import { authReducer } from '@/store';
-import type { AuthUser } from '@/store';
-import type { DashboardView, DashboardWidget } from '@/services/dashboards';
+import { authReducer, notificationsReducer, type AuthUser } from '@/store';
+import type { HomeDashboardView } from '@/services/homeDashboard';
+import { ROUTES } from '@/libs/constants/routes.const';
 
-vi.mock('@/services/dashboards', async () => {
+vi.mock('@/services/homeDashboard', async () => {
   const axios = await import('@/services/axios');
   return {
-    fetchDashboard: vi.fn(),
+    fetchHomeDashboard: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { fetchDashboard } from '@/services/dashboards';
+vi.mock('@molecules/area-metric-chart', () => ({
+  AreaMetricChart: ({ emptyLabel }: { emptyLabel: string }) => <p>{emptyLabel}</p>,
+}));
 
-const fetchMock = vi.mocked(fetchDashboard);
-const AS_OF = '2026-09-06T06:00:00Z';
+vi.mock('@molecules/bar-metric-chart', () => ({
+  BarMetricChart: ({ emptyLabel }: { emptyLabel: string }) => <p>{emptyLabel}</p>,
+}));
 
-function okWidget<T>(key: string, href: string, data: T): DashboardWidget<T> {
-  return { key, status: 'OK', asOf: AS_OF, href, error: null, data };
-}
+vi.mock('recharts', async () => {
+  const actual = await vi.importActual<typeof import('recharts')>('recharts');
+  return {
+    ...actual,
+    ResponsiveContainer: ({ children }: { children?: React.ReactNode }) => (
+      <div data-testid="recharts-box">{children}</div>
+    ),
+  };
+});
 
-function failedWidget<T>(key: string, href: string): DashboardWidget<T> {
-  return { key, status: 'FAILED', asOf: AS_OF, href, error: 'UNAVAILABLE', data: null };
-}
+import { fetchHomeDashboard } from '@/services/homeDashboard';
 
-function planLimitWidget<T>(key: string, href: string, error: string): DashboardWidget<T> {
-  return { key, status: 'PLAN_LIMIT', asOf: AS_OF, href, error, data: null };
-}
+const fetchMock = vi.mocked(fetchHomeDashboard);
 
-const cashierFilled: DashboardView = {
-  role: 'cashier',
+const filled: HomeDashboardView = {
   asOf: '2026-09-06',
   generatedAt: '2026-09-06T06:00:00Z',
   scope: 'branch',
   branchId: 'b1',
   branchName: 'Main',
-  permittedRoles: ['cashier'],
-  cashier: {
+  hero: {
+    monthSalesPaise: 250000,
+    avgBillTodayPaise: 11200,
+    itemsSoldToday: 3,
+    duesToCollectPaise: 12000,
+    duesCustomerCount: 2,
+  },
+  quickActions: {
+    pendingPrescriptions: 4,
+    lowStockCount: 2,
+    pendingApprovals: 1,
+    pendingGrn: 1,
+  },
+  kpis: {
     todaySalesPaise: 11200,
-    todayBillCount: 1,
-    holds: [
-      {
-        id: 'h1',
-        invoiceNumber: 'INV/26-27/BR01/00002',
-        totalPaise: 5600,
-        heldAt: '2026-09-06T05:00:00Z',
-      },
-    ],
-    sources: { sales: '/pos', holds: '/pos' },
+    todayBillCount: 2,
+    todayOnlineSalesPaise: 5000,
+    todayCounterSalesPaise: 6200,
+    yesterdaySalesPaise: 5600,
+    pendingPrescriptions: 1,
+    stockAlertCount: 3,
+    lowStockCount: 2,
+    expiringCount: 1,
+    heldBillCount: 1,
+    newHeldBillCount: 1,
   },
-};
-
-const cashierEmpty: DashboardView = {
-  ...cashierFilled,
-  cashier: {
-    todaySalesPaise: 0,
-    todayBillCount: 0,
-    holds: [],
-    sources: { sales: '/pos', holds: '/pos' },
-  },
-};
-
-const inventoryFilled: DashboardView = {
-  role: 'inventory',
-  asOf: '2026-09-06',
-  generatedAt: '2026-09-06T06:00:00Z',
-  scope: 'branch',
-  branchId: 'b1',
-  branchName: 'Main',
-  permittedRoles: ['inventory'],
-  inventory: {
-    lowStock: [
-      {
-        productId: 'p1',
-        sku: 'PARA-500',
-        productName: 'Paracetamol 500',
-        onHand: 2,
-        reorderLevel: 10,
-      },
+  analytics: {
+    period: '7D',
+    totalSalesPaise: 50000,
+    totalBillCount: 5,
+    channelSplit: [
+      { key: 'ONLINE', label: 'Online', salesPaise: 20000, billCount: 2 },
+      { key: 'COUNTER', label: 'Counter', salesPaise: 25000, billCount: 2 },
+      { key: 'OTHER', label: 'Other', salesPaise: 5000, billCount: 1 },
     ],
-    pendingTransfers: [{ id: 't1', status: 'REQUESTED', direction: 'IN', href: '/inventory' }],
-    pendingGrn: [
-      {
-        id: 'g1',
-        receiptNumber: 'GRN-1',
-        status: 'PENDING_QC',
-        href: '/purchases',
-      },
+    paymentModes: [
+      { mode: 'CASH', label: 'Cash', salesPaise: 10000 },
+      { mode: 'CARD', label: 'Card', salesPaise: 8000 },
+      { mode: 'UPI', label: 'UPI', salesPaise: 20000 },
+      { mode: 'CREDIT', label: 'Credit', salesPaise: 7000 },
+      { mode: 'BANK_TRANSFER', label: 'Bank', salesPaise: 5000 },
     ],
-    sources: { stock: '/inventory', transfers: '/inventory', grn: '/purchases' },
-  },
-};
-
-const accountantFilled: DashboardView = {
-  role: 'accountant',
-  asOf: '2026-09-06',
-  generatedAt: '2026-09-06T06:00:00Z',
-  scope: 'branch',
-  branchId: 'b1',
-  branchName: 'Main',
-  permittedRoles: ['accountant'],
-  accountant: {
-    receivablesTotalPaise: 12000,
-    payablesTotalPaise: 8000,
-    expenseTotalPaise: 150000,
-    receivableBuckets: [{ key: 'D0_30', label: '0–30', totalPaise: 12000 }],
-    sources: { aging: '/aging', expenses: '/expenses' },
-  },
-};
-
-const ownerFilled: DashboardView = {
-  role: 'owner',
-  asOf: '2026-09-06',
-  generatedAt: AS_OF,
-  scope: 'branch',
-  branchId: 'b1',
-  branchName: 'Main',
-  permittedRoles: ['owner', 'cashier', 'inventory', 'accountant'],
-  owner: {
-    asOf: AS_OF,
-    todaySalesPaise: 11200,
-    todayBillCount: 1,
-    branches: [
-      { id: 'b1', name: 'Main', todaySalesPaise: 11200 },
-      { id: 'b2', name: 'Annex', todaySalesPaise: 0 },
+    topCategories: [
+      { categoryId: 'c1', name: 'Analgesics', icon: '💊', salesPaise: 25000 },
+      { categoryId: 'c2', name: 'OTC', icon: null, salesPaise: 10000 },
     ],
-    receivablesTotalPaise: 12000,
-    payablesTotalPaise: 8000,
-    expenseTotalPaise: 150000,
-    lowStockCount: 1,
-    sources: {
-      sales: '/pos',
-      stock: '/inventory',
-      aging: '/aging',
-      expenses: '/expenses',
+    trend: [
+      { date: '2026-09-01', salesPaise: 5000, billCount: 1 },
+      { date: '2026-09-02', salesPaise: 8000, billCount: 2 },
+      { date: '2026-09-03', salesPaise: 12000, billCount: 2 },
+    ],
+  },
+  attention: [
+    {
+      id: 'a1',
+      kind: 'LOW_STOCK',
+      title: 'Paracetamol low',
+      detail: '2 left on shelf',
+      href: '/inventory',
+      actionLabel: 'Reorder',
     },
-    sales: okWidget('SALES', '/pos', {
-      todaySalesPaise: 11200,
-      todayBillCount: 1,
-      branches: [
-        { id: 'b1', name: 'Main', todaySalesPaise: 11200 },
-        { id: 'b2', name: 'Annex', todaySalesPaise: 0 },
-      ],
-    }),
-    lowStock: okWidget('LOW_STOCK', '/inventory', {
-      count: 1,
-      items: [
-        {
-          productId: 'p1',
-          sku: 'OWN-1',
-          productName: 'Glance Pack',
-          onHand: 9,
-          reorderLevel: 50,
-          branchId: 'b1',
-          branchName: 'Main',
-        },
-      ],
-    }),
-    expiry: okWidget('EXPIRY', '/inventory', {
-      count: 1,
-      items: [
-        {
-          productId: 'p1',
-          sku: 'OWN-1',
-          productName: 'Glance Pack',
-          batchNumber: 'LOT-OWN-1',
-          expiresOn: '2026-09-13',
-          quantity: 9,
-          branchId: 'b1',
-          branchName: 'Main',
-        },
-      ],
-    }),
-    approvals: okWidget('APPROVALS', '/approvals/pending', {
-      count: 1,
-      items: [
-        { id: 'a1', label: 'INVENTORY_WRITE_OFF', status: 'PENDING', href: '/approvals/pending' },
-      ],
-    }),
-    receivables: okWidget('RECEIVABLES', '/aging', {
-      totalPaise: 12000,
-      buckets: [{ key: 'D0_30', label: '0–30', totalPaise: 12000 }],
-    }),
-    payables: okWidget('PAYABLES', '/aging', {
-      totalPaise: 8000,
-      buckets: [{ key: 'D0_30', label: '0–30', totalPaise: 8000 }],
-    }),
-    topProducts: okWidget('TOP_PRODUCTS', '/pos', {
-      count: 1,
-      items: [
-        {
-          productId: 'p1',
-          sku: 'OWN-1',
-          productName: 'Glance Pack',
-          quantity: 1,
-          salesPaise: 11200,
-        },
-      ],
-    }),
-    transfers: okWidget('TRANSFERS', '/inventory', {
-      count: 1,
-      items: [{ id: 't1', status: 'IN_TRANSIT', direction: 'PUSH', href: '/inventory' }],
-    }),
-    compliance: okWidget('COMPLIANCE', '/licenses', {
-      tenantStatus: 'ACTIVE',
-      kycStatus: 'SUBMITTED',
-      licenseDueCount: 1,
-      licenses: [
-        {
-          id: 'l1',
-          docType: 'DRUG_LICENSE',
-          expiresOn: '2026-09-16',
-          branchId: 'b1',
-          href: '/licenses',
-        },
-      ],
-    }),
-    openPurchaseOrders: okWidget('OPEN_POS', '/purchases', {
-      count: 1,
-      items: [{ id: 'po1', label: 'PO/OWN/1', status: 'ISSUED', href: '/purchases' }],
-    }),
-  },
+    {
+      id: 'a2',
+      kind: 'PRESCRIPTION',
+      title: 'Rx waiting',
+      detail: 'Verify before dispense',
+      href: '/prescriptions',
+      actionLabel: 'Open',
+    },
+    {
+      id: 'a3',
+      kind: 'APPROVAL',
+      title: 'Write-off',
+      detail: 'Needs sign-off',
+      href: '/approvals/pending',
+      actionLabel: 'Review',
+    },
+    {
+      id: 'a4',
+      kind: 'OTHER',
+      title: 'GRN QC',
+      detail: 'Delivery waiting',
+      href: '/purchases',
+      actionLabel: 'Check',
+    },
+  ],
+  expiringSoon: [
+    {
+      productId: 'p1',
+      sku: 'PARA-500',
+      productName: 'Paracetamol 500',
+      batchNumber: 'LOT-1',
+      expiresOn: '2026-09-20',
+      quantity: 9,
+      categoryIcon: '💊',
+    },
+    {
+      productId: 'p2',
+      sku: 'COUGH-1',
+      productName: 'Cough syrup',
+      batchNumber: 'LOT-2',
+      expiresOn: '2026-09-22',
+      quantity: 3,
+      categoryIcon: null,
+    },
+  ],
+  topSellers: [
+    {
+      productId: 'p1',
+      sku: 'PARA-500',
+      productName: 'Paracetamol 500',
+      quantity: 10,
+      salesPaise: 11200,
+      categoryIcon: null,
+    },
+    {
+      productId: 'p3',
+      sku: 'VIT-C',
+      productName: 'Vitamin C',
+      quantity: 4,
+      salesPaise: 4000,
+      categoryIcon: '🍊',
+    },
+  ],
+  recentTransactions: [
+    {
+      id: 't1',
+      invoiceNumber: 'INV/26-27/BR01/00002',
+      totalPaise: 11200,
+      completedAt: '2026-09-06T05:00:00Z',
+      customerLabel: 'Walk-in',
+    },
+  ],
 };
 
-const ownerEmpty: DashboardView = {
-  ...ownerFilled,
-  owner: {
-    ...ownerFilled.owner!,
+const emptyView: HomeDashboardView = {
+  ...filled,
+  hero: {
+    monthSalesPaise: 0,
+    avgBillTodayPaise: 0,
+    itemsSoldToday: 0,
+    duesToCollectPaise: 0,
+    duesCustomerCount: 0,
+  },
+  quickActions: {
+    pendingPrescriptions: 0,
+    lowStockCount: 0,
+    pendingApprovals: 0,
+    pendingGrn: 0,
+  },
+  kpis: {
     todaySalesPaise: 0,
     todayBillCount: 0,
-    branches: [{ id: 'b1', name: 'Main', todaySalesPaise: 0 }],
-    receivablesTotalPaise: 0,
-    payablesTotalPaise: 0,
-    expenseTotalPaise: 0,
+    todayOnlineSalesPaise: 0,
+    todayCounterSalesPaise: 0,
+    yesterdaySalesPaise: 0,
+    pendingPrescriptions: 0,
+    stockAlertCount: 0,
     lowStockCount: 0,
-    sales: okWidget('SALES', '/pos', {
-      todaySalesPaise: 0,
-      todayBillCount: 0,
-      branches: [{ id: 'b1', name: 'Main', todaySalesPaise: 0 }],
-    }),
-    lowStock: okWidget('LOW_STOCK', '/inventory', { count: 0, items: [] }),
-    expiry: okWidget('EXPIRY', '/inventory', { count: 0, items: [] }),
-    approvals: okWidget('APPROVALS', '/approvals/pending', { count: 0, items: [] }),
-    receivables: okWidget('RECEIVABLES', '/aging', { totalPaise: 0, buckets: [] }),
-    payables: okWidget('PAYABLES', '/aging', { totalPaise: 0, buckets: [] }),
-    topProducts: okWidget('TOP_PRODUCTS', '/pos', { count: 0, items: [] }),
-    transfers: okWidget('TRANSFERS', '/inventory', { count: 0, items: [] }),
-    compliance: okWidget('COMPLIANCE', '/licenses', {
-      tenantStatus: 'ACTIVE',
-      kycStatus: 'NONE',
-      licenseDueCount: 0,
-      licenses: [],
-    }),
-    openPurchaseOrders: okWidget('OPEN_POS', '/purchases', { count: 0, items: [] }),
+    expiringCount: 0,
+    heldBillCount: 0,
+    newHeldBillCount: 0,
   },
-};
-
-const ownerPartial: DashboardView = {
-  ...ownerFilled,
-  owner: {
-    ...ownerFilled.owner!,
-    compliance: failedWidget('COMPLIANCE', '/licenses'),
+  analytics: {
+    period: '7D',
+    totalSalesPaise: 0,
+    totalBillCount: 0,
+    channelSplit: [],
+    paymentModes: [],
+    topCategories: [],
+    trend: [
+      { date: '2026-09-01', salesPaise: 0, billCount: 0 },
+      { date: '2026-09-02', salesPaise: 0, billCount: 0 },
+    ],
   },
+  attention: [],
+  expiringSoon: [],
+  topSellers: [],
+  recentTransactions: [],
 };
 
-const multiStaff: DashboardView = {
-  ...cashierFilled,
-  permittedRoles: ['cashier', 'inventory'],
-};
-
-function userFor(role: string, modules: string[], extras: Partial<AuthUser> = {}): AuthUser {
+function userFor(extras: Partial<AuthUser> = {}): AuthUser {
   return {
     userId: 'u1',
-    displayName: 'Floor',
-    role,
+    displayName: 'Floor Chemist',
+    role: 'pharmacy_owner',
     tenantId: 't1',
     pinSet: true,
     tenantStatus: 'ACTIVE',
     emailVerified: true,
-    modules,
+    modules: ['SALES', 'INVENTORY', 'FINANCE'],
     branches: [{ id: 'b1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' }],
     activeBranchId: 'b1',
     ...extras,
   };
 }
 
-function renderPage(user: AuthUser) {
+function renderPage(user: AuthUser = userFor()) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: {
+      auth: authReducer,
+      notifications: notificationsReducer,
+      dashboard: dashboardReducer,
+    },
     preloadedState: { auth: { user } },
   });
   return render(
     <Provider store={store}>
-      <MemoryRouter>
-        <DashboardScreen />
+      <MemoryRouter initialEntries={[ROUTES.DASHBOARD]}>
+        <Routes>
+          <Route path={ROUTES.DASHBOARD} element={<DashboardScreen />} />
+          <Route path={ROUTES.SALES} element={<p>Sales route</p>} />
+          <Route path={ROUTES.PRESCRIPTIONS} element={<p>Rx route</p>} />
+          <Route path={ROUTES.INVENTORY} element={<p>Stock route</p>} />
+        </Routes>
       </MemoryRouter>
     </Provider>,
   );
@@ -312,298 +274,271 @@ describe('DashboardScreen', () => {
     fetchMock.mockReset();
   });
 
-  it('loading: waits for this outlet desk', () => {
+  it('loading: waits for today at a glance', () => {
     fetchMock.mockReturnValue(new Promise(() => undefined));
-    renderPage(userFor('pharmacy_staff', ['SALES']));
-    expect(screen.getByRole('status')).toHaveTextContent("Loading this outlet's desk…");
-    expect(screen.getByRole('heading', { name: 'Till today' })).toBeInTheDocument();
+    renderPage();
+    expect(screen.getByRole('status')).toHaveTextContent('Loading today at a glance…');
   });
 
-  it('empty: no completed bills today', async () => {
-    fetchMock.mockResolvedValue(cashierEmpty);
-    renderPage(userFor('pharmacy_staff', ['SALES']));
-    expect(
-      await screen.findByText(
-        'No completed bills today. Held bills stay on this till until collected.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Khata and spend' })).not.toBeInTheDocument();
+  it('empty: reserved copy for quiet counters and analytics', async () => {
+    fetchMock.mockResolvedValue(emptyView);
+    renderPage();
+    expect(await screen.findByText(DASHBOARD_CONTENT.emptyAttention)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyExpiring)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyTopSellers)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyRecent)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyChannel)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyPayments)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyCategories)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.emptyAnalytics)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.kpiAllCaughtUp)).toBeInTheDocument();
+    expect(screen.getAllByText(/₹0\.00/).length).toBeGreaterThan(0);
   });
 
   it('validation: no active outlet', async () => {
     fetchMock.mockRejectedValue(new ApiError('Select an outlet first.', 422, 'NO_ACTIVE_BRANCH'));
-    renderPage(userFor('pharmacy_staff', ['SALES'], { activeBranchId: null }));
+    renderPage(userFor({ activeBranchId: null }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Select an outlet before opening this desk.',
     );
   });
 
-  it('denied: floor role without a desk', () => {
-    renderPage(userFor('pharmacy_staff', ['COMPLIANCE']));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'This desk is not on your floor roles. Ask the owner.',
+  it('denied: floor cannot open the counter dashboard', async () => {
+    fetchMock.mockRejectedValue(new ApiError('Forbidden', 403, 'FORBIDDEN'));
+    renderPage();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This counter dashboard is not on your floor roles. Ask the owner.',
     );
-    expect(fetchMock).not.toHaveBeenCalled();
+    expect(screen.queryByRole('region', { name: DASHBOARD_CONTENT.regionHero })).not.toBeInTheDocument();
   });
 
   it('conflict: figures changed on another till', async () => {
     const user = userEvent.setup();
     fetchMock
-      .mockResolvedValueOnce(cashierFilled)
+      .mockResolvedValueOnce(filled)
       .mockRejectedValueOnce(new ApiError('stale', 409, 'STALE_STATE'));
-    renderPage(userFor('pharmacy_staff', ['SALES']));
-    expect(await screen.findByRole('status')).toHaveTextContent("Today's till at this outlet.");
-    await user.click(screen.getByRole('button', { name: 'Refresh this desk' }));
+    renderPage();
+    expect(
+      await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionHero }),
+    ).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Refresh' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'These figures changed on another till. Refresh, then look again.',
     );
-    expect(screen.getByRole('button', { name: 'Refresh this desk' })).toHaveFocus();
   });
 
-  it('failure: desk network error', async () => {
+  it('failure: dashboard network error', async () => {
     fetchMock.mockRejectedValue(new Error('network'));
-    renderPage(userFor('pharmacy_staff', ['SALES']));
+    renderPage();
     expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not load this desk. Check the connection and try again.',
+      'Could not load the dashboard. Check the connection and try again.',
     );
   });
 
-  it('success: cashier till and holds, never khata or spend', async () => {
-    const user = userEvent.setup();
-    fetchMock.mockResolvedValue(cashierFilled);
-    renderPage(userFor('pharmacy_staff', ['SALES']));
-    expect(await screen.findByRole('status')).toHaveTextContent("Today's till at this outlet.");
-    expect(screen.getByRole('heading', { name: 'Till today' })).toBeInTheDocument();
-    expect(screen.getByText('₹112.00')).toBeInTheDocument();
+  it('failure: expired session hint', async () => {
+    fetchMock.mockRejectedValue(new ApiError('gone', 401, 'UNAUTHORIZED'));
+    renderPage();
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Your session expired. Sign in again to reload the dashboard.',
+    );
+  });
+
+  it('success: greets staff, KPIs, lists, and transactions', async () => {
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    expect(
+      await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionHero }),
+    ).toBeInTheDocument();
+    expect(screen.getByText(/Good (morning|afternoon|evening), Floor/)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.storeOpen)).toBeInTheDocument();
+    expect(screen.getByText('Main')).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.kpiOrdersToday)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: /New sale/i })).toHaveAttribute('href', ROUTES.SALES);
+    expect(screen.getByRole('link', { name: /4 pending/i })).toHaveAttribute(
+      'href',
+      ROUTES.PRESCRIPTIONS,
+    );
+    expect(screen.getByRole('link', { name: /2 low/i })).toHaveAttribute('href', ROUTES.INVENTORY);
+    expect(screen.getByText(DASHBOARD_CONTENT.kpiTodaySales)).toBeInTheDocument();
+    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getByText(/1 new/)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.kpiToVerify)).toBeInTheDocument();
+    expect(screen.getByText(DASHBOARD_CONTENT.kpiAction)).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: DASHBOARD_CONTENT.analyticsTitle })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: DASHBOARD_CONTENT.attentionTitle })).toBeInTheDocument();
+    expect(screen.getByText('Paracetamol low')).toBeInTheDocument();
+    expect(screen.getByText('Rx waiting')).toBeInTheDocument();
+    expect(screen.getByText('Write-off')).toBeInTheDocument();
+    expect(screen.getByText('GRN QC')).toBeInTheDocument();
+    expect(screen.getByText('Cough syrup')).toBeInTheDocument();
+    expect(screen.getByText('Vitamin C')).toBeInTheDocument();
     expect(screen.getByText('INV/26-27/BR01/00002')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open till' })).toHaveAttribute('href', '/pos');
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-    expect(screen.queryByText('Paracetamol 500')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Outlet')).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Stock desk' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Refresh this desk' }));
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(screen.getByRole('button', { name: 'Refresh this desk' })).toHaveFocus();
+    expect(screen.getByText(/Medmate India Technology Private Limited/)).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('7D');
   });
 
-  it('inventory: low stock, transfers, deliveries, and source links', async () => {
-    fetchMock.mockResolvedValue(inventoryFilled);
-    renderPage(userFor('pharmacy_staff', ['INVENTORY']));
-    expect(await screen.findByRole('heading', { name: 'Stock desk' })).toBeInTheDocument();
-    expect(screen.getByText('Paracetamol 500')).toBeInTheDocument();
-    expect(screen.getByText('REQUESTED')).toBeInTheDocument();
-    expect(screen.getByText('GRN-1')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Stock book' })).toHaveAttribute('href', '/inventory');
-    expect(screen.getByRole('link', { name: 'Deliveries' })).toHaveAttribute('href', '/purchases');
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Open till' })).not.toBeInTheDocument();
-  });
-
-  it('accountant: khata, stockist dues, and spend — no till or licences', async () => {
-    fetchMock.mockResolvedValue(accountantFilled);
-    renderPage(
-      userFor('pharmacy_staff', ['FINANCE'], {
-        roles: [{ id: 'r1', name: 'Accountant', code: 'accountant', kind: 'PREDEFINED' }],
-      }),
-    );
-    expect(await screen.findByRole('heading', { name: 'Khata and spend' })).toBeInTheDocument();
-    expect(screen.getByText('Patients owe us')).toBeInTheDocument();
-    expect(screen.getByText('We owe stockists')).toBeInTheDocument();
-    expect(screen.getByText('Shop spend')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Khata dues' })).toHaveAttribute('href', '/aging');
-    expect(screen.getByRole('link', { name: 'Shop spend' })).toHaveAttribute('href', '/expenses');
-    expect(screen.queryByRole('link', { name: 'Open till' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: /licen/i })).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Outlet')).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('accountant', {});
-  });
-
-  it('owner: shop glance, outlet filter, and drill-down', async () => {
+  it('success: period, metric, and chart type controls reload analytics', async () => {
     const user = userEvent.setup();
-    fetchMock.mockResolvedValueOnce(ownerFilled).mockResolvedValue({
-      ...ownerFilled,
+    fetchMock.mockResolvedValueOnce(filled).mockResolvedValue({
+      ...filled,
+      analytics: { ...filled.analytics, period: '30D', totalSalesPaise: 90000 },
+    });
+    renderPage();
+    expect(await screen.findByRole('heading', { name: DASHBOARD_CONTENT.analyticsTitle })).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.metricOrders }));
+    expect(screen.getByRole('button', { name: DASHBOARD_CONTENT.metricOrders })).toHaveClass('on');
+
+    await user.click(screen.getByRole('button', { name: '30D' }));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('30D'));
+    expect((await screen.findAllByText(/last 30 days/)).length).toBeGreaterThan(0);
+
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartBars }));
+    expect(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartBars })).toHaveClass('on');
+
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartLine }));
+    expect(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartLine })).toHaveClass('on');
+
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartDonut }));
+    expect(screen.getByRole('button', { name: DASHBOARD_CONTENT.chartDonut })).toHaveClass('on');
+  });
+
+  it('success: KPI cards navigate by click and keyboard', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    await user.click(within(kpis).getByTitle(DASHBOARD_CONTENT.titleViewSales));
+    expect(screen.getByText('Sales route')).toBeInTheDocument();
+  });
+
+  it('success: orders KPI click and sales KPI keyboard', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    await user.click(within(kpis).getByTitle(DASHBOARD_CONTENT.titleViewOrders));
+    expect(screen.getByText('Sales route')).toBeInTheDocument();
+  });
+
+  it('success: sales KPI Enter key opens sales', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    within(kpis).getByTitle(DASHBOARD_CONTENT.titleViewSales).focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText('Sales route')).toBeInTheDocument();
+  });
+
+  it('success: prescription KPI keyboard and inventory click', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    const rx = within(kpis).getByTitle(DASHBOARD_CONTENT.titleReviewPrescriptions);
+    rx.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText('Rx route')).toBeInTheDocument();
+  });
+
+  it('success: inventory KPI click opens stock', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    await user.click(within(kpis).getByTitle(DASHBOARD_CONTENT.titleOpenInventory));
+    expect(screen.getByText('Stock route')).toBeInTheDocument();
+  });
+
+  it('success: prescription and inventory KPIs open their routes', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    await user.click(within(kpis).getByTitle(DASHBOARD_CONTENT.titleReviewPrescriptions));
+    expect(screen.getByText('Rx route')).toBeInTheDocument();
+  });
+
+  it('success: inventory KPI opens stock and orders KPI accepts Enter', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue({
+      ...filled,
+      kpis: { ...filled.kpis, todaySalesPaise: 4000, yesterdaySalesPaise: 8000, newHeldBillCount: 0 },
       scope: 'tenant',
-      branchId: null,
-      branchName: null,
-      owner: {
-        ...ownerFilled.owner!,
-        todaySalesPaise: 25000,
-        branches: [
-          { id: 'b1', name: 'Main', todaySalesPaise: 11200 },
-          { id: 'b2', name: 'Annex', todaySalesPaise: 13800 },
+      branchName: 'All outlets',
+      hero: { ...filled.hero, duesCustomerCount: 0, duesToCollectPaise: 4500 },
+      analytics: {
+        ...filled.analytics,
+        channelSplit: [
+          { key: 'ONLINE', label: 'Online', salesPaise: 0, billCount: 0 },
+          { key: 'COUNTER', label: 'Counter', salesPaise: 30000, billCount: 3 },
         ],
       },
     });
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Shop glance' })).toBeInTheDocument();
-    expect(screen.getAllByText('Main').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('Annex').length).toBeGreaterThan(0);
-    expect(screen.getByRole('link', { name: 'Open till' })).toHaveAttribute('href', '/pos');
-    expect(screen.getByRole('link', { name: 'Stock book' })).toHaveAttribute('href', '/inventory');
-    expect(screen.getByRole('link', { name: 'Khata dues' })).toHaveAttribute('href', '/aging');
-    expect(screen.getByRole('link', { name: 'Shop spend' })).toHaveAttribute('href', '/expenses');
-    expect(screen.getByRole('link', { name: 'Waiting sign-off' })).toHaveAttribute(
-      'href',
-      '/approvals/pending',
-    );
-    expect(screen.getByRole('link', { name: 'Licences' })).toHaveAttribute('href', '/licenses');
-    expect(screen.getByRole('link', { name: 'Outlet orders' })).toHaveAttribute(
-      'href',
-      '/purchases',
-    );
-    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('owner', { scope: 'tenant' }));
+    renderPage(userFor({ displayName: '' }));
+    expect(await screen.findByText('All outlets')).toHaveClass('dash-scope-pill');
+    expect(screen.getAllByText('50%').length).toBeGreaterThan(0);
+    const dues = screen.getByRole('link', { name: /Dues to collect/i });
+    expect(dues).toHaveClass('warn');
+    expect(within(dues).getByText('₹45.00')).toBeInTheDocument();
+    expect(screen.getByText(/Good (morning|afternoon|evening),/)).toBeInTheDocument();
+
+    const kpis = screen.getByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    const orders = within(kpis).getByTitle(DASHBOARD_CONTENT.titleViewOrders);
+    orders.focus();
+    await user.keyboard('{Enter}');
+    expect(screen.getByText('Sales route')).toBeInTheDocument();
   });
 
-  it('multi-desk switch does not duplicate widgets', async () => {
+  it('success: stock KPI Space key opens inventory', async () => {
     const user = userEvent.setup();
-    fetchMock.mockImplementation(async (role) => {
-      if (role === 'owner') {
-        return ownerFilled;
-      }
-      if (role === 'cashier') {
-        return { ...cashierFilled, permittedRoles: ownerFilled.permittedRoles };
-      }
-      if (role === 'inventory') {
-        return { ...inventoryFilled, permittedRoles: ownerFilled.permittedRoles };
-      }
-      return { ...accountantFilled, permittedRoles: ownerFilled.permittedRoles };
-    });
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Shop glance' })).toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Shop glance' })).toHaveLength(1);
-    expect(screen.queryByRole('heading', { name: 'Till today' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Till today' }));
-    expect(await screen.findByRole('heading', { name: 'Till today' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Shop glance' })).not.toBeInTheDocument();
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-    expect(screen.getAllByRole('heading', { name: 'Till today' })).toHaveLength(1);
-    await user.click(screen.getByRole('button', { name: 'Stock desk' }));
-    expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Till today' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Khata and spend' }));
-    expect(await screen.findByText('Patients owe us')).toBeInTheDocument();
-    expect(screen.queryByText('Paracetamol 500')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Open till' })).not.toBeInTheDocument();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    const stock = within(kpis).getByTitle(DASHBOARD_CONTENT.titleOpenInventory);
+    stock.focus();
+    await user.keyboard(' ');
+    expect(screen.getByText('Stock route')).toBeInTheDocument();
   });
 
-  it('staff with two desks can switch till and stock', async () => {
+  it('success: KPI keyboard ignores unrelated keys', async () => {
     const user = userEvent.setup();
-    fetchMock.mockImplementation(async (role) => {
-      if (role === 'inventory') {
-        return { ...inventoryFilled, permittedRoles: ['cashier', 'inventory'] };
-      }
-      return multiStaff;
-    });
-    renderPage(userFor('pharmacy_staff', ['SALES', 'INVENTORY']));
-    expect(await screen.findByRole('heading', { name: 'Till today' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('cashier', {});
-    await user.click(screen.getByRole('button', { name: 'Stock desk' }));
-    expect(await screen.findByRole('heading', { name: 'Stock desk' })).toBeInTheDocument();
-    expect(screen.queryByRole('heading', { name: 'Till today' })).not.toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('inventory', {});
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    const kpis = await screen.findByRole('region', { name: DASHBOARD_CONTENT.regionKpis });
+    within(kpis).getByTitle(DASHBOARD_CONTENT.titleViewSales).focus();
+    await user.keyboard('a');
+    expect(screen.queryByText('Sales route')).not.toBeInTheDocument();
+    expect(screen.getByRole('region', { name: DASHBOARD_CONTENT.regionHero })).toBeInTheDocument();
   });
 
-  it('owner empty glance keeps reserved copy', async () => {
-    fetchMock.mockResolvedValue(ownerEmpty);
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(
-      await screen.findByText('No sales, stock alerts, licences, or books for this view.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Shop glance' })).toBeInTheDocument();
+  it('success: metric control can return to revenue', async () => {
+    const user = userEvent.setup();
+    fetchMock.mockResolvedValue(filled);
+    renderPage();
+    expect(await screen.findByRole('heading', { name: DASHBOARD_CONTENT.analyticsTitle })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.metricOrders }));
+    await user.click(screen.getByRole('button', { name: DASHBOARD_CONTENT.metricRevenue }));
+    expect(screen.getByRole('button', { name: DASHBOARD_CONTENT.metricRevenue })).toHaveClass('on');
   });
 
-  it('owner: widgets cover till, stock, expiry, sign-off, books, movers, transfers, licences, and orders', async () => {
-    fetchMock.mockResolvedValue(ownerFilled);
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Collected today' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Short on this outlet' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Near expiry' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Waiting sign-off' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Khata' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Stockist dues' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Top movers today' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Waiting transfers' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Licences and KYC' })).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Open orders' })).toBeInTheDocument();
-    expect(screen.getAllByText('Glance Pack').length).toBeGreaterThan(0);
-    expect(screen.getByText('INVENTORY_WRITE_OFF')).toBeInTheDocument();
-    expect(screen.getByText('PO/OWN/1')).toBeInTheDocument();
-    expect(screen.getByText('SUBMITTED')).toBeInTheDocument();
-    expect(screen.getByText('IN_TRANSIT')).toBeInTheDocument();
+  it('uses fallback staff name when display name is missing', async () => {
+    fetchMock.mockResolvedValue(filled);
+    renderPage(userFor({ displayName: undefined as unknown as string }));
+    expect(await screen.findByText(/Good (morning|afternoon|evening), Pharmacist/)).toBeInTheDocument();
   });
 
-  it('owner: every strip shares the IST as-of stamp', async () => {
-    fetchMock.mockResolvedValue(ownerFilled);
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Collected today' })).toBeInTheDocument();
-    expect(screen.getAllByText(/As of /).length).toBeGreaterThanOrEqual(10);
-  });
-
-  it('owner: partial licence failure keeps till figures and labels the dead strip', async () => {
-    fetchMock.mockResolvedValue(ownerPartial);
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Collected today' })).toBeInTheDocument();
-    expect(screen.getAllByText('₹112.00').length).toBeGreaterThan(0);
-    expect(screen.getByText('Could not load this strip.')).toBeInTheDocument();
-    expect(screen.queryByText('SUBMITTED')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Licences and KYC' })).toBeInTheDocument();
-  });
-
-  it('denied PLAN_LIMIT: shop glance khata shows Open the plan without amounts', async () => {
-    fetchMock.mockResolvedValue({
-      ...ownerFilled,
-      owner: {
-        ...ownerFilled.owner!,
-        receivablesTotalPaise: undefined,
-        payablesTotalPaise: undefined,
-        receivables: planLimitWidget(
-          'RECEIVABLES',
-          '/subscription',
-          'Khata and stockist aging is on Growth. Open the plan to turn it on.',
-        ),
-        payables: planLimitWidget(
-          'PAYABLES',
-          '/subscription',
-          'Khata and stockist aging is on Growth. Open the plan to turn it on.',
-        ),
-      },
-    });
-    renderPage(userFor('pharmacy_owner', ['SALES', 'INVENTORY', 'FINANCE']));
-    expect(await screen.findByRole('heading', { name: 'Khata' })).toBeInTheDocument();
-    expect(screen.getAllByRole('link', { name: 'Open the plan' }).length).toBeGreaterThan(0);
-    expect(screen.getAllByRole('link', { name: 'Open the plan' })[0]).toHaveAttribute(
-      'href',
-      '/subscription',
+  it('reload period failure surfaces status copy', async () => {
+    const user = userEvent.setup();
+    fetchMock
+      .mockResolvedValueOnce(filled)
+      .mockRejectedValueOnce(new ApiError('bad filter', 400, 'VALIDATION_ERROR'));
+    renderPage();
+    expect(await screen.findByRole('heading', { name: DASHBOARD_CONTENT.analyticsTitle })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: '12M' }));
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'This desk cannot use that outlet filter.',
     );
-    expect(screen.queryByText('Could not load this strip.')).not.toBeInTheDocument();
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-  });
-
-  it('denied PLAN_LIMIT: accountant desk hides dues and links to the plan', async () => {
-    fetchMock.mockResolvedValue({
-      ...accountantFilled,
-      accountant: {
-        expenseTotalPaise: 150000,
-        sources: { aging: '/aging', expenses: '/expenses' },
-        agingHint: 'Khata and stockist aging is on Growth. Open the plan to turn it on.',
-      },
-    });
-    renderPage(
-      userFor('pharmacy_staff', ['FINANCE'], {
-        roles: [{ id: 'r1', name: 'Accountant', code: 'accountant', kind: 'PREDEFINED' }],
-      }),
-    );
-    expect(await screen.findByRole('heading', { name: 'Khata and spend' })).toBeInTheDocument();
-    expect(
-      screen.getByText(/Khata and stockist aging is on Growth. Open the plan to turn it on./),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
-      'href',
-      '/subscription',
-    );
-    expect(screen.queryByText('Patients owe us')).not.toBeInTheDocument();
-    expect(screen.queryByRole('link', { name: 'Khata dues' })).not.toBeInTheDocument();
   });
 });

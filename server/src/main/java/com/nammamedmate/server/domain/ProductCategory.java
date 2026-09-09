@@ -23,6 +23,9 @@ public class ProductCategory {
   @Column(nullable = false, length = 200)
   private String name;
 
+  @Column(length = 16)
+  private String icon;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 
