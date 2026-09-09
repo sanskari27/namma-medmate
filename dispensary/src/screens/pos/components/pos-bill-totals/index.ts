@@ -1,1 +1,0 @@
-export { PosBillTotals } from './PosBillTotals';

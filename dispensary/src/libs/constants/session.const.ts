@@ -12,7 +12,7 @@ export function sessionEndCopy(reason: string | null): string | null {
     case 'elsewhere':
       return 'Signed in on another device. This till needs a fresh sign-in.';
     case 'expired':
-      return 'Your session ended. Sign in again to continue on this till.';
+      return 'Your session ended. Sign in again to continue at this counter.';
     default:
       return null;
   }

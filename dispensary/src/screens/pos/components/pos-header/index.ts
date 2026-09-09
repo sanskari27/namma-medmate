@@ -1,1 +1,0 @@
-export { PosHeader } from './PosHeader';

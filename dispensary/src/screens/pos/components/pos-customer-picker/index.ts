@@ -1,1 +1,0 @@
-export { PosCustomerPicker } from './PosCustomerPicker';

@@ -1,1 +1,0 @@
-export { PosOfferPanel } from './PosOfferPanel';

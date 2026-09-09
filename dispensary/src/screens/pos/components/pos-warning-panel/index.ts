@@ -1,1 +1,0 @@
-export { PosWarningPanel } from './PosWarningPanel';

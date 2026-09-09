@@ -74,6 +74,7 @@ export const API = {
   PURCHASE_ORDERS_BULK: '/api/v1/purchase-orders/bulk',
   PURCHASE_ORDERS_ANALYTICS: '/api/v1/purchase-orders/analytics',
   SALES_INVOICES: '/api/v1/sales/invoices',
+  SALES_CATALOGUE: '/api/v1/sales/catalogue',
   SALES_RETURNS: '/api/v1/sales/returns',
   salesReturn: (id: string) => `/api/v1/sales/returns/${id}`,
   SALES_RETURNS_PREVIEW: '/api/v1/sales/returns/preview',

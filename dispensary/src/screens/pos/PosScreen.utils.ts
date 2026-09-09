@@ -1,9 +1,10 @@
 import type { SafetyCheckStatus, SafetyWarning } from '@/services/medicationSafety';
 import type { Product } from '@/services/products';
 import type { SalesInvoice } from '@/services/salesInvoices';
+import { POS_CONTENT, posStatusMessage } from './PosScreen.content';
+import type { PageStatus } from './pos.types';
 
-export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+export type { PageStatus } from './pos.types';
 
 export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
 
@@ -68,43 +69,21 @@ export function statusCopy(
   invoiceNumber?: string | null,
   hint?: string | null,
 ): string | null {
-  if (hint) {
-    return hint;
-  }
-  switch (status) {
-    case 'loading':
-      return 'Loading catalogue for this till…';
-    case 'empty':
-      return 'No medicines in the catalogue yet. Add stock in Inventory, then build a draft here.';
-    case 'validation':
-      return 'Add a medicine with MRP and selling price. Walk-in can skip the patient. Safety complete still needs a linked customer and a review reason when warnings appear. Schedule packs need a patient, prescriber, and Prescription checked. Rx packs need an Rx reference, Prescription checked, and prescribed qty. Tax override needs a reason. Discount over the sign-off limit waits for approval.';
-    case 'denied':
-      return 'This till cannot save Sales bills, or a cashier-only login cannot dispense Schedule H, H1, X, or NDPS stock.';
-    case 'conflict':
-      return 'Draft warnings, floor qty, or this bill changed. Re-check, then save again.';
-    case 'failure':
-      return 'Could not save this bill. Check the connection and try again.';
-    case 'success':
-      return invoiceNumber
-        ? `Bill ${invoiceNumber} saved as a draft at this till.`
-        : 'Safety review recorded. Sale posting still waits on a saved bill.';
-    default:
-      return null;
-  }
+  return posStatusMessage(status, invoiceNumber, hint);
 }
 
 export function offerStatusHint(status: PageStatus, code?: string | null): string | null {
   if (code === 'AMBIGUOUS_PRECEDENCE') {
-    return 'Two live schemes share the same priority on a line. Change priority on Schemes, then apply again.';
+    return POS_CONTENT.offer.ambiguous;
   }
   if (status === 'validation') {
-    return 'Save this bill first, then apply a scheme.';
+    return POS_CONTENT.offer.validation;
   }
   if (status === 'conflict') {
-    return 'This bill was updated on another till. Refresh, then apply the scheme again.';
+    return POS_CONTENT.offer.conflict;
   }
   if (status === 'failure') {
-    return 'Could not apply this scheme. Check the connection and try again.';
+    return POS_CONTENT.offer.failure;
   }
   return null;
 }
@@ -114,13 +93,13 @@ export function holdStatusHint(status: PageStatus): string | null {
     return null;
   }
   if (status === 'validation') {
-    return 'Save this bill first, then hold it if the patient steps away.';
+    return POS_CONTENT.holdHints.validation;
   }
   if (status === 'conflict') {
-    return 'This bill was updated on another till. Refresh, then hold again.';
+    return POS_CONTENT.holdHints.conflict;
   }
   if (status === 'failure') {
-    return 'Could not hold this bill. Check the connection and try again.';
+    return POS_CONTENT.holdHints.failure;
   }
   return null;
 }
@@ -136,8 +115,8 @@ export function resumeStatusHint(
   } | null,
 ): string {
   const held = invoiceNumber
-    ? `Held bill ${invoiceNumber} is back on this till.`
-    : 'Held bill is back on this till.';
+    ? POS_CONTENT.resume.withNumber(invoiceNumber)
+    : POS_CONTENT.resume.withoutNumber;
   if (
     revalidation &&
     (revalidation.stock ||
@@ -146,7 +125,7 @@ export function resumeStatusHint(
       revalidation.tax ||
       revalidation.approval)
   ) {
-    return `${held} Floor qty, price, or GST changed — review before collect.`;
+    return `${held}${POS_CONTENT.resume.reviewSuffix}`;
   }
   return held;
 }
@@ -212,7 +191,7 @@ export function checkStatusLabel(
     return null;
   }
   if (checkStatus === 'INCOMPLETE' || checkStatus === 'NOT_CHECKED') {
-    return checkLabel ?? 'Not checked';
+    return checkLabel ?? POS_CONTENT.safety.notChecked;
   }
   return null;
 }
@@ -222,15 +201,22 @@ export function warningSummary(
   productNames?: Record<string, string>,
 ): string {
   if (warning.kind === 'ALLERGY') {
-    const productName = (warning.productId && productNames?.[warning.productId]) || 'this medicine';
-    return `Allergy match: ${warning.matchedAllergen ?? 'allergen'} on ${productName} — review before completing.`;
+    const productName =
+      (warning.productId && productNames?.[warning.productId]) || POS_CONTENT.safety.thisMedicine;
+    return POS_CONTENT.safety.allergy(
+      warning.matchedAllergen ?? POS_CONTENT.safety.allergenFallback,
+      productName,
+    );
   }
   const names =
     warning.productIds
       ?.map((id) => productNames?.[id])
       .filter(Boolean)
-      .join(', ') || 'draft lines';
-  return `Same composition on ${names} (${warning.matchedComposition ?? 'composition'}) — review before completing.`;
+      .join(', ') || POS_CONTENT.safety.draftLines;
+  return POS_CONTENT.safety.composition(
+    names,
+    warning.matchedComposition ?? POS_CONTENT.safety.compositionFallback,
+  );
 }
 
 export function formatPaise(paise: number): string {
@@ -341,13 +327,13 @@ export function discountApprovalCopy(
   status: SalesInvoice['discountApprovalStatus'] | null | undefined,
 ): string | null {
   if (status === 'PENDING') {
-    return 'Waiting for sign-off on this discount before the bill can complete.';
+    return POS_CONTENT.discountApproval.pending;
   }
   if (status === 'APPROVED') {
-    return 'Discount signed off. You can complete this bill when the rest of the till is ready.';
+    return POS_CONTENT.discountApproval.approved;
   }
   if (status === 'REJECTED') {
-    return 'Reduce the discount and apply on this bill again.';
+    return POS_CONTENT.discountApproval.rejected;
   }
   return null;
 }
@@ -409,56 +395,58 @@ export function previewTender(totalPaise: number, tender: TenderDraft): TenderPr
 
 export function collectStatusHint(status: PageStatus, code?: string | null): string | null {
   if (status === 'denied' && code === 'PLAN_LIMIT') {
-    return 'Not on this plan. Points stay on the patient until Growth or Pro is back.';
+    return POS_CONTENT.collect.planLimit;
   }
   if (status === 'validation') {
     if (code === 'CREDIT_LIMIT_EXCEEDED') {
-      return 'Khata is over the approved limit. Reduce khata or take cash, UPI, card, or bank.';
+      return POS_CONTENT.collect.creditLimit;
     }
     if (code === 'KHATA_REQUIRES_CUSTOMER') {
-      return 'Link a patient before putting this bill on khata.';
+      return POS_CONTENT.collect.khataCustomer;
     }
     if (code === 'INSUFFICIENT_POINTS') {
-      return 'This patient does not have enough points for that redeem.';
+      return POS_CONTENT.collect.insufficientPoints;
     }
     if (code === 'REDEEM_LIMIT') {
-      return 'Points can cover at most 20% of this bill.';
+      return POS_CONTENT.collect.redeemLimit;
     }
     if (code === 'LOYALTY_REQUIRES_CUSTOMER') {
-      return 'Link a patient before using points.';
+      return POS_CONTENT.collect.loyaltyCustomer;
     }
-    return 'Tender must cover this bill. Add the rest or put it on khata for a linked patient.';
+    return POS_CONTENT.collect.validation;
   }
   if (status === 'conflict') {
-    return 'This bill total changed. Refresh, then collect again.';
+    return POS_CONTENT.collect.conflict;
   }
   if (status === 'failure') {
-    return 'Could not collect this bill. Check the connection and try again.';
+    return POS_CONTENT.collect.failure;
   }
   return null;
 }
 
 export function invoiceOutputHint(status: PageStatus, code?: string | null): string | null {
   if (status === 'loading') {
-    return 'Preparing the A4 bill…';
+    return POS_CONTENT.invoiceOutput.loading;
   }
   if (status === 'empty') {
-    return 'Collect this bill to print the A4 invoice.';
+    return POS_CONTENT.invoiceOutput.empty;
   }
   if (status === 'validation' || code === 'CUSTOMER_EMAIL_REQUIRED') {
-    return 'This patient has no email on file. Add one before sending a bill copy.';
+    return POS_CONTENT.invoiceOutput.emailRequired;
   }
   if (status === 'denied') {
-    return 'This till cannot print Sales bills.';
+    return POS_CONTENT.invoiceOutput.denied;
   }
   if (status === 'conflict') {
-    return 'This bill changed. Refresh, then print again.';
+    return POS_CONTENT.invoiceOutput.conflict;
   }
   if (status === 'failure') {
-    return 'Could not prepare this A4 bill. Check the line and try again.';
+    return POS_CONTENT.invoiceOutput.failure;
   }
   if (status === 'success') {
-    return code === 'email' ? 'Bill copy queued for this patient.' : 'A4 bill ready.';
+    return code === 'email'
+      ? POS_CONTENT.invoiceOutput.emailQueued
+      : POS_CONTENT.invoiceOutput.ready;
   }
   return null;
 }

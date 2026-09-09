@@ -89,7 +89,7 @@ public class SalesInvoiceService {
 
   private static final ZoneId IST = ZoneId.of("Asia/Kolkata");
   private static final String NO_BRANCH_CODE = "NO_ACTIVE_BRANCH";
-  private static final String NO_BRANCH_MESSAGE = "Select an outlet before saving a till bill.";
+  private static final String NO_BRANCH_MESSAGE = "Select an outlet before saving a Sales bill.";
 
   private final SalesInvoiceRepository salesInvoiceRepository;
   private final SalesInvoiceLineRepository salesInvoiceLineRepository;
@@ -758,14 +758,27 @@ public class SalesInvoiceService {
       TaxJurisdiction jurisdiction,
       Map<UUID, SalesInvoiceLine> previous) {
     InvoicePolicy.requireLines(command.lines());
-    Set<UUID> seen = new LinkedHashSet<>();
+    // Same medicine may appear once per unit (+ batch) so strip + loose can share a bill.
+    Set<String> seen = new LinkedHashSet<>();
     List<DraftLine> drafts = new ArrayList<>();
+    Map<UUID, BigDecimal> rxRequestedBase = new HashMap<>();
+    Map<UUID, BigDecimal> rxPrescribed = new HashMap<>();
+    String prescriptionReference = null;
     for (SalesInvoiceCommand.Line item : command.lines()) {
-      if (item == null
-          || item.productId() == null
-          || item.unit() == null
-          || !seen.add(item.productId())) {
+      if (item == null || item.productId() == null || item.unit() == null) {
         throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+      }
+      String lineKey =
+          item.productId()
+              + "|"
+              + item.unit().name()
+              + "|"
+              + (item.batchId() == null ? "" : item.batchId());
+      if (!seen.add(lineKey)) {
+        throw new ApiException(
+            HttpStatus.BAD_REQUEST,
+            "VALIDATION_ERROR",
+            "Duplicate sale line for the same medicine, unit, and batch.");
       }
       Product product = requireProduct(item.productId(), ctx.tenantId());
       if (!product.isActive() || product.isDiscontinued()) {
@@ -785,6 +798,9 @@ public class SalesInvoiceService {
       String reference =
           InvoicePrescriptionPolicy.requireReference(
               needsRx, command.prescriptionVerified(), command.prescriptionReference());
+      if (needsRx) {
+        prescriptionReference = reference;
+      }
       BigDecimal prescribed =
           InvoicePrescriptionPolicy.requirePrescribed(needsRx, item.prescribedQuantity());
       long discount = item.discountPaise() == null ? 0L : item.discountPaise();
@@ -803,14 +819,13 @@ public class SalesInvoiceService {
             row ->
                 InvoicePrescriptionPolicy.assertCustomerBind(
                     row.getCustomerId(), command.customerId()));
-        InvoicePrescriptionPolicy.assertCanFill(
-            prescribed,
-            existing
-                .map(SalesPrescriptionFulfillment::getFulfilledQuantity)
-                .orElse(BigDecimal.ZERO),
-            baseQuantity);
+        rxRequestedBase.merge(product.getId(), baseQuantity, BigDecimal::add);
+        rxPrescribed.merge(
+            product.getId(),
+            prescribed == null ? BigDecimal.ZERO : prescribed,
+            BigDecimal::max);
       }
-      StockBatch batch = requireBatch(product, item.batchId(), ctx, baseQuantity);
+      StockBatch batch = resolveBatch(product, item.batchId(), ctx);
       SalesInvoiceLine prior = previous.get(item.productId());
       DiscountType type = DiscountType.FLAT;
       long value = discount;
@@ -830,6 +845,20 @@ public class SalesInvoiceService {
               selling,
               type,
               value));
+    }
+    assertAccumulatedFloorStock(drafts, ctx);
+    if (!rxRequestedBase.isEmpty() && prescriptionReference != null) {
+      for (Map.Entry<UUID, BigDecimal> entry : rxRequestedBase.entrySet()) {
+        var existing =
+            fulfillmentRepository.findByTenantIdAndPrescriptionReferenceAndProductId(
+                ctx.tenantId(), prescriptionReference, entry.getKey());
+        InvoicePrescriptionPolicy.assertCanFill(
+            rxPrescribed.getOrDefault(entry.getKey(), BigDecimal.ZERO),
+            existing
+                .map(SalesPrescriptionFulfillment::getFulfilledQuantity)
+                .orElse(BigDecimal.ZERO),
+            entry.getValue());
+      }
     }
     InvoicePolicy.PricedBill priced =
         InvoicePolicy.priceBill(
@@ -970,8 +999,7 @@ public class SalesInvoiceService {
     }
   }
 
-  private StockBatch requireBatch(
-      Product product, UUID batchId, Context ctx, BigDecimal baseQuantity) {
+  private StockBatch resolveBatch(Product product, UUID batchId, Context ctx) {
     if (product.isRequiresBatchTracking()) {
       if (batchId == null) {
         throw new ApiException(
@@ -984,17 +1012,15 @@ public class SalesInvoiceService {
               .findByIdAndTenantId(batchId, ctx.tenantId())
               .orElseThrow(SalesInvoiceService::notFound);
       InvoicePolicy.assertBatchOnProduct(batch.getProductId(), product.getId());
-      StockBalance balance =
-          stockBalanceRepository
-              .findByTenantIdAndBranchIdAndProductIdAndBatchId(
-                  ctx.tenantId(), ctx.branchId(), product.getId(), batchId)
-              .orElseThrow(
-                  () ->
-                      new ApiException(
-                          HttpStatus.UNPROCESSABLE_ENTITY,
-                          InvoicePolicy.FOREIGN_BATCH,
-                          "That batch is not on this outlet floor."));
-      InvoicePolicy.assertStockAvailable(balance.getQuantity(), baseQuantity);
+      stockBalanceRepository
+          .findByTenantIdAndBranchIdAndProductIdAndBatchId(
+              ctx.tenantId(), ctx.branchId(), product.getId(), batchId)
+          .orElseThrow(
+              () ->
+                  new ApiException(
+                      HttpStatus.UNPROCESSABLE_ENTITY,
+                      InvoicePolicy.FOREIGN_BATCH,
+                      "That batch is not on this outlet floor."));
       return batch;
     }
     if (batchId != null) {
@@ -1003,18 +1029,36 @@ public class SalesInvoiceService {
           InvoicePolicy.FOREIGN_BATCH,
           "This medicine is not batch-tracked.");
     }
-    StockBalance balance =
-        stockBalanceRepository
-            .findByTenantIdAndBranchIdAndProductIdAndBatchIdIsNull(
-                ctx.tenantId(), ctx.branchId(), product.getId())
-            .orElseThrow(
-                () ->
-                    new ApiException(
-                        HttpStatus.CONFLICT,
-                        InvoicePolicy.STALE_STOCK,
-                        "Floor qty changed. Refresh the batch and try again."));
-    InvoicePolicy.assertStockAvailable(balance.getQuantity(), baseQuantity);
+    stockBalanceRepository
+        .findByTenantIdAndBranchIdAndProductIdAndBatchIdIsNull(
+            ctx.tenantId(), ctx.branchId(), product.getId())
+        .orElseThrow(
+            () ->
+                new ApiException(
+                    HttpStatus.CONFLICT,
+                    InvoicePolicy.STALE_STOCK,
+                    "Floor qty changed. Refresh the batch and try again."));
     return null;
+  }
+
+  private void assertAccumulatedFloorStock(List<DraftLine> drafts, Context ctx) {
+    Map<String, BigDecimal> demand = new HashMap<>();
+    Map<String, UUID> productIds = new HashMap<>();
+    Map<String, UUID> batchIds = new HashMap<>();
+    for (DraftLine row : drafts) {
+      UUID productId = row.product().getId();
+      UUID batchId = row.batch() == null ? null : row.batch().getId();
+      String key = productId + "|" + (batchId == null ? "" : batchId);
+      demand.merge(key, row.baseQuantity(), BigDecimal::add);
+      productIds.put(key, productId);
+      batchIds.put(key, batchId);
+    }
+    for (Map.Entry<String, BigDecimal> entry : demand.entrySet()) {
+      StockBalance balance =
+          floorBalance(ctx, productIds.get(entry.getKey()), batchIds.get(entry.getKey()));
+      InvoicePolicy.assertStockAvailable(
+          balance == null ? null : balance.getQuantity(), entry.getValue());
+    }
   }
 
   private String nextInvoiceNumber(Context ctx, Location branch, String fy) {
@@ -1268,10 +1312,21 @@ public class SalesInvoiceService {
   }
 
   private void assertFloorStock(List<SalesInvoiceLine> lines, Context ctx) {
+    Map<String, BigDecimal> demand = new HashMap<>();
+    Map<String, UUID> productIds = new HashMap<>();
+    Map<String, UUID> batchIds = new HashMap<>();
     for (SalesInvoiceLine line : lines) {
-      StockBalance balance = floorBalance(ctx, line.getProductId(), line.getBatchId());
+      String key =
+          line.getProductId() + "|" + (line.getBatchId() == null ? "" : line.getBatchId());
+      demand.merge(key, line.getBaseQuantity(), BigDecimal::add);
+      productIds.put(key, line.getProductId());
+      batchIds.put(key, line.getBatchId());
+    }
+    for (Map.Entry<String, BigDecimal> entry : demand.entrySet()) {
+      StockBalance balance =
+          floorBalance(ctx, productIds.get(entry.getKey()), batchIds.get(entry.getKey()));
       InvoicePolicy.assertStockAvailable(
-          balance == null ? null : balance.getQuantity(), line.getBaseQuantity());
+          balance == null ? null : balance.getQuantity(), entry.getValue());
     }
   }
 

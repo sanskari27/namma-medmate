@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react';
+import { POS_CONTENT } from '../../PosScreen.content';
 
 interface PosConnectivityOverlayProps {
   open: boolean;
@@ -34,10 +35,10 @@ export function PosConnectivityOverlay({ open }: PosConnectivityOverlayProps) {
     >
       <div className="max-w-md space-y-3 border border-line bg-surface p-6 text-ink">
         <h2 id="pos-offline-title" className="text-lg font-semibold">
-          Till is offline
+          {POS_CONTENT.offlineTitle}
         </h2>
         <p id="pos-offline-copy" className="text-sm text-muted">
-          Keep this bill. Collect when the counter is back on the line.
+          {POS_CONTENT.offlineBody}
         </p>
       </div>
     </div>

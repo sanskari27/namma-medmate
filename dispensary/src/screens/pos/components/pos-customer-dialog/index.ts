@@ -1,0 +1,1 @@
+export { PosCustomerDialog } from './PosCustomerDialog';

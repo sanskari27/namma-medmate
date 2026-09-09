@@ -1,1 +1,0 @@
-export { PosAckFooter } from './PosAckFooter';

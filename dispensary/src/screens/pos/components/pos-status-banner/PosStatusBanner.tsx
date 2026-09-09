@@ -14,16 +14,9 @@ export function PosStatusBanner({ status, statusId, invoiceNumber, hint }: PosSt
   }
   const role =
     status === 'success' || status === 'loading' || status === 'empty' ? 'status' : 'alert';
+  const tone = status === 'success' ? 'success' : status === 'denied' || status === 'failure' || status === 'conflict' || status === 'validation' ? 'alert' : 'neutral';
   return (
-    <p
-      id={statusId}
-      role={role}
-      className={
-        status === 'success'
-          ? 'rounded border border-brand/30 bg-brand-soft px-3 py-2 text-sm text-ink'
-          : 'rounded border border-line bg-surface px-3 py-2 text-sm text-ink'
-      }
-    >
+    <p id={statusId} role={role} className="pos-banner" data-tone={tone}>
       {copy}
     </p>
   );
