@@ -1,6 +1,6 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getCustomerCredit } from '@/services/credit';
-import { listCustomers, type Customer } from '@/services/customers';
+import { getCustomer, listCustomers, type Customer } from '@/services/customers';
 import { listDoctors, type Doctor } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import { isApiError } from '@/services/axios';
@@ -17,10 +17,13 @@ import {
   attachInvoicePrescription,
   completeSalesInvoice,
   createSalesInvoice,
+  getSalesInvoice,
   holdSalesInvoice,
+  resumeSalesInvoice,
   updateSalesInvoice,
   type DiscountType,
   type SalesInvoice,
+  type SalesInvoiceLine,
 } from '@/services/salesInvoices';
 import { collectiblePaise, parseRedeemPoints } from '@/services/loyalty';
 import type { AppDispatch, RootState } from '@/store';
@@ -39,6 +42,7 @@ import {
   paiseToRupees,
   percentToBps,
   previewTender,
+  resumeStatusHint,
   rupeesToPaise,
   type PageStatus,
 } from '../PosScreen.utils';
@@ -266,6 +270,78 @@ async function buildDraftLine(
   };
 }
 
+async function buildDraftLineFromInvoiceLine(
+  line: SalesInvoiceLine,
+  catalogueById: Map<string, SalesCatalogueItem>,
+): Promise<PosDraftLine | null> {
+  let item = catalogueById.get(line.productId);
+  if (!item) {
+    const found = await listSalesCatalogue({ q: line.sku || line.productName });
+    item = found.find((row) => row.id === line.productId) ?? found[0];
+  }
+  if (!item) {
+    return null;
+  }
+  const product = catalogueItemToProduct(item);
+  const { unitOptions, unitFactors } = await loadUnitMeta(product.id, product);
+  let unit = line.unit;
+  if (!unitOptions.includes(unit)) {
+    unit = unitOptions[0] ?? product.baseUnit;
+  }
+  let batches: PosDraftLine['batches'] = [];
+  let nearExpiry = false;
+  if (product.requiresBatchTracking) {
+    try {
+      batches = await listStockBatches(product.id);
+      nearExpiry = batches.some((batch) => batch.batchId === line.batchId && batch.nearExpiry);
+    } catch {
+      batches = [];
+    }
+  }
+  const discountType: DiscountType =
+    line.discountType === 'PERCENT' || line.discountType === 'FLAT' ? line.discountType : 'FLAT';
+  const discountRupees =
+    discountType === 'PERCENT'
+      ? String((line.discountValue ?? 0) / 100)
+      : (paiseToRupees(line.discountValue || line.discountPaise) ?? '');
+  return {
+    id: crypto.randomUUID(),
+    product,
+    unit,
+    quantity: String(line.quantity),
+    baseQuantity: Number(line.baseQuantity) || null,
+    unitOptions,
+    unitFactors,
+    batches,
+    batchId: line.batchId,
+    nearExpiry,
+    mrpRupees: paiseToRupees(line.mrpPaise) ?? '',
+    sellingRupees: paiseToRupees(line.sellingPricePaise) ?? '',
+    discountRupees,
+    discountType,
+    prescribedQuantity:
+      line.prescribedQuantity != null && line.prescribedQuantity !== ''
+        ? String(line.prescribedQuantity)
+        : isPrescriptionProduct(product)
+          ? '1'
+          : '',
+  };
+}
+
+function billValueFromInvoice(invoice: SalesInvoice): { billType: DiscountType; billValue: string } {
+  const type =
+    invoice.billDiscountType === 'PERCENT' || invoice.billDiscountType === 'FLAT'
+      ? invoice.billDiscountType
+      : 'FLAT';
+  if (!invoice.billDiscountValue) {
+    return { billType: 'FLAT', billValue: '' };
+  }
+  if (type === 'PERCENT') {
+    return { billType: 'PERCENT', billValue: String(invoice.billDiscountValue / 100) };
+  }
+  return { billType: 'FLAT', billValue: paiseToRupees(invoice.billDiscountValue) ?? '' };
+}
+
 export const loadBootstrap = createAsyncThunk<
   {
     catalogue: SalesCatalogueItem[];
@@ -290,6 +366,89 @@ export const loadBootstrap = createAsyncThunk<
     return { catalogue, categories, customers, doctors };
   } catch (error) {
     return rejectWithValue(toReject(error));
+  }
+});
+
+export type ContinueInvoiceResult = {
+  invoice: SalesInvoice;
+  draft: PosDraftLine[];
+  customer: Customer | null;
+  walkIn: boolean;
+  doctors: Doctor[];
+  billType: DiscountType;
+  billValue: string;
+  statusHint: string;
+};
+
+export const continueInvoice = createAsyncThunk<
+  ContinueInvoiceResult,
+  string,
+  { state: RootState; rejectValue: PosReject }
+>('pos/continueInvoice', async (invoiceId, { getState, rejectWithValue }) => {
+  const { allowed } = getState().pos;
+  if (!allowed) {
+    return rejectWithValue({ status: 'denied', hint: null });
+  }
+  try {
+    let invoice = await getSalesInvoice(invoiceId);
+    const wasHeld = invoice.status === 'HELD';
+    if (wasHeld) {
+      invoice = await resumeSalesInvoice(invoiceId, { expectedVersion: invoice.version });
+    }
+    if (invoice.status !== 'DRAFT') {
+      return rejectWithValue({
+        status: 'validation',
+        hint: POS_CONTENT.resume.notOpen,
+      });
+    }
+
+    const [catalogue, doctors] = await Promise.all([
+      listSalesCatalogue(),
+      getState().pos.doctors.length > 0
+        ? Promise.resolve(getState().pos.doctors)
+        : listDoctors().catch(() => [] as Doctor[]),
+    ]);
+    const catalogueById = new Map(catalogue.map((item) => [item.id, item]));
+    const draft: PosDraftLine[] = [];
+    for (const line of invoice.lines) {
+      const built = await buildDraftLineFromInvoiceLine(line, catalogueById);
+      if (built) {
+        draft.push(built);
+      }
+    }
+
+    let customer: Customer | null = null;
+    let walkIn = false;
+    if (invoice.customerId) {
+      try {
+        customer = await getCustomer(invoice.customerId);
+      } catch {
+        customer = null;
+        walkIn = true;
+      }
+    } else {
+      walkIn = true;
+    }
+
+    const bill = billValueFromInvoice(invoice);
+    const statusHint = resumeStatusHint(
+      invoice.invoiceNumber,
+      invoice.revalidation ?? null,
+      wasHeld ? 'held' : 'draft',
+    );
+
+    return {
+      invoice,
+      draft,
+      customer,
+      walkIn,
+      doctors,
+      billType: bill.billType,
+      billValue: bill.billValue,
+      statusHint,
+    };
+  } catch (error) {
+    return rejectWithValue(toReject(error, POS_CONTENT.resume.failure));
   }
 });
 

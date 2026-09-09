@@ -147,7 +147,11 @@ export const POS_CONTENT = {
   resume: {
     withNumber: (invoiceNumber: string) => `Held bill ${invoiceNumber} is back on this counter.`,
     withoutNumber: 'Held bill is back on this counter.',
+    draftWithNumber: (invoiceNumber: string) =>
+      `Open bill ${invoiceNumber} is back on this counter.`,
     reviewSuffix: ' Floor qty, price, or GST changed — review before collect.',
+    notOpen: 'Only draft or held bills can be continued on Sales.',
+    failure: 'Could not open this bill on Sales. Try again from Orders.',
   },
 
   collect: {

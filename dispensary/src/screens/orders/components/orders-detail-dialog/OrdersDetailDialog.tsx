@@ -231,7 +231,10 @@ export function OrdersDetailDialog() {
             {ORDERS_CONTENT.actions.close}
           </button>
           {needsAction(row) ? (
-            <Link className="orders-btn orders-btn-primary" to={ROUTES.SALES}>
+            <Link
+              className="orders-btn orders-btn-primary"
+              to={`${ROUTES.SALES}?continue=${encodeURIComponent(row.id)}`}
+            >
               {ORDERS_CONTENT.actions.continue}
             </Link>
           ) : null}

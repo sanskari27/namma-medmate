@@ -94,11 +94,30 @@ public class SalesReturnController {
         row.salesInvoiceId(),
         row.invoiceNumber(),
         row.customerId(),
+        row.customerName(),
+        row.customerPhone(),
         row.reason(),
         row.decision(),
         row.refundMode(),
         row.refundTotalPaise(),
-        row.createdAt());
+        row.cashRefundPaise(),
+        row.creditNotePaise(),
+        row.itemUnitCount(),
+        row.lineCount(),
+        row.itemSummary(),
+        row.createdAt(),
+        row.lines().stream()
+            .map(
+                line ->
+                    new SalesReturnLineSummaryResponse(
+                        line.id(),
+                        line.salesInvoiceLineId(),
+                        line.productName(),
+                        line.sku(),
+                        line.batchNumber(),
+                        line.quantity(),
+                        line.refundAmountPaise()))
+            .toList());
   }
 
   private SalesReturnResponse toResponse(SalesReturnView view) {
@@ -139,11 +158,28 @@ public class SalesReturnController {
       UUID salesInvoiceId,
       String invoiceNumber,
       UUID customerId,
+      String customerName,
+      String customerPhone,
       String reason,
       SalesReturnDecision decision,
       SalesReturnRefundMode refundMode,
       long refundTotalPaise,
-      Instant createdAt) {}
+      long cashRefundPaise,
+      long creditNotePaise,
+      int itemUnitCount,
+      int lineCount,
+      String itemSummary,
+      Instant createdAt,
+      List<SalesReturnLineSummaryResponse> lines) {}
+
+  public record SalesReturnLineSummaryResponse(
+      UUID id,
+      UUID salesInvoiceLineId,
+      String productName,
+      String sku,
+      String batchNumber,
+      BigDecimal quantity,
+      long refundAmountPaise) {}
 
   public record SalesReturnLineResponse(
       UUID id,

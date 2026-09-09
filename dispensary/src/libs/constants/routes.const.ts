@@ -66,7 +66,7 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
       { label: 'Orders', path: ROUTES.ORDERS, hint: 'Online & counter sales' },
-      { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
+      { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back' },
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },

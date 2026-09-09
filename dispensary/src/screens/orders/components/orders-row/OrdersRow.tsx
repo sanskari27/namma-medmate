@@ -101,7 +101,10 @@ export function OrdersRow({ row }: OrdersRowProps) {
       <td>
         <div className="orders-actions" onClick={(event) => event.stopPropagation()}>
           {needsAction(row) ? (
-            <Link className="orders-btn orders-btn-primary" to={ROUTES.SALES}>
+            <Link
+              className="orders-btn orders-btn-primary"
+              to={`${ROUTES.SALES}?continue=${encodeURIComponent(row.id)}`}
+            >
               {ORDERS_CONTENT.actions.continue}
             </Link>
           ) : null}

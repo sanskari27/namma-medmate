@@ -19,6 +19,7 @@ import {
   applyPricing,
   changeLineUnit,
   collectPayment,
+  continueInvoice,
   holdBill,
   loadBootstrap,
   loadCustomerCredit,
@@ -414,7 +415,9 @@ const posSlice = createSlice({
         state.categories = action.payload.categories;
         state.customers = action.payload.customers;
         state.doctors = action.payload.doctors;
-        state.status = action.payload.catalogue.length === 0 ? 'empty' : null;
+        if (!state.invoice) {
+          state.status = action.payload.catalogue.length === 0 ? 'empty' : null;
+        }
       })
       .addCase(loadBootstrap.rejected, (state, action) => {
         state.status = action.payload?.status ?? 'failure';
@@ -550,6 +553,36 @@ const posSlice = createSlice({
         state.busy = false;
         state.status = action.payload?.status ?? 'failure';
         state.statusHint = action.payload?.hint ?? null;
+      })
+      .addCase(continueInvoice.pending, (state) => {
+        state.busy = true;
+        state.status = 'loading';
+        state.statusHint = null;
+      })
+      .addCase(continueInvoice.fulfilled, (state, action) => {
+        state.busy = false;
+        clearBillFields(state);
+        state.invoice = action.payload.invoice;
+        state.draft = action.payload.draft;
+        state.selectedCustomer = action.payload.customer;
+        state.walkIn = action.payload.walkIn;
+        state.doctors = action.payload.doctors;
+        state.selectedDoctorId = action.payload.invoice.doctorId ?? '';
+        state.prescriptionVerified = action.payload.invoice.prescriptionVerified;
+        state.prescriptionReference = action.payload.invoice.prescriptionReference ?? '';
+        state.customerGstin = action.payload.invoice.customerGstin ?? '';
+        state.billType = action.payload.billType === 'PERCENT' ? 'PERCENT' : 'FLAT';
+        state.billValue = action.payload.billValue;
+        state.step = 'cart';
+        state.status = 'success';
+        state.statusHint = action.payload.statusHint;
+        state.createKey = crypto.randomUUID();
+        state.completeKey = crypto.randomUUID();
+      })
+      .addCase(continueInvoice.rejected, (state, action) => {
+        state.busy = false;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? POS_CONTENT.resume.failure;
       })
       .addCase(loadCustomerCredit.fulfilled, (state, action) => {
         state.creditAvailablePaise = action.payload;

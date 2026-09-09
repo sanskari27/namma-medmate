@@ -113,10 +113,14 @@ export function resumeStatusHint(
     tax: boolean;
     approval: boolean;
   } | null,
+  kind: 'held' | 'draft' = 'held',
 ): string {
-  const held = invoiceNumber
-    ? POS_CONTENT.resume.withNumber(invoiceNumber)
-    : POS_CONTENT.resume.withoutNumber;
+  const held =
+    kind === 'draft' && invoiceNumber
+      ? POS_CONTENT.resume.draftWithNumber(invoiceNumber)
+      : invoiceNumber
+        ? POS_CONTENT.resume.withNumber(invoiceNumber)
+        : POS_CONTENT.resume.withoutNumber;
   if (
     revalidation &&
     (revalidation.stock ||

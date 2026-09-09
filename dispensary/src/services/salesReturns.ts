@@ -35,16 +35,34 @@ export interface SalesReturn {
   lines: SalesReturnLine[];
 }
 
+export interface SalesReturnLineSummary {
+  id: string;
+  salesInvoiceLineId: string;
+  productName: string;
+  sku: string;
+  batchNumber: string | null;
+  quantity: number | string;
+  refundAmountPaise: number;
+}
+
 export interface SalesReturnSummary {
   id: string;
   salesInvoiceId: string;
   invoiceNumber: string;
   customerId: string | null;
+  customerName: string;
+  customerPhone: string | null;
   reason: string;
   decision: SalesReturnDecision;
   refundMode: SalesReturnRefundMode;
   refundTotalPaise: number;
+  cashRefundPaise: number;
+  creditNotePaise: number;
+  itemUnitCount: number;
+  lineCount: number;
+  itemSummary: string;
   createdAt: string;
+  lines: SalesReturnLineSummary[];
 }
 
 export interface SalesReturnInput {

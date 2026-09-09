@@ -9,6 +9,7 @@ import com.nammamedmate.server.application.inventory.InventoryStockService;
 import com.nammamedmate.server.application.loyalty.LoyaltyService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.SalesInvoice;
@@ -22,6 +23,7 @@ import com.nammamedmate.server.domain.StockBatch;
 import com.nammamedmate.server.domain.StockMovement;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceLineRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceRepository;
@@ -35,14 +37,17 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -62,6 +67,7 @@ public class SalesReturnService {
   private final StockBatchRepository stockBatchRepository;
   private final StockMovementRepository stockMovementRepository;
   private final AppUserRepository appUserRepository;
+  private final CustomerRepository customerRepository;
   private final AccessQueryService accessQueryService;
   private final InventoryStockService inventoryStockService;
   private final CustomerCreditService customerCreditService;
@@ -79,6 +85,7 @@ public class SalesReturnService {
       StockBatchRepository stockBatchRepository,
       StockMovementRepository stockMovementRepository,
       AppUserRepository appUserRepository,
+      CustomerRepository customerRepository,
       AccessQueryService accessQueryService,
       InventoryStockService inventoryStockService,
       CustomerCreditService customerCreditService,
@@ -94,6 +101,7 @@ public class SalesReturnService {
     this.stockBatchRepository = stockBatchRepository;
     this.stockMovementRepository = stockMovementRepository;
     this.appUserRepository = appUserRepository;
+    this.customerRepository = customerRepository;
     this.accessQueryService = accessQueryService;
     this.inventoryStockService = inventoryStockService;
     this.customerCreditService = customerCreditService;
@@ -109,7 +117,52 @@ public class SalesReturnService {
     List<SalesReturn> rows =
         salesReturnRepository.findAllByTenantIdAndBranchIdOrderByCreatedAtDesc(
             ctx.tenantId(), ctx.branchId());
-    return new SalesReturnListResult(rows.stream().map(this::toSummary).toList());
+    if (rows.isEmpty()) {
+      return new SalesReturnListResult(List.of());
+    }
+
+    Set<UUID> returnIds = rows.stream().map(SalesReturn::getId).collect(Collectors.toSet());
+    Set<UUID> invoiceIds =
+        rows.stream().map(SalesReturn::getSalesInvoiceId).collect(Collectors.toSet());
+    Set<UUID> customerIds =
+        rows.stream()
+            .map(SalesReturn::getCustomerId)
+            .filter(Objects::nonNull)
+            .collect(Collectors.toCollection(HashSet::new));
+
+    Map<UUID, List<SalesReturnLine>> linesByReturn = new HashMap<>();
+    for (SalesReturnLine line :
+        salesReturnLineRepository.findAllByTenantIdAndBranchIdAndSalesReturnIdIn(
+            ctx.tenantId(), ctx.branchId(), returnIds)) {
+      linesByReturn.computeIfAbsent(line.getSalesReturnId(), ignored -> new ArrayList<>()).add(line);
+    }
+
+    Map<UUID, SalesInvoice> invoices = new HashMap<>();
+    for (SalesInvoice invoice :
+        salesInvoiceRepository.findAllByTenantIdAndIdIn(ctx.tenantId(), invoiceIds)) {
+      if (ctx.branchId().equals(invoice.getBranchId())) {
+        invoices.put(invoice.getId(), invoice);
+      }
+    }
+
+    Map<UUID, Customer> customers = new HashMap<>();
+    if (!customerIds.isEmpty()) {
+      for (Customer customer :
+          customerRepository.findAllByTenantIdAndIdIn(ctx.tenantId(), customerIds)) {
+        customers.put(customer.getId(), customer);
+      }
+    }
+
+    return new SalesReturnListResult(
+        rows.stream()
+            .map(
+                row ->
+                    toSummary(
+                        row,
+                        invoices.get(row.getSalesInvoiceId()),
+                        row.getCustomerId() == null ? null : customers.get(row.getCustomerId()),
+                        linesByReturn.getOrDefault(row.getId(), List.of())))
+            .toList());
   }
 
   @Transactional(readOnly = true)
@@ -342,17 +395,68 @@ public class SalesReturnService {
             row.getId(), row.getTenantId(), row.getBranchId());
   }
 
-  private SalesReturnListResult.Summary toSummary(SalesReturn row) {
+  private SalesReturnListResult.Summary toSummary(
+      SalesReturn row, SalesInvoice invoice, Customer customer, List<SalesReturnLine> lines) {
+    List<SalesReturnLine> ordered =
+        lines.stream()
+            .sorted((a, b) -> Integer.compare(a.getSortOrder(), b.getSortOrder()))
+            .toList();
+    int itemUnitCount =
+        ordered.stream()
+            .map(SalesReturnLine::getQuantity)
+            .filter(Objects::nonNull)
+            .map(qty -> qty.setScale(0, RoundingMode.HALF_UP).intValue())
+            .reduce(0, Integer::sum);
+    String itemSummary =
+        ordered.stream()
+            .map(SalesReturnLine::getProductName)
+            .filter(name -> name != null && !name.isBlank())
+            .limit(2)
+            .collect(Collectors.joining(", "));
+    String customerName = customer == null ? "Walk-in" : blankToNull(customer.getName());
+    if (customerName == null) {
+      customerName = "Walk-in";
+    }
+    String invoiceNumber =
+        invoice != null && invoice.getInvoiceNumber() != null
+            ? invoice.getInvoiceNumber()
+            : invoiceNumber(row);
     return new SalesReturnListResult.Summary(
         row.getId(),
         row.getSalesInvoiceId(),
-        invoiceNumber(row),
+        invoiceNumber,
         row.getCustomerId(),
+        customerName,
+        customer == null ? null : blankToNull(customer.getPhone()),
         row.getReason(),
         row.getDecision(),
         row.getRefundMode(),
         row.getRefundTotalPaise(),
-        row.getCreatedAt());
+        row.getCashRefundPaise(),
+        row.getCreditNotePaise(),
+        itemUnitCount,
+        ordered.size(),
+        itemSummary,
+        row.getCreatedAt(),
+        ordered.stream()
+            .map(
+                line ->
+                    new SalesReturnListResult.LineSummary(
+                        line.getId(),
+                        line.getSalesInvoiceLineId(),
+                        line.getProductName(),
+                        line.getSku(),
+                        batchNumber(line.getBatchId(), line.getTenantId()),
+                        strip(line.getQuantity()),
+                        line.getRefundAmountPaise()))
+            .toList());
+  }
+
+  private static String blankToNull(String value) {
+    if (value == null || value.isBlank()) {
+      return null;
+    }
+    return value.trim();
   }
 
   private SalesReturnView toView(SalesReturn row, List<SalesReturnLine> lines) {

@@ -1,5 +1,6 @@
-import { useEffect } from 'react';
+import { useEffect, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import type { AppDispatch, RootState } from '@/store';
 import {
   canDispenseControlled,
@@ -12,7 +13,13 @@ import {
   selectPosStatus,
   selectPosStatusHint,
 } from './store/pos.selectors';
-import { loadBootstrap, searchCatalogue, searchCustomers } from './store/pos.thunks';
+import {
+  continueInvoice,
+  loadBootstrap,
+  loadCustomerCredit,
+  searchCatalogue,
+  searchCustomers,
+} from './store/pos.thunks';
 import {
   selectPosCategoryFilterId,
   selectPosCustomerQuery,
@@ -22,6 +29,9 @@ import {
 /** Boots Sales POS access and catalogue search debouncers. */
 export function usePosSale() {
   const dispatch = useDispatch<AppDispatch>();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const continueId = searchParams.get('continue');
+  const continueHandled = useRef<string | null>(null);
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasSalesAccess(user?.modules);
   const storeAllowed = useSelector(selectPosAllowed);
@@ -42,11 +52,31 @@ export function usePosSale() {
   }, [dispatch, allowed, user?.role, user?.roles, user?.modules]);
 
   useEffect(() => {
+    if (!storeAllowed || !continueId || continueHandled.current === continueId) {
+      return;
+    }
+    continueHandled.current = continueId;
+    void (async () => {
+      await dispatch(loadBootstrap());
+      const result = await dispatch(continueInvoice(continueId));
+      if (continueInvoice.fulfilled.match(result) && result.payload.customer) {
+        void dispatch(loadCustomerCredit());
+      }
+      const next = new URLSearchParams(searchParams);
+      next.delete('continue');
+      setSearchParams(next, { replace: true });
+    })();
+  }, [dispatch, storeAllowed, continueId, searchParams, setSearchParams]);
+
+  useEffect(() => {
     if (!storeAllowed) {
       return;
     }
+    if (continueId) {
+      return;
+    }
     void dispatch(loadBootstrap());
-  }, [dispatch, storeAllowed, user?.activeBranchId]);
+  }, [dispatch, storeAllowed, user?.activeBranchId, continueId]);
 
   useEffect(() => {
     if (!storeAllowed) {

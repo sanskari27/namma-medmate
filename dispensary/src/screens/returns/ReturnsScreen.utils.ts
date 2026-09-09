@@ -1,89 +1,133 @@
 import type { SalesInvoice } from '@/services/salesInvoices';
-import type { SalesReturnRefundMode } from '@/services/salesReturns';
-import { AlertCircle, CheckCircle2, RotateCcw, WifiOff } from 'lucide-react';
+import type { SalesReturnRefundMode, SalesReturnSummary } from '@/services/salesReturns';
+import { RETURNS_CONTENT } from './ReturnsScreen.content';
 
-export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+export type ReturnsFilter = 'all' | 'cash' | 'credit';
+
+export type ReturnsFilterCounts = Record<ReturnsFilter, number>;
 
 export type LineDraft = Record<string, string>;
 
-export function hasSalesAccess(modules: string[] | undefined): boolean {
-  return Boolean(modules?.includes('SALES'));
-}
+export type ReturnsPageStatus =
+  | 'idle'
+  | 'loading'
+  | 'ready'
+  | 'empty'
+  | 'error'
+  | 'denied'
+  | 'no_branch';
 
-export function statusCopy(status: PageStatus, hint?: string | null): string | null {
-  if (hint) {
-    return hint;
-  }
-  switch (status) {
-    case 'loading':
-      return 'Loading collected bills and returns at this counter…';
-    case 'empty':
-      return 'No collected bills to take back yet. Complete a sale first, then find the bill here.';
-    case 'validation':
-      return 'Find a collected bill, enter a qty still sold on that line, and say why it is coming back.';
-    case 'denied':
-      return 'This till cannot take sales back. Ask the owner to grant Sales.';
-    case 'conflict':
-      return 'This return request was already used with a different qty or refund. Refresh and try again.';
-    case 'failure':
-      return 'Could not record this return. Check the connection and try again.';
-    case 'success':
-      return 'Return recorded. Stock is back on the originating batch and the refund is ready.';
-    default:
-      return null;
-  }
-}
-
-export function statusIcon(status: PageStatus) {
-  if (status === 'success') {
-    return CheckCircle2;
-  }
-  if (status === 'failure') {
-    return WifiOff;
-  }
-  if (status === 'loading' || status === 'empty') {
-    return RotateCcw;
-  }
-  return AlertCircle;
-}
-
-export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
-    return 'denied';
-  }
-  if (
-    error.status === 409 ||
-    error.code === 'STALE_STATE' ||
-    error.code === 'IDEMPOTENCY_CONFLICT'
-  ) {
-    return 'conflict';
-  }
-  if (error.status === 400 || error.status === 422 || error.code === 'VALIDATION_ERROR') {
-    return 'validation';
-  }
-  return 'failure';
-}
-
-export function apiStatusHint(code: string | null): string | null {
-  switch (code) {
-    case 'OVER_RETURN':
-      return 'Cannot take back more than what is still sold on this bill.';
-    case 'NOT_RETURNABLE':
-      return 'This medicine is marked not returnable. Leave it on the bill.';
-    case 'BATCH_EXPIRED':
-      return 'That batch has expired and cannot go back on the floor.';
-    case 'CREDIT_NOTE_CUSTOMER_REQUIRED':
-      return 'A credit note needs the khata customer from the original bill. Use cash, or pick a billed patient.';
-    case 'IDEMPOTENCY_CONFLICT':
-      return 'This return request was already used with a different qty or refund.';
-    default:
-      return null;
-  }
-}
+export type CreateStatus =
+  | null
+  | 'validation'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | 'finding'
+  | 'previewing'
+  | 'recording';
 
 export function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN')}`;
+  const rupees = paise / 100;
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    maximumFractionDigits: rupees % 1 === 0 ? 0 : 2,
+  }).format(rupees);
+}
+
+export function relativeTime(iso: string, now = Date.now()): string {
+  const then = new Date(iso).getTime();
+  if (Number.isNaN(then)) return '';
+  const diffMs = Math.max(0, now - then);
+  const mins = Math.floor(diffMs / 60_000);
+  if (mins < 1) return 'just now';
+  if (mins < 60) return `${mins} m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours} h ago`;
+  const days = Math.floor(hours / 24);
+  if (days < 30) return `${days} d ago`;
+  const months = Math.floor(days / 30);
+  return `${months} mo ago`;
+}
+
+export function formatIstDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) return '—';
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
+export function refundModeLabel(mode: SalesReturnRefundMode): string {
+  return RETURNS_CONTENT.refund[mode];
+}
+
+export function refundTone(mode: SalesReturnRefundMode): 'green' | 'gold' {
+  return mode === 'CASH' ? 'green' : 'gold';
+}
+
+export function unitsLabel(row: SalesReturnSummary): string {
+  return RETURNS_CONTENT.units(row.itemUnitCount);
+}
+
+export function customerMeta(row: SalesReturnSummary): string {
+  const bits = [relativeTime(row.createdAt)];
+  if (row.customerPhone) bits.push(row.customerPhone);
+  return bits.filter(Boolean).join(' · ');
+}
+
+export function matchesFilter(row: SalesReturnSummary, filter: ReturnsFilter): boolean {
+  if (filter === 'cash') return row.refundMode === 'CASH';
+  if (filter === 'credit') return row.refundMode === 'CREDIT_NOTE';
+  return true;
+}
+
+export function matchesQuery(row: SalesReturnSummary, query: string): boolean {
+  const q = query.trim().toLowerCase();
+  if (!q) return true;
+  const haystack = [
+    row.invoiceNumber,
+    row.customerName,
+    row.customerPhone ?? '',
+    row.reason,
+    row.itemSummary,
+  ]
+    .join(' ')
+    .toLowerCase();
+  return haystack.includes(q);
+}
+
+export function filterCounts(items: SalesReturnSummary[]): ReturnsFilterCounts {
+  return {
+    all: items.length,
+    cash: items.filter((row) => row.refundMode === 'CASH').length,
+    credit: items.filter((row) => row.refundMode === 'CREDIT_NOTE').length,
+  };
+}
+
+export function filteredReturns(
+  items: SalesReturnSummary[],
+  filter: ReturnsFilter,
+  query: string,
+): SalesReturnSummary[] {
+  return items.filter((row) => matchesFilter(row, filter) && matchesQuery(row, query));
+}
+
+export function summaryStats(items: SalesReturnSummary[]) {
+  return {
+    count: items.length,
+    units: items.reduce((sum, row) => sum + row.itemUnitCount, 0),
+    cashPaise: items.reduce((sum, row) => sum + row.cashRefundPaise, 0),
+    creditPaise: items.reduce((sum, row) => sum + row.creditNotePaise, 0),
+    totalPaise: items.reduce((sum, row) => sum + row.refundTotalPaise, 0),
+  };
 }
 
 export function lineQuantity(value: number | string): number {
@@ -104,9 +148,7 @@ export function matchCompletedInvoice(
   query: string,
 ): SalesInvoice | undefined {
   const needle = query.trim().toLowerCase();
-  if (!needle) {
-    return undefined;
-  }
+  if (!needle) return undefined;
   return invoices.find(
     (row) =>
       row.status === 'COMPLETED' &&
@@ -114,6 +156,56 @@ export function matchCompletedInvoice(
   );
 }
 
-export function refundModeLabel(mode: SalesReturnRefundMode): string {
-  return mode === 'CASH' ? 'Cash refund' : 'Credit note';
+export function mapCreateError(error: {
+  status: number;
+  code: string | null;
+}): CreateStatus {
+  if (
+    error.status === 409 ||
+    error.code === 'STALE_STATE' ||
+    error.code === 'IDEMPOTENCY_CONFLICT'
+  ) {
+    return 'conflict';
+  }
+  if (
+    error.status === 400 ||
+    error.status === 422 ||
+    error.code === 'VALIDATION_ERROR' ||
+    error.code === 'OVER_RETURN' ||
+    error.code === 'NOT_RETURNABLE' ||
+    error.code === 'BATCH_EXPIRED' ||
+    error.code === 'CREDIT_NOTE_CUSTOMER_REQUIRED'
+  ) {
+    return 'validation';
+  }
+  return 'failure';
+}
+
+/** @deprecated Prefer mapCreateError — kept for existing util tests. */
+export function mapApiStatus(error: {
+  status: number;
+  code: string | null;
+}): CreateStatus {
+  return mapCreateError(error);
+}
+
+export function apiStatusHint(code: string | null): string | null {
+  switch (code) {
+    case 'OVER_RETURN':
+      return 'Cannot take back more than what is still sold on this bill.';
+    case 'NOT_RETURNABLE':
+      return 'This medicine is marked not returnable. Leave it on the bill.';
+    case 'BATCH_EXPIRED':
+      return 'That batch has expired and cannot go back on the floor.';
+    case 'CREDIT_NOTE_CUSTOMER_REQUIRED':
+      return 'A credit note needs the khata customer from the original bill. Use cash, or pick a billed patient.';
+    case 'IDEMPOTENCY_CONFLICT':
+      return 'This return request was already used with a different qty or refund.';
+    default:
+      return null;
+  }
+}
+
+export function hasSalesAccess(modules: string[] | undefined): boolean {
+  return Boolean(modules?.includes('SALES'));
 }
