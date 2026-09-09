@@ -1,0 +1,1 @@
+export { PrescriptionsSummary } from './PrescriptionsSummary';

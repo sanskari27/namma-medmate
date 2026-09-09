@@ -1,0 +1,1 @@
+export { PrescriptionsInsights } from './PrescriptionsInsights';

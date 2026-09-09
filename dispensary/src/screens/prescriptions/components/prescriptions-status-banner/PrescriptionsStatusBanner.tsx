@@ -1,30 +1,44 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../PrescriptionsScreen.utils';
+import { useSelector } from 'react-redux';
+import { RX_CONTENT } from '../../PrescriptionsScreen.content';
+import { selectRxActionHint, selectRxStatus, selectRxStatusHint } from '../../store/prescriptions.selectors';
 
-export type PrescriptionsStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-};
+export function PrescriptionsStatusBanner() {
+  const status = useSelector(selectRxStatus);
+  const statusHint = useSelector(selectRxStatusHint);
+  const actionHint = useSelector(selectRxActionHint);
 
-export function PrescriptionsStatusBanner({
-  status,
-  statusId,
-  hint,
-}: PrescriptionsStatusBannerProps) {
-  const text = statusCopy(status, hint);
-  if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+  if (status === 'denied') {
+    return (
+      <div className="rx-banner" data-tone="alert" role="alert">
+        <strong>{RX_CONTENT.denied}</strong>
+      </div>
+    );
   }
-  const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
-  return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{text}</span>
-    </p>
-  );
+
+  if (status === 'no_branch') {
+    return (
+      <div className="rx-banner" data-tone="alert" role="alert">
+        <strong>{RX_CONTENT.noBranch}</strong>
+      </div>
+    );
+  }
+
+  if (status === 'error') {
+    return (
+      <div className="rx-banner" data-tone="alert" role="alert">
+        <strong>{statusHint || RX_CONTENT.loadFailed}</strong>
+      </div>
+    );
+  }
+
+  if (actionHint) {
+    const tone = /could not|fail|still valid|changed/i.test(actionHint) ? 'alert' : 'ok';
+    return (
+      <div className="rx-banner" data-tone={tone} role="status">
+        {actionHint}
+      </div>
+    );
+  }
+
+  return null;
 }

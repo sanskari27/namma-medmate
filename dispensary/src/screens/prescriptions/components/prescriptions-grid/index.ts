@@ -1,0 +1,1 @@
+export { PrescriptionsGrid } from './PrescriptionsGrid';

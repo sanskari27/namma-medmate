@@ -4,6 +4,7 @@ import { notificationsReducer } from './notifications.slice';
 import { dashboardReducer } from '@/screens/dashboard/store/dashboard.slice';
 import { posReducer } from '@/screens/pos/store/pos.slice';
 import { ordersReducer } from '@/screens/orders/store/orders.slice';
+import { prescriptionsReducer } from '@/screens/prescriptions/store/prescriptions.slice';
 import { returnsReducer } from '@/screens/returns/store/returns.slice';
 
 export {
@@ -32,6 +33,7 @@ export const store = configureStore({
     pos: posReducer,
     orders: ordersReducer,
     returns: returnsReducer,
+    prescriptions: prescriptionsReducer,
   },
 });
 

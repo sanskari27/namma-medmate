@@ -13,7 +13,10 @@ public record PrescriptionReferenceView(
     String branchName,
     UUID customerId,
     String customerName,
+    String customerPhone,
     UUID doctorId,
+    String doctorName,
+    String doctorRegistration,
     String prescriptionReference,
     Instant issuedAt,
     Instant expiresAt,
@@ -22,6 +25,8 @@ public record PrescriptionReferenceView(
     Instant archivedAt,
     UUID firstInvoiceId,
     int version,
+    int invoiceCount,
+    long billedPaise,
     List<SourceInvoice> invoices) {
 
   public record SourceInvoice(

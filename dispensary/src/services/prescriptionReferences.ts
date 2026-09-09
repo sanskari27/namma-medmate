@@ -19,7 +19,10 @@ export type PrescriptionReference = {
   branchName: string;
   customerId: string;
   customerName: string;
+  customerPhone: string | null;
   doctorId: string | null;
+  doctorName: string | null;
+  doctorRegistration: string | null;
   prescriptionReference: string;
   issuedAt: string;
   expiresAt: string;
@@ -28,6 +31,8 @@ export type PrescriptionReference = {
   archivedAt: string | null;
   firstInvoiceId: string | null;
   version: number;
+  invoiceCount: number;
+  billedPaise: number;
   invoices: PrescriptionSourceInvoice[];
 };
 

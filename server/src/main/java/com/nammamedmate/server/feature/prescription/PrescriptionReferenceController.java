@@ -84,7 +84,10 @@ public class PrescriptionReferenceController {
         view.branchName(),
         view.customerId(),
         view.customerName(),
+        view.customerPhone(),
         view.doctorId(),
+        view.doctorName(),
+        view.doctorRegistration(),
         view.prescriptionReference(),
         view.issuedAt(),
         view.expiresAt(),
@@ -93,6 +96,8 @@ public class PrescriptionReferenceController {
         view.archivedAt(),
         view.firstInvoiceId(),
         view.version(),
+        view.invoiceCount(),
+        view.billedPaise(),
         view.invoices().stream()
             .map(
                 invoice ->
@@ -118,7 +123,10 @@ public class PrescriptionReferenceController {
       String branchName,
       UUID customerId,
       String customerName,
+      String customerPhone,
       UUID doctorId,
+      String doctorName,
+      String doctorRegistration,
       String prescriptionReference,
       Instant issuedAt,
       Instant expiresAt,
@@ -127,6 +135,8 @@ public class PrescriptionReferenceController {
       Instant archivedAt,
       UUID firstInvoiceId,
       int version,
+      int invoiceCount,
+      long billedPaise,
       List<InvoiceResponse> invoices) {}
 
   public record InvoiceResponse(

@@ -1,1 +1,0 @@
-export { PrescriptionsFilter } from './PrescriptionsFilter';

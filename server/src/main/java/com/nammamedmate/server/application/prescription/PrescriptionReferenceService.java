@@ -7,6 +7,7 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchStatus;
 import com.nammamedmate.server.domain.Customer;
+import com.nammamedmate.server.domain.Doctor;
 import com.nammamedmate.server.domain.InvoicePrescriptionPolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
@@ -19,6 +20,7 @@ import com.nammamedmate.server.domain.SalesPrescriptionFulfillment;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
+import com.nammamedmate.server.persistence.DoctorRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.PrescriptionReferenceRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceRepository;
@@ -43,6 +45,7 @@ public class PrescriptionReferenceService {
   private final SalesPrescriptionFulfillmentRepository fulfillmentRepository;
   private final SalesInvoiceRepository salesInvoiceRepository;
   private final CustomerRepository customerRepository;
+  private final DoctorRepository doctorRepository;
   private final LocationRepository locationRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
@@ -54,6 +57,7 @@ public class PrescriptionReferenceService {
       SalesPrescriptionFulfillmentRepository fulfillmentRepository,
       SalesInvoiceRepository salesInvoiceRepository,
       CustomerRepository customerRepository,
+      DoctorRepository doctorRepository,
       LocationRepository locationRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
@@ -63,6 +67,7 @@ public class PrescriptionReferenceService {
     this.fulfillmentRepository = fulfillmentRepository;
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.customerRepository = customerRepository;
+    this.doctorRepository = doctorRepository;
     this.locationRepository = locationRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
@@ -79,7 +84,7 @@ public class PrescriptionReferenceService {
             ? referenceRepository.findByTenantIdOrderByIssuedAtDesc(tenantId)
             : referenceRepository.findByTenantIdAndStatusOrderByIssuedAtDesc(tenantId, status);
     return new PrescriptionReferenceListResult(
-        rows.stream().map(row -> toView(row, false)).toList());
+        rows.stream().map(row -> toView(row, true)).toList());
   }
 
   @Transactional(readOnly = true)
@@ -243,11 +248,18 @@ public class PrescriptionReferenceService {
   }
 
   private PrescriptionReferenceView toView(PrescriptionReference row, boolean withInvoices) {
-    String customerName =
-        customerRepository
-            .findByIdAndTenantId(row.getCustomerId(), row.getTenantId())
-            .map(Customer::getName)
-            .orElse("");
+    Customer customer =
+        customerRepository.findByIdAndTenantId(row.getCustomerId(), row.getTenantId()).orElse(null);
+    String customerName = customer == null ? "" : customer.getName();
+    String customerPhone = customer == null ? null : customer.getPhone();
+    Doctor doctor =
+        row.getDoctorId() == null
+            ? null
+            : doctorRepository
+                .findByIdAndTenantIdAndDeletedAtIsNull(row.getDoctorId(), row.getTenantId())
+                .orElse(null);
+    String doctorName = doctor == null ? null : doctor.getName();
+    String doctorRegistration = doctor == null ? null : doctor.getRegistrationNumber();
     String branchName =
         locationRepository
             .findByIdAndTenantIdAndDeletedAtIsNull(row.getBranchId(), row.getTenantId())
@@ -269,6 +281,7 @@ public class PrescriptionReferenceService {
                             invoice.getTotalPaise()))
                 .toList()
             : List.of();
+    long billedPaise = invoices.stream().mapToLong(PrescriptionReferenceView.SourceInvoice::totalPaise).sum();
     return new PrescriptionReferenceView(
         row.getId(),
         row.getTenantId(),
@@ -276,7 +289,10 @@ public class PrescriptionReferenceService {
         branchName,
         row.getCustomerId(),
         customerName,
+        customerPhone,
         row.getDoctorId(),
+        doctorName,
+        doctorRegistration,
         row.getPrescriptionReference(),
         row.getIssuedAt(),
         row.getExpiresAt(),
@@ -285,6 +301,8 @@ public class PrescriptionReferenceService {
         row.getArchivedAt(),
         row.getFirstInvoiceId(),
         row.getVersion(),
+        invoices.size(),
+        billedPaise,
         invoices);
   }
 
