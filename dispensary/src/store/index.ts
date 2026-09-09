@@ -3,6 +3,7 @@ import { authReducer } from './auth.slice';
 import { notificationsReducer } from './notifications.slice';
 import { dashboardReducer } from '@/screens/dashboard/store/dashboard.slice';
 import { posReducer } from '@/screens/pos/store/pos.slice';
+import { ordersReducer } from '@/screens/orders/store/orders.slice';
 
 export {
   authReducer,
@@ -28,6 +29,7 @@ export const store = configureStore({
     notifications: notificationsReducer,
     dashboard: dashboardReducer,
     pos: posReducer,
+    orders: ordersReducer,
   },
 });
 

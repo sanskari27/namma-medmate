@@ -56,7 +56,12 @@ export function ShellHeader({
           <Menu className="size-4" aria-hidden />
         </button>
         <RailCollapseToggle collapsed={collapsed} onToggle={onToggleCollapsed} />
-        <h1 className="truncate text-base font-semibold text-ink">{title}</h1>
+        <div className="min-w-0">
+          <h1 className="truncate text-base font-semibold text-ink">{title}</h1>
+          {current?.hint ? (
+            <p className="hidden truncate text-xs font-medium text-muted sm:block">{current.hint}</p>
+          ) : null}
+        </div>
       </div>
 
       <label className="ml-auto hidden min-w-[12rem] max-w-md flex-1 items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 md:flex">

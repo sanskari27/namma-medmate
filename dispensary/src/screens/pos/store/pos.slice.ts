@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { clearPendingPrescriptionFile } from '../pos.prescriptionFile';
 import type { Customer } from '@/services/customers';
 import type { Doctor } from '@/services/doctors';
 import type { ProductCategory } from '@/services/productCategories';
@@ -132,6 +133,7 @@ function clearBillFields(state: PosState) {
   state.prescriptionVerified = false;
   state.prescriptionReference = '';
   state.prescriptionAttachmentName = '';
+  clearPendingPrescriptionFile();
   state.evaluation = null;
   state.reason = '';
   state.billType = 'FLAT';
@@ -345,6 +347,9 @@ const posSlice = createSlice({
     },
     prescriptionAttachmentChanged: (state, action: PayloadAction<string>) => {
       state.prescriptionAttachmentName = action.payload;
+      if (!action.payload) {
+        clearPendingPrescriptionFile();
+      }
     },
     prescribedQuantityChanged: (
       state,

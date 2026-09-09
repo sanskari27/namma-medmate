@@ -22,6 +22,7 @@ import {
   MonitorSmartphone,
   Package,
   Pill,
+  Receipt,
   Scale,
   ScanBarcode,
   Settings,
@@ -74,6 +75,7 @@ const ALL_OUTLETS_ID = 'all';
 const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.DASHBOARD]: Gauge,
   [ROUTES.SALES]: ScanBarcode,
+  [ROUTES.ORDERS]: Receipt,
   [ROUTES.PRESCRIPTIONS]: Pill,
   [ROUTES.CUSTOMERS]: Users,
   [ROUTES.CAMPAIGNS]: Megaphone,

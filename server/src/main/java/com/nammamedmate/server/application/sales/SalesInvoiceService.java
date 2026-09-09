@@ -49,6 +49,7 @@ import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.StockBatch;
 import com.nammamedmate.server.domain.TaxJurisdiction;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
+import com.nammamedmate.server.infrastructure.sales.PrescriptionFileStorage;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ApprovalRequestRepository;
 import com.nammamedmate.server.persistence.ApprovalRuleRepository;
@@ -83,6 +84,7 @@ import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 @Service
 public class SalesInvoiceService {
@@ -117,6 +119,7 @@ public class SalesInvoiceService {
   private final InvoiceComplianceSnapshotter invoiceComplianceSnapshotter;
   private final ControlledSaleRecorder controlledSaleRecorder;
   private final PrescriptionReferenceService prescriptionReferenceService;
+  private final PrescriptionFileStorage prescriptionFileStorage;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -146,6 +149,7 @@ public class SalesInvoiceService {
       InvoiceComplianceSnapshotter invoiceComplianceSnapshotter,
       ControlledSaleRecorder controlledSaleRecorder,
       PrescriptionReferenceService prescriptionReferenceService,
+      PrescriptionFileStorage prescriptionFileStorage,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -173,6 +177,7 @@ public class SalesInvoiceService {
     this.invoiceComplianceSnapshotter = invoiceComplianceSnapshotter;
     this.controlledSaleRecorder = controlledSaleRecorder;
     this.prescriptionReferenceService = prescriptionReferenceService;
+    this.prescriptionFileStorage = prescriptionFileStorage;
     this.clock = clock;
   }
 
@@ -195,6 +200,49 @@ public class SalesInvoiceService {
     Context ctx = requireReady(principal);
     SalesInvoice invoice = requireInvoice(id, ctx);
     return toView(invoice, linesOf(invoice));
+  }
+
+  @Transactional
+  public SalesInvoiceView attachPrescription(
+      AuthPrincipal principal, UUID id, MultipartFile file) {
+    Context ctx = requireReady(principal);
+    SalesInvoice invoice = requireInvoice(id, ctx);
+    if (file == null || file.isEmpty()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Prescription file required");
+    }
+    String key = prescriptionFileStorage.store(ctx.tenantId(), invoice.getId(), file);
+    invoice.setPrescriptionAttachmentStorageKey(key);
+    invoice.setPrescriptionAttachmentContentType(file.getContentType());
+    invoice.setPrescriptionAttachmentFilename(
+        file.getOriginalFilename() == null || file.getOriginalFilename().isBlank()
+            ? "prescription"
+            : file.getOriginalFilename().trim());
+    invoice.setPrescriptionAttachmentByteSize(file.getSize());
+    invoice.setPrescriptionAttachmentUploadedAt(clock.instant());
+    invoice.setUpdatedAt(clock.instant());
+    salesInvoiceRepository.saveAndFlush(invoice);
+    return toView(invoice, linesOf(invoice));
+  }
+
+  @Transactional(readOnly = true)
+  public PrescriptionAttachmentStream openPrescription(AuthPrincipal principal, UUID id) {
+    Context ctx = requireReady(principal);
+    SalesInvoice invoice = requireInvoice(id, ctx);
+    String key = invoice.getPrescriptionAttachmentStorageKey();
+    if (key == null || key.isBlank()) {
+      throw new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Prescription file not found");
+    }
+    return new PrescriptionAttachmentStream(
+        prescriptionFileStorage.resolve(key),
+        invoice.getPrescriptionAttachmentContentType() == null
+            ? "application/octet-stream"
+            : invoice.getPrescriptionAttachmentContentType(),
+        invoice.getPrescriptionAttachmentFilename() == null
+            ? "prescription"
+            : invoice.getPrescriptionAttachmentFilename(),
+        invoice.getPrescriptionAttachmentByteSize() == null
+            ? 0L
+            : invoice.getPrescriptionAttachmentByteSize());
   }
 
   @Transactional(readOnly = true)

@@ -9,6 +9,7 @@ import com.nammamedmate.server.application.sales.InvoicePdfBytes;
 import com.nammamedmate.server.application.sales.InvoicePricingCommand;
 import com.nammamedmate.server.application.sales.InvoiceRevalidation;
 import com.nammamedmate.server.application.sales.InvoiceTaxAdjustmentCommand;
+import com.nammamedmate.server.application.sales.PrescriptionAttachmentStream;
 import com.nammamedmate.server.application.sales.SalesInvoiceCommand;
 import com.nammamedmate.server.application.sales.SalesInvoiceService;
 import com.nammamedmate.server.application.sales.SalesInvoiceView;
@@ -34,10 +35,13 @@ import jakarta.validation.constraints.NotEmpty;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.math.BigDecimal;
+import java.nio.file.Files;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.core.io.FileSystemResource;
+import org.springframework.core.io.Resource;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -50,7 +54,9 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RequestPart;
 import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.multipart.MultipartFile;
 
 @RestController
 @RequestMapping("/api/v1/sales/invoices")
@@ -98,6 +104,30 @@ public class SalesInvoiceController {
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + pdf.filename() + "\"")
         .contentType(MediaType.APPLICATION_PDF)
         .body(pdf.content());
+  }
+
+  @PostMapping(path = "/{id}/prescription", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+  public ApiResponse<SalesInvoiceResponse> attachPrescription(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @RequestPart("file") MultipartFile file) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toResponse(salesInvoiceService.attachPrescription(principal, id, file)));
+  }
+
+  @GetMapping("/{id}/prescription")
+  public ResponseEntity<Resource> prescription(
+      Authentication authentication, @PathVariable UUID id) throws Exception {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    PrescriptionAttachmentStream stream = salesInvoiceService.openPrescription(principal, id);
+    MediaType mediaType = MediaType.parseMediaType(stream.contentType());
+    return ResponseEntity.ok()
+        .header(
+            HttpHeaders.CONTENT_DISPOSITION,
+            "inline; filename=\"" + stream.filename().replace("\"", "") + "\"")
+        .contentType(mediaType)
+        .contentLength(Files.size(stream.path()))
+        .body(new FileSystemResource(stream.path()));
   }
 
   @PostMapping("/{id}/email-copy")

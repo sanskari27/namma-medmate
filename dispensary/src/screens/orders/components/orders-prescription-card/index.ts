@@ -1,0 +1,1 @@
+export { OrdersPrescriptionCard } from './OrdersPrescriptionCard';

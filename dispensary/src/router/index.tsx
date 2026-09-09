@@ -20,6 +20,7 @@ import CustomersScreen from '@/screens/customers/CustomersScreen';
 import CreditScreen from '@/screens/credit/CreditScreen';
 import InventoryScreen from '@/screens/inventory/InventoryScreen';
 import PosScreen from '@/screens/pos/PosScreen';
+import OrdersScreen from '@/screens/orders/OrdersScreen';
 import ReturnsScreen from '@/screens/returns/ReturnsScreen';
 import DistributorsScreen from '@/screens/distributors/DistributorsScreen';
 import PurchasesScreen from '@/screens/purchases/PurchasesScreen';
@@ -70,6 +71,7 @@ const router = createBrowserRouter([
           { path: ROUTES.CREDIT, element: <CreditScreen /> },
           { path: ROUTES.INVENTORY, element: <InventoryScreen /> },
           { path: ROUTES.SALES, element: <PosScreen /> },
+          { path: ROUTES.ORDERS, element: <OrdersScreen /> },
           { path: ROUTES.PRESCRIPTIONS, element: <PrescriptionsScreen /> },
           { path: ROUTES.RETURNS, element: <ReturnsScreen /> },
           { path: ROUTES.DISTRIBUTORS, element: <DistributorsScreen /> },

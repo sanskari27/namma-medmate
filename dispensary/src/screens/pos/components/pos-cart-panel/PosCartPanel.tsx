@@ -6,6 +6,7 @@ import { listDoctors } from '@/services/doctors';
 import type { ProductUnit } from '@/services/products';
 import type { AppDispatch } from '@/store';
 import { PosCustomerDialog } from '../pos-customer-dialog';
+import { setPendingPrescriptionFile } from '../../pos.prescriptionFile';
 import {
   batchChanged,
   clearBill,
@@ -275,7 +276,8 @@ export function PosCartPanel() {
                 disabled={rxLocked}
                 aria-label={POS_CONTENT.rxUploadAria}
                 onChange={(event) => {
-                  const file = event.target.files?.[0];
+                  const file = event.target.files?.[0] ?? null;
+                  setPendingPrescriptionFile(file);
                   dispatch(prescriptionAttachmentChanged(file?.name ?? ''));
                 }}
               />

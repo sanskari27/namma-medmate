@@ -289,6 +289,23 @@ export async function downloadInvoicePdf(id: string): Promise<Blob> {
   return data;
 }
 
+export async function attachInvoicePrescription(
+  id: string,
+  file: File,
+): Promise<SalesInvoice> {
+  const body = new FormData();
+  body.append('file', file);
+  const { data } = await apiClient.post<SalesInvoice>(API.salesInvoicePrescription(id), body);
+  return data;
+}
+
+export async function downloadInvoicePrescription(id: string): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(API.salesInvoicePrescription(id), {
+    responseType: 'blob',
+  });
+  return data;
+}
+
 export async function emailInvoiceCopy(id: string): Promise<{
   id: string;
   status: string;

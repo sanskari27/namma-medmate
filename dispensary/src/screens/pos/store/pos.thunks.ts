@@ -14,6 +14,7 @@ import {
 } from '@/services/salesCatalogue';
 import {
   applyInvoicePricing,
+  attachInvoicePrescription,
   completeSalesInvoice,
   createSalesInvoice,
   holdSalesInvoice,
@@ -24,6 +25,10 @@ import {
 import { collectiblePaise, parseRedeemPoints } from '@/services/loyalty';
 import type { AppDispatch, RootState } from '@/store';
 import type { PosDraftLine } from '../pos.types';
+import {
+  clearPendingPrescriptionFile,
+  peekPendingPrescriptionFile,
+} from '../pos.prescriptionFile';
 import { POS_CONTENT } from '../PosScreen.content';
 import {
   collectStatusHint,
@@ -498,11 +503,17 @@ export const saveInvoice = createAsyncThunk<
           expectedVersion: state.invoice.version,
         })
       : await createSalesInvoice({ ...payload, idempotencyKey: state.createKey });
-    const pricing = buildPricingRequest(state, saved.version);
+    const rxFile = peekPendingPrescriptionFile();
+    let withRx = saved;
+    if (rxFile) {
+      withRx = await attachInvoicePrescription(saved.id, rxFile);
+      clearPendingPrescriptionFile();
+    }
+    const pricing = buildPricingRequest(state, withRx.version);
     if (!pricing) {
       return rejectWithValue({ status: 'validation', hint: null });
     }
-    const priced = await applyInvoicePricing(saved.id, pricing);
+    const priced = await applyInvoicePricing(withRx.id, pricing);
     return { invoice: priced, advanceToPayment };
   } catch (error) {
     return rejectWithValue(toReject(error));

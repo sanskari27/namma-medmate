@@ -6,6 +6,7 @@ export const ROUTES = {
   VERIFY_EMAIL: '/verify-email',
   DASHBOARD: '/',
   SALES: '/pos',
+  ORDERS: '/orders',
   RETURNS: '/returns',
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
@@ -64,6 +65,7 @@ export const NAV_SECTIONS = [
     label: 'Billing / POS',
     items: [
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
+      { label: 'Orders', path: ROUTES.ORDERS, hint: 'Online & counter sales' },
       { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back at this counter' },
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },

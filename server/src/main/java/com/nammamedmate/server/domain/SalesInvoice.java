@@ -50,6 +50,21 @@ public class SalesInvoice {
   @Column(name = "prescription_verified", nullable = false)
   private boolean prescriptionVerified;
 
+  @Column(name = "prescription_attachment_storage_key", length = 512)
+  private String prescriptionAttachmentStorageKey;
+
+  @Column(name = "prescription_attachment_content_type", length = 128)
+  private String prescriptionAttachmentContentType;
+
+  @Column(name = "prescription_attachment_filename", length = 255)
+  private String prescriptionAttachmentFilename;
+
+  @Column(name = "prescription_attachment_byte_size")
+  private Long prescriptionAttachmentByteSize;
+
+  @Column(name = "prescription_attachment_uploaded_at")
+  private Instant prescriptionAttachmentUploadedAt;
+
   @Column(name = "subtotal_paise", nullable = false)
   private long subtotalPaise;
 
