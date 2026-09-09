@@ -1,6 +1,11 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 
-export const IDLE_LOGOUT_MS = 5 * 60 * 1000;
+/** Idle before the counter PIN lock appears. */
+export const IDLE_LOCK_MS = 5 * 60 * 1000;
+/** @deprecated Use IDLE_LOCK_MS — kept for existing imports. */
+export const IDLE_LOGOUT_MS = IDLE_LOCK_MS;
+/** Abandoned lock → hard sign-out (session revoke + login picker). */
+export const LOCK_ABANDON_MS = 4 * 60 * 60 * 1000;
 export const LAST_ACTIVITY_KEY = 'nmm.dispensary.lastActivityAt';
 
 const ACTIVITY_EVENTS = ['pointerdown', 'keydown', 'touchstart', 'click', 'scroll'] as const;
@@ -12,27 +17,48 @@ function idleMs(): number {
 }
 
 export function useIdleLock(enabled: boolean) {
-  const [expired, setExpired] = useState(false);
+  const [locked, setLocked] = useState(false);
+  const [abandoned, setAbandoned] = useState(false);
+  const lockedAtRef = useRef<number | null>(null);
 
   const markActivity = useCallback(() => {
     sessionStorage.setItem(LAST_ACTIVITY_KEY, String(Date.now()));
   }, []);
 
+  const clearLock = useCallback(() => {
+    markActivity();
+    lockedAtRef.current = null;
+    setLocked(false);
+    setAbandoned(false);
+  }, [markActivity]);
+
   const applyIdle = useCallback(() => {
-    if (idleMs() >= IDLE_LOGOUT_MS) {
-      setExpired(true);
+    if (!locked && idleMs() >= IDLE_LOCK_MS) {
+      lockedAtRef.current = Date.now();
+      setLocked(true);
+      return;
     }
-  }, []);
+    if (locked && lockedAtRef.current != null && Date.now() - lockedAtRef.current >= LOCK_ABANDON_MS) {
+      setAbandoned(true);
+    }
+  }, [locked]);
 
   useEffect(() => {
     if (!enabled) {
-      setExpired(false);
+      lockedAtRef.current = null;
+      setLocked(false);
+      setAbandoned(false);
       return;
     }
     if (!sessionStorage.getItem(LAST_ACTIVITY_KEY)) {
       markActivity();
     }
-    const onActivity = () => markActivity();
+    const onActivity = () => {
+      if (lockedAtRef.current != null) {
+        return;
+      }
+      markActivity();
+    };
     for (const event of ACTIVITY_EVENTS) {
       window.addEventListener(event, onActivity, { passive: true });
     }
@@ -46,5 +72,11 @@ export function useIdleLock(enabled: boolean) {
     };
   }, [enabled, markActivity, applyIdle]);
 
-  return { expired: enabled && expired };
+  return {
+    locked: enabled && locked,
+    abandoned: enabled && abandoned,
+    clearLock,
+    /** @deprecated Prefer `locked` — same signal for layout idle. */
+    expired: enabled && locked,
+  };
 }

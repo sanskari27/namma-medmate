@@ -191,8 +191,7 @@ public class HomeDashboardService {
         analyticsPanel(tenantId, period, periodFrom, asOf, periodCompleted);
 
     List<HomeDashboardView.AttentionItem> attention = attentionItems(owner, pendingPrescriptions);
-    List<DashboardView.ExpiryItem> expiringSoon =
-        withCategoryIcons(tenantId, expiringItems(owner));
+    List<DashboardView.ExpiryItem> expiringSoon = withCategoryIcons(tenantId, expiringItems(owner));
     List<DashboardView.TopProductItem> topSellers =
         withTopSellerIcons(tenantId, topSellers(tenantId, branchIds, periodFrom, asOf));
     List<HomeDashboardView.RecentTransaction> recent = recentTransactions(tenantId, branchIds);

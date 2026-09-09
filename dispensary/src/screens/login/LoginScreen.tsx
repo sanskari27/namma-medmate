@@ -6,6 +6,7 @@ import { CounterPinSignIn } from '@/screens/login/components/counter-pin-sign-in
 import { CounterFeatureSlider, CounterFeatureStrip } from '@molecules';
 import { Reveal, Button, Input, Label } from '@atoms';
 import { ROUTES } from '@/libs/constants/routes.const';
+import { sessionEndCopy, takeSessionEndReason } from '@/libs/constants/session.const';
 import {
   ApiError,
   forgetSavedLogin,
@@ -29,6 +30,9 @@ export default function LoginScreen() {
   const [listFailed, setListFailed] = useState(false);
   const [passwordMode, setPasswordMode] = useState(false);
   const [selected, setSelected] = useState<SavedLoginPerson | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(() =>
+    sessionEndCopy(takeSessionEndReason()),
+  );
 
   const banner = statusCopy(status);
 
@@ -58,6 +62,7 @@ export default function LoginScreen() {
       setPasswordMode(true);
       return;
     }
+    setSessionNotice(null);
     dispatch(sessionStarted(user));
     navigate(ROUTES.DASHBOARD);
   };
@@ -119,6 +124,14 @@ export default function LoginScreen() {
         <CounterFeatureStrip />
         <Reveal className="mx-auto flex w-full max-w-sm flex-1 flex-col justify-center px-6 py-12">
           <p className="mb-8 font-serif text-2xl font-semibold text-brand md:hidden">MedMate</p>
+          {sessionNotice ? (
+            <p
+              role="status"
+              className="mb-4 border border-line bg-canvas px-3 py-2 text-sm text-ink"
+            >
+              {sessionNotice}
+            </p>
+          ) : null}
           {people === null ? <p className="text-sm text-muted">Loading till logins</p> : null}
           {showPicker ? (
             <div className="space-y-4">

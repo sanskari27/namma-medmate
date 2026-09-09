@@ -19,12 +19,19 @@ import { useCallback, useEffect, useState } from 'react';
 import { NavLink, Outlet, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
-import { HqInboxBell, HqPasswordChange, HqPinEnroll, HqSupportBanner } from '@organisms';
+import {
+  HqInboxBell,
+  HqPasswordChange,
+  HqPinEnroll,
+  HqSessionLock,
+  HqSupportBanner,
+} from '@organisms';
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { exitImpersonation } from '@/services/impersonation';
 import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
+import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.DASHBOARD]: LayoutDashboard,
@@ -53,13 +60,21 @@ export default function DashboardLayout() {
   );
   const support = useSelector((s: RootState) => s.auth.user?.impersonation);
   const [exiting, setExiting] = useState(false);
-  const { expired } = useIdleLock(pinSet && !mustChangePassword && !support);
+  const { locked, abandoned, clearLock } = useIdleLock(
+    pinSet && !mustChangePassword && !support,
+  );
 
-  const leaveHq = useCallback(() => {
-    void logoutSession().catch(() => undefined);
-    dispatch(logout());
-    navigate(ROUTES.LOGIN);
-  }, [dispatch, navigate]);
+  const leaveHq = useCallback(
+    (reason?: string) => {
+      if (reason) {
+        sessionStorage.setItem(SESSION_END_REASON_KEY, reason);
+      }
+      void logoutSession().catch(() => undefined);
+      dispatch(logout());
+      navigate(ROUTES.LOGIN);
+    },
+    [dispatch, navigate],
+  );
 
   const leaveSupport = useCallback(async () => {
     setExiting(true);
@@ -74,11 +89,11 @@ export default function DashboardLayout() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (!expired) {
+    if (!abandoned) {
       return;
     }
-    leaveHq();
-  }, [expired, leaveHq]);
+    leaveHq('abandoned');
+  }, [abandoned, leaveHq]);
 
   return (
     <div className="flex min-h-screen bg-canvas text-ink">
@@ -127,7 +142,7 @@ export default function DashboardLayout() {
               </TooltipTrigger>
               <TooltipContent>HQ session</TooltipContent>
             </Tooltip>
-            <Button type="button" variant="outline" size="sm" onClick={leaveHq}>
+            <Button type="button" variant="outline" size="sm" onClick={() => leaveHq()}>
               Sign out
             </Button>
           </div>
@@ -143,6 +158,13 @@ export default function DashboardLayout() {
         <HqPasswordChange onChanged={() => dispatch(passwordChanged())} />
       ) : !pinSet && !support ? (
         <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
+      ) : null}
+      {locked && pinSet && !mustChangePassword && !support ? (
+        <HqSessionLock
+          operatorName={displayName?.trim() || 'Operator'}
+          onUnlocked={clearLock}
+          onSessionRevoked={() => leaveHq('revoked')}
+        />
       ) : null}
     </div>
   );

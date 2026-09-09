@@ -21,7 +21,7 @@ public class JwtService {
 
   public JwtService(
       @Value("${app.jwt.secret}") String secret,
-      @Value("${app.jwt.access-token-ttl-minutes:60}") long accessTokenTtlMinutes) {
+      @Value("${app.jwt.access-token-ttl-minutes:720}") long accessTokenTtlMinutes) {
     this.key = Keys.hmacShaKeyFor(secret.getBytes(StandardCharsets.UTF_8));
     this.accessTokenTtlMinutes = accessTokenTtlMinutes;
   }

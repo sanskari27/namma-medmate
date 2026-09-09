@@ -84,7 +84,7 @@ function renderShell(pinSet: boolean) {
   };
 }
 
-describe('dispensary idle sign-out', () => {
+describe('dispensary idle PIN lock', () => {
   afterEach(() => {
     vi.useRealTimers();
     sessionStorage.removeItem(LAST_ACTIVITY_KEY);
@@ -96,15 +96,15 @@ describe('dispensary idle sign-out', () => {
     expect(screen.getByText('Counter overview')).toBeInTheDocument();
   });
 
-  it('signs the chemist out after five minutes of inactivity', () => {
+  it('locks the counter after five minutes of inactivity without signing out', () => {
     vi.useFakeTimers();
     const { store } = renderShell(true);
     expect(screen.queryByRole('dialog', { name: 'Counter locked' })).not.toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(5 * 60 * 1000);
     });
-    expect(screen.queryByRole('dialog', { name: 'Counter locked' })).not.toBeInTheDocument();
-    expect(screen.getByText('Pharmacy sign in')).toBeInTheDocument();
-    expect(store.getState().auth.user).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'Counter locked' })).toBeInTheDocument();
+    expect(screen.getByText('Counter overview')).toBeInTheDocument();
+    expect(store.getState().auth.user).not.toBeNull();
   });
 });

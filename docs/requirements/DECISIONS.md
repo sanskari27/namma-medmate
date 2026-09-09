@@ -172,12 +172,13 @@ Denied reports show an upgrade explanation without leaking results. Downgrade pr
 **Owner:** Product owner  
 **Affected:** M1-S10
 
-## D-015 — Five-minute idle signs out (PIN picker relogin)
+## D-015 — Five-minute idle PIN lock (revised)
 
-**Chosen:** After five minutes of inactivity on a PIN-enrolled session, the till or HQ console **signs out** (revokes the access session, keeps saved people). There is no idle lock overlay and no same-session PIN unlock. Relogin is the saved-login picker plus PIN (or email+password for another account). PIN enroll still happens once after first password login.
+**Chosen:** After five minutes of inactivity on a PIN-enrolled session, the till or HQ console shows a **full-screen PIN lock** and keeps the server session. Correct PIN resumes the same session, branch, and in-progress work. Three failed unlock PINs revoke the session and return to the saved-login picker. Explicit Sign out still revokes the session and keeps saved people (D-014). If the lock is left abandoned for **four hours**, or the access session is otherwise dead (401 `UNAUTHORIZED` / `SESSION_REVOKED`), the client clears local session and returns to the login picker with a short reason. PIN enroll still happens once after first password login. Access JWT TTL matches the server session TTL so an active shift does not ghost-fail while the UI still looks signed in.
 
-**Rejected:** Five-minute idle PIN lock that keeps the session; a second 55-minute idle logout on top of lock.
+**Rejected:** Five-minute idle hard sign-out with no lock overlay (2026-09-02 choice); idle lock without a long-abandon or dead-session recovery path.
 
-**Effective:** 2026-09-02  
+**Effective:** 2026-09-09 (revises 2026-09-02)  
 **Owner:** Product owner  
-**Affected:** M1-S10
+**Affected:** M1-S02, M1-S10  
+**Supersedes:** Prior D-015 idle-sign-out wording; M1-S10-AC04b idle-sign-out expectation follows this revision.

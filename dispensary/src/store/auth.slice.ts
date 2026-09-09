@@ -1,7 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
-
-const AUTH_STORAGE_KEY = 'nmm.dispensary.session';
+import { AUTH_STORAGE_KEY } from '@/libs/constants/session.const';
 
 export interface AssignedBranch {
   id: string;

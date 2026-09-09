@@ -6,6 +6,7 @@ import {
   ShellHeader,
   CounterPasswordChange,
   CounterPinEnroll,
+  CounterPinLock,
 } from '@organisms';
 import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
 import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@molecules';
@@ -13,6 +14,7 @@ import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { SHELL } from '@/libs/constants/shell.const';
+import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
 import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 
@@ -25,23 +27,29 @@ export default function DashboardLayout() {
     Boolean(s.auth.user?.mustChangePassword),
   );
   const tenantStatus = useSelector((s: RootState) => s.auth.user?.tenantStatus);
-  const { expired } = useIdleLock(pinSet && !mustChangePassword);
+  const { locked, abandoned, clearLock } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
   const [collapsed, setCollapsed] = useState(false);
 
-  const leaveCounter = useCallback(() => {
-    void logoutSession().catch(() => undefined);
-    dispatch(logout());
-    navigate(ROUTES.LOGIN);
-  }, [dispatch, navigate]);
+  const leaveCounter = useCallback(
+    (reason?: string) => {
+      if (reason) {
+        sessionStorage.setItem(SESSION_END_REASON_KEY, reason);
+      }
+      void logoutSession().catch(() => undefined);
+      dispatch(logout());
+      navigate(ROUTES.LOGIN);
+    },
+    [dispatch, navigate],
+  );
 
   useEffect(() => {
-    if (!expired) {
+    if (!abandoned) {
       return;
     }
-    leaveCounter();
-  }, [expired, leaveCounter]);
+    leaveCounter('abandoned');
+  }, [abandoned, leaveCounter]);
 
   return (
     <div className="flex h-screen overflow-hidden bg-canvas">
@@ -86,7 +94,7 @@ export default function DashboardLayout() {
                 variant="outline"
                 size="sm"
                 className="hidden sm:inline-flex"
-                onClick={leaveCounter}
+                onClick={() => leaveCounter()}
               >
                 {SHELL.signOutLabel}
               </Button>
@@ -142,6 +150,13 @@ export default function DashboardLayout() {
         <CounterPasswordChange onChanged={() => dispatch(passwordChanged())} />
       ) : !pinSet ? (
         <CounterPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
+      ) : null}
+      {locked && pinSet && !mustChangePassword ? (
+        <CounterPinLock
+          staffName={displayName?.trim() || 'Staff'}
+          onUnlocked={clearLock}
+          onSessionRevoked={() => leaveCounter('revoked')}
+        />
       ) : null}
     </div>
   );

@@ -45,12 +45,7 @@ public class ProductCategoryController {
 
   private CategoryResponse toResponse(ProductCategoryView view) {
     return new CategoryResponse(
-        view.id(),
-        view.tenantId(),
-        view.name(),
-        view.icon(),
-        view.createdAt(),
-        view.updatedAt());
+        view.id(), view.tenantId(), view.name(), view.icon(), view.createdAt(), view.updatedAt());
   }
 
   public record CategoryListResponse(List<CategoryResponse> items) {}

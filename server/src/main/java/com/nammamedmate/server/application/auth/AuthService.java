@@ -101,7 +101,7 @@ public class AuthService {
             user.getTenantId(),
             user.getRole(),
             now,
-            now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
+            now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 
@@ -190,7 +190,7 @@ public class AuthService {
             user.getTenantId(),
             user.getRole(),
             now,
-            now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
+            now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 

@@ -168,7 +168,7 @@ public class SavedLoginService {
             user.getTenantId(),
             user.getRole(),
             now,
-            now.plus(Duration.ofMinutes(jwtService.accessTokenTtlMinutes())));
+            now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     return new LoginOutcome(toAuthenticatedUser(user, now), token, session.getId());
   }
 

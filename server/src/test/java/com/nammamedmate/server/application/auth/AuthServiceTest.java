@@ -70,7 +70,6 @@ class AuthServiceTest {
         .thenReturn(Optional.of(user));
     when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
     when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-    when(jwtService.accessTokenTtlMinutes()).thenReturn(60L);
     when(userSessionRepository.saveAndFlush(any(UserSession.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
     when(jwtService.createToken(any(), any(), any(), any(), any(), any())).thenReturn("jwt");
@@ -101,7 +100,6 @@ class AuthServiceTest {
         .thenReturn(Optional.of(user));
     when(appUserRepository.lockById(user.getId())).thenReturn(Optional.of(user));
     when(passwordEncoder.matches("secret", "hash")).thenReturn(true);
-    when(jwtService.accessTokenTtlMinutes()).thenReturn(60L);
     when(userSessionRepository.saveAndFlush(any(UserSession.class)))
         .thenAnswer(invocation -> invocation.getArgument(0));
     when(jwtService.createToken(any(), any(), any(), any(), any(), any())).thenReturn("jwt");
@@ -124,7 +122,7 @@ class AuthServiceTest {
             isNull(),
             eq(AppUserRole.admin_super),
             eq(NOW),
-            eq(NOW.plus(Duration.ofMinutes(60))));
+            eq(NOW.plus(Duration.ofMinutes(720))));
   }
 
   @Test
@@ -232,7 +230,6 @@ class AuthServiceTest {
             session.getId(), user.getId(), user.getTenantId()))
         .thenReturn(Optional.of(session));
     when(passwordEncoder.matches("123456", "$2pin")).thenReturn(true);
-    when(jwtService.accessTokenTtlMinutes()).thenReturn(60L);
     when(jwtService.createToken(any(), any(), any(), any(), any(), any())).thenReturn("refreshed");
 
     LoginOutcome result = authService.unlockPin(principal, "123456");
@@ -249,7 +246,7 @@ class AuthServiceTest {
             eq(user.getTenantId()),
             eq(user.getRole()),
             eq(NOW),
-            eq(NOW.plus(Duration.ofMinutes(60))));
+            eq(NOW.plus(Duration.ofMinutes(720))));
   }
 
   @Test

@@ -1,4 +1,9 @@
 import axios from 'axios';
+import {
+  AUTH_STORAGE_KEY,
+  SESSION_END_REASON_KEY,
+} from '@/libs/constants/session.const';
+import { ROUTES } from '@/libs/constants/routes.const';
 
 export interface ApiResponse<T> {
   success: boolean;
@@ -23,6 +28,8 @@ export function isApiError(error: unknown): error is ApiError {
   return error instanceof ApiError;
 }
 
+const CREDENTIAL_CODES = new Set(['INVALID_CREDENTIALS', 'INVALID_PIN']);
+
 const baseURL = import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080';
 
 export const apiClient = axios.create({
@@ -30,14 +37,37 @@ export const apiClient = axios.create({
   withCredentials: true,
 });
 
+function clearClientSession(reason: string) {
+  localStorage.removeItem(AUTH_STORAGE_KEY);
+  sessionStorage.setItem(SESSION_END_REASON_KEY, reason);
+  if (!window.location.pathname.startsWith(ROUTES.LOGIN)) {
+    window.location.assign(ROUTES.LOGIN);
+  }
+}
+
+function maybeRecoverSession(status: number, code: string | null) {
+  if (status !== 401) {
+    return;
+  }
+  if (code && CREDENTIAL_CODES.has(code)) {
+    return;
+  }
+  if (!localStorage.getItem(AUTH_STORAGE_KEY)) {
+    return;
+  }
+  const reason =
+    code === 'SESSION_REVOKED' ? 'revoked' : code === 'CONCURRENT_SESSION' ? 'elsewhere' : 'expired';
+  clearClientSession(reason);
+}
+
 apiClient.interceptors.response.use(
   (response) => {
     const body = response.data as ApiResponse<unknown>;
     if (body && typeof body === 'object' && 'success' in body) {
       if (!body.success) {
-        return Promise.reject(
-          new ApiError(body.message ?? 'Request failed', response.status, body.code),
-        );
+        const err = new ApiError(body.message ?? 'Request failed', response.status, body.code);
+        maybeRecoverSession(response.status, body.code);
+        return Promise.reject(err);
       }
       response.data = body.data;
     }
@@ -51,6 +81,7 @@ apiClient.interceptors.response.use(
           ? (body.message ?? 'Request failed')
           : (error.message ?? 'Request failed');
       const code = body && typeof body === 'object' ? body.code : null;
+      maybeRecoverSession(error.response.status, code ?? null);
       return Promise.reject(new ApiError(message, error.response.status, code ?? null));
     }
     return Promise.reject(new ApiError('Could not reach the server', 0, 'NETWORK'));

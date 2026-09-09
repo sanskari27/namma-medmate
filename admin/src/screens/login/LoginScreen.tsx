@@ -6,6 +6,7 @@ import { HqPinSignIn } from '@/screens/login/components/hq-pin-sign-in';
 import { HqFeatureSlider, HqStatusTicker } from '@molecules';
 import { Reveal, Button, Input, Label } from '@atoms';
 import { ROUTES } from '@/libs/constants/routes.const';
+import { sessionEndCopy, takeSessionEndReason } from '@/libs/constants/session.const';
 import {
   ApiError,
   forgetSavedLogin,
@@ -29,6 +30,9 @@ export default function LoginScreen() {
   const [listFailed, setListFailed] = useState(false);
   const [passwordMode, setPasswordMode] = useState(false);
   const [selected, setSelected] = useState<SavedLoginPerson | null>(null);
+  const [sessionNotice, setSessionNotice] = useState<string | null>(() =>
+    sessionEndCopy(takeSessionEndReason()),
+  );
   const banner = statusCopy(status);
 
   const loadPeople = async () => {
@@ -57,6 +61,7 @@ export default function LoginScreen() {
       setPasswordMode(true);
       return;
     }
+    setSessionNotice(null);
     dispatch(sessionStarted(user));
     navigate(ROUTES.DASHBOARD);
   };
@@ -114,6 +119,14 @@ export default function LoginScreen() {
         <Reveal className="flex flex-1 flex-col justify-center px-8 py-12 sm:px-10">
           <p className="font-serif text-2xl font-semibold">MedMate HQ</p>
           <p className="mt-1 mb-8 text-sm text-muted">Platform operators only</p>
+          {sessionNotice ? (
+            <p
+              role="status"
+              className="mb-4 border border-line bg-elevated px-3 py-2 text-sm text-ink"
+            >
+              {sessionNotice}
+            </p>
+          ) : null}
           {people === null ? <p className="text-sm text-muted">Loading HQ operators</p> : null}
           {showPicker ? (
             <div className="space-y-4">

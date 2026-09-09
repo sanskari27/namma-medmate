@@ -83,7 +83,7 @@ function renderShell(pinSet: boolean) {
   };
 }
 
-describe('admin idle sign-out', () => {
+describe('admin idle PIN lock', () => {
   afterEach(() => {
     vi.useRealTimers();
     sessionStorage.removeItem(LAST_ACTIVITY_KEY);
@@ -95,15 +95,15 @@ describe('admin idle sign-out', () => {
     expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
   });
 
-  it('signs the operator out after five minutes of inactivity', () => {
+  it('locks HQ after five minutes of inactivity without signing out', () => {
     vi.useFakeTimers();
     const { store } = renderShell(true);
     expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
     act(() => {
       vi.advanceTimersByTime(5 * 60 * 1000);
     });
-    expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
-    expect(screen.getByText('HQ sign in')).toBeInTheDocument();
-    expect(store.getState().auth.user).toBeNull();
+    expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
+    expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
+    expect(store.getState().auth.user).not.toBeNull();
   });
 });
