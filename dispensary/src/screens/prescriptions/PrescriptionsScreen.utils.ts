@@ -41,7 +41,10 @@ export function formatIst(value: string | null): string {
 }
 
 export function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN')}`;
+  return `₹${(paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function relativeAge(iso: string, now = Date.now()): string {

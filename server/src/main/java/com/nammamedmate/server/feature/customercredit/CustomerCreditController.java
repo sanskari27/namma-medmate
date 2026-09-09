@@ -38,6 +38,21 @@ public class CustomerCreditController {
     CustomerCreditOutstandingView view = customerCreditService.listOutstanding(principal);
     return ApiResponse.ok(
         new OutstandingListResponse(
+            new SummaryResponse(
+                view.summary().totalOutstandingPaise(),
+                view.summary().outstandingAccountCount(),
+                view.summary().overduePaise(),
+                view.summary().overdueAccountCount(),
+                view.summary().collectedThisMonthPaise(),
+                view.summary().collectionRatePercent(),
+                view.summary().creditGivenAllTimePaise(),
+                view.summary().khataAccountCount()),
+            view.aging().stream()
+                .map(
+                    band ->
+                        new AgingBandResponse(
+                            band.key(), band.label(), band.totalPaise(), band.accountCount()))
+                .toList(),
             view.items().stream()
                 .map(
                     item ->
@@ -48,7 +63,24 @@ public class CustomerCreditController {
                             item.limitPaise(),
                             item.balancePaise(),
                             item.availablePaise(),
-                            item.version()))
+                            item.version(),
+                            item.billCount(),
+                            item.givenPaise(),
+                            item.repaidPaise(),
+                            item.ageDays()))
+                .toList(),
+            view.payments().stream()
+                .map(
+                    payment ->
+                        new PaymentItemResponse(
+                            payment.id(),
+                            payment.customerId(),
+                            payment.customerName(),
+                            payment.amountPaise(),
+                            payment.mode(),
+                            payment.reference(),
+                            payment.receiptLabel(),
+                            payment.occurredAt()))
                 .toList()));
   }
 
@@ -127,7 +159,23 @@ public class CustomerCreditController {
             .toList());
   }
 
-  public record OutstandingListResponse(List<OutstandingItemResponse> items) {}
+  public record OutstandingListResponse(
+      SummaryResponse summary,
+      List<AgingBandResponse> aging,
+      List<OutstandingItemResponse> items,
+      List<PaymentItemResponse> payments) {}
+
+  public record SummaryResponse(
+      long totalOutstandingPaise,
+      int outstandingAccountCount,
+      long overduePaise,
+      int overdueAccountCount,
+      long collectedThisMonthPaise,
+      int collectionRatePercent,
+      long creditGivenAllTimePaise,
+      int khataAccountCount) {}
+
+  public record AgingBandResponse(String key, String label, long totalPaise, int accountCount) {}
 
   public record OutstandingItemResponse(
       UUID customerId,
@@ -136,7 +184,21 @@ public class CustomerCreditController {
       long limitPaise,
       long balancePaise,
       long availablePaise,
-      long version) {}
+      long version,
+      int billCount,
+      long givenPaise,
+      long repaidPaise,
+      int ageDays) {}
+
+  public record PaymentItemResponse(
+      UUID id,
+      UUID customerId,
+      String customerName,
+      long amountPaise,
+      String mode,
+      String reference,
+      String receiptLabel,
+      Instant occurredAt) {}
 
   public record CreditResponse(
       UUID customerId,

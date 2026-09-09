@@ -70,7 +70,6 @@ export const NAV_SECTIONS = [
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },
-      { label: 'Credit / Khata', path: ROUTES.CREDIT, hint: 'Khata balances' },
     ],
   },
   {
@@ -95,6 +94,7 @@ export const NAV_SECTIONS = [
         hint: 'Pick columns and download a sheet',
       },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
+      { label: 'Credit · Khata', path: ROUTES.CREDIT, hint: 'Customer credit, dues & repayments' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
       { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },
       { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Books for the CA' },

@@ -32,10 +32,13 @@ function stubIndex(code: string): string {
 
 function monthly(paise: number): { amount: string; cadence: string } {
   if (paise === 0) {
-    return { amount: '₹0', cadence: 'no monthly bill' };
+    return { amount: '₹0.00', cadence: 'no monthly bill' };
   }
   return {
-    amount: `₹${(paise / 100).toLocaleString('en-IN')}`,
+    amount: `₹${(paise / 100).toLocaleString('en-IN', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`,
     cadence: 'a month',
   };
 }

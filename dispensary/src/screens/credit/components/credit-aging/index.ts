@@ -1,0 +1,1 @@
+export { CreditAging } from './CreditAging';

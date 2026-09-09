@@ -1,82 +1,82 @@
-import { Reveal } from '@atoms';
-import {
-  isApiError,
-  listOutstandingCreditAccounts,
-  type OutstandingCreditAccount,
-} from '@/services/credit';
-import type { RootState } from '@/store';
-import { useCallback, useEffect, useId, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { CreditSettleDialog } from '@templates';
-import { CreditDetailPanel } from './components/credit-detail-panel';
-import { CreditListPanel } from './components/credit-list-panel';
+import type { AppDispatch, RootState } from '@/store';
+import { CreditAging } from './components/credit-aging';
+import { CreditDetailDialog } from './components/credit-detail-dialog';
+import { CreditPaymentsTable } from './components/credit-payments-table';
 import { CreditStatusBanner } from './components/credit-status-banner';
-import { hasCrmAccess, type PageStatus } from './CreditScreen.utils';
+import { CreditSummary } from './components/credit-summary';
+import { CreditTable } from './components/credit-table';
+import { CreditToolbar } from './components/credit-toolbar';
+import { CREDIT_CONTENT } from './CreditScreen.content';
+import './CreditScreen.css';
+import { hasCrmAccess } from './CreditScreen.utils';
+import {
+  selectCreditSettleOpen,
+  selectCreditStatus,
+  selectCreditTab,
+  selectSelectedCreditAccount,
+} from './store/credit.selectors';
+import {
+  closeSettleCredit,
+  markCreditSuccess,
+} from './store/credit.slice';
+import { loadCreditDirectory } from './store/credit.thunks';
 
 export default function CreditScreen() {
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector(selectCreditStatus);
+  const tab = useSelector(selectCreditTab);
+  const settleOpen = useSelector(selectCreditSettleOpen);
+  const selected = useSelector(selectSelectedCreditAccount);
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasCrmAccess(user?.modules);
-  const statusId = useId();
   const settleRef = useRef<HTMLButtonElement | null>(null);
-  const [status, setStatus] = useState<PageStatus>('loading');
-  const [items, setItems] = useState<OutstandingCreditAccount[]>([]);
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [settleOpen, setSettleOpen] = useState(false);
-
-  const load = useCallback(async () => {
-    if (!allowed) {
-      setStatus('denied');
-      return;
-    }
-    setStatus('loading');
-    try {
-      const next = await listOutstandingCreditAccounts();
-      setItems(next);
-      setStatus(next.length === 0 ? 'empty' : null);
-      setSelectedId((prev) =>
-        prev && next.some((row) => row.customerId === prev) ? prev : (next[0]?.customerId ?? null),
-      );
-    } catch (error) {
-      if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-        setStatus('denied');
-      } else {
-        setStatus('failure');
-      }
-    }
-  }, [allowed]);
 
   useEffect(() => {
-    void load();
-  }, [load]);
+    if (!allowed) return;
+    void dispatch(loadCreditDirectory());
+  }, [dispatch, allowed]);
 
-  const selected = items.find((row) => row.customerId === selectedId) ?? null;
+  if (!allowed) {
+    return (
+      <div className="credit" aria-label={CREDIT_CONTENT.regionLabel}>
+        <div className="credit-banner" data-tone="alert" role="alert">
+          <strong>{CREDIT_CONTENT.denied}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'denied') {
+    return (
+      <div className="credit" aria-label={CREDIT_CONTENT.regionLabel}>
+        <CreditStatusBanner />
+      </div>
+    );
+  }
 
   return (
-    <Reveal className="flex h-full min-h-0 w-full flex-col gap-4">
-      <header className="shrink-0 space-y-1">
-        <h1 className="font-sans text-lg font-semibold text-ink">Credit / Khata</h1>
-        <p className="text-sm text-muted">
-          Outstanding balances across the pharmacy. Settle without editing old bills.
-        </p>
-      </header>
+    <div className="credit" aria-label={CREDIT_CONTENT.regionLabel}>
+      <CreditStatusBanner />
 
-      <CreditStatusBanner status={status} statusId={statusId} />
-
-      {allowed && status !== 'denied' ? (
-        <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-          <CreditListPanel
-            items={items}
-            selectedId={selectedId}
-            loading={status === 'loading'}
-            onSelect={setSelectedId}
-          />
-          <CreditDetailPanel
-            account={selected}
-            settleButtonRef={settleRef}
-            onSettle={() => setSettleOpen(true)}
-          />
+      {status === 'loading' || status === 'idle' ? (
+        <div className="credit-card">
+          <div className="credit-loading" role="status">
+            {CREDIT_CONTENT.status.loading}
+          </div>
         </div>
-      ) : null}
+      ) : (
+        <>
+          <CreditSummary />
+          <CreditAging />
+          <CreditToolbar />
+          {tab === 'outstanding' ? <CreditTable /> : <CreditPaymentsTable />}
+        </>
+      )}
+
+      <CreditDetailDialog />
 
       {selected ? (
         <CreditSettleDialog
@@ -85,13 +85,17 @@ export default function CreditScreen() {
           customerName={selected.customerName}
           balancePaise={selected.balancePaise}
           version={selected.version}
-          onOpenChange={setSettleOpen}
+          onOpenChange={(open) => {
+            if (!open) dispatch(closeSettleCredit());
+          }}
           onCloseFocus={() => settleRef.current?.focus()}
           onSettled={() => {
-            void load().then(() => setStatus('success'));
+            dispatch(closeSettleCredit());
+            dispatch(markCreditSuccess());
+            void dispatch(loadCreditDirectory());
           }}
         />
       ) : null}
-    </Reveal>
+    </div>
   );
 }

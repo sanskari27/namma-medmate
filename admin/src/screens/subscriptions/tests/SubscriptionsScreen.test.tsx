@@ -256,7 +256,7 @@ describe('HQ pharmacy-to-platform charges', () => {
     renderPage('admin_super');
     expect(await screen.findByRole('heading', { name: 'Checkout exceptions' })).toBeInTheDocument();
     expect(screen.getByText('Checkout exception')).toBeInTheDocument();
-    expect(screen.getByText('₹699')).toBeInTheDocument();
+    expect(screen.getByText('₹699.00')).toBeInTheDocument();
     expect(screen.getByText('AMOUNT_MISMATCH')).toBeInTheDocument();
   });
 

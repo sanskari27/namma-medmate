@@ -1,1 +1,0 @@
-export { CreditDetailPanel } from './CreditDetailPanel';

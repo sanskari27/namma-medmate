@@ -1,31 +1,25 @@
 import { AlertCircle, BadgeCheck, Wallet } from 'lucide-react';
-import { statusCopy, type PageStatus } from '../../CreditScreen.utils';
+import { useSelector } from 'react-redux';
+import { CREDIT_CONTENT } from '../../CreditScreen.content';
+import { statusCopy } from '../../CreditScreen.utils';
+import { selectCreditStatus } from '../../store/credit.selectors';
 
-export type CreditStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-};
-
-export function CreditStatusBanner({ status, statusId }: CreditStatusBannerProps) {
+export function CreditStatusBanner() {
+  const status = useSelector(selectCreditStatus);
   const text = statusCopy(status);
-  if (!text) {
-    return <div id={statusId} className="min-h-10" aria-live="polite" />;
+  if (!text || status === 'loading' || status === 'empty' || status === 'idle') {
+    return null;
   }
-  const alert = status === 'denied' || status === 'conflict' || status === 'failure';
-  const Icon =
-    status === 'success'
-      ? BadgeCheck
-      : status === 'loading' || status === 'empty'
-        ? Wallet
-        : AlertCircle;
+  const alert = status === 'denied' || status === 'failure';
+  const Icon = status === 'success' ? BadgeCheck : status === 'empty' ? Wallet : AlertCircle;
   return (
     <div
-      id={statusId}
+      className="credit-banner"
+      data-tone={alert ? 'alert' : status === 'success' ? 'ok' : undefined}
       role={alert ? 'alert' : 'status'}
-      className="flex min-h-10 items-start gap-2 border border-line bg-brand-soft/40 px-3 py-2 text-sm text-ink"
     >
-      <Icon className="mt-0.5 size-4 shrink-0 text-brand" aria-hidden />
-      <p>{text}</p>
+      <strong>{text}</strong>
+      {status === 'failure' ? ` ${CREDIT_CONTENT.retry}` : null}
     </div>
   );
 }

@@ -59,7 +59,11 @@ vi.mock('@/services/credit', async () => {
     setCustomerCreditLimit: vi.fn(),
     settleCustomerCredit: vi.fn(),
     chargeCustomerCredit: vi.fn(),
-    formatPaise: (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`,
+    formatPaise: (paise: number) =>
+      `₹${(paise / 100).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };

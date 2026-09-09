@@ -10,12 +10,15 @@ export const DialogDescription = DialogPrimitive.Description;
 
 export function DialogContent({
   className,
+  overlayClassName,
   children,
   ...props
-}: ComponentProps<typeof DialogPrimitive.Content>) {
+}: ComponentProps<typeof DialogPrimitive.Content> & { overlayClassName?: string }) {
   return (
     <DialogPrimitive.Portal>
-      <DialogPrimitive.Overlay className="fixed inset-0 z-40 bg-ink/40" />
+      <DialogPrimitive.Overlay
+        className={cn('fixed inset-0 z-40 bg-ink/40', overlayClassName)}
+      />
       <DialogPrimitive.Content
         className={cn(
           'fixed top-1/2 left-1/2 z-50 w-[calc(100%-2rem)] max-w-md -translate-x-1/2 -translate-y-1/2 rounded-md border border-line bg-surface p-5 text-ink',

@@ -1,0 +1,1 @@
+export { CreditPaymentsTable } from './CreditPaymentsTable';

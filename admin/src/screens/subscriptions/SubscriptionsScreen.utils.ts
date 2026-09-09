@@ -123,5 +123,8 @@ export function paymentCopy(status: PayStatus): { icon: typeof Ban; text: string
 }
 
 export function formatPaise(amountPaise: number): string {
-  return `₹${(amountPaise / 100).toLocaleString('en-IN')}`;
+  return `₹${(amountPaise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

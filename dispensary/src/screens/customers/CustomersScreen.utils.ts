@@ -41,12 +41,12 @@ export function hasCrmAccess(modules: string[] | undefined): boolean {
 }
 
 export function formatPaise(paise: number): string {
-  const rupees = paise / 100;
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    maximumFractionDigits: rupees % 1 === 0 ? 0 : 2,
-  }).format(rupees);
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  }).format(paise / 100);
 }
 
 export function formatPhone(phone: string | null | undefined): string {

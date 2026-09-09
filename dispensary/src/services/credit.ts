@@ -3,7 +3,7 @@ import { API } from '@/libs/constants/api.const';
 
 export { ApiError, isApiError };
 
-export type CreditLedgerType = 'SALE_CHARGE' | 'SETTLEMENT' | 'LIMIT_SET';
+export type CreditLedgerType = 'SALE_CHARGE' | 'SETTLEMENT' | 'LIMIT_SET' | 'CREDIT_NOTE';
 
 export interface CreditLedgerEntry {
   id: string;
@@ -33,6 +33,46 @@ export interface OutstandingCreditAccount {
   balancePaise: number;
   availablePaise: number;
   version: number;
+  billCount: number;
+  givenPaise: number;
+  repaidPaise: number;
+  ageDays: number;
+}
+
+export interface CreditAgingBand {
+  key: string;
+  label: string;
+  totalPaise: number;
+  accountCount: number;
+}
+
+export interface CreditDirectorySummary {
+  totalOutstandingPaise: number;
+  outstandingAccountCount: number;
+  overduePaise: number;
+  overdueAccountCount: number;
+  collectedThisMonthPaise: number;
+  collectionRatePercent: number;
+  creditGivenAllTimePaise: number;
+  khataAccountCount: number;
+}
+
+export interface CreditPaymentItem {
+  id: string;
+  customerId: string;
+  customerName: string;
+  amountPaise: number;
+  mode: string | null;
+  reference: string | null;
+  receiptLabel: string;
+  occurredAt: string;
+}
+
+export interface CreditDirectory {
+  summary: CreditDirectorySummary;
+  aging: CreditAgingBand[];
+  items: OutstandingCreditAccount[];
+  payments: CreditPaymentItem[];
 }
 
 export async function getCustomerCredit(customerId: string): Promise<CustomerCredit> {
@@ -40,11 +80,9 @@ export async function getCustomerCredit(customerId: string): Promise<CustomerCre
   return data;
 }
 
-export async function listOutstandingCreditAccounts(): Promise<OutstandingCreditAccount[]> {
-  const { data } = await apiClient.get<{ items: OutstandingCreditAccount[] }>(
-    API.CUSTOMERS_CREDIT_ACCOUNTS,
-  );
-  return data.items;
+export async function listOutstandingCreditAccounts(): Promise<CreditDirectory> {
+  const { data } = await apiClient.get<CreditDirectory>(API.CUSTOMERS_CREDIT_ACCOUNTS);
+  return data;
 }
 
 export async function setCustomerCreditLimit(
@@ -93,5 +131,8 @@ export async function chargeCustomerCredit(
 }
 
 export function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN')}`;
+  return `₹${(paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }

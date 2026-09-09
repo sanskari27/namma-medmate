@@ -13,7 +13,11 @@ vi.mock('@/services/credit', async () => {
   return {
     listOutstandingCreditAccounts: vi.fn(),
     settleCustomerCredit: vi.fn(),
-    formatPaise: (paise: number) => `₹${(paise / 100).toLocaleString('en-IN')}`,
+    formatPaise: (paise: number) =>
+      `₹${(paise / 100).toLocaleString('en-IN', {
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2,
+      })}`,
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };

@@ -264,7 +264,10 @@ export function formatPaise(paise: number | null): string {
   if (paise == null) {
     return '—';
   }
-  return `₹${(paise / 100).toLocaleString('en-IN')}`;
+  return `₹${(paise / 100).toLocaleString('en-IN', {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  })}`;
 }
 
 export function validateForm(form: FormState): boolean {

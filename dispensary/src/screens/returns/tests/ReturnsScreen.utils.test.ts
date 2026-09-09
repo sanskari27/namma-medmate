@@ -16,7 +16,7 @@ describe('returns helpers', () => {
   });
 
   it('formats refund paise for the till', () => {
-    expect(formatPaise(11200)).toBe('₹112');
+    expect(formatPaise(11200)).toBe('₹112.00');
   });
 
   it('matches a collected bill by number', () => {

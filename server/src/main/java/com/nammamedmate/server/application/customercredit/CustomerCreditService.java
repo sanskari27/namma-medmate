@@ -14,14 +14,20 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
 import com.nammamedmate.server.persistence.CustomerCreditLedgerEntryRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
+import com.nammamedmate.server.domain.AgingPolicy;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.YearMonth;
+import java.util.ArrayDeque;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
-import java.util.Objects;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -70,35 +76,210 @@ public class CustomerCreditService {
   @Transactional(readOnly = true)
   public CustomerCreditOutstandingView listOutstanding(AuthPrincipal principal) {
     UUID tenantId = requireCrmAccess(principal);
-    List<CustomerCreditAccount> accounts =
-        accountRepository.findAllByTenantIdAndBalancePaiseGreaterThanOrderByBalancePaiseDesc(
-            tenantId, 0L);
+    Instant now = clock.instant();
+    LocalDate today = AgingPolicy.today(now);
+    Instant monthStart =
+        YearMonth.from(today).atDay(1).atStartOfDay(AgingPolicy.IST).toInstant();
+
+    List<CustomerCreditAccount> allAccounts = accountRepository.findAllByTenantId(tenantId);
+    List<CustomerCreditLedgerEntry> ledger =
+        ledgerRepository.findAllByTenantIdAndOccurredAtOnOrBefore(tenantId, now);
+
+    Map<UUID, Agg> aggs = aggregateLedger(ledger, today, monthStart);
+    Map<UUID, Integer> ageDaysByCustomer = oldestOpenAgeDays(ledger, today);
+
     Map<UUID, Customer> customers = new HashMap<>();
-    for (CustomerCreditAccount account : accounts) {
+    for (CustomerCreditAccount account : allAccounts) {
       customerRepository
           .findByIdAndTenantIdAndDeletedAtIsNull(account.getCustomerId(), tenantId)
           .ifPresent(customer -> customers.put(customer.getId(), customer));
     }
-    List<CustomerCreditOutstandingView.OutstandingItem> items =
-        accounts.stream()
-            .map(
-                account -> {
-                  Customer customer = customers.get(account.getCustomerId());
-                  if (customer == null) {
-                    return null;
-                  }
-                  return new CustomerCreditOutstandingView.OutstandingItem(
-                      account.getCustomerId(),
-                      customer.getName(),
-                      customer.getPhone(),
-                      account.getLimitPaise(),
-                      account.getBalancePaise(),
-                      available(account),
-                      account.getVersion());
-                })
-            .filter(Objects::nonNull)
-            .toList();
-    return new CustomerCreditOutstandingView(items);
+
+    List<CustomerCreditOutstandingView.OutstandingItem> items = new ArrayList<>();
+    long totalOutstanding = 0L;
+    long overduePaise = 0L;
+    int overdueAccounts = 0;
+    long band0 = 0L;
+    long band31 = 0L;
+    long band60 = 0L;
+    int band0Accounts = 0;
+    int band31Accounts = 0;
+    int band60Accounts = 0;
+    long givenAllTime = 0L;
+    long repaidAllTime = 0L;
+    long collectedThisMonth = 0L;
+    int khataAccounts = 0;
+
+    for (CustomerCreditAccount account : allAccounts) {
+      Customer customer = customers.get(account.getCustomerId());
+      if (customer == null) {
+        continue;
+      }
+      Agg agg = aggs.getOrDefault(account.getCustomerId(), Agg.empty());
+      givenAllTime += agg.givenPaise;
+      repaidAllTime += agg.repaidPaise;
+      collectedThisMonth += agg.collectedThisMonthPaise;
+      if (agg.givenPaise > 0 || account.getBalancePaise() > 0) {
+        khataAccounts++;
+      }
+      if (account.getBalancePaise() <= 0) {
+        continue;
+      }
+      int ageDays = ageDaysByCustomer.getOrDefault(account.getCustomerId(), 0);
+      totalOutstanding += account.getBalancePaise();
+      if (ageDays > 30) {
+        overduePaise += account.getBalancePaise();
+        overdueAccounts++;
+      }
+      if (ageDays <= 30) {
+        band0 += account.getBalancePaise();
+        band0Accounts++;
+      } else if (ageDays <= 60) {
+        band31 += account.getBalancePaise();
+        band31Accounts++;
+      } else {
+        band60 += account.getBalancePaise();
+        band60Accounts++;
+      }
+      items.add(
+          new CustomerCreditOutstandingView.OutstandingItem(
+              account.getCustomerId(),
+              customer.getName(),
+              customer.getPhone(),
+              account.getLimitPaise(),
+              account.getBalancePaise(),
+              available(account),
+              account.getVersion(),
+              agg.billCount,
+              agg.givenPaise,
+              agg.repaidPaise,
+              ageDays));
+    }
+    items.sort(Comparator.comparingLong(CustomerCreditOutstandingView.OutstandingItem::balancePaise).reversed());
+
+    int collectionRate =
+        givenAllTime <= 0 ? 0 : (int) Math.round((repaidAllTime * 100.0) / givenAllTime);
+
+    List<CustomerCreditOutstandingView.PaymentItem> payments = new ArrayList<>();
+    for (CustomerCreditLedgerEntry entry : ledger) {
+      if (entry.getType() != CustomerCreditLedgerType.SETTLEMENT) {
+        continue;
+      }
+      Customer customer = customers.get(entry.getCustomerId());
+      if (customer == null) {
+        customerRepository
+            .findByIdAndTenantIdAndDeletedAtIsNull(entry.getCustomerId(), tenantId)
+            .ifPresent(c -> customers.put(c.getId(), c));
+        customer = customers.get(entry.getCustomerId());
+      }
+      if (customer == null) {
+        continue;
+      }
+      payments.add(
+          new CustomerCreditOutstandingView.PaymentItem(
+              entry.getId(),
+              entry.getCustomerId(),
+              customer.getName(),
+              entry.getAmountPaise(),
+              entry.getSettlementMode(),
+              entry.getSettlementReference(),
+              receiptLabel(entry.getId()),
+              entry.getOccurredAt()));
+    }
+    payments.sort(
+        Comparator.comparing(CustomerCreditOutstandingView.PaymentItem::occurredAt).reversed());
+
+    return new CustomerCreditOutstandingView(
+        new CustomerCreditOutstandingView.Summary(
+            totalOutstanding,
+            items.size(),
+            overduePaise,
+            overdueAccounts,
+            collectedThisMonth,
+            collectionRate,
+            givenAllTime,
+            khataAccounts),
+        List.of(
+            new CustomerCreditOutstandingView.AgingBand("D0_30", "0–30 days", band0, band0Accounts),
+            new CustomerCreditOutstandingView.AgingBand(
+                "D31_60", "31–60 days", band31, band31Accounts),
+            new CustomerCreditOutstandingView.AgingBand("D60_PLUS", "60+ days", band60, band60Accounts)),
+        items,
+        payments);
+  }
+
+  private static String receiptLabel(UUID id) {
+    String hex = id.toString().replace("-", "");
+    int n = Integer.parseUnsignedInt(hex.substring(0, 4), 16) % 9000 + 1000;
+    return "CR-" + n;
+  }
+
+  private static Map<UUID, Agg> aggregateLedger(
+      List<CustomerCreditLedgerEntry> ledger, LocalDate today, Instant monthStart) {
+    Map<UUID, Agg> aggs = new HashMap<>();
+    for (CustomerCreditLedgerEntry entry : ledger) {
+      Agg agg = aggs.computeIfAbsent(entry.getCustomerId(), id -> new Agg());
+      if (entry.getType() == CustomerCreditLedgerType.SALE_CHARGE) {
+        agg.givenPaise += entry.getAmountPaise();
+        agg.billCount++;
+      } else if (entry.getType() == CustomerCreditLedgerType.SETTLEMENT) {
+        agg.repaidPaise += entry.getAmountPaise();
+        if (!entry.getOccurredAt().isBefore(monthStart)) {
+          agg.collectedThisMonthPaise += entry.getAmountPaise();
+        }
+      } else if (entry.getType() == CustomerCreditLedgerType.CREDIT_NOTE) {
+        agg.repaidPaise += entry.getAmountPaise();
+      }
+    }
+    return aggs;
+  }
+
+  private static Map<UUID, Integer> oldestOpenAgeDays(
+      List<CustomerCreditLedgerEntry> ledger, LocalDate today) {
+    Map<UUID, ArrayDeque<OpenCharge>> open = new LinkedHashMap<>();
+    for (CustomerCreditLedgerEntry entry : ledger) {
+      ArrayDeque<OpenCharge> queue =
+          open.computeIfAbsent(entry.getCustomerId(), id -> new ArrayDeque<>());
+      if (entry.getType() == CustomerCreditLedgerType.SALE_CHARGE) {
+        queue.addLast(new OpenCharge(entry.getAmountPaise(), AgingPolicy.istDate(entry.getOccurredAt())));
+      } else if (entry.getType() == CustomerCreditLedgerType.SETTLEMENT
+          || entry.getType() == CustomerCreditLedgerType.CREDIT_NOTE) {
+        long leftover = entry.getAmountPaise();
+        while (leftover > 0 && !queue.isEmpty()) {
+          OpenCharge first = queue.peekFirst();
+          if (first.remaining() <= leftover) {
+            leftover -= first.remaining();
+            queue.pollFirst();
+          } else {
+            queue.pollFirst();
+            queue.addFirst(new OpenCharge(first.remaining() - leftover, first.ageOn()));
+            leftover = 0;
+          }
+        }
+      }
+    }
+    Map<UUID, Integer> ages = new HashMap<>();
+    for (Map.Entry<UUID, ArrayDeque<OpenCharge>> entry : open.entrySet()) {
+      int max = 0;
+      for (OpenCharge charge : entry.getValue()) {
+        max = Math.max(max, AgingPolicy.days(today, charge.ageOn()));
+      }
+      ages.put(entry.getKey(), max);
+    }
+    return ages;
+  }
+
+  private record OpenCharge(long remaining, LocalDate ageOn) {}
+
+  private static final class Agg {
+    long givenPaise;
+    long repaidPaise;
+    long collectedThisMonthPaise;
+    int billCount;
+
+    static Agg empty() {
+      return new Agg();
+    }
   }
 
   @Transactional
