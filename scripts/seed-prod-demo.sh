@@ -36,12 +36,19 @@ command -v psql >/dev/null 2>&1 || {
 log "Pulling compose env from SSM"
 AWS_REGION="$AWS_REGION" ./scripts/pull-prod-env.sh "$ENV_FILE"
 
-# shellcheck disable=SC1090
-set -a && source "$ENV_FILE" && set +a
+# Parse KEY=VALUE without sourcing (RESEND_FROM etc. may contain spaces/<>).
+get_env() {
+  local key="$1"
+  grep -E "^${key}=" "$ENV_FILE" | head -1 | cut -d= -f2-
+}
 
-[[ -n "${DATABASE_URL:-}" ]] || die "DATABASE_URL missing"
-[[ -n "${DATABASE_USERNAME:-}" ]] || die "DATABASE_USERNAME missing"
-[[ -n "${DATABASE_PASSWORD:-}" ]] || die "DATABASE_PASSWORD missing"
+DATABASE_URL="$(get_env DATABASE_URL)"
+DATABASE_USERNAME="$(get_env DATABASE_USERNAME)"
+DATABASE_PASSWORD="$(get_env DATABASE_PASSWORD)"
+
+[[ -n "${DATABASE_URL}" ]] || die "DATABASE_URL missing"
+[[ -n "${DATABASE_USERNAME}" ]] || die "DATABASE_USERNAME missing"
+[[ -n "${DATABASE_PASSWORD}" ]] || die "DATABASE_PASSWORD missing"
 
 # jdbc:postgresql://host:5432/db
 rest="${DATABASE_URL#jdbc:postgresql://}"
