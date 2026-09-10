@@ -1,5 +1,5 @@
-import { Button, Reveal } from '@atoms';
-import type { Ref } from 'react';
+import { Reveal } from '@atoms';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 
 export type InventoryViewMode =
   | 'floor'
@@ -12,140 +12,38 @@ export type InventoryViewMode =
   | 'qc'
   | 'returns';
 
-const VIEW_COPY: Record<InventoryViewMode, { eyebrow: string; blurb: string; tab: string }> = {
-  floor: {
-    eyebrow: 'Floor stock',
-    blurb:
-      'Batch, expiry, and quantity on the active outlet. Receive stock to open a batch on this till.',
-    tab: 'Floor stock',
-  },
-  catalogue: {
-    eyebrow: 'Floor catalogue',
-    blurb:
-      'Tenant product master for this pharmacy. Search by name, SKU, or barcode — discontinued packs stay on the list.',
-    tab: 'Catalogue',
-  },
-  transfers: {
-    eyebrow: 'Outlet transfers',
-    blurb:
-      'Push or pull stock between outlets. Receiving till confirms before stock lands on the floor.',
-    tab: 'Transfers',
-  },
-  adjustments: {
-    eyebrow: 'Stock write-offs',
-    blurb:
-      'Damage, expiry, theft, count correction, or sample removal. Stock moves only after the till approver signs off.',
-    tab: 'Adjustments',
-  },
-  guidance: {
-    eyebrow: 'FEFO & reorder',
-    blurb:
-      'Near-expiry warnings, low-stock transfer hints, reorder CSV, and purchase-price valuation for this outlet.',
-    tab: 'Guidance',
-  },
-  stocktake: {
-    eyebrow: 'Physical count',
-    blurb:
-      'Owner starts an optional count. Book qty freezes at start; staff count batches and post variances for sign-off.',
-    tab: 'Physical count',
-  },
-  controlled: {
-    eyebrow: 'Schedule register',
-    blurb:
-      'H, H1, X, and NDPS movements on this outlet. Export the inspector NDPS sheet or a general CSV.',
-    tab: 'Schedule register',
-  },
-  qc: {
-    eyebrow: 'Quality check',
-    blurb:
-      'Inspect this delivery before it hits the floor. Accept onto stock; rejected packs stay off the shelf.',
-    tab: 'Quality check',
-  },
-  returns: {
-    eyebrow: 'Send back to stockist',
-    blurb: 'Confirmed return cuts floor stock now and writes a debit note on the stockist khata.',
-    tab: 'Returns',
-  },
+const VIEW_COPY: Record<InventoryViewMode, { tab: string }> = {
+  floor: { tab: 'Stock' },
+  catalogue: { tab: 'Catalogue' },
+  transfers: { tab: 'Transfers' },
+  adjustments: { tab: 'Adjustments' },
+  guidance: { tab: 'Guidance' },
+  stocktake: { tab: 'Physical count' },
+  controlled: { tab: 'Schedule register' },
+  qc: { tab: 'Quality check' },
+  returns: { tab: 'Returns' },
 };
 
 export type InventoryHeaderProps = {
   view: InventoryViewMode;
   onViewChange: (view: InventoryViewMode) => void;
-  addButtonRef?: Ref<HTMLButtonElement>;
-  receiveButtonRef?: Ref<HTMLButtonElement>;
-  transferButtonRef?: Ref<HTMLButtonElement>;
-  adjustButtonRef?: Ref<HTMLButtonElement>;
-  stockTakeButtonRef?: Ref<HTMLButtonElement>;
-  returnButtonRef?: Ref<HTMLButtonElement>;
   denied?: boolean;
-  canStartCount?: boolean;
-  onAdd: () => void;
-  onReceive: () => void;
-  onTransfer: () => void;
-  onAdjust: () => void;
-  onStartCount: () => void;
-  onSendBack: () => void;
 };
 
-export function InventoryHeader({
-  view,
-  onViewChange,
-  addButtonRef,
-  receiveButtonRef,
-  transferButtonRef,
-  adjustButtonRef,
-  stockTakeButtonRef,
-  returnButtonRef,
-  denied = false,
-  canStartCount = false,
-  onAdd,
-  onReceive,
-  onTransfer,
-  onAdjust,
-  onStartCount,
-  onSendBack,
-}: InventoryHeaderProps) {
-  const copy = VIEW_COPY[view];
-  const blurb = denied ? 'Stock and SKUs for this pharmacy floor.' : copy.blurb;
-
+export function InventoryHeader({ view, onViewChange, denied = false }: InventoryHeaderProps) {
   return (
     <Reveal>
-      <header className="grid gap-3 border-b border-line pb-3">
-        <div className="flex flex-wrap items-end justify-between gap-3">
+      <header className="grid gap-3">
+        {denied ? (
           <div>
-            <p className="font-mono text-xs tracking-wide text-muted">{copy.eyebrow}</p>
-            <h1 className="text-2xl font-semibold text-ink">Inventory</h1>
-            <p className={`mt-1 text-sm text-muted ${denied ? '' : 'max-w-xl'}`}>{blurb}</p>
+            <h1 className="text-2xl font-semibold tracking-tight text-ink">
+              {INVENTORY_CONTENT.title}
+            </h1>
+            <p className="mt-0.5 text-sm text-muted">Stock and SKUs for this pharmacy floor.</p>
           </div>
-          {denied ? null : view === 'floor' ? (
-            <Button ref={receiveButtonRef} type="button" onClick={onReceive}>
-              Receive stock
-            </Button>
-          ) : view === 'catalogue' ? (
-            <Button ref={addButtonRef} type="button" onClick={onAdd}>
-              Add product
-            </Button>
-          ) : view === 'transfers' ? (
-            <Button ref={transferButtonRef} type="button" onClick={onTransfer}>
-              Start transfer
-            </Button>
-          ) : view === 'adjustments' ? (
-            <Button ref={adjustButtonRef} type="button" onClick={onAdjust}>
-              Record write-off
-            </Button>
-          ) : view === 'stocktake' && canStartCount ? (
-            <Button ref={stockTakeButtonRef} type="button" onClick={onStartCount}>
-              Start count
-            </Button>
-          ) : view === 'returns' ? (
-            <Button ref={returnButtonRef} type="button" onClick={onSendBack}>
-              Send back
-            </Button>
-          ) : null}
-        </div>
-        {denied ? null : (
+        ) : (
           <div
-            className="inline-flex w-fit border border-line"
+            className="inline-flex w-fit overflow-hidden rounded-lg border border-line"
             role="tablist"
             aria-label="Inventory view"
           >

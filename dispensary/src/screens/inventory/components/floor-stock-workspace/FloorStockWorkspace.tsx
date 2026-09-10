@@ -1,139 +1,115 @@
+import type { AppDispatch } from '@/store';
+import { ROUTES } from '@/libs/constants/routes.const';
+import { useCallback, useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
+import { downloadInventoryCsv } from '../../InventoryScreen.format';
+import type { PageStatus } from '../../InventoryScreen.utils';
 import {
-  listStockBalances,
-  listStockBatches,
-  listStockMovements,
-  type StockBalance,
-  type StockBatchDetail,
-  type StockMovement,
-} from '@/services/inventory';
-import { isApiError } from '@/services/axios';
-import { FormEvent, Ref, useCallback, useEffect, useState } from 'react';
-import { FloorStockDetail } from '../floor-stock-detail/FloorStockDetail';
-import { FloorStockList } from '../floor-stock-list/FloorStockList';
-import { FloorStockMovements } from '../floor-stock-movements/FloorStockMovements';
-import { StockReceiveDialog } from '../stock-receive-dialog/StockReceiveDialog';
-import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+  loadInventoryOverview,
+  openProductEditor,
+  selectFilteredInventoryRows,
+  selectInventoryFilter,
+  selectInventoryFlagBusyId,
+  selectInventoryQuery,
+  selectInventoryStatus,
+  selectInventoryStatusHint,
+  selectInventorySummary,
+  selectInventorySyncEpoch,
+  setInventoryFilter,
+  setInventoryQuery,
+  updateListingFlags,
+} from '../../store';
+import { InventoryFilterTabs } from '../inventory-filter-tabs';
+import { InventoryKpiCards } from '../inventory-kpi-cards';
+import { InventoryStockTable } from '../inventory-stock-table';
+import { InventoryToolbar } from '../inventory-toolbar';
 
 export type FloorStockWorkspaceProps = {
   allowed: boolean;
   activeBranchId: string | null;
-  receiveButtonRef: Ref<HTMLButtonElement>;
-  receiveOpen: boolean;
-  onReceiveOpenChange: (open: boolean) => void;
   onStatusChange: (status: PageStatus) => void;
 };
 
 export function FloorStockWorkspace({
   allowed,
   activeBranchId,
-  receiveButtonRef,
-  receiveOpen,
-  onReceiveOpenChange,
   onStatusChange,
 }: FloorStockWorkspaceProps) {
-  const [balances, setBalances] = useState<StockBalance[]>([]);
-  const [selectedBalance, setSelectedBalance] = useState<StockBalance | null>(null);
-  const [batches, setBatches] = useState<StockBatchDetail[]>([]);
-  const [movements, setMovements] = useState<StockMovement[]>([]);
-  const [detailLoading, setDetailLoading] = useState(false);
-  const [query, setQuery] = useState('');
-  const [listStatus, setListStatus] = useState<PageStatus>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const summary = useSelector(selectInventorySummary);
+  const rows = useSelector(selectFilteredInventoryRows);
+  const filter = useSelector(selectInventoryFilter);
+  const query = useSelector(selectInventoryQuery);
+  const status = useSelector(selectInventoryStatus);
+  const statusHint = useSelector(selectInventoryStatusHint);
+  const flagBusyId = useSelector(selectInventoryFlagBusyId);
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
 
-  const loadFloor = useCallback(
-    async (search?: string) => {
-      if (!allowed) {
-        onStatusChange('denied');
-        return;
-      }
-      if (!activeBranchId) {
-        setBalances([]);
-        setSelectedBalance(null);
-        setBatches([]);
-        setMovements([]);
-        onStatusChange('failure');
-        return;
-      }
-      onStatusChange('loading');
-      try {
-        const items = await listStockBalances(search);
-        setBalances(items);
-        const next = items.length === 0 ? 'empty' : null;
-        setListStatus(next);
-        onStatusChange(next);
-      } catch (error) {
-        if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
-          onStatusChange('denied');
-        } else {
-          onStatusChange('failure');
-        }
-      }
-    },
-    [allowed, activeBranchId, onStatusChange],
-  );
+  const reload = useCallback(() => {
+    if (!allowed) {
+      onStatusChange('denied');
+      return;
+    }
+    if (!activeBranchId) {
+      onStatusChange('failure');
+      return;
+    }
+    void dispatch(loadInventoryOverview());
+  }, [allowed, activeBranchId, dispatch, onStatusChange]);
 
   useEffect(() => {
-    void loadFloor();
-  }, [loadFloor]);
+    reload();
+  }, [reload, syncEpoch]);
 
-  const selectBalance = async (balance: StockBalance) => {
-    setSelectedBalance(balance);
-    setDetailLoading(true);
-    try {
-      const [batchRows, movementRows] = await Promise.all([
-        listStockBatches(balance.productId),
-        listStockMovements({
-          productId: balance.productId,
-          batchId: balance.batchId ?? undefined,
-        }),
-      ]);
-      setBatches(batchRows);
-      setMovements(movementRows);
-    } catch (error) {
-      onStatusChange(mapApiStatus(error));
-    } finally {
-      setDetailLoading(false);
-    }
-  };
+  useEffect(() => {
+    onStatusChange(status);
+  }, [status, onStatusChange]);
+
+  const emptyMessage =
+    status === 'empty'
+      ? INVENTORY_CONTENT.empty
+      : filter !== 'all' || query.trim()
+        ? INVENTORY_CONTENT.emptyFilter
+        : INVENTORY_CONTENT.empty;
 
   return (
-    <>
-      <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-        <FloorStockList
-          balances={balances}
-          selectedBalanceId={selectedBalance?.balanceId ?? null}
-          query={query}
-          showEmptyHint={listStatus !== 'loading' && balances.length === 0 && Boolean(query.trim())}
-          onQueryChange={setQuery}
-          onSearch={(e: FormEvent) => {
-            e.preventDefault();
-            void loadFloor(query.trim() || undefined);
-          }}
-          onSelect={(balance) => void selectBalance(balance)}
-        />
-        <div className="grid min-h-0 content-start gap-4">
-          <FloorStockDetail
-            productName={selectedBalance?.productName ?? null}
-            productSku={selectedBalance?.productSku ?? null}
-            batches={batches}
-            loading={detailLoading}
-          />
-          <FloorStockMovements movements={movements} loading={detailLoading} />
-        </div>
-      </div>
-      <StockReceiveDialog
-        open={receiveOpen}
-        onOpenChange={onReceiveOpenChange}
-        onReceived={() => {
-          void loadFloor(query.trim() || undefined).then(() => {
-            onStatusChange('success');
-          });
+    <div className="flex min-h-0 flex-1 flex-col gap-4">
+      <InventoryKpiCards summary={summary} />
+      <InventoryFilterTabs
+        filter={filter}
+        alertCount={summary?.alertCount ?? 0}
+        onChange={(next) => dispatch(setInventoryFilter(next))}
+      />
+      <InventoryToolbar
+        query={query}
+        onQueryChange={(value) => dispatch(setInventoryQuery(value))}
+        onExcel={() => downloadInventoryCsv(rows)}
+        onPdf={() => window.print()}
+        onRackLocations={() => dispatch(setInventoryFilter('unallocated'))}
+        onAddStock={() => navigate(ROUTES.PURCHASES)}
+      />
+      {statusHint && status === 'failure' ? (
+        <p className="rounded-lg border border-danger/30 bg-[#fde8e8] px-3 py-2 text-sm text-danger">
+          {statusHint}
+        </p>
+      ) : null}
+      <InventoryStockTable
+        rows={rows}
+        flagBusyId={flagBusyId}
+        emptyMessage={emptyMessage}
+        onToggleLoose={(productId, next) => {
+          void dispatch(updateListingFlags({ productId, looseSellingEnabled: next }));
         }}
-        onCloseFocus={() => {
-          if (receiveButtonRef && typeof receiveButtonRef !== 'function') {
-            receiveButtonRef.current?.focus();
-          }
+        onToggleOnline={(productId, next) => {
+          void dispatch(updateListingFlags({ productId, onlineListed: next }));
+        }}
+        onEdit={(productId) => {
+          dispatch(openProductEditor({ mode: 'edit', productId }));
         }}
       />
-    </>
+    </div>
   );
 }

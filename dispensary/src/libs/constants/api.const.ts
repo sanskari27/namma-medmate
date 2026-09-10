@@ -44,6 +44,7 @@ export const API = {
   PRODUCT_CATEGORIES: '/api/v1/product-categories',
   MANUFACTURERS: '/api/v1/manufacturers',
   INVENTORY_BALANCES: '/api/v1/inventory/balances',
+  INVENTORY_OVERVIEW: '/api/v1/inventory/overview',
   INVENTORY_MOVEMENTS: '/api/v1/inventory/movements',
   INVENTORY_RECEIPTS: '/api/v1/inventory/receipts',
   INVENTORY_ISSUES: '/api/v1/inventory/issues',
@@ -89,6 +90,8 @@ export const API = {
   productUnits: (id: string) => `/api/v1/products/${id}/units`,
   productUnitsConvert: (id: string) => `/api/v1/products/${id}/units/convert`,
   inventoryProductBatches: (productId: string) => `/api/v1/inventory/products/${productId}/batches`,
+  inventoryProductListingFlags: (productId: string) =>
+    `/api/v1/inventory/products/${productId}/listing-flags`,
   inventoryProductStockLevels: (productId: string) =>
     `/api/v1/inventory/products/${productId}/stock-levels`,
   inventoryAdjustment: (id: string) => `/api/v1/inventory/adjustments/${id}`,

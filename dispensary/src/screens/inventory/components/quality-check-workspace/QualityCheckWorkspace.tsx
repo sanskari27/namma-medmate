@@ -1,4 +1,4 @@
-import { Button } from '@atoms';
+import { Button, Input } from '@atoms';
 import {
   getGoodsReceipt,
   listBranchGoodsReceipts,
@@ -6,16 +6,26 @@ import {
   type GoodsReceiptDetail,
   type GoodsReceiptSummary,
 } from '@/services/goodsReceipts';
+import type { AppDispatch } from '@/store';
+import { ClipboardCheck, PackageOpen, Search } from 'lucide-react';
 import { useCallback, useEffect, useId, useRef, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import type { PageStatus } from '../../InventoryScreen.utils';
+import {
+  bumpInventorySync,
+  refreshInventoryAfterMutation,
+  selectInventorySyncEpoch,
+} from '../../store';
 import { QualityCheckChecklist } from '../quality-check-checklist';
 import { QualityCheckConfirmDialog } from '../quality-check-confirm-dialog';
 import { QualityCheckLines } from '../quality-check-lines';
 import { QualityCheckList } from '../quality-check-list';
 import { QualityCheckOutcome } from '../quality-check-outcome';
+import { InventoryOpsCard, InventoryOpsShell } from '../inventory-ops-shell';
 import {
   draftsFromLines,
   emptyChecklist,
+  formatIst,
   mapQcStatus,
   toNumber,
   validateQc,
@@ -34,6 +44,8 @@ export function QualityCheckWorkspace({
   activeBranchId,
   onStatusChange,
 }: QualityCheckWorkspaceProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const formId = useId();
   const acceptRef = useRef<HTMLButtonElement | null>(null);
   const [items, setItems] = useState<GoodsReceiptSummary[]>([]);
@@ -43,6 +55,7 @@ export function QualityCheckWorkspace({
   const [checklist, setChecklist] = useState<QcChecklistState>(emptyChecklist);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [busy, setBusy] = useState(false);
+  const [query, setQuery] = useState('');
 
   const loadList = useCallback(async () => {
     if (!allowed) {
@@ -68,7 +81,7 @@ export function QualityCheckWorkspace({
 
   useEffect(() => {
     void loadList();
-  }, [loadList]);
+  }, [loadList, syncEpoch]);
 
   async function onSelect(id: string) {
     setSelectedId(id);
@@ -131,6 +144,8 @@ export function QualityCheckWorkspace({
       setDetail(result);
       setItems((prev) => prev.filter((row) => row.id !== result.id));
       setConfirmOpen(false);
+      dispatch(bumpInventorySync());
+      void dispatch(refreshInventoryAfterMutation());
       onStatusChange('success');
     } catch (error) {
       setConfirmOpen(false);
@@ -147,46 +162,116 @@ export function QualityCheckWorkspace({
   }
 
   return (
-    <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
-      <QualityCheckList
-        items={items}
-        selectedId={selectedId}
-        onSelect={(id) => void onSelect(id)}
-      />
-      {detail ? (
-        <section className="min-h-0 overflow-auto" aria-label="Delivery check">
-          <div className="mb-3">
-            <p className="font-mono text-sm text-ink">{detail.receiptNumber}</p>
-            <p className="text-sm text-muted">{detail.receiptReference}</p>
-            <p className="text-sm text-muted">{detail.supplierLegalName}</p>
+    <InventoryOpsShell
+      title="Quality check"
+      subtitle="Inspect GRN deliveries before they hit the shelf. Accept onto floor when clear."
+    >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-[#fff1e6] text-warn"
+            aria-hidden
+          >
+            <ClipboardCheck className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Pending QC</p>
+            <p className="text-xl font-semibold tabular-nums text-ink">{items.length}</p>
+            <p className="text-xs text-muted">deliveries waiting</p>
           </div>
-          {readOnly ? <QualityCheckOutcome detail={detail} /> : null}
-          <div className="mt-3 grid gap-3">
-            <QualityCheckChecklist
-              formId={formId}
-              checklist={checklist}
-              readOnly={readOnly}
-              onChange={(patch) => setChecklist((prev) => ({ ...prev, ...patch }))}
+        </article>
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand"
+            aria-hidden
+          >
+            <PackageOpen className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Selected GRN</p>
+            <p className="truncate text-xl font-semibold text-ink">
+              {detail?.receiptNumber ?? '—'}
+            </p>
+            <p className="truncate text-xs text-muted">
+              {detail ? detail.supplierLegalName : 'Pick a delivery from the queue'}
+            </p>
+          </div>
+        </article>
+      </div>
+
+      <label className="relative max-w-md">
+        <span className="sr-only">Search pending deliveries</span>
+        <Search
+          className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+          aria-hidden
+        />
+        <Input
+          value={query}
+          onChange={(e) => setQuery(e.target.value)}
+          placeholder="Search GRN, reference, or stockist…"
+          className="h-9 rounded-lg pl-9"
+        />
+      </label>
+
+      <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,22rem)_1fr]">
+        <InventoryOpsCard title={`Queue · ${items.length}`}>
+          <div className="max-h-[32rem] overflow-auto lg:max-h-none">
+            <QualityCheckList
+              items={items}
+              selectedId={selectedId}
+              query={query}
+              onSelect={(id) => void onSelect(id)}
             />
-            <QualityCheckLines
-              formId={formId}
-              lines={detail.lines}
-              drafts={drafts}
-              readOnly={readOnly}
-              onChange={onDraftChange}
-            />
-            {readOnly ? null : (
-              <div className="flex justify-end">
-                <Button ref={acceptRef} type="button" disabled={busy} onClick={onAcceptClick}>
+          </div>
+        </InventoryOpsCard>
+
+        {detail ? (
+          <InventoryOpsCard
+            title={detail.receiptNumber}
+            headerAction={
+              readOnly ? null : (
+                <Button
+                  ref={acceptRef}
+                  type="button"
+                  size="sm"
+                  className="rounded-lg"
+                  disabled={busy}
+                  onClick={onAcceptClick}
+                >
                   Accept onto floor
                 </Button>
+              )
+            }
+          >
+            <div className="space-y-4 overflow-auto p-4" aria-label="Delivery check">
+              <div className="flex flex-wrap gap-x-4 gap-y-1 text-sm">
+                <p className="text-ink">{detail.supplierLegalName}</p>
+                <p className="text-muted">{detail.receiptReference}</p>
+                <p className="text-xs text-muted">Received {formatIst(detail.createdAt)}</p>
               </div>
-            )}
+              {readOnly ? <QualityCheckOutcome detail={detail} /> : null}
+              <QualityCheckChecklist
+                formId={formId}
+                checklist={checklist}
+                readOnly={readOnly}
+                onChange={(patch) => setChecklist((prev) => ({ ...prev, ...patch }))}
+              />
+              <QualityCheckLines
+                formId={formId}
+                lines={detail.lines}
+                drafts={drafts}
+                readOnly={readOnly}
+                onChange={onDraftChange}
+              />
+            </div>
+          </InventoryOpsCard>
+        ) : (
+          <div className="flex min-h-[16rem] items-center justify-center rounded-xl border border-dashed border-line bg-surface/60 px-6 text-center text-sm text-muted">
+            Select a delivery from the queue to start inspection.
           </div>
-        </section>
-      ) : (
-        <p className="text-sm text-muted">Select a delivery to inspect.</p>
-      )}
+        )}
+      </div>
+
       <QualityCheckConfirmDialog
         open={confirmOpen}
         busy={busy}
@@ -194,6 +279,6 @@ export function QualityCheckWorkspace({
         onConfirm={() => void onConfirm()}
         onCloseFocus={() => acceptRef.current?.focus()}
       />
-    </div>
+    </InventoryOpsShell>
   );
 }

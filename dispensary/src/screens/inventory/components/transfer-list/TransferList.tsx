@@ -27,14 +27,14 @@ export function TransferList({
   busyId,
 }: TransferListProps) {
   return (
-    <section className="min-h-0 flex-1 border border-line bg-surface">
-      <header className="border-b border-line px-3 py-2">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-line/70 bg-surface">
+      <header className="border-b border-line/70 bg-brand-soft/50 px-4 py-2.5">
         <h2 className="text-sm font-semibold text-ink">{title}</h2>
       </header>
       {items.length === 0 ? (
-        <p className="px-3 py-4 text-sm text-muted">{emptyLabel}</p>
+        <p className="px-4 py-6 text-sm text-muted">{emptyLabel}</p>
       ) : (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-line/60 overflow-y-auto">
           {items.map((transfer) => {
             const line = transfer.lines[0];
             const summary = line
@@ -44,10 +44,12 @@ export function TransferList({
             const isReceiver = transfer.toBranchId === activeBranchId;
             const busy = busyId === transfer.id;
             return (
-              <li key={transfer.id} className="grid gap-2 px-3 py-3">
+              <li key={transfer.id} className="grid gap-2 px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-sm font-medium text-ink">{summary}</p>
-                  <p className="font-mono text-xs text-muted">{transfer.status}</p>
+                  <span className="rounded-full bg-brand-soft px-2 py-0.5 font-mono text-[11px] text-brand">
+                    {transfer.status}
+                  </span>
                 </div>
                 <p className="text-xs text-muted">
                   {branchName(transfer.fromBranchId)} → {branchName(transfer.toBranchId)} ·{' '}
@@ -58,6 +60,7 @@ export function TransferList({
                     <Button
                       type="button"
                       size="sm"
+                      className="rounded-lg"
                       disabled={busy}
                       onClick={() => onDispatch(transfer.id)}
                     >
@@ -68,6 +71,7 @@ export function TransferList({
                     <Button
                       type="button"
                       size="sm"
+                      className="rounded-lg"
                       disabled={busy}
                       onClick={() => onConfirm(transfer.id)}
                     >
@@ -79,6 +83,7 @@ export function TransferList({
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="rounded-lg"
                       disabled={busy}
                       onClick={() => onReject(transfer.id)}
                     >
@@ -90,6 +95,7 @@ export function TransferList({
                       type="button"
                       variant="outline"
                       size="sm"
+                      className="rounded-lg"
                       disabled={busy}
                       onClick={() => onCancel(transfer.id)}
                     >

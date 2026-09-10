@@ -10,9 +10,18 @@ import {
   type LowStockAlert,
   type NearExpiryAlert,
 } from '@/services/inventory';
+import {
+  CalendarClock,
+  Download,
+  IndianRupee,
+  TrendingDown,
+} from 'lucide-react';
 import { useCallback, useEffect, useId, useState } from 'react';
+import { useSelector } from 'react-redux';
 import type { PageStatus } from '../../InventoryScreen.utils';
 import { mapApiStatus } from '../../InventoryScreen.utils';
+import { selectInventorySyncEpoch } from '../../store';
+import { InventoryOpsCard, InventoryOpsShell } from '../inventory-ops-shell';
 import { OutletStockLevelsForm } from './OutletStockLevelsForm';
 
 export type GuidanceWorkspaceProps = {
@@ -20,6 +29,8 @@ export type GuidanceWorkspaceProps = {
   onStatusChange: (status: PageStatus) => void;
   onStartTransfer: (productId: string) => void;
 };
+
+type GuidanceTab = 'low' | 'expiring' | 'settings';
 
 function formatInrFromPaise(paise: number): string {
   return `₹${(paise / 100).toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
@@ -31,10 +42,12 @@ export function GuidanceWorkspace({
   onStartTransfer,
 }: GuidanceWorkspaceProps) {
   const formId = useId();
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const [alerts, setAlerts] = useState<InventoryAlerts>({ lowStock: [], nearExpiry: [] });
   const [warnDays, setWarnDays] = useState('30');
   const [valuationPaise, setValuationPaise] = useState<number | null>(null);
   const [busy, setBusy] = useState(false);
+  const [tab, setTab] = useState<GuidanceTab>('low');
 
   const load = useCallback(async () => {
     if (!allowed) {
@@ -60,7 +73,7 @@ export function GuidanceWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, syncEpoch]);
 
   const onSaveThreshold = async () => {
     const days = Number(warnDays);
@@ -112,60 +125,174 @@ export function GuidanceWorkspace({
     return null;
   }
 
+  const tabs: Array<{ id: GuidanceTab; label: string }> = [
+    { id: 'low', label: `Low stock · ${alerts.lowStock.length}` },
+    { id: 'expiring', label: `Near expiry · ${alerts.nearExpiry.length}` },
+    { id: 'settings', label: 'Thresholds & levels' },
+  ];
+
   return (
-    <div className="grid min-h-0 flex-1 gap-4 overflow-auto lg:grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)]">
-      <section
-        className="space-y-4 border border-line bg-surface p-3"
-        aria-label="Guidance controls"
-      >
-        <div>
-          <h2 className="text-sm font-semibold text-ink">Floor guidance</h2>
-          <p className="text-xs text-muted">
-            Near-expiry threshold, purchase-price valuation, and reorder CSV for this outlet.
-          </p>
-        </div>
-        <div className="space-y-2">
-          <Label htmlFor={`${formId}-warn`}>Expiry warn days</Label>
-          <div className="flex flex-wrap items-end gap-2">
-            <Input
-              id={`${formId}-warn`}
-              inputMode="numeric"
-              value={warnDays}
-              onChange={(event) => setWarnDays(event.target.value)}
-              disabled={busy}
-              className="max-w-[8rem]"
-            />
-            <Button type="button" onClick={() => void onSaveThreshold()} disabled={busy}>
-              Save threshold
-            </Button>
-          </div>
-        </div>
-        <p className="text-sm text-ink" aria-live="polite">
-          Stock valuation (batch purchase price):{' '}
-          <span className="font-mono font-medium">
-            {valuationPaise == null ? '—' : formatInrFromPaise(valuationPaise)}
-          </span>
-        </p>
+    <InventoryOpsShell
+      title="FEFO & reorder"
+      subtitle="Near-expiry warnings, low-stock transfer hints, reorder CSV, and valuation."
+      action={
         <Button
           type="button"
           variant="outline"
+          size="sm"
+          className="rounded-lg"
           onClick={() => void onDownloadCsv()}
           disabled={busy}
         >
-          Download reorder CSV
+          <Download className="size-3.5" aria-hidden />
+          Reorder CSV
         </Button>
-        <OutletStockLevelsForm busy={busy} onBusyChange={setBusy} onStatusChange={onStatusChange} />
-      </section>
-
-      <div className="grid gap-4">
-        <LowStockList items={alerts.lowStock} onStartTransfer={onStartTransfer} busy={busy} />
-        <NearExpiryList items={alerts.nearExpiry} />
+      }
+    >
+      <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-[#e8eef8] text-[#3b5bdb]"
+            aria-hidden
+          >
+            <IndianRupee className="size-4" />
+          </span>
+          <div className="min-w-0">
+            <p className="text-xs text-muted">Stock valuation</p>
+            <p className="truncate text-xl font-semibold tabular-nums text-ink">
+              {valuationPaise == null ? '—' : formatInrFromPaise(valuationPaise)}
+            </p>
+            <p className="text-xs text-muted">purchase cost</p>
+          </div>
+        </article>
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-[#fff1e6] text-warn"
+            aria-hidden
+          >
+            <TrendingDown className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Low stock</p>
+            <p className="text-xl font-semibold tabular-nums text-ink">{alerts.lowStock.length}</p>
+            <p className="text-xs text-muted">below reorder / min</p>
+          </div>
+        </article>
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-[#fde8e8] text-danger"
+            aria-hidden
+          >
+            <CalendarClock className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Near expiry</p>
+            <p className="text-xl font-semibold tabular-nums text-ink">
+              {alerts.nearExpiry.length}
+            </p>
+            <p className="text-xs text-muted">within {warnDays} days</p>
+          </div>
+        </article>
+        <article className="flex items-start gap-3 rounded-xl border border-line/70 bg-surface px-4 py-3">
+          <span
+            className="inline-grid size-9 shrink-0 place-items-center rounded-lg bg-brand-soft text-brand"
+            aria-hidden
+          >
+            <CalendarClock className="size-4" />
+          </span>
+          <div>
+            <p className="text-xs text-muted">Warn threshold</p>
+            <p className="text-xl font-semibold tabular-nums text-ink">{warnDays}</p>
+            <p className="text-xs text-muted">days to expiry</p>
+          </div>
+        </article>
       </div>
-    </div>
+
+      <div
+        role="tablist"
+        aria-label="Guidance views"
+        className="flex flex-wrap items-center gap-1 border-b border-line"
+      >
+        {tabs.map((item) => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              onClick={() => setTab(item.id)}
+              className={`-mb-px border-b-2 px-3 py-2 text-sm transition-colors ${
+                active
+                  ? 'border-ink font-semibold text-ink'
+                  : 'border-transparent text-muted hover:text-ink'
+              }`}
+            >
+              {item.label}
+            </button>
+          );
+        })}
+      </div>
+
+      {tab === 'low' ? (
+        <InventoryOpsCard title="Low stock">
+          <LowStockTable items={alerts.lowStock} onStartTransfer={onStartTransfer} busy={busy} />
+        </InventoryOpsCard>
+      ) : null}
+
+      {tab === 'expiring' ? (
+        <InventoryOpsCard title="Near expiry">
+          <NearExpiryTable items={alerts.nearExpiry} />
+        </InventoryOpsCard>
+      ) : null}
+
+      {tab === 'settings' ? (
+        <div className="grid gap-4 lg:grid-cols-2">
+          <InventoryOpsCard title="Expiry warn days">
+            <div className="space-y-3 p-4">
+              <p className="text-xs text-muted">
+                Batches within this many days show on Near expiry and FEFO prioritises them at the
+                till.
+              </p>
+              <div className="flex flex-wrap items-end gap-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor={`${formId}-warn`}>Days</Label>
+                  <Input
+                    id={`${formId}-warn`}
+                    inputMode="numeric"
+                    value={warnDays}
+                    onChange={(event) => setWarnDays(event.target.value)}
+                    disabled={busy}
+                    className="max-w-[8rem] rounded-lg"
+                  />
+                </div>
+                <Button
+                  type="button"
+                  className="rounded-lg"
+                  onClick={() => void onSaveThreshold()}
+                  disabled={busy}
+                >
+                  Save threshold
+                </Button>
+              </div>
+            </div>
+          </InventoryOpsCard>
+          <InventoryOpsCard title="Outlet stock levels">
+            <div className="p-4">
+              <OutletStockLevelsForm
+                busy={busy}
+                onBusyChange={setBusy}
+                onStatusChange={onStatusChange}
+              />
+            </div>
+          </InventoryOpsCard>
+        </div>
+      ) : null}
+    </InventoryOpsShell>
   );
 }
 
-function LowStockList({
+function LowStockTable({
   items,
   onStartTransfer,
   busy,
@@ -174,80 +301,100 @@ function LowStockList({
   onStartTransfer: (productId: string) => void;
   busy: boolean;
 }) {
+  if (items.length === 0) {
+    return <p className="px-4 py-10 text-center text-sm text-muted">No low-stock lines on this outlet.</p>;
+  }
+
   return (
-    <section className="border border-line bg-surface p-3" aria-label="Low stock alerts">
-      <h2 className="text-sm font-semibold text-ink">Low stock</h2>
-      <p className="mb-2 text-xs text-muted">
-        Below reorder or minimum for this outlet. Transfer when another branch has stock.
-      </p>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted">No low-stock lines on this outlet.</p>
-      ) : (
-        <ul className="space-y-2">
+    <div className="overflow-auto">
+      <table className="w-full min-w-[48rem] border-collapse text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-brand-soft/80 text-[11px] uppercase tracking-wide text-muted backdrop-blur-sm">
+          <tr>
+            <th className="px-3 py-2.5 font-semibold">Product</th>
+            <th className="px-3 py-2.5 font-semibold">On hand</th>
+            <th className="px-3 py-2.5 font-semibold">Reorder</th>
+            <th className="px-3 py-2.5 font-semibold">Other outlets</th>
+            <th className="px-3 py-2.5 font-semibold" />
+          </tr>
+        </thead>
+        <tbody>
           {items.map((item) => (
-            <li
-              key={item.productId}
-              className="flex flex-wrap items-start justify-between gap-2 border border-line px-2 py-2 text-sm"
-            >
-              <div>
+            <tr key={item.productId} className="border-b border-line/60 last:border-0">
+              <td className="px-3 py-3">
                 <p className="font-medium text-ink">{item.productName}</p>
                 <p className="font-mono text-xs text-muted">{item.productSku}</p>
-                <p className="text-xs text-muted">
-                  On hand {item.onHand}
-                  {item.reorderLevel != null ? ` · reorder ${item.reorderLevel}` : ''}
-                </p>
+              </td>
+              <td className="px-3 py-3 font-mono text-ink">{item.onHand}</td>
+              <td className="px-3 py-3 font-mono text-muted">{item.reorderLevel ?? '—'}</td>
+              <td className="px-3 py-3 text-xs text-muted">
+                {item.otherBranches.length > 0
+                  ? item.otherBranches.map((b) => `${b.branchName} (${b.quantity})`).join(', ')
+                  : 'None'}
+              </td>
+              <td className="px-3 py-3 text-right">
                 {item.otherBranches.length > 0 ? (
-                  <p className="mt-1 text-xs text-brand">
-                    Available at{' '}
-                    {item.otherBranches.map((b) => `${b.branchName} (${b.quantity})`).join(', ')}
-                  </p>
-                ) : (
-                  <p className="mt-1 text-xs text-muted">No stock at other outlets.</p>
-                )}
-              </div>
-              {item.otherBranches.length > 0 ? (
-                <Button
-                  type="button"
-                  size="sm"
-                  disabled={busy}
-                  onClick={() => onStartTransfer(item.productId)}
-                >
-                  Start transfer
-                </Button>
-              ) : null}
-            </li>
+                  <Button
+                    type="button"
+                    size="sm"
+                    className="rounded-lg"
+                    disabled={busy}
+                    onClick={() => onStartTransfer(item.productId)}
+                  >
+                    Start transfer
+                  </Button>
+                ) : null}
+              </td>
+            </tr>
           ))}
-        </ul>
-      )}
-    </section>
+        </tbody>
+      </table>
+    </div>
   );
 }
 
-function NearExpiryList({ items }: { items: NearExpiryAlert[] }) {
-  return (
-    <section className="border border-line bg-surface p-3" aria-label="Near-expiry batches">
-      <h2 className="text-sm font-semibold text-ink">Near expiry</h2>
-      <p className="mb-2 text-xs text-muted">
-        Warned but still sellable. FEFO suggests these first at the till.
+function NearExpiryTable({ items }: { items: NearExpiryAlert[] }) {
+  if (items.length === 0) {
+    return (
+      <p className="px-4 py-10 text-center text-sm text-muted">
+        No near-expiry batches within the threshold.
       </p>
-      {items.length === 0 ? (
-        <p className="text-sm text-muted">No near-expiry batches within the threshold.</p>
-      ) : (
-        <ul className="space-y-2">
+    );
+  }
+
+  return (
+    <div className="overflow-auto">
+      <table className="w-full min-w-[40rem] border-collapse text-left text-sm">
+        <thead className="sticky top-0 z-10 bg-brand-soft/80 text-[11px] uppercase tracking-wide text-muted backdrop-blur-sm">
+          <tr>
+            <th className="px-3 py-2.5 font-semibold">Product</th>
+            <th className="px-3 py-2.5 font-semibold">Batch</th>
+            <th className="px-3 py-2.5 font-semibold">Expires</th>
+            <th className="px-3 py-2.5 font-semibold">Qty</th>
+            <th className="px-3 py-2.5 font-semibold">Status</th>
+          </tr>
+        </thead>
+        <tbody>
           {items.map((item) => (
-            <li
+            <tr
               key={`${item.batchId}-${item.productId}`}
-              className="border border-line px-2 py-2 text-sm"
+              className="border-b border-line/60 last:border-0"
             >
-              <p className="font-medium text-ink">{item.productName}</p>
-              <p className="font-mono text-xs text-muted">
-                {item.batchNumber} · expires {item.expiresOn} · qty {item.quantity}
-              </p>
-              <p className="mt-1 text-xs text-warn">Near expiry — still sellable</p>
-            </li>
+              <td className="px-3 py-3">
+                <p className="font-medium text-ink">{item.productName}</p>
+                <p className="font-mono text-xs text-muted">{item.productSku}</p>
+              </td>
+              <td className="px-3 py-3 font-mono text-xs text-ink">{item.batchNumber}</td>
+              <td className="px-3 py-3 font-mono text-ink">{item.expiresOn}</td>
+              <td className="px-3 py-3 font-mono text-ink">{item.quantity}</td>
+              <td className="px-3 py-3">
+                <span className="inline-flex rounded-full border border-warn/40 bg-[#fff1e6] px-2 py-0.5 text-xs font-medium text-warn">
+                  Near expiry — sellable
+                </span>
+              </td>
+            </tr>
           ))}
-        </ul>
-      )}
-    </section>
+        </tbody>
+      </table>
+    </div>
   );
 }

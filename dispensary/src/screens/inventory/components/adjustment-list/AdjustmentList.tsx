@@ -20,23 +20,25 @@ export function AdjustmentList({
   busyId,
 }: AdjustmentListProps) {
   return (
-    <section className="min-h-0 flex-1 border border-line bg-surface">
-      <header className="border-b border-line px-3 py-2">
+    <section className="flex min-h-0 flex-1 flex-col overflow-hidden rounded-xl border border-line/70 bg-surface">
+      <header className="border-b border-line/70 bg-brand-soft/50 px-4 py-2.5">
         <h2 className="text-sm font-semibold text-ink">{title}</h2>
       </header>
       {items.length === 0 ? (
-        <p className="px-3 py-4 text-sm text-muted">{emptyLabel}</p>
+        <p className="px-4 py-6 text-sm text-muted">{emptyLabel}</p>
       ) : (
-        <ul className="divide-y divide-line">
+        <ul className="divide-y divide-line/60 overflow-y-auto">
           {items.map((row) => {
             const busy = busyId === row.id;
             return (
-              <li key={row.id} className="grid gap-2 px-3 py-3">
+              <li key={row.id} className="grid gap-2 px-4 py-3">
                 <div className="flex flex-wrap items-baseline justify-between gap-2">
                   <p className="text-sm font-medium text-ink">
                     {row.productName} × {row.quantity}
                   </p>
-                  <p className="font-mono text-xs text-muted">{row.status}</p>
+                  <span className="rounded-full bg-brand-soft px-2 py-0.5 font-mono text-[11px] text-brand">
+                    {row.status}
+                  </span>
                 </div>
                 <p className="text-xs text-muted">
                   {adjustmentReasonLabel(row.reason)} · {row.batchNumber ?? 'no batch'} ·{' '}
@@ -48,6 +50,7 @@ export function AdjustmentList({
                       <Button
                         type="button"
                         size="sm"
+                        className="rounded-lg"
                         disabled={busy}
                         onClick={() => onApprove(row.id)}
                       >
@@ -59,6 +62,7 @@ export function AdjustmentList({
                         type="button"
                         variant="outline"
                         size="sm"
+                        className="rounded-lg"
                         disabled={busy}
                         onClick={() => onReject(row.id)}
                       >

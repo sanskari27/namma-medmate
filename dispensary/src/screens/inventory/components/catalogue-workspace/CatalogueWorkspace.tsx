@@ -1,241 +1,148 @@
+import { Button, CategoryMark, Input } from '@atoms';
+import type { AppDispatch } from '@/store';
+import { Pencil, Plus, Search } from 'lucide-react';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { PageStatus } from '../../InventoryScreen.utils';
 import {
-  createManufacturer,
-  isApiError,
-  listManufacturers,
-  type Manufacturer,
-} from '@/services/manufacturers';
-import {
-  createProductCategory,
-  listProductCategories,
-  type ProductCategory,
-} from '@/services/productCategories';
-import { createProduct, listProducts, updateProduct, type Product } from '@/services/products';
-import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
-import { FormEvent, Ref, useCallback, useEffect, useId, useState } from 'react';
-import { InventoryFormPanel } from '../inventory-form-panel';
-import { InventoryListPanel } from '../inventory-list-panel';
-import {
-  applyUnitsToForm,
-  emptyForm,
-  mapApiStatus,
-  toForm,
-  toInput,
-  validateForm,
-  type FormState,
-  type PageStatus,
-  type UnitRow,
-} from '../../InventoryScreen.utils';
+  loadCatalogue,
+  openProductEditor,
+  selectCatalogue,
+  selectFilteredCatalogueProducts,
+  selectInventorySyncEpoch,
+  setCatalogueQuery,
+  setWorkspaceStatus,
+} from '../../store';
+import { InventoryOpsShell } from '../inventory-ops-shell';
 
 export type CatalogueWorkspaceProps = {
   allowed: boolean;
-  addButtonRef: Ref<HTMLButtonElement>;
   onStatusChange: (status: PageStatus) => void;
-  createRequest?: number;
 };
 
-export function CatalogueWorkspace({
-  allowed,
-  addButtonRef,
-  onStatusChange,
-  createRequest = 0,
-}: CatalogueWorkspaceProps) {
-  const formId = useId();
-  const statusId = useId();
-  const [products, setProducts] = useState<Product[]>([]);
-  const [categories, setCategories] = useState<ProductCategory[]>([]);
-  const [manufacturers, setManufacturers] = useState<Manufacturer[]>([]);
-  const [query, setQuery] = useState('');
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [mode, setMode] = useState<'idle' | 'create' | 'edit'>('idle');
-  const [form, setForm] = useState<FormState>(emptyForm);
-  const [busy, setBusy] = useState(false);
-  const [newCategoryName, setNewCategoryName] = useState('');
-  const [newCategoryIcon, setNewCategoryIcon] = useState('💊');
-  const [newManufacturerName, setNewManufacturerName] = useState('');
-  const [categoryBusy, setCategoryBusy] = useState(false);
-  const [manufacturerBusy, setManufacturerBusy] = useState(false);
-  const [status, setStatus] = useState<PageStatus>(null);
-
-  const setBoth = useCallback(
-    (next: PageStatus) => {
-      setStatus(next);
-      onStatusChange(next);
-    },
-    [onStatusChange],
-  );
-
-  const loadCatalogue = useCallback(
-    async (search?: string) => {
-      if (!allowed) {
-        setBoth('denied');
-        return;
-      }
-      setBoth('loading');
-      try {
-        const [items, cats, mfrs] = await Promise.all([
-          listProducts(search),
-          listProductCategories(),
-          listManufacturers(),
-        ]);
-        setProducts(items);
-        setCategories(cats);
-        setManufacturers(mfrs);
-        setBoth(items.length === 0 ? 'empty' : null);
-      } catch (error) {
-        setBoth(
-          isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')
-            ? 'denied'
-            : 'failure',
-        );
-      }
-    },
-    [allowed, setBoth],
-  );
+export function CatalogueWorkspace({ allowed, onStatusChange }: CatalogueWorkspaceProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const catalogue = useSelector(selectCatalogue);
+  const products = useSelector(selectFilteredCatalogueProducts);
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
 
   useEffect(() => {
-    void loadCatalogue();
-  }, [loadCatalogue]);
-
-  useEffect(() => {
-    if (createRequest <= 0) return;
-    setSelectedId(null);
-    setForm(emptyForm);
-    setMode('create');
-    setBoth(null);
-  }, [createRequest, setBoth]);
-
-  const onChange = <K extends keyof FormState>(key: K, value: FormState[K]) => {
-    setForm((prev) => ({ ...prev, [key]: value }));
-  };
-
-  const selectProduct = async (product: Product) => {
-    setSelectedId(product.id);
-    setForm(toForm(product));
-    setMode('edit');
-    setBoth('loading');
-    try {
-      const units = await listProductUnits(product.id);
-      setForm(applyUnitsToForm(toForm(product), units));
-      setBoth(null);
-    } catch (error) {
-      setBoth(mapApiStatus(error));
-    }
-  };
-
-  const cancelForm = () => {
-    setMode('idle');
-    setSelectedId(null);
-    setForm(emptyForm);
-    if (addButtonRef && typeof addButtonRef !== 'function') {
-      addButtonRef.current?.focus();
-    }
-  };
-
-  const onSave = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!validateForm(form)) {
-      setBoth('validation');
+    if (!allowed) {
+      onStatusChange('denied');
       return;
     }
-    setBusy(true);
-    try {
-      const input = toInput(form);
-      const saved =
-        mode === 'edit' && selectedId
-          ? await updateProduct(selectedId, input)
-          : await createProduct(input);
-      const units = await replaceProductUnits(saved.id, {
-        quantityPrecision: Number(form.quantityPrecision),
-        units: form.unitRows.map((row) => ({
-          unit: row.unit,
-          factorToBase: Number(row.factorToBase),
-        })),
-      });
-      await loadCatalogue(query.trim() || undefined);
-      setSelectedId(saved.id);
-      setForm(applyUnitsToForm(toForm(saved), units));
-      setMode('edit');
-      setStatus('success');
-      onStatusChange('success');
-    } catch (error) {
-      setBoth(mapApiStatus(error));
-    } finally {
-      setBusy(false);
-    }
-  };
+    void dispatch(loadCatalogue(undefined));
+  }, [allowed, dispatch, onStatusChange, syncEpoch]);
 
-  const onCreateCategory = async () => {
-    const name = newCategoryName.trim();
-    if (!name) return;
-    setCategoryBusy(true);
-    try {
-      const created = await createProductCategory(name, newCategoryIcon.trim() || null);
-      setCategories((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-      onChange('categoryId', created.id);
-      setNewCategoryName('');
-      setNewCategoryIcon('💊');
-    } catch {
-      setBoth('failure');
-    } finally {
-      setCategoryBusy(false);
-    }
-  };
-
-  const onCreateManufacturer = async () => {
-    const name = newManufacturerName.trim();
-    if (!name) return;
-    setManufacturerBusy(true);
-    try {
-      const created = await createManufacturer(name);
-      setManufacturers((prev) => [...prev, created].sort((a, b) => a.name.localeCompare(b.name)));
-      onChange('manufacturerId', created.id);
-      setNewManufacturerName('');
-    } catch {
-      setBoth('failure');
-    } finally {
-      setManufacturerBusy(false);
-    }
-  };
+  useEffect(() => {
+    onStatusChange(catalogue.status);
+    dispatch(setWorkspaceStatus({ status: catalogue.status }));
+  }, [catalogue.status, dispatch, onStatusChange]);
 
   return (
-    <div className="grid min-h-0 flex-1 gap-4 lg:grid-cols-[minmax(0,22rem)_minmax(0,1fr)]">
-      <InventoryListPanel
-        formId={formId}
-        products={products}
-        selectedId={selectedId}
-        query={query}
-        showEmptyHint={status !== 'loading' && products.length === 0 && Boolean(query.trim())}
-        onQueryChange={setQuery}
-        onSearch={(e) => {
-          e.preventDefault();
-          void loadCatalogue(query.trim() || undefined);
-        }}
-        onSelect={(product) => void selectProduct(product)}
-      />
-      <InventoryFormPanel
-        formId={formId}
-        statusId={statusId}
-        mode={mode}
-        form={form}
-        busy={busy}
-        describedByStatus={status === 'validation' || status === 'conflict' || status === 'success'}
-        categories={categories}
-        manufacturers={manufacturers}
-        newCategoryName={newCategoryName}
-        newCategoryIcon={newCategoryIcon}
-        newManufacturerName={newManufacturerName}
-        categoryBusy={categoryBusy}
-        manufacturerBusy={manufacturerBusy}
-        onChange={onChange}
-        onUnitRowsChange={(rows: UnitRow[]) => setForm((prev) => ({ ...prev, unitRows: rows }))}
-        onNewCategoryNameChange={setNewCategoryName}
-        onNewCategoryIconChange={setNewCategoryIcon}
-        onNewManufacturerNameChange={setNewManufacturerName}
-        onCreateCategory={() => void onCreateCategory()}
-        onCreateManufacturer={() => void onCreateManufacturer()}
-        onSave={(e) => void onSave(e)}
-        onCancel={cancelForm}
-      />
-    </div>
+    <InventoryOpsShell
+      title="Catalogue"
+      subtitle="Tenant product master — search, add, and edit SKUs in a dialog."
+      action={
+        <Button
+          type="button"
+          className="rounded-lg"
+          onClick={() => dispatch(openProductEditor({ mode: 'create' }))}
+        >
+          <Plus className="size-3.5" aria-hidden />
+          Add product
+        </Button>
+      }
+    >
+      <div className="flex flex-wrap items-center gap-2">
+        <label className="relative min-w-[14rem] flex-1">
+          <span className="sr-only">Search catalogue</span>
+          <Search
+            className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-muted"
+            aria-hidden
+          />
+          <Input
+            value={catalogue.query}
+            onChange={(e) => dispatch(setCatalogueQuery(e.target.value))}
+            placeholder="Search by name, SKU, or barcode…"
+            className="h-9 rounded-lg pl-9"
+          />
+        </label>
+      </div>
+
+      <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-line/70 bg-surface">
+        <table className="w-full min-w-[48rem] border-collapse text-left">
+          <thead className="sticky top-0 z-10 bg-brand-soft/80 backdrop-blur-sm">
+            <tr>
+              {['Product', 'SKU', 'Schedule', 'Rack', 'Status', ''].map((label, i) => (
+                <th
+                  key={`${label}-${i}`}
+                  className="px-3 py-2.5 text-[11px] font-semibold uppercase tracking-wide text-muted"
+                >
+                  {label}
+                </th>
+              ))}
+            </tr>
+          </thead>
+          <tbody>
+            {products.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted">
+                  {catalogue.status === 'loading'
+                    ? 'Loading catalogue…'
+                    : 'No products match this search.'}
+                </td>
+              </tr>
+            ) : (
+              products.map((product) => (
+                <tr key={product.id} className="border-b border-line/60 last:border-0">
+                  <td className="px-3 py-3">
+                    <div className="flex items-start gap-2.5">
+                      <CategoryMark icon={product.categoryIcon} size="sm" />
+                      <div className="min-w-0">
+                        <p className="truncate font-medium text-ink">{product.name}</p>
+                        <p className="truncate text-xs text-muted">
+                          {[product.genericName, product.brandName].filter(Boolean).join(' · ') ||
+                            '—'}
+                        </p>
+                      </div>
+                    </div>
+                  </td>
+                  <td className="px-3 py-3 font-mono text-xs text-muted">{product.sku}</td>
+                  <td className="px-3 py-3">
+                    <span className="inline-flex rounded-full border border-brand/30 bg-brand-soft px-2 py-0.5 text-xs font-medium text-brand">
+                      {product.scheduleClassification ??
+                        (product.prescriptionRequired ? 'Rx' : 'OTC')}
+                    </span>
+                  </td>
+                  <td className="px-3 py-3 text-sm text-muted">{product.rackLocation || '—'}</td>
+                  <td className="px-3 py-3 text-sm">
+                    {product.isActive ? (
+                      <span className="text-brand">Active</span>
+                    ) : (
+                      <span className="text-muted">Inactive</span>
+                    )}
+                  </td>
+                  <td className="px-3 py-3">
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="sm"
+                      className="h-8 gap-1 px-2 text-muted hover:text-ink"
+                      onClick={() =>
+                        dispatch(openProductEditor({ mode: 'edit', productId: product.id }))
+                      }
+                    >
+                      <Pencil className="size-3.5" aria-hidden />
+                      Edit
+                    </Button>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+    </InventoryOpsShell>
   );
 }

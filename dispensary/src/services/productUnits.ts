@@ -28,8 +28,8 @@ export interface ProductUnitConvertResult {
 }
 
 export async function listProductUnits(productId: string): Promise<ProductUnits> {
-  const { data } = await apiClient.get<{ data: ProductUnits }>(API.productUnits(productId));
-  return data.data;
+  const { data } = await apiClient.get<ProductUnits>(API.productUnits(productId));
+  return data;
 }
 
 export async function replaceProductUnits(
@@ -39,17 +39,17 @@ export async function replaceProductUnits(
     units: Array<{ unit: ProductUnit; factorToBase: number }>;
   },
 ): Promise<ProductUnits> {
-  const { data } = await apiClient.put<{ data: ProductUnits }>(API.productUnits(productId), input);
-  return data.data;
+  const { data } = await apiClient.put<ProductUnits>(API.productUnits(productId), input);
+  return data;
 }
 
 export async function convertProductUnit(
   productId: string,
   input: { quantity: number; fromUnit: ProductUnit; toUnit?: ProductUnit },
 ): Promise<ProductUnitConvertResult> {
-  const { data } = await apiClient.post<{ data: ProductUnitConvertResult }>(
+  const { data } = await apiClient.post<ProductUnitConvertResult>(
     API.productUnitsConvert(productId),
     input,
   );
-  return data.data;
+  return data;
 }

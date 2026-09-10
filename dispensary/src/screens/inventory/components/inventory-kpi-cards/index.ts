@@ -1,0 +1,1 @@
+export { InventoryKpiCards } from './InventoryKpiCards';

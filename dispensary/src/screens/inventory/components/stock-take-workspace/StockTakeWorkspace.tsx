@@ -8,8 +8,17 @@ import {
   type StockTake,
 } from '@/services/stockTakes';
 import { Button } from '@atoms';
+import type { AppDispatch } from '@/store';
+import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+import {
+  bumpInventorySync,
+  refreshInventoryAfterMutation,
+  selectInventorySyncEpoch,
+} from '../../store';
+import { InventoryOpsShell, InventoryPrimaryAction } from '../inventory-ops-shell';
 import { StockTakeCountSheet } from '../stock-take-count-sheet/StockTakeCountSheet';
 import { StockTakeHistory } from '../stock-take-history/StockTakeHistory';
 import { StockTakeStartDialog } from '../stock-take-start-dialog/StockTakeStartDialog';
@@ -43,6 +52,8 @@ export function StockTakeWorkspace({
   startButtonRef,
   onStatusChange,
 }: StockTakeWorkspaceProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const [openTake, setOpenTake] = useState<StockTake | null>(null);
   const [history, setHistory] = useState<StockTake[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -77,7 +88,7 @@ export function StockTakeWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, syncEpoch]);
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -138,6 +149,8 @@ export function StockTakeWorkspace({
     void run(async () => {
       await postStockTake(openTake.id);
       await load();
+      dispatch(bumpInventorySync());
+      void dispatch(refreshInventoryAfterMutation());
       onStatusChange('success');
     });
   };
@@ -158,9 +171,20 @@ export function StockTakeWorkspace({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <InventoryOpsShell
+      title="Physical count"
+      subtitle="Owner starts an optional count. Staff count batches, then post variances."
+      action={
+        openTake ? null : (
+          <InventoryPrimaryAction ref={startButtonRef} onClick={() => onStartOpenChange(true)}>
+            <Plus className="size-3.5" aria-hidden />
+            Start count
+          </InventoryPrimaryAction>
+        )
+      }
+    >
       {openTake ? (
-        <>
+        <div className="grid gap-3 rounded-xl border border-line/70 bg-surface p-4">
           <StockTakeCountSheet
             lines={openTake.lines}
             drafts={drafts}
@@ -170,16 +194,24 @@ export function StockTakeWorkspace({
           />
           <StockTakeVarianceList lines={openTake.lines} />
           <div className="flex flex-wrap gap-2">
-            <Button type="button" disabled={busy} onClick={onPost}>
+            <Button type="button" className="rounded-lg" disabled={busy} onClick={onPost}>
               Post variances
             </Button>
-            <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>
+            <Button
+              type="button"
+              variant="outline"
+              className="rounded-lg"
+              disabled={busy}
+              onClick={onCancel}
+            >
               Abandon count
             </Button>
           </div>
-        </>
+        </div>
       ) : null}
-      <StockTakeHistory items={history} />
+      <div className="overflow-hidden rounded-xl border border-line/70 bg-surface">
+        <StockTakeHistory items={history} />
+      </div>
       <StockTakeStartDialog
         open={startOpen}
         busy={busy}
@@ -191,6 +223,6 @@ export function StockTakeWorkspace({
           }
         }}
       />
-    </div>
+    </InventoryOpsShell>
   );
 }

@@ -4,10 +4,19 @@ import {
   type StockAdjustment,
 } from '@/services/inventoryAdjustments';
 import { isApiError } from '@/services/axios';
+import type { AppDispatch } from '@/store';
+import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+import {
+  bumpInventorySync,
+  refreshInventoryAfterMutation,
+  selectInventorySyncEpoch,
+} from '../../store';
 import { AdjustmentCreateDialog } from '../adjustment-create-dialog/AdjustmentCreateDialog';
 import { AdjustmentList } from '../adjustment-list/AdjustmentList';
-import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+import { InventoryOpsShell, InventoryPrimaryAction } from '../inventory-ops-shell';
 
 export type AdjustmentWorkspaceProps = {
   allowed: boolean;
@@ -26,6 +35,8 @@ export function AdjustmentWorkspace({
   onCreateOpenChange,
   onStatusChange,
 }: AdjustmentWorkspaceProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const [pending, setPending] = useState<StockAdjustment[]>([]);
   const [history, setHistory] = useState<StockAdjustment[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -57,7 +68,14 @@ export function AdjustmentWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, syncEpoch]);
+
+  const afterMutation = async () => {
+    await load();
+    dispatch(bumpInventorySync());
+    void dispatch(refreshInventoryAfterMutation());
+    onStatusChange('success');
+  };
 
   const runDecide = async (id: string, outcome: 'APPROVED' | 'REJECTED') => {
     const row = pending.find((item) => item.id === id);
@@ -67,8 +85,7 @@ export function AdjustmentWorkspace({
     setBusyId(id);
     try {
       await decideStockAdjustment(id, { outcome, expectedVersion: row.version });
-      await load();
-      onStatusChange('success');
+      await afterMutation();
     } catch (error) {
       if (isApiError(error) && error.status === 409) {
         onStatusChange('conflict');
@@ -85,7 +102,16 @@ export function AdjustmentWorkspace({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <InventoryOpsShell
+      title="Stock write-offs"
+      subtitle="Damage, expiry, theft, or count correction — stock moves after sign-off."
+      action={
+        <InventoryPrimaryAction ref={adjustButtonRef} onClick={() => onCreateOpenChange(true)}>
+          <Plus className="size-3.5" aria-hidden />
+          Record write-off
+        </InventoryPrimaryAction>
+      }
+    >
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
         <AdjustmentList
           title="Waiting for sign-off"
@@ -105,7 +131,7 @@ export function AdjustmentWorkspace({
         open={createOpen}
         onOpenChange={onCreateOpenChange}
         onCreated={() => {
-          void load().then(() => onStatusChange('success'));
+          void afterMutation();
         }}
         onCloseFocus={() => {
           if (adjustButtonRef && typeof adjustButtonRef !== 'function') {
@@ -113,6 +139,6 @@ export function AdjustmentWorkspace({
           }
         }}
       />
-    </div>
+    </InventoryOpsShell>
   );
 }

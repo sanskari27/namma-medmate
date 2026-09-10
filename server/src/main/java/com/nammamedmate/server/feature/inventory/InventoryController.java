@@ -2,12 +2,16 @@ package com.nammamedmate.server.feature.inventory;
 
 import com.nammamedmate.server.application.inventory.BranchStockLevelView;
 import com.nammamedmate.server.application.inventory.InventoryAlertsView;
+import com.nammamedmate.server.application.inventory.InventoryOverviewService;
+import com.nammamedmate.server.application.inventory.InventoryOverviewView;
 import com.nammamedmate.server.application.inventory.InventorySettingsView;
 import com.nammamedmate.server.application.inventory.InventoryStockService;
 import com.nammamedmate.server.application.inventory.StockBalanceView;
 import com.nammamedmate.server.application.inventory.StockBatchDetailView;
 import com.nammamedmate.server.application.inventory.StockMovementView;
 import com.nammamedmate.server.application.inventory.StockValuationView;
+import com.nammamedmate.server.domain.ProductUnit;
+import com.nammamedmate.server.domain.ScheduleClassification;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
@@ -26,6 +30,7 @@ import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.PutMapping;
@@ -39,9 +44,35 @@ import org.springframework.web.bind.annotation.RestController;
 public class InventoryController {
 
   private final InventoryStockService inventoryStockService;
+  private final InventoryOverviewService inventoryOverviewService;
 
-  public InventoryController(InventoryStockService inventoryStockService) {
+  public InventoryController(
+      InventoryStockService inventoryStockService,
+      InventoryOverviewService inventoryOverviewService) {
     this.inventoryStockService = inventoryStockService;
+    this.inventoryOverviewService = inventoryOverviewService;
+  }
+
+  @GetMapping("/overview")
+  public ApiResponse<OverviewResponse> overview(Authentication authentication) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    InventoryOverviewView view = inventoryOverviewService.overview(principal);
+    return ApiResponse.ok(
+        new OverviewResponse(toSummaryResponse(view.summary()), view.items().stream()
+            .map(InventoryController::toOverviewRowResponse)
+            .toList()));
+  }
+
+  @PatchMapping("/products/{productId}/listing-flags")
+  public ApiResponse<OverviewRowResponse> updateListingFlags(
+      Authentication authentication,
+      @PathVariable UUID productId,
+      @Valid @RequestBody ListingFlagsRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toOverviewRowResponse(
+            inventoryOverviewService.updateListingFlags(
+                principal, productId, request.looseSellingEnabled(), request.onlineListed())));
   }
 
   @GetMapping("/balances")
@@ -251,6 +282,108 @@ public class InventoryController {
         view.purchasePricePaise(),
         view.occurredAt());
   }
+
+  private static OverviewSummaryResponse toSummaryResponse(
+      InventoryOverviewView.InventoryOverviewSummary summary) {
+    return new OverviewSummaryResponse(
+        summary.totalSkus(),
+        summary.totalUnits(),
+        summary.stockValueCostPaise(),
+        summary.retailValueMrpPaise(),
+        summary.marginPercent(),
+        summary.lowStockCount(),
+        summary.outOfStockCount(),
+        summary.expiringCount(),
+        summary.expiringValuePaise(),
+        summary.deadStockCount(),
+        summary.deadStockValuePaise(),
+        summary.alertCount());
+  }
+
+  private static OverviewRowResponse toOverviewRowResponse(
+      InventoryOverviewView.InventoryOverviewRow row) {
+    return new OverviewRowResponse(
+        row.productId(),
+        row.sku(),
+        row.name(),
+        row.genericName(),
+        row.brandName(),
+        row.manufacturerName(),
+        row.categoryId(),
+        row.categoryName(),
+        row.categoryIcon(),
+        row.scheduleClassification(),
+        row.prescriptionRequired(),
+        row.rackLocation(),
+        row.baseUnit(),
+        row.packUnit(),
+        row.packSize(),
+        row.batchCount(),
+        row.earliestExpiry(),
+        row.expired(),
+        row.nearExpiry(),
+        row.onHandQuantity(),
+        row.lowStock(),
+        row.outOfStock(),
+        row.mrpPaise(),
+        row.costValuePaise(),
+        row.retailValuePaise(),
+        row.looseUnitPaise(),
+        row.looseSellingEnabled(),
+        row.onlineListed(),
+        row.unallocated(),
+        row.deadStock());
+  }
+
+  public record OverviewResponse(OverviewSummaryResponse summary, List<OverviewRowResponse> items) {}
+
+  public record OverviewSummaryResponse(
+      int totalSkus,
+      BigDecimal totalUnits,
+      long stockValueCostPaise,
+      long retailValueMrpPaise,
+      Integer marginPercent,
+      int lowStockCount,
+      int outOfStockCount,
+      int expiringCount,
+      long expiringValuePaise,
+      int deadStockCount,
+      long deadStockValuePaise,
+      int alertCount) {}
+
+  public record OverviewRowResponse(
+      UUID productId,
+      String sku,
+      String name,
+      String genericName,
+      String brandName,
+      String manufacturerName,
+      UUID categoryId,
+      String categoryName,
+      String categoryIcon,
+      ScheduleClassification scheduleClassification,
+      boolean prescriptionRequired,
+      String rackLocation,
+      ProductUnit baseUnit,
+      ProductUnit packUnit,
+      BigDecimal packSize,
+      int batchCount,
+      LocalDate earliestExpiry,
+      boolean expired,
+      boolean nearExpiry,
+      BigDecimal onHandQuantity,
+      boolean lowStock,
+      boolean outOfStock,
+      Long mrpPaise,
+      long costValuePaise,
+      long retailValuePaise,
+      Long looseUnitPaise,
+      boolean looseSellingEnabled,
+      boolean onlineListed,
+      boolean unallocated,
+      boolean deadStock) {}
+
+  public record ListingFlagsRequest(Boolean looseSellingEnabled, Boolean onlineListed) {}
 
   public record BalanceListResponse(List<BalanceResponse> items) {}
 

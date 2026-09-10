@@ -76,7 +76,7 @@ export const NAV_SECTIONS = [
     id: 'catalogue',
     label: 'Catalogue',
     items: [
-      { label: 'Inventory', path: ROUTES.INVENTORY, hint: 'Stock on this floor' },
+      { label: 'Inventory', path: ROUTES.INVENTORY, hint: 'Stock, batches & expiry' },
       { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Outlet purchase orders' },
       { label: 'Distributors', path: ROUTES.DISTRIBUTORS, hint: 'Supplier book' },
       { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },

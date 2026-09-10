@@ -7,11 +7,19 @@ import {
   type StockTransfer,
 } from '@/services/stockTransfers';
 import { isApiError } from '@/services/axios';
-import type { AssignedBranch } from '@/store';
+import type { AppDispatch, AssignedBranch } from '@/store';
+import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+import {
+  bumpInventorySync,
+  refreshInventoryAfterMutation,
+  selectInventorySyncEpoch,
+} from '../../store';
 import { TransferCreateDialog } from '../transfer-create-dialog/TransferCreateDialog';
 import { TransferList } from '../transfer-list/TransferList';
-import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
+import { InventoryOpsShell, InventoryPrimaryAction } from '../inventory-ops-shell';
 
 export type TransferWorkspaceProps = {
   allowed: boolean;
@@ -34,6 +42,8 @@ export function TransferWorkspace({
   onStatusChange,
   prefillProductId = null,
 }: TransferWorkspaceProps) {
+  const dispatch = useDispatch<AppDispatch>();
+  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const [outgoing, setOutgoing] = useState<StockTransfer[]>([]);
   const [incoming, setIncoming] = useState<StockTransfer[]>([]);
   const [history, setHistory] = useState<StockTransfer[]>([]);
@@ -74,14 +84,20 @@ export function TransferWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load]);
+  }, [load, syncEpoch]);
+
+  const afterMutation = async () => {
+    await load();
+    dispatch(bumpInventorySync());
+    void dispatch(refreshInventoryAfterMutation());
+    onStatusChange('success');
+  };
 
   const runAction = async (id: string, action: (transferId: string) => Promise<StockTransfer>) => {
     setBusyId(id);
     try {
       await action(id);
-      await load();
-      onStatusChange('success');
+      await afterMutation();
     } catch (error) {
       if (isApiError(error) && error.status === 409) {
         onStatusChange('conflict');
@@ -98,7 +114,19 @@ export function TransferWorkspace({
   }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
+    <InventoryOpsShell
+      title="Outlet transfers"
+      subtitle="Push or pull stock between outlets. Receiving till confirms before stock lands."
+      action={
+        <InventoryPrimaryAction
+          ref={transferButtonRef}
+          onClick={() => onCreateOpenChange(true)}
+        >
+          <Plus className="size-3.5" aria-hidden />
+          Start transfer
+        </InventoryPrimaryAction>
+      }
+    >
       <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
         <TransferList
           title="Outgoing"
@@ -136,7 +164,7 @@ export function TransferWorkspace({
         activeBranchId={activeBranchId}
         prefillProductId={prefillProductId}
         onCreated={() => {
-          void load().then(() => onStatusChange('success'));
+          void afterMutation();
         }}
         onCloseFocus={() => {
           if (transferButtonRef && typeof transferButtonRef !== 'function') {
@@ -144,6 +172,6 @@ export function TransferWorkspace({
           }
         }}
       />
-    </div>
+    </InventoryOpsShell>
   );
 }

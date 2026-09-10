@@ -104,6 +104,15 @@ public class Product {
   @Column(name = "rack_location", length = 100)
   private String rackLocation;
 
+  @Column(name = "default_mrp_paise")
+  private Long defaultMrpPaise;
+
+  @Column(name = "loose_selling_enabled", nullable = false)
+  private boolean looseSellingEnabled;
+
+  @Column(name = "online_listed", nullable = false)
+  private boolean onlineListed;
+
   @Column(name = "reorder_level")
   private Integer reorderLevel;
 

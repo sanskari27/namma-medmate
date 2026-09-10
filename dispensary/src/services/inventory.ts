@@ -100,11 +100,80 @@ export type StockValuation = {
   totalPurchaseValuePaise: number;
 };
 
+export type InventoryOverviewSummary = {
+  totalSkus: number;
+  totalUnits: number;
+  stockValueCostPaise: number;
+  retailValueMrpPaise: number;
+  marginPercent: number | null;
+  lowStockCount: number;
+  outOfStockCount: number;
+  expiringCount: number;
+  expiringValuePaise: number;
+  deadStockCount: number;
+  deadStockValuePaise: number;
+  alertCount: number;
+};
+
+export type InventoryOverviewRow = {
+  productId: string;
+  sku: string;
+  name: string;
+  genericName: string | null;
+  brandName: string | null;
+  manufacturerName: string | null;
+  categoryId: string;
+  categoryName: string | null;
+  categoryIcon: string | null;
+  scheduleClassification: string | null;
+  prescriptionRequired: boolean;
+  rackLocation: string | null;
+  baseUnit: string;
+  packUnit: string;
+  packSize: number;
+  batchCount: number;
+  earliestExpiry: string | null;
+  expired: boolean;
+  nearExpiry: boolean;
+  onHandQuantity: number;
+  lowStock: boolean;
+  outOfStock: boolean;
+  mrpPaise: number | null;
+  costValuePaise: number;
+  retailValuePaise: number;
+  looseUnitPaise: number | null;
+  looseSellingEnabled: boolean;
+  onlineListed: boolean;
+  unallocated: boolean;
+  deadStock: boolean;
+};
+
+export type InventoryOverview = {
+  summary: InventoryOverviewSummary;
+  items: InventoryOverviewRow[];
+};
+
 export async function listStockBalances(query?: string): Promise<StockBalance[]> {
   const { data } = await apiClient.get<{ items: StockBalance[] }>(API.INVENTORY_BALANCES, {
     params: query?.trim() ? { q: query.trim() } : undefined,
   });
   return data.items;
+}
+
+export async function getInventoryOverview(): Promise<InventoryOverview> {
+  const { data } = await apiClient.get<InventoryOverview>(API.INVENTORY_OVERVIEW);
+  return data;
+}
+
+export async function updateInventoryListingFlags(
+  productId: string,
+  flags: { looseSellingEnabled?: boolean; onlineListed?: boolean },
+): Promise<InventoryOverviewRow> {
+  const { data } = await apiClient.patch<InventoryOverviewRow>(
+    API.inventoryProductListingFlags(productId),
+    flags,
+  );
+  return data;
 }
 
 export async function listStockBatches(productId: string): Promise<StockBatchDetail[]> {

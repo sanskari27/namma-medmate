@@ -1,83 +1,69 @@
-import type { RootState } from '@/store';
-import { useCallback, useId, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { useCallback, useId } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
 import { AdjustmentWorkspace } from './components/adjustment-workspace/AdjustmentWorkspace';
 import { CatalogueWorkspace } from './components/catalogue-workspace/CatalogueWorkspace';
 import { ControlledStockWorkspace } from './components/controlled-stock-workspace/ControlledStockWorkspace';
 import { FloorStockWorkspace } from './components/floor-stock-workspace/FloorStockWorkspace';
 import { GuidanceWorkspace } from './components/guidance-workspace/GuidanceWorkspace';
-import {
-  InventoryHeader,
-  type InventoryViewMode,
-} from './components/inventory-header/InventoryHeader';
+import { InventoryHeader } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
+import { ProductEditorDialog } from './components/product-editor-dialog';
 import { QualityCheckWorkspace } from './components/quality-check-workspace';
 import { PurchaseReturnWorkspace } from './components/purchase-return-workspace';
 import { StockTakeWorkspace } from './components/stock-take-workspace/StockTakeWorkspace';
 import { TransferWorkspace } from './components/transfer-workspace/TransferWorkspace';
 import { hasInventoryAccess, type PageStatus } from './InventoryScreen.utils';
+import {
+  openTransfer,
+  selectAdjustOpen,
+  selectInventoryStatus,
+  selectInventoryView,
+  selectReturnOpen,
+  selectStockTakeOpen,
+  selectTransferOpen,
+  selectTransferPrefillProductId,
+  setAdjustOpen,
+  setInventoryView,
+  setReturnOpen,
+  setStockTakeOpen,
+  setTransferOpen,
+  setWorkspaceStatus,
+} from './store';
 
 export default function InventoryScreen() {
+  const dispatch = useDispatch<AppDispatch>();
   const user = useSelector((state: RootState) => state.auth.user);
   const allowed = hasInventoryAccess(user?.modules);
   const activeBranchId = user?.activeBranchId ?? null;
   const branches = user?.branches ?? [];
   const statusId = useId();
-  const addRef = useRef<HTMLButtonElement | null>(null);
-  const receiveRef = useRef<HTMLButtonElement | null>(null);
-  const transferRef = useRef<HTMLButtonElement | null>(null);
-  const adjustRef = useRef<HTMLButtonElement | null>(null);
-  const stockTakeRef = useRef<HTMLButtonElement | null>(null);
-  const returnRef = useRef<HTMLButtonElement | null>(null);
 
-  const [view, setView] = useState<InventoryViewMode>('floor');
-  const [status, setStatus] = useState<PageStatus>(allowed ? 'loading' : 'denied');
-  const [receiveOpen, setReceiveOpen] = useState(false);
-  const [transferOpen, setTransferOpen] = useState(false);
-  const [adjustOpen, setAdjustOpen] = useState(false);
-  const [stockTakeOpen, setStockTakeOpen] = useState(false);
-  const [returnOpen, setReturnOpen] = useState(false);
-  const [transferPrefillProductId, setTransferPrefillProductId] = useState<string | null>(null);
-  const [createRequest, setCreateRequest] = useState(0);
+  const view = useSelector(selectInventoryView);
+  const status = useSelector(selectInventoryStatus);
+  const transferOpen = useSelector(selectTransferOpen);
+  const adjustOpen = useSelector(selectAdjustOpen);
+  const stockTakeOpen = useSelector(selectStockTakeOpen);
+  const returnOpen = useSelector(selectReturnOpen);
+  const transferPrefillProductId = useSelector(selectTransferPrefillProductId);
 
-  const onStatusChange = useCallback((next: PageStatus) => {
-    setStatus(next);
-  }, []);
+  const onStatusChange = useCallback(
+    (next: PageStatus) => {
+      dispatch(setWorkspaceStatus({ status: next }));
+    },
+    [dispatch],
+  );
 
   const denied = !allowed || status === 'denied';
-  const showBanner = status !== null;
+  const showBanner = view !== 'floor' && status !== null;
+  const noopRef = { current: null };
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-4 bg-canvas">
       <InventoryHeader
         view={view}
-        onViewChange={(next) => {
-          setView(next);
-          setReceiveOpen(false);
-          setTransferOpen(false);
-          setAdjustOpen(false);
-          setStockTakeOpen(false);
-          setReturnOpen(false);
-          setTransferPrefillProductId(null);
-          setStatus(allowed ? 'loading' : 'denied');
-        }}
-        addButtonRef={addRef}
-        receiveButtonRef={receiveRef}
-        transferButtonRef={transferRef}
-        adjustButtonRef={adjustRef}
-        stockTakeButtonRef={stockTakeRef}
-        returnButtonRef={returnRef}
+        onViewChange={(next) => dispatch(setInventoryView(next))}
         denied={denied}
-        canStartCount={user?.role === 'pharmacy_owner'}
-        onAdd={() => setCreateRequest((n) => n + 1)}
-        onReceive={() => setReceiveOpen(true)}
-        onTransfer={() => {
-          setTransferPrefillProductId(null);
-          setTransferOpen(true);
-        }}
-        onAdjust={() => setAdjustOpen(true)}
-        onStartCount={() => setStockTakeOpen(true)}
-        onSendBack={() => setReturnOpen(true)}
       />
       {showBanner ? (
         <InventoryStatusBanner
@@ -86,40 +72,25 @@ export default function InventoryScreen() {
           asAlert={status === 'denied'}
           view={view}
         />
-      ) : (
-        <div className="min-h-[2.75rem]" aria-hidden />
-      )}
+      ) : null}
       {!denied && view === 'floor' ? (
         <FloorStockWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
-          receiveButtonRef={receiveRef}
-          receiveOpen={receiveOpen}
-          onReceiveOpenChange={setReceiveOpen}
           onStatusChange={onStatusChange}
         />
       ) : null}
       {!denied && view === 'catalogue' ? (
-        <CatalogueWorkspace
-          allowed={allowed}
-          addButtonRef={addRef}
-          onStatusChange={onStatusChange}
-          createRequest={createRequest}
-        />
+        <CatalogueWorkspace allowed={allowed} onStatusChange={onStatusChange} />
       ) : null}
       {!denied && view === 'transfers' ? (
         <TransferWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
           branches={branches}
-          transferButtonRef={transferRef}
+          transferButtonRef={noopRef}
           createOpen={transferOpen}
-          onCreateOpenChange={(open) => {
-            setTransferOpen(open);
-            if (!open) {
-              setTransferPrefillProductId(null);
-            }
-          }}
+          onCreateOpenChange={(open) => dispatch(setTransferOpen(open))}
           onStatusChange={onStatusChange}
           prefillProductId={transferPrefillProductId}
         />
@@ -128,9 +99,9 @@ export default function InventoryScreen() {
         <AdjustmentWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
-          adjustButtonRef={adjustRef}
+          adjustButtonRef={noopRef}
           createOpen={adjustOpen}
-          onCreateOpenChange={setAdjustOpen}
+          onCreateOpenChange={(open) => dispatch(setAdjustOpen(open))}
           onStatusChange={onStatusChange}
         />
       ) : null}
@@ -138,12 +109,7 @@ export default function InventoryScreen() {
         <GuidanceWorkspace
           allowed={allowed}
           onStatusChange={onStatusChange}
-          onStartTransfer={(productId) => {
-            setTransferPrefillProductId(productId);
-            setView('transfers');
-            setStatus(allowed ? 'loading' : 'denied');
-            setTransferOpen(true);
-          }}
+          onStartTransfer={(productId) => dispatch(openTransfer({ productId }))}
         />
       ) : null}
       {!denied && view === 'stocktake' ? (
@@ -151,8 +117,8 @@ export default function InventoryScreen() {
           allowed={allowed}
           activeBranchId={activeBranchId}
           startOpen={stockTakeOpen}
-          onStartOpenChange={setStockTakeOpen}
-          startButtonRef={stockTakeRef}
+          onStartOpenChange={(open) => dispatch(setStockTakeOpen(open))}
+          startButtonRef={noopRef}
           onStatusChange={onStatusChange}
         />
       ) : null}
@@ -175,11 +141,12 @@ export default function InventoryScreen() {
           allowed={allowed}
           activeBranchId={activeBranchId}
           createOpen={returnOpen}
-          onCreateOpenChange={setReturnOpen}
-          createButtonRef={returnRef}
+          onCreateOpenChange={(open) => dispatch(setReturnOpen(open))}
+          createButtonRef={noopRef}
           onStatusChange={onStatusChange}
         />
       ) : null}
+      <ProductEditorDialog />
     </div>
   );
 }
