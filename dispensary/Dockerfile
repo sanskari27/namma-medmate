@@ -5,7 +5,8 @@ ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .
-RUN npm run build
+# Image build ships the Vite bundle; PR CI owns tsc/lint/test gates.
+RUN npx vite build
 
 FROM docker.io/library/node:22-alpine
 WORKDIR /app
