@@ -1,14 +1,22 @@
-name: Release
+name: Main deploy
 
 on:
   push:
     branches: [main]
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Optional existing tag to deploy (leave empty to cut a new release)'
+        required: false
+        type: string
+        default: ''
 
 permissions:
   contents: write
 
 jobs:
   release:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
@@ -29,7 +37,8 @@ jobs:
 
   deploy:
     needs: release
+    if: ${{ always() && (needs.release.result == 'success' || (needs.release.result == 'skipped' && inputs.tag != '')) }}
     uses: ./.github/workflows/build-deploy.yml
     with:
-      tag: ${{ needs.release.outputs.tag }}
+      tag: ${{ needs.release.outputs.tag || inputs.tag }}
     secrets: inherit

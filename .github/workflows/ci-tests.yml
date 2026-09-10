@@ -42,8 +42,13 @@ jobs:
         with:
           java-version: '17'
           distribution: temurin
-      - run: chmod +x server/mvnw && ./mvnw -B test
+          cache: maven
+          cache-dependency-path: server/pom.xml
+      - name: Run server tests
         working-directory: server
+        env:
+          TESTCONTAINERS_RYUK_DISABLED: 'true'
+        run: chmod +x mvnw && ./mvnw -B test
 
   dispensary-checks:
     needs: detect-changes
@@ -56,7 +61,7 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: dispensary/package-lock.json
-      - run: npm ci && npm run build
+      - run: npm ci && npm run lint && npm run test -- --run && npm run build
         working-directory: dispensary
 
   admin-checks:
@@ -70,5 +75,25 @@ jobs:
           node-version: '22'
           cache: npm
           cache-dependency-path: admin/package-lock.json
-      - run: npm ci && npm run build
+      - run: npm ci && npm run lint && npm run test -- --run && npm run build
         working-directory: admin
+
+  ci-ok:
+    needs: [detect-changes, server-tests, dispensary-checks, admin-checks]
+    if: always()
+    runs-on: ubuntu-latest
+    steps:
+      - name: Require changed app jobs to pass
+        run: |
+          set -euo pipefail
+          check() {
+            local name=$1 needed=$2 result=$3
+            if [[ "$needed" == "true" && "$result" != "success" ]]; then
+              echo "$name failed (result=$result)" >&2
+              exit 1
+            fi
+          }
+          check server "${{ needs.detect-changes.outputs.server }}" "${{ needs.server-tests.result }}"
+          check dispensary "${{ needs.detect-changes.outputs.dispensary }}" "${{ needs.dispensary-checks.result }}"
+          check admin "${{ needs.detect-changes.outputs.admin }}" "${{ needs.admin-checks.result }}"
+          echo "CI OK"

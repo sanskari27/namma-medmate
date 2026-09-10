@@ -1,9 +1,16 @@
 # Terraform — prod only
 
+Hosts:
+- `api.nammamedmate.com` → Spring API (`127.0.0.1:18080`)
+- `pharmacy.nammamedmate.com` → dispensary SPA (`127.0.0.1:10080`)
+- `admin.nammamedmate.com` → admin SPA (`127.0.0.1:10081`)
+
 1. **Bootstrap** (once): `cd infra/terraform/bootstrap && terraform init && terraform apply -var state_bucket_name=YOUR_UNIQUE_BUCKET`
 2. Update `envs/prod/main.tf` backend `bucket` with the bootstrap output.
 3. **Prod**: `cd infra/terraform/envs/prod && cp terraform.tfvars.example terraform.tfvars` — set `admin_ssh_cidr` to your IP.
 4. `terraform init && terraform plan && terraform apply`
+5. On the EC2 host (SSM): install the GitHub runner with `scripts/install-github-runner.sh`, then push to `main` (workflow **Main deploy**) or run it manually.
+6. First deploy runs `scripts/setup-prod-tls.sh` for Let's Encrypt on the three hostnames.
 
 Outputs include EC2 instance ID (SSM tunnel) and `ssm_compose_env_parameter`.
 The first apply seeds `/namma-medmate-prod/compose.env`; later applies leave

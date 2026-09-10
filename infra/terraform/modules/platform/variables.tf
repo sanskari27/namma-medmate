@@ -90,5 +90,10 @@ variable "cashfree_env" {
 
 variable "cashfree_return_url" {
   type    = string
-  default = "https://dispensary.nammamedmate.com/subscription"
+  default = "https://pharmacy.nammamedmate.com/subscription"
+}
+
+variable "dns_zone_name" {
+  type    = string
+  default = "nammamedmate.com"
 }

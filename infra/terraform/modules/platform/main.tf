@@ -242,15 +242,31 @@ data "aws_ami" "ubuntu" {
 
 locals {
   user_data = <<-EOF
-    #!/bin/bash
-    set -e
-    apt-get update
-    apt-get install -y docker.io docker-compose-plugin
-    systemctl enable docker
-    systemctl start docker
-    usermod -aG docker ubuntu
-    mkdir -p /opt/namma-medmate
-  EOF
+#!/bin/bash
+set -euo pipefail
+apt-get update
+apt-get install -y docker.io docker-compose-plugin nginx certbot python3-certbot-nginx git jq curl unzip
+systemctl enable docker nginx
+systemctl start docker
+usermod -aG docker ubuntu
+mkdir -p /opt/namma-medmate /opt/actions-runner /var/www/certbot
+chown ubuntu:ubuntu /opt/namma-medmate /opt/actions-runner
+rm -f /etc/nginx/sites-enabled/default
+cat >/etc/nginx/sites-available/namma-medmate.conf <<'NGINX'
+server {
+    listen 80 default_server;
+    listen [::]:80 default_server;
+    server_name api.nammamedmate.com pharmacy.nammamedmate.com admin.nammamedmate.com _;
+    location /.well-known/acme-challenge/ { root /var/www/certbot; }
+    location / {
+        return 200 'namma-medmate host ready\n';
+        add_header Content-Type text/plain;
+    }
+}
+NGINX
+ln -sfn /etc/nginx/sites-available/namma-medmate.conf /etc/nginx/sites-enabled/namma-medmate.conf
+nginx -t && systemctl reload nginx
+EOF
 }
 
 resource "aws_instance" "app" {
@@ -260,13 +276,46 @@ resource "aws_instance" "app" {
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
   user_data              = local.user_data
-  tags                   = { Name = "${local.name}-app" }
+  root_block_device {
+    volume_size = 40
+    volume_type = "gp3"
+  }
+  tags = { Name = "${local.name}-app" }
 }
 
 resource "aws_eip" "app" {
   instance = aws_instance.app.id
   domain   = "vpc"
   tags     = { Name = "${local.name}-eip" }
+}
+
+data "aws_route53_zone" "app" {
+  name         = var.dns_zone_name
+  private_zone = false
+}
+
+resource "aws_route53_record" "api" {
+  zone_id = data.aws_route53_zone.app.zone_id
+  name    = "api.${var.dns_zone_name}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.app.public_ip]
+}
+
+resource "aws_route53_record" "pharmacy" {
+  zone_id = data.aws_route53_zone.app.zone_id
+  name    = "pharmacy.${var.dns_zone_name}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.app.public_ip]
+}
+
+resource "aws_route53_record" "admin" {
+  zone_id = data.aws_route53_zone.app.zone_id
+  name    = "admin.${var.dns_zone_name}"
+  type    = "A"
+  ttl     = 60
+  records = [aws_eip.app.public_ip]
 }
 
 resource "aws_secretsmanager_secret" "db" {
@@ -296,7 +345,7 @@ resource "aws_ssm_parameter" "compose_env" {
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
     "PUBLIC_BASE_URL=https://api.nammamedmate.com",
-    "CORS_ALLOWED_ORIGINS=https://dispensary.nammamedmate.com,https://admin.nammamedmate.com",
+    "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com",
     "STORAGE_ROOT=/app/files",
     "VITE_API_BASE_URL=https://api.nammamedmate.com",
     "RESEND_API_KEY=${var.resend_api_key}",

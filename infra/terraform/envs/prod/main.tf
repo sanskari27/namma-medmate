@@ -1,7 +1,7 @@
 terraform {
   required_version = ">= 1.6.0"
   backend "s3" {
-    bucket         = "REPLACE_AFTER_BOOTSTRAP"
+    bucket         = "namma-medmate-tfstate-105927215604"
     key            = "prod/terraform.tfstate"
     region         = "ap-south-1"
     dynamodb_table = "namma-medmate-tflock"
