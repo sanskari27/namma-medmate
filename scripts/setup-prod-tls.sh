@@ -5,6 +5,7 @@ set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EMAIL="${CERTBOT_EMAIL:-ops@nammamedmate.com}"
+CERT_NAME="${CERTBOT_CERT_NAME:-namma-medmate}"
 DOMAINS=(api.nammamedmate.com pharmacy.nammamedmate.com admin.nammamedmate.com)
 
 if [[ "$(id -u)" -ne 0 ]]; then
@@ -18,7 +19,6 @@ apt-get install -y -qq nginx certbot python3-certbot-nginx
 install -d -m 755 /var/www/certbot /etc/letsencrypt
 rm -f /etc/nginx/sites-enabled/default
 
-# Certbot nginx plugin usually ships these; ensure they exist before TLS vhost.
 if [[ ! -f /etc/letsencrypt/options-ssl-nginx.conf ]]; then
   cat >/etc/letsencrypt/options-ssl-nginx.conf <<'SSL'
 ssl_session_cache shared:le_nginx_SSL:10m;
@@ -30,27 +30,28 @@ ssl_ciphers "ECDHE-ECDSA-AES128-GCM-SHA256:ECDHE-RSA-AES128-GCM-SHA256:ECDHE-ECD
 SSL
 fi
 if [[ ! -f /etc/letsencrypt/ssl-dhparams.pem ]]; then
-  openssl dhparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
+  # Fast enough for first boot; rotate later if desired.
+  openssl dhparam -dsaparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
 fi
 
 HTTP_CONF="${ROOT}/infra/nginx/namma-medmate.http.conf"
 TLS_CONF="${ROOT}/infra/nginx/namma-medmate.conf"
 
-if [[ ! -f /etc/letsencrypt/live/api.nammamedmate.com/fullchain.pem ]]; then
-  install -m 644 "$HTTP_CONF" /etc/nginx/sites-available/namma-medmate.conf
-  ln -sfn /etc/nginx/sites-available/namma-medmate.conf /etc/nginx/sites-enabled/namma-medmate.conf
-  nginx -t
-  systemctl enable --now nginx
-  systemctl reload nginx
+install -m 644 "$HTTP_CONF" /etc/nginx/sites-available/namma-medmate.conf
+ln -sfn /etc/nginx/sites-available/namma-medmate.conf /etc/nginx/sites-enabled/namma-medmate.conf
+nginx -t
+systemctl enable --now nginx
+systemctl reload nginx
 
+if [[ ! -f "/etc/letsencrypt/live/${CERT_NAME}/fullchain.pem" ]]; then
   certbot certonly --webroot -w /var/www/certbot \
     --non-interactive --agree-tos -m "$EMAIL" \
+    --cert-name "$CERT_NAME" \
     $(printf -- '-d %s ' "${DOMAINS[@]}")
 fi
 
 install -m 644 "$TLS_CONF" /etc/nginx/sites-available/namma-medmate.conf
 ln -sfn /etc/nginx/sites-available/namma-medmate.conf /etc/nginx/sites-enabled/namma-medmate.conf
 nginx -t
-systemctl enable --now nginx
 systemctl reload nginx
-echo "TLS ready for ${DOMAINS[*]}"
+echo "TLS ready for ${DOMAINS[*]} (cert ${CERT_NAME})"
