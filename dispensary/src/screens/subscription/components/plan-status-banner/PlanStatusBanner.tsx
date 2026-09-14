@@ -1,17 +1,27 @@
-import type { statusCopy } from '../../SubscriptionScreen.utils';
+import { AlertCircle } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { selectSubHint, selectSubPaymentNote, selectSubStatus } from '../../store';
+import { statusCopy } from '../../SubscriptionScreen.utils';
 
-type Banner = NonNullable<ReturnType<typeof statusCopy>>;
-
-export function PlanStatusBanner({ statusId, banner }: { statusId: string; banner: Banner }) {
+export function PlanStatusBanner() {
+  const status = useSelector(selectSubStatus);
+  const hint = useSelector(selectSubHint);
+  const paymentNote = useSelector(selectSubPaymentNote);
+  const banner = statusCopy(status);
+  const text = hint ?? banner?.text ?? paymentNote;
+  if (!text) {
+    return null;
+  }
+  const tone =
+    status === 'failure' || status === 'conflict' || status === 'quota' || status === 'unavailable'
+      ? 'alert'
+      : status === 'success'
+        ? 'ok'
+        : undefined;
   return (
-    <p
-      id={statusId}
-      role="alert"
-      aria-live="polite"
-      className="flex items-start gap-2 border border-line bg-brand-soft px-3 py-2 text-sm text-ink"
-    >
-      <banner.icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      {banner.text}
+    <p className="sb-alert" data-tone={tone} role="status">
+      <AlertCircle size={15} aria-hidden />
+      <span>{text}</span>
     </p>
   );
 }

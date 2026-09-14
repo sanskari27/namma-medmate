@@ -1,25 +1,19 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../LicensesScreen.utils';
+import { AlertCircle } from 'lucide-react';
+import { useSelector } from 'react-redux';
+import { selectLicensesHint, selectLicensesStatus } from '../../store';
+import { statusCopy } from '../../LicensesScreen.utils';
 
-export type LicensesStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-};
-
-export function LicensesStatusBanner({ status, statusId, hint }: LicensesStatusBannerProps) {
+export function LicensesStatusBanner() {
+  const status = useSelector(selectLicensesStatus);
+  const hint = useSelector(selectLicensesHint);
   const text = statusCopy(status, hint);
   if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+    return null;
   }
-  const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
+  const tone = status === 'failure' || status === 'conflict' ? 'alert' : status === 'success' ? 'ok' : undefined;
   return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+    <p className="lc-alert" data-tone={tone} role="status">
+      <AlertCircle size={15} aria-hidden />
       <span>{text}</span>
     </p>
   );

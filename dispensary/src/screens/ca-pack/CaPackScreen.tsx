@@ -1,42 +1,62 @@
-import { CaPackEmptyState } from './components/ca-pack-empty-state';
-import { CaPackFilterBar } from './components/ca-pack-filter-bar';
-import { CaPackHeader } from './components/ca-pack-header';
-import { CaPackSectionList } from './components/ca-pack-section-list';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { CaPackAdvisorDialog } from './components/ca-pack-advisor-dialog';
+import { CaPackAdvisors } from './components/ca-pack-advisors';
+import { CaPackHistory } from './components/ca-pack-history';
+import { CaPackShareCard } from './components/ca-pack-share-card';
+import { CaPackSnapshot } from './components/ca-pack-snapshot';
 import { CaPackStatusBanner } from './components/ca-pack-status-banner';
-import { useCaPackPage } from './useCaPackPage';
+import { CA_PACK_CONTENT } from './CaPackScreen.content';
+import { hasFinanceAccess } from './CaPackScreen.utils';
+import './CaPackScreen.css';
+import {
+  accessDenied,
+  hydrateOwnerScope,
+  loadCaPack,
+  selectCaPackPeriodKey,
+  selectCaPackScope,
+} from './store';
 
 export default function CaPackScreen() {
-  const page = useCaPackPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const periodKey = useSelector(selectCaPackPeriodKey);
+  const scope = useSelector(selectCaPackScope);
+  const allowed = hasFinanceAccess(user?.role, user?.roles);
+  const owner = user?.role === 'pharmacy_owner';
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(
+        accessDenied('Till staff cannot open the CA pack. Ask the owner for the Accountant desk.'),
+      );
+      return;
+    }
+    dispatch(hydrateOwnerScope({ owner, hasBranch: Boolean(user?.activeBranchId) }));
+  }, [allowed, dispatch, owner, user?.activeBranchId]);
+
+  useEffect(() => {
+    if (!allowed) {
+      return;
+    }
+    void dispatch(loadCaPack());
+  }, [allowed, dispatch, periodKey, scope]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <CaPackHeader
-        downloadRef={page.downloadRef}
-        denied={!page.allowed}
-        busy={page.busy}
-        onDownload={() => {
-          void page.onDownload();
-        }}
-      />
-      <CaPackStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
-      {page.allowed ? (
+    <div className="ca" aria-label={CA_PACK_CONTENT.regionLabel}>
+      <CaPackStatusBanner />
+      {allowed ? (
         <>
-          <CaPackFilterBar
-            filters={page.filters}
-            owner={page.owner}
-            scope={page.scope}
-            disabled={page.busy}
-            onChange={page.onChangeFilters}
-            onScope={page.onScope}
-            onApply={page.onApplyFilters}
-          />
-          {page.status === 'loading' || page.status === 'denied' ? null : page.pack &&
-            page.pack.sections.length > 0 &&
-            page.status !== 'empty' ? (
-            <CaPackSectionList sections={page.pack.sections} />
-          ) : (
-            <CaPackEmptyState />
-          )}
+          <div className="ca-grid">
+            <CaPackShareCard />
+            <div className="ca-stack">
+              <CaPackAdvisors />
+              <CaPackSnapshot />
+            </div>
+          </div>
+          <CaPackHistory />
+          <CaPackAdvisorDialog />
         </>
       ) : null}
     </div>

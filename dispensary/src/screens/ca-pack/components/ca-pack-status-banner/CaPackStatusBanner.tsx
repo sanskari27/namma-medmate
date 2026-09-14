@@ -1,26 +1,19 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../CaPackScreen.utils';
+import { useSelector } from 'react-redux';
+import { statusCopy, statusIcon } from '../../CaPackScreen.utils';
+import { selectCaPackStatus, selectCaPackStatusHint } from '../../store';
 
-export type CaPackStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-};
-
-export function CaPackStatusBanner({ status, statusId, hint }: CaPackStatusBannerProps) {
-  const text = statusCopy(status, hint);
-  if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+export function CaPackStatusBanner() {
+  const status = useSelector(selectCaPackStatus);
+  const hint = useSelector(selectCaPackStatusHint);
+  const copy = statusCopy(status, hint);
+  if (!copy || status === 'loading' || status === 'empty' || status === null) {
+    return null;
   }
   const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
   return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{text}</span>
+    <p className="ca-alert" data-tone={status === 'success' ? 'ok' : 'alert'} role={status === 'denied' ? 'alert' : 'status'}>
+      <Icon size={16} aria-hidden />
+      <span>{copy}</span>
     </p>
   );
 }

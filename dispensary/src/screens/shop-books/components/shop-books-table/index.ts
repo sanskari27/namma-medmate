@@ -1,1 +1,0 @@
-export { ShopBooksTable } from './ShopBooksTable';

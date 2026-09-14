@@ -1,6 +1,12 @@
-import { Button } from '@atoms';
-import type { WhatsAppMessage } from '@/services/whatsappMessages';
+import { useDispatch, useSelector } from 'react-redux';
 import { kindLabel, outcomeLabel, type KindFilter } from '../../WhatsappSendsScreen.utils';
+import {
+  kindChanged,
+  selectWhatsappSendsItems,
+  selectWhatsappSendsKind,
+  selectWhatsappSendsSelected,
+  sendSelected,
+} from '../../store';
 
 const FILTERS: { id: KindFilter; label: string }[] = [
   { id: 'ALL', label: 'All sends' },
@@ -9,56 +15,48 @@ const FILTERS: { id: KindFilter; label: string }[] = [
   { id: 'CAMPAIGN', label: 'Tag broadcast' },
 ];
 
-export type WhatsappSendsListPanelProps = {
-  items: WhatsAppMessage[];
-  selectedId: string | null;
-  kind: KindFilter;
-  onKindChange: (kind: KindFilter) => void;
-  onSelect: (id: string) => void;
-};
-
-export function WhatsappSendsListPanel({
-  items,
-  selectedId,
-  kind,
-  onKindChange,
-  onSelect,
-}: WhatsappSendsListPanelProps) {
+export function WhatsappSendsListPanel() {
+  const dispatch = useDispatch();
+  const items = useSelector(selectWhatsappSendsItems);
+  const selected = useSelector(selectWhatsappSendsSelected);
+  const kind = useSelector(selectWhatsappSendsKind);
   return (
-    <section className="border border-line bg-surface p-3" aria-label="WhatsApp send list">
-      <h2 className="text-sm font-semibold text-ink">On this pharmacy</h2>
-      <div className="mt-2 flex flex-wrap gap-1" role="group" aria-label="Filter sends">
-        {FILTERS.map((filter) => (
-          <Button
-            key={filter.id}
-            type="button"
-            size="sm"
-            variant={kind === filter.id ? 'primary' : 'outline'}
-            onClick={() => onKindChange(filter.id)}
-          >
-            {filter.label}
-          </Button>
-        ))}
+    <div className="wh-card">
+      <div className="wh-card-head">
+        <h3>On this pharmacy</h3>
+      </div>
+      <div className="wh-card-pad">
+        <div className="wh-flex" style={{ flexWrap: 'wrap', marginBottom: 10 }}>
+          {FILTERS.map((filter) => (
+            <button
+              key={filter.id}
+              type="button"
+              className="wh-chip"
+              data-on={kind === filter.id}
+              onClick={() => dispatch(kindChanged(filter.id))}
+            >
+              {filter.label}
+            </button>
+          ))}
+        </div>
       </div>
       {items.length === 0 ? (
-        <p className="mt-2 text-sm text-muted">No sends in this filter.</p>
+        <p className="wh-loading">No sends in this filter.</p>
       ) : (
-        <ul className="mt-2 space-y-1">
+        <div className="wh-list">
           {items.map((item) => (
-            <li key={item.id}>
-              <Button
-                type="button"
-                variant={item.id === selectedId ? 'primary' : 'outline'}
-                className="w-full justify-between"
-                onClick={() => onSelect(item.id)}
-              >
-                <span>{kindLabel(item.kind)}</span>
-                <span className="font-mono text-xs">{outcomeLabel(item.status)}</span>
-              </Button>
-            </li>
+            <button
+              key={item.id}
+              type="button"
+              data-on={item.id === selected?.id}
+              onClick={() => dispatch(sendSelected(item.id))}
+            >
+              <b>{kindLabel(item.kind)}</b>
+              <span className="wh-muted">{outcomeLabel(item.status)}</span>
+            </button>
           ))}
-        </ul>
+        </div>
       )}
-    </section>
+    </div>
   );
 }

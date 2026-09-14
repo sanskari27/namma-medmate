@@ -1,40 +1,35 @@
-import { LicenseDueStrip } from './components/license-due-strip';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import './LicensesScreen.css';
 import { LicenseFormPanel } from './components/license-form-panel';
 import { LicenseListPanel } from './components/license-list-panel';
 import { LicensesHeader } from './components/licenses-header';
 import { LicensesStatusBanner } from './components/licenses-status-banner';
-import { useLicensesPage } from './useLicensesPage';
+import { isOwner } from './LicensesScreen.utils';
+import { accessDenied, loadLicenses } from './store';
 
 export default function LicensesScreen() {
-  const page = useLicensesPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const owner = isOwner(useSelector((state: RootState) => state.auth.user?.role));
+
+  useEffect(() => {
+    if (!owner) {
+      dispatch(accessDenied('Only the owner can file licences at this counter. Ask the owner if a paper is due.'));
+      return;
+    }
+    void dispatch(loadLicenses());
+  }, [dispatch, owner]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <LicensesHeader addButtonRef={page.addRef} denied={!page.allowed} onAdd={page.startCreate} />
-      <LicensesStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
-      {page.allowed ? (
-        <>
-          <LicenseDueStrip items={page.dueItems} onSelect={page.selectLicense} />
-          <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
-            <LicenseListPanel
-              items={page.items}
-              selectedId={page.creating ? null : (page.selected?.id ?? null)}
-              onSelect={page.selectLicense}
-            />
-            {page.creating || page.selected ? (
-              <LicenseFormPanel
-                form={page.form}
-                creating={page.creating}
-                selected={page.creating ? null : page.selected}
-                branches={page.branches}
-                staff={page.staff}
-                busy={page.busy}
-                onChange={page.onChange}
-                onSave={page.onSave}
-              />
-            ) : null}
-          </div>
-        </>
+    <div className="lc" aria-label="Licences">
+      <LicensesStatusBanner />
+      <LicensesHeader denied={!owner} />
+      {owner ? (
+        <div className="lc-split">
+          <LicenseListPanel />
+          <LicenseFormPanel />
+        </div>
       ) : null}
     </div>
   );

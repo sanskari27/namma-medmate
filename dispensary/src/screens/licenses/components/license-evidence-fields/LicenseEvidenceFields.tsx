@@ -1,4 +1,3 @@
-import { Input, Label } from '@atoms';
 import { licenseEvidenceUrl, type LicenseEvidence } from '@/services/licenses';
 import { formatIstDate } from '../../LicensesScreen.utils';
 
@@ -10,31 +9,26 @@ export type LicenseEvidenceFieldsProps = {
 
 export function LicenseEvidenceFields({ licenseId, prior, onFile }: LicenseEvidenceFieldsProps) {
   return (
-    <fieldset className="grid gap-2">
-      <legend className="text-sm font-medium text-ink">Evidence</legend>
-      <div className="grid gap-1">
-        <Label htmlFor="license-evidence">Current paper</Label>
-        <Input
+    <div className="lc-form">
+      <div className="lc-field">
+        <label htmlFor="license-evidence">Current paper</label>
+        <input
           id="license-evidence"
+          className="lc-input"
           type="file"
           accept="application/pdf,image/jpeg,image/png"
           onChange={(event) => onFile(event.target.files?.[0] ?? null)}
         />
       </div>
       {prior.length > 0 ? (
-        <ul className="border border-line px-3 py-2 text-xs text-muted" aria-label="Prior papers">
+        <ul className="lc-card lc-card-pad" style={{ listStyle: 'none', margin: 0, padding: 12 }} aria-label="Prior papers">
           {prior.map((row) => (
-            <li key={row.id} className="flex flex-wrap items-baseline justify-between gap-2 py-0.5">
-              <span>
+            <li key={row.id} className="lc-row">
+              <span className="lc-muted">
                 {row.licenseNumber} · {formatIstDate(row.issuedOn)} – {formatIstDate(row.expiresOn)}
               </span>
               {licenseId ? (
-                <a
-                  className="text-brand underline-offset-2 hover:underline"
-                  href={licenseEvidenceUrl(licenseId, row.id)}
-                  target="_blank"
-                  rel="noreferrer"
-                >
+                <a className="lc-btn lc-btn-ghost lc-btn-sm" href={licenseEvidenceUrl(licenseId, row.id)} target="_blank" rel="noreferrer">
                   Open paper
                 </a>
               ) : null}
@@ -42,6 +36,6 @@ export function LicenseEvidenceFields({ licenseId, prior, onFile }: LicenseEvide
           ))}
         </ul>
       ) : null}
-    </fieldset>
+    </div>
   );
 }

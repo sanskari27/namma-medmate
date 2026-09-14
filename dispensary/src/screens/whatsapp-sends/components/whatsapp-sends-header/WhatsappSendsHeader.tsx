@@ -1,4 +1,3 @@
-import { Reveal } from '@atoms';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { Link } from 'react-router-dom';
 
@@ -16,29 +15,38 @@ export function WhatsappSendsHeader({
   failed,
 }: WhatsappSendsHeaderProps) {
   return (
-    <Reveal>
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
+    <>
+      <div className="wh-toolbar">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">WhatsApp sends</h1>
-          <p className="mt-1 text-sm text-muted">
-            Preview queued, sent, and failed patient messages. Retry a failed send from this
-            counter.
-          </p>
+          <h2 style={{ margin: 0 }}>WhatsApp sends</h2>
+          <span className="wh-muted">Queued, sent and failed patient messages from this pharmacy</span>
         </div>
+        <div className="wh-toolbar-spacer" />
         {denied ? null : (
-          <div className="flex flex-wrap items-center gap-3">
-            <p className="font-mono text-xs text-muted">
-              {queued} queued · {sent} sent · {failed} failed
-            </p>
-            <Link
-              to={ROUTES.CAMPAIGNS}
-              className="inline-flex h-9 items-center border border-line bg-surface px-3 text-sm text-ink hover:bg-brand-soft focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-brand"
-            >
-              Tag broadcasts
-            </Link>
-          </div>
+          <Link className="wh-btn wh-btn-ghost" to={ROUTES.CAMPAIGNS}>
+            Tag broadcasts
+          </Link>
         )}
-      </header>
-    </Reveal>
+      </div>
+      {denied ? null : (
+        <div className="wh-stats" style={{ gridTemplateColumns: 'repeat(3, minmax(0, 1fr))' }}>
+          <div className="wh-stat">
+            <div className="lbl">Queued</div>
+            <div className="val">{queued}</div>
+            <div className="split">waiting to go out</div>
+          </div>
+          <div className="wh-stat">
+            <div className="lbl">Sent</div>
+            <div className="val">{sent}</div>
+            <div className="split">delivered from this till</div>
+          </div>
+          <div className="wh-stat">
+            <div className="lbl">Failed</div>
+            <div className="val">{failed}</div>
+            <div className="split">retry from this counter</div>
+          </div>
+        </div>
+      )}
+    </>
   );
 }

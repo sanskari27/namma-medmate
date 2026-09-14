@@ -1,50 +1,54 @@
-import { AgingBucketsStrip } from './components/aging-buckets-strip';
-import { AgingFilterBar } from './components/aging-filter-bar';
-import { AgingHeader } from './components/aging-header';
-import { AgingPartyList } from './components/aging-party-list';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
 import { AgingStatusBanner } from './components/aging-status-banner';
-import { useAgingPage } from './useAgingPage';
+import { AgingTable } from './components/aging-table';
+import { AgingToolbar } from './components/aging-toolbar';
+import { AGING_CONTENT } from './AgingScreen.content';
+import { hasFinanceAccess } from './AgingScreen.utils';
+import './AgingScreen.css';
+import {
+  accessDenied,
+  hydrateOwnerScope,
+  loadAging,
+  selectAgingCustomAsOf,
+  selectAgingMonth,
+  selectAgingPeriodKind,
+  selectAgingScope,
+} from './store';
 
 export default function AgingScreen() {
-  const page = useAgingPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const periodKind = useSelector(selectAgingPeriodKind);
+  const month = useSelector(selectAgingMonth);
+  const customAsOf = useSelector(selectAgingCustomAsOf);
+  const scope = useSelector(selectAgingScope);
+  const allowed = hasFinanceAccess(user?.role, user?.roles);
+  const owner = user?.role === 'pharmacy_owner';
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(accessDenied('Till staff cannot open dues. Ask the owner for Accounts access.'));
+      return;
+    }
+    dispatch(hydrateOwnerScope({ owner, hasBranch: Boolean(user?.activeBranchId) }));
+  }, [allowed, dispatch, owner, user?.activeBranchId]);
+
+  useEffect(() => {
+    if (!allowed) {
+      return;
+    }
+    void dispatch(loadAging());
+  }, [allowed, dispatch, periodKind, month, customAsOf, scope]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <AgingHeader planGate={page.planGate} />
-      <AgingStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-        planGate={page.planGate}
-      />
-      {page.allowed && !page.planGate ? (
+    <div className="ag" aria-label={AGING_CONTENT.regionLabel}>
+      <AgingStatusBanner />
+      {allowed ? (
         <>
-          <AgingFilterBar
-            asOf={page.asOf}
-            owner={page.owner}
-            scope={page.scope}
-            applyRef={page.applyRef}
-            onAsOf={page.setAsOf}
-            onScope={page.setScope}
-            onApply={page.applyAsOf}
-          />
-          <AgingBucketsStrip
-            receivables={page.receivables}
-            payables={page.payables}
-            allOutlets={page.scope === 'tenant'}
-          />
-          <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
-            <AgingPartyList
-              title="Patients owe us"
-              empty="No khata remaining as of this date."
-              items={page.receivables.items}
-            />
-            <AgingPartyList
-              title="We owe stockists"
-              empty="No stockist dues as of this date."
-              items={page.payables.items}
-            />
-          </div>
+          <AgingToolbar owner={owner} />
+          <AgingTable />
         </>
       ) : null}
     </div>

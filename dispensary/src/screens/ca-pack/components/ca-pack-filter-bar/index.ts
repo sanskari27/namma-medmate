@@ -1,1 +1,0 @@
-export { CaPackFilterBar } from './CaPackFilterBar';

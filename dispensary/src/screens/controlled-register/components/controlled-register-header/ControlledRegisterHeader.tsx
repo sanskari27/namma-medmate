@@ -1,4 +1,3 @@
-import { Button, Reveal } from '@atoms';
 import type { Ref } from 'react';
 
 export type ControlledRegisterHeaderProps = {
@@ -19,32 +18,22 @@ export function ControlledRegisterHeader({
   onNdps,
 }: ControlledRegisterHeaderProps) {
   return (
-    <Reveal>
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
-        <div>
-          <h1 className="text-2xl font-semibold text-ink">NDPS sale book</h1>
-          <p className="mt-1 text-sm text-muted">
-            Who this outlet sold Schedule stock to — product, batch, Rx, patient, and pharmacist.
-            Rows are not editable.
-          </p>
-        </div>
-        {denied ? null : (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              ref={spreadsheetRef}
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={onSpreadsheet}
-            >
-              Take spreadsheet
-            </Button>
-            <Button ref={ndpsRef} type="button" disabled={busy} onClick={onNdps}>
-              NDPS sheet
-            </Button>
-          </div>
-        )}
-      </header>
-    </Reveal>
+    <div className="nd-toolbar">
+      <div>
+        <h2 style={{ margin: 0 }}>NDPS sale book</h2>
+        <span className="nd-muted">Who this outlet sold Schedule stock to — rows are not editable</span>
+      </div>
+      <div className="nd-toolbar-spacer" />
+      {denied ? null : (
+        <>
+          <button ref={spreadsheetRef} type="button" className="nd-btn nd-btn-ghost" disabled={busy} onClick={onSpreadsheet}>
+            Spreadsheet
+          </button>
+          <button ref={ndpsRef} type="button" className="nd-btn nd-btn-primary" disabled={busy} onClick={onNdps}>
+            NDPS sheet
+          </button>
+        </>
+      )}
+    </div>
   );
 }

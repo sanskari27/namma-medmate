@@ -99,9 +99,9 @@ export const NAV_SECTIONS = [
       },
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Track business spend & categories' },
       { label: 'Credit · Khata', path: ROUTES.CREDIT, hint: 'Customer credit, dues & repayments' },
-      { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
-      { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },
-      { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Books for the CA' },
+      { label: 'Khata dues', path: ROUTES.AGING, hint: 'Outstanding by age bucket' },
+      { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Sales & GST summary' },
+      { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Share reports with your CA' },
     ],
   },
   {

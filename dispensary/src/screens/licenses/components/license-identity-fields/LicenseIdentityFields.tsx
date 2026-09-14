@@ -1,4 +1,3 @@
-import { Input, Label } from '@atoms';
 import type { Branch } from '@/services/branches';
 import type { StaffAccount } from '@/services/staff';
 import type { FormState } from '../../LicensesScreen.utils';
@@ -19,13 +18,12 @@ export function LicenseIdentityFields({
   onChange,
 }: LicenseIdentityFieldsProps) {
   return (
-    <fieldset className="grid gap-3">
-      <legend className="text-sm font-medium text-ink">Paper</legend>
-      <div className="grid gap-1">
-        <Label htmlFor="license-type">Type</Label>
+    <div className="lc-fields">
+      <div className="lc-field">
+        <label htmlFor="license-type">Type</label>
         <select
           id="license-type"
-          className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink"
+          className="lc-select"
           value={form.docType}
           disabled={!creating}
           onChange={(event) => onChange({ docType: event.target.value as FormState['docType'] })}
@@ -37,11 +35,11 @@ export function LicenseIdentityFields({
         </select>
       </div>
       {form.docType === 'PHARMACIST_REGISTRATION' ? (
-        <div className="grid gap-1">
-          <Label htmlFor="license-staff">Chemist</Label>
+        <div className="lc-field">
+          <label htmlFor="license-staff">Chemist</label>
           <select
             id="license-staff"
-            className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink"
+            className="lc-select"
             value={form.staffUserId}
             disabled={!creating}
             onChange={(event) => onChange({ staffUserId: event.target.value })}
@@ -55,11 +53,11 @@ export function LicenseIdentityFields({
           </select>
         </div>
       ) : (
-        <div className="grid gap-1">
-          <Label htmlFor="license-scope">Scope</Label>
+        <div className="lc-field">
+          <label htmlFor="license-scope">Scope</label>
           <select
             id="license-scope"
-            className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink"
+            className="lc-select"
             value={form.scope}
             disabled={!creating}
             onChange={(event) => onChange({ scope: event.target.value as FormState['scope'] })}
@@ -70,11 +68,11 @@ export function LicenseIdentityFields({
         </div>
       )}
       {form.scope === 'BRANCH' ? (
-        <div className="grid gap-1">
-          <Label htmlFor="license-outlet">Outlet</Label>
+        <div className="lc-field">
+          <label htmlFor="license-outlet">Outlet</label>
           <select
             id="license-outlet"
-            className="h-10 rounded-md border border-line bg-surface px-3 text-sm text-ink"
+            className="lc-select"
             value={form.branchId}
             disabled={!creating}
             onChange={(event) => onChange({ branchId: event.target.value })}
@@ -88,14 +86,15 @@ export function LicenseIdentityFields({
           </select>
         </div>
       ) : null}
-      <div className="grid gap-1">
-        <Label htmlFor="license-number">Licence number</Label>
-        <Input
+      <div className="lc-field">
+        <label htmlFor="license-number">Licence number</label>
+        <input
           id="license-number"
+          className="lc-input"
           value={form.licenseNumber}
           onChange={(event) => onChange({ licenseNumber: event.target.value })}
         />
       </div>
-    </fieldset>
+    </div>
   );
 }

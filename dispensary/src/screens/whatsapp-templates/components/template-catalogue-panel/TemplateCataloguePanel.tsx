@@ -1,44 +1,27 @@
-import type { WhatsAppTemplate } from '@/services/whatsappTemplates';
+import { useDispatch, useSelector } from 'react-redux';
 import { templateLabel } from '../../WhatsappTemplatesScreen.utils';
+import { selectWhatsappSelectedName, selectWhatsappTemplates, templateSelected } from '../../store';
 
-export type TemplateCataloguePanelProps = {
-  items: WhatsAppTemplate[];
-  selectedName: string | null;
-  onSelect: (uniqueName: string) => void;
-};
-
-export function TemplateCataloguePanel({
-  items,
-  selectedName,
-  onSelect,
-}: TemplateCataloguePanelProps) {
+export function TemplateCataloguePanel() {
+  const dispatch = useDispatch();
+  const items = useSelector(selectWhatsappTemplates);
+  const selectedName = useSelector(selectWhatsappSelectedName);
   if (items.length === 0) {
-    return (
-      <p className="border border-dashed border-line px-3 py-6 text-sm text-muted">
-        No approved messages on file for this pharmacy.
-      </p>
-    );
+    return <p className="ws-loading">No approved messages on file for this pharmacy.</p>;
   }
   return (
-    <ul className="divide-y divide-line border border-line bg-surface">
-      {items.map((row) => {
-        const selected = row.uniqueName === selectedName;
-        return (
-          <li key={row.uniqueName}>
-            <button
-              type="button"
-              aria-current={selected ? 'true' : undefined}
-              className={`flex w-full flex-col items-start gap-0.5 px-3 py-2 text-left text-sm ${
-                selected ? 'bg-brand-soft' : 'hover:bg-canvas'
-              }`}
-              onClick={() => onSelect(row.uniqueName)}
-            >
-              <span className="font-medium text-ink">{templateLabel(row.uniqueName)}</span>
-              <span className="font-mono text-xs text-muted">{row.namespaceName}</span>
-            </button>
-          </li>
-        );
-      })}
-    </ul>
+    <div className="ws-card ws-list">
+      {items.map((row) => (
+        <button
+          key={row.uniqueName}
+          type="button"
+          data-on={row.uniqueName === selectedName}
+          onClick={() => dispatch(templateSelected(row.uniqueName))}
+        >
+          <b>{templateLabel(row.uniqueName)}</b>
+          <span className="ws-muted ws-mono">{row.namespaceName}</span>
+        </button>
+      ))}
+    </div>
   );
 }

@@ -1,0 +1,1 @@
+export { OutletsStats } from './OutletsStats';

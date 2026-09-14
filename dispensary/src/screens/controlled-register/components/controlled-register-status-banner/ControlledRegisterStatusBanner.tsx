@@ -1,30 +1,23 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../ControlledRegisterScreen.utils';
+import { useSelector } from 'react-redux';
+import { statusCopy } from '../../ControlledRegisterScreen.utils';
+import { selectNdpsHint, selectNdpsStatus } from '../../store';
 
-export type ControlledRegisterStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-};
-
-export function ControlledRegisterStatusBanner({
-  status,
-  statusId,
-  hint,
-}: ControlledRegisterStatusBannerProps) {
+export function ControlledRegisterStatusBanner() {
+  const status = useSelector(selectNdpsStatus);
+  const hint = useSelector(selectNdpsHint);
   const text = statusCopy(status, hint);
   if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+    return <div id="ndps-sale-book-status" />;
   }
-  const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
+  const tone = status === 'failure' || status === 'conflict' ? 'alert' : status === 'success' ? 'ok' : undefined;
   return (
     <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
+      id="ndps-sale-book-status"
+      role={status === 'denied' ? 'alert' : 'status'}
+      className="nd-alert"
+      data-tone={tone}
     >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{text}</span>
+      {text}
     </p>
   );
 }

@@ -1,41 +1,77 @@
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
 import { ControlledRegisterFilters } from './components/controlled-register-filters';
 import { ControlledRegisterHeader } from './components/controlled-register-header';
 import { ControlledRegisterList } from './components/controlled-register-list';
 import { ControlledRegisterStatusBanner } from './components/controlled-register-status-banner';
-import { useControlledRegisterPage } from './useControlledRegisterPage';
+import { canOpenSaleBook } from './ControlledRegisterScreen.utils';
+import {
+  accessDenied,
+  exportControlledRegister,
+  filtersChanged,
+  loadControlledRegister,
+  selectNdpsBusy,
+  selectNdpsFilters,
+  selectNdpsItems,
+  selectNdpsPatients,
+  selectNdpsPharmacists,
+  selectNdpsProducts,
+  selectNdpsStatus,
+} from './store';
+import './ControlledRegisterScreen.css';
 
 export default function ControlledRegisterScreen() {
-  const page = useControlledRegisterPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const spreadsheetRef = useRef<HTMLButtonElement | null>(null);
+  const ndpsRef = useRef<HTMLButtonElement | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const allowed = canOpenSaleBook(user?.role, user?.roles);
+  const status = useSelector(selectNdpsStatus);
+  const items = useSelector(selectNdpsItems);
+  const filters = useSelector(selectNdpsFilters);
+  const busy = useSelector(selectNdpsBusy);
+  const products = useSelector(selectNdpsProducts);
+  const patients = useSelector(selectNdpsPatients);
+  const pharmacists = useSelector(selectNdpsPharmacists);
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(accessDenied());
+      return;
+    }
+    void dispatch(loadControlledRegister());
+  }, [allowed, dispatch, user?.activeBranchId]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+    <div className="nd" aria-label="NDPS sale book">
       <ControlledRegisterHeader
-        spreadsheetRef={page.spreadsheetRef}
-        ndpsRef={page.ndpsRef}
-        denied={!page.allowed}
-        busy={page.busy}
-        onSpreadsheet={page.onSpreadsheet}
-        onNdps={page.onNdps}
+        spreadsheetRef={spreadsheetRef}
+        ndpsRef={ndpsRef}
+        denied={!allowed}
+        busy={busy}
+        onSpreadsheet={() => {
+          void dispatch(exportControlledRegister('csv')).then(() => spreadsheetRef.current?.focus());
+        }}
+        onNdps={() => {
+          void dispatch(exportControlledRegister('ndps')).then(() => ndpsRef.current?.focus());
+        }}
       />
-      <ControlledRegisterStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-      />
-      {page.allowed ? (
+      <ControlledRegisterStatusBanner />
+      {allowed ? (
         <>
           <ControlledRegisterFilters
-            filters={page.filters}
-            products={page.products}
-            patients={page.patients}
-            pharmacists={page.pharmacists}
-            disabled={page.busy}
-            onChange={page.onChangeFilters}
-            onApply={page.onApplyFilters}
+            filters={filters}
+            products={products}
+            patients={patients}
+            pharmacists={pharmacists}
+            disabled={busy}
+            onChange={(next) => dispatch(filtersChanged(next))}
+            onApply={() => {
+              void dispatch(loadControlledRegister());
+            }}
           />
-          {page.status === 'loading' || page.status === 'denied' ? null : (
-            <ControlledRegisterList items={page.items} />
-          )}
+          {status === 'loading' || status === 'denied' ? null : <ControlledRegisterList items={items} />}
         </>
       ) : null}
     </div>

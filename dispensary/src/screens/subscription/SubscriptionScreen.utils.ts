@@ -160,4 +160,54 @@ export function sortPlans(plans: PlanOffer[]): PlanOffer[] {
   });
 }
 
+export function planTagline(code: string): string {
+  switch (code) {
+    case 'FREE':
+      return 'Core billing — free forever';
+    case 'STARTER':
+      return 'Single counter';
+    case 'GROWTH':
+      return 'Most popular';
+    case 'PRO':
+      return 'Hospital, kiosk & more';
+    default:
+      return 'Pharmacy plan';
+  }
+}
+
+export function planFeatures(plan: PlanOffer): string[] {
+  const items: string[] = [];
+  if (plan.entitledModules.includes('SALES')) {
+    items.push('Billing / POS & GST invoices');
+  }
+  if (plan.entitledModules.includes('INVENTORY')) {
+    items.push('Inventory, batches & expiry');
+  }
+  if (plan.entitledModules.includes('PROCUREMENT')) {
+    items.push('Purchases & goods-inward');
+  }
+  if (plan.entitledModules.includes('CRM')) {
+    items.push('Prescriptions & customers');
+  }
+  if (plan.entitledModules.includes('FINANCE')) {
+    items.push('Credit / Khata ledger');
+  }
+  if (plan.entitledModules.includes('REPORTING')) {
+    items.push('Reports, CRM & CA sharing');
+  }
+  if (plan.entitledModules.includes('KIOSK')) {
+    items.push('Self-order kiosk');
+  }
+  if (plan.maxUsers == null) {
+    items.push('Unlimited users & branches');
+  } else {
+    items.push(`Up to ${plan.maxUsers} users`);
+  }
+  return items.slice(0, 5);
+}
+
+export function formatRupees(paise: number): string {
+  return `₹${(paise / 100).toLocaleString('en-IN', { maximumFractionDigits: 0 })}`;
+}
+
 export type { CurrentSubscription, PlanOffer };

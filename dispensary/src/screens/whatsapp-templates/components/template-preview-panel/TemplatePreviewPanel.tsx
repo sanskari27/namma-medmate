@@ -1,17 +1,22 @@
-import type { WhatsAppTemplate } from '@/services/whatsappTemplates';
+import { useSelector } from 'react-redux';
+import { selectWhatsappPreview, selectWhatsappSelected } from '../../store';
 
-export type TemplatePreviewPanelProps = {
-  template: WhatsAppTemplate;
-  preview: string;
-};
-
-export function TemplatePreviewPanel({ template, preview }: TemplatePreviewPanelProps) {
+export function TemplatePreviewPanel() {
+  const template = useSelector(selectWhatsappSelected);
+  const preview = useSelector(selectWhatsappPreview);
+  if (!template) {
+    return null;
+  }
   return (
-    <div className="border border-line bg-surface p-3">
-      <p className="text-sm font-medium text-ink">How it reads at the counter</p>
-      <p className="mt-2 text-sm leading-6 text-ink">{preview}</p>
+    <div className="ws-card ws-card-pad">
+      <h3 style={{ margin: 0, fontFamily: 'Manrope, Inter, sans-serif', fontSize: 15, fontWeight: 800 }}>
+        How it reads at the counter
+      </h3>
+      <p className="ws-quote" style={{ marginTop: 12 }}>
+        {preview}
+      </p>
       {template.runtimeSlots.length > 0 ? (
-        <p className="mt-2 text-xs text-muted">
+        <p className="ws-muted" style={{ marginTop: 10 }}>
           Patient and medicine names fill when the message is sent.
         </p>
       ) : null}

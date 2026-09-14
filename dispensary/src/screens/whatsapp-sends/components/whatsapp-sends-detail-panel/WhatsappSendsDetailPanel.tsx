@@ -1,37 +1,53 @@
-import { Button } from '@atoms';
-import type { WhatsAppMessage } from '@/services/whatsappMessages';
 import type { Ref } from 'react';
+import { useSelector } from 'react-redux';
 import { kindLabel, outcomeLabel } from '../../WhatsappSendsScreen.utils';
+import { selectWhatsappSendsBusy, selectWhatsappSendsSelected } from '../../store';
 
 export type WhatsappSendsDetailPanelProps = {
-  message: WhatsAppMessage;
-  busy: boolean;
   retryRef?: Ref<HTMLButtonElement>;
   onRetry: () => void;
 };
 
-export function WhatsappSendsDetailPanel({
-  message,
-  busy,
-  retryRef,
-  onRetry,
-}: WhatsappSendsDetailPanelProps) {
+export function WhatsappSendsDetailPanel({ retryRef, onRetry }: WhatsappSendsDetailPanelProps) {
+  const message = useSelector(selectWhatsappSendsSelected);
+  const busy = useSelector(selectWhatsappSendsBusy);
+  if (!message) {
+    return null;
+  }
+  const failed = message.status === 'FAILED';
   return (
-    <section className="space-y-3 border border-line bg-surface p-3" aria-label="Send preview">
-      <h2 className="text-sm font-semibold text-ink">This send</h2>
-      <p className="text-sm text-ink">
-        {kindLabel(message.kind)} · {outcomeLabel(message.status)}
+    <section className="wh-card wh-card-pad" aria-label="Send preview">
+      <h3 style={{ margin: 0, fontFamily: 'Manrope, Inter, sans-serif', fontSize: 15, fontWeight: 800 }}>
+        This send
+      </h3>
+      <div className="wh-pills" style={{ marginTop: 10 }}>
+        <span className="wh-pill" data-tone="tag">
+          {kindLabel(message.kind)}
+        </span>
+        <span
+          className="wh-pill"
+          data-tone={message.status === 'SENT' ? undefined : message.status === 'FAILED' ? 'rose' : 'gold'}
+        >
+          {outcomeLabel(message.status)}
+        </span>
+      </div>
+      <p className="wh-muted" style={{ marginTop: 10 }}>
+        Approved slot: {message.templateUniqueName}
       </p>
-      <p className="text-sm text-muted">Approved slot: {message.templateUniqueName}</p>
-      <blockquote className="border border-line bg-canvas px-3 py-2 text-sm text-ink">
-        {message.preview}
-      </blockquote>
-      {message.failureCode ? (
-        <p className="font-mono text-xs text-muted">{message.failureCode}</p>
+      <blockquote className="wh-quote">{message.preview}</blockquote>
+      {message.failureCode ? <p className="wh-mono wh-muted">{message.failureCode}</p> : null}
+      {failed ? (
+        <button
+          ref={retryRef}
+          type="button"
+          className="wh-btn wh-btn-primary"
+          disabled={busy}
+          onClick={onRetry}
+          style={{ marginTop: 12 }}
+        >
+          {busy ? 'Sending…' : 'Send again'}
+        </button>
       ) : null}
-      <Button ref={retryRef} type="button" disabled={busy} onClick={onRetry}>
-        {busy ? 'Sending…' : 'Send again'}
-      </Button>
     </section>
   );
 }

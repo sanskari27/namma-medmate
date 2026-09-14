@@ -55,11 +55,20 @@ public class CaPackService {
 
   @Transactional(readOnly = true)
   public CaPackView preview(
-      AuthPrincipal principal, LocalDate from, LocalDate to, String branchId, String scope) {
+      AuthPrincipal principal,
+      LocalDate from,
+      LocalDate to,
+      String branchId,
+      String scope,
+      String sectionsRaw) {
+    java.util.Set<String> wanted = wantedSections(sectionsRaw);
     List<CaPackSection> sections = new ArrayList<>();
     FinanceReportTableView first = null;
     PlanCode plan = subscriptionService.resolveReportPlan(principal.tenantId());
     for (FinanceReportKey key : CORE_KEYS) {
+      if (!wanted.isEmpty() && !wanted.contains(key.name())) {
+        continue;
+      }
       if (!ReportAccessPolicy.entitled(plan, ReportAccessPolicy.capability(key))) {
         continue;
       }
@@ -73,6 +82,7 @@ public class CaPackService {
     boolean tenantScope = "tenant".equalsIgnoreCase(scope == null ? "" : scope.trim());
     if (principal.role() == AppUserRole.pharmacy_owner
         && tenantScope
+        && (wanted.isEmpty() || wanted.contains(FinanceReportKey.BRANCH_PNL.name()))
         && ReportAccessPolicy.entitled(plan, ReportCapability.BRANCH_PNL)) {
       sections.add(
           fromTable(
@@ -81,16 +91,20 @@ public class CaPackService {
     }
     LocalDate asOf = first == null ? to : first.to();
     if (ReportAccessPolicy.entitled(plan, ReportCapability.AGING)) {
-      sections.add(
-          fromAging(
-              "RECEIVABLES",
-              "Khata dues",
-              agingService.receivables(principal, asOf, branchId, scope)));
-      sections.add(
-          fromAging(
-              "PAYABLES",
-              "Stockist dues",
-              agingService.payables(principal, asOf, branchId, scope)));
+      if (wanted.isEmpty() || wanted.contains("RECEIVABLES")) {
+        sections.add(
+            fromAging(
+                "RECEIVABLES",
+                "Khata dues",
+                agingService.receivables(principal, asOf, branchId, scope)));
+      }
+      if (wanted.isEmpty() || wanted.contains("PAYABLES")) {
+        sections.add(
+            fromAging(
+                "PAYABLES",
+                "Stockist dues",
+                agingService.payables(principal, asOf, branchId, scope)));
+      }
     }
     Instant generatedAt = first == null ? Instant.now() : first.generatedAt();
     return new CaPackView(
@@ -109,9 +123,10 @@ public class CaPackService {
       LocalDate from,
       LocalDate to,
       String branchId,
-      String scope) {
+      String scope,
+      String sectionsRaw) {
     FinanceAccessPolicy.requirePdf(format);
-    CaPackView pack = preview(principal, from, to, branchId, scope);
+    CaPackView pack = preview(principal, from, to, branchId, scope, sectionsRaw);
     int rows = 0;
     for (CaPackSection section : pack.sections()) {
       rows += section.items().size();
@@ -137,6 +152,20 @@ public class CaPackService {
                 + pack.scope()
                 + "\"}"));
     return new FinanceReportExport("ca-pack.pdf", "application/pdf", body);
+  }
+
+  private static java.util.Set<String> wantedSections(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return java.util.Set.of();
+    }
+    java.util.Set<String> keys = new java.util.LinkedHashSet<>();
+    for (String part : raw.split(",")) {
+      String key = part.trim().toUpperCase();
+      if (!key.isEmpty()) {
+        keys.add(key);
+      }
+    }
+    return keys;
   }
 
   private static CaPackSection fromTable(FinanceReportTableView table) {

@@ -1,41 +1,28 @@
-import { ROUTES } from '@/libs/constants/routes.const';
-import { statusCopy, statusIcon, type PageStatus } from '../../AgingScreen.utils';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '@/libs/constants/routes.const';
+import { statusCopy, statusIcon } from '../../AgingScreen.utils';
+import { selectAgingPlanGate, selectAgingStatus, selectAgingStatusHint } from '../../store';
 
-export type AgingStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-  planGate?: boolean;
-};
-
-export function AgingStatusBanner({
-  status,
-  statusId,
-  hint,
-  planGate = false,
-}: AgingStatusBannerProps) {
-  const text = statusCopy(status, hint);
-  if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+export function AgingStatusBanner() {
+  const status = useSelector(selectAgingStatus);
+  const hint = useSelector(selectAgingStatusHint);
+  const planGate = useSelector(selectAgingPlanGate);
+  const copy = statusCopy(status, hint);
+  if (!copy || status === 'loading' || status === 'empty' || status === null) {
+    return null;
   }
   const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
+  const tone = status === 'success' ? 'ok' : 'alert';
   return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+    <p className="ag-alert" data-tone={tone} role={status === 'denied' ? 'alert' : 'status'}>
+      <Icon size={16} aria-hidden />
       <span>
-        {text}
+        {copy}
         {planGate ? (
           <>
             {' '}
-            <Link className="text-brand underline" to={ROUTES.SUBSCRIPTION}>
-              Open the plan
-            </Link>
+            <Link to={ROUTES.SUBSCRIPTION}>Open the plan</Link>
           </>
         ) : null}
       </span>

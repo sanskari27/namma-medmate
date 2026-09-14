@@ -1,39 +1,42 @@
-import { Button } from '@atoms';
-import type { Branch } from '@/services/branches';
-import type { ComplianceLicense } from '@/services/licenses';
-import type { StaffAccount } from '@/services/staff';
-import type { FormState } from '../../LicensesScreen.utils';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch } from '@/store';
 import { LicenseDateFields } from '../license-date-fields';
 import { LicenseEvidenceFields } from '../license-evidence-fields';
 import { LicenseIdentityFields } from '../license-identity-fields';
+import {
+  formPatched,
+  saveLicense,
+  selectLicensesBranches,
+  selectLicensesBusy,
+  selectLicensesCreating,
+  selectLicensesForm,
+  selectLicensesSelected,
+  selectLicensesStaff,
+} from '../../store';
 
-export type LicenseFormPanelProps = {
-  form: FormState;
-  creating: boolean;
-  selected: ComplianceLicense | null;
-  branches: Branch[];
-  staff: StaffAccount[];
-  busy: boolean;
-  onChange: (patch: Partial<FormState>) => void;
-  onSave: () => void;
-};
+export function LicenseFormPanel() {
+  const dispatch = useDispatch<AppDispatch>();
+  const form = useSelector(selectLicensesForm);
+  const creating = useSelector(selectLicensesCreating);
+  const selected = useSelector(selectLicensesSelected);
+  const branches = useSelector(selectLicensesBranches);
+  const staff = useSelector(selectLicensesStaff);
+  const busy = useSelector(selectLicensesBusy);
 
-export function LicenseFormPanel({
-  form,
-  creating,
-  selected,
-  branches,
-  staff,
-  busy,
-  onChange,
-  onSave,
-}: LicenseFormPanelProps) {
+  if (!creating && !selected) {
+    return (
+      <div className="lc-card lc-card-pad">
+        <p className="lc-muted">Select a licence or add a new paper.</p>
+      </div>
+    );
+  }
+
   return (
     <form
-      className="flex min-h-0 flex-col gap-4 border border-line bg-surface p-3"
+      className="lc-card lc-card-pad lc-form"
       onSubmit={(event) => {
         event.preventDefault();
-        onSave();
+        void dispatch(saveLicense());
       }}
     >
       <LicenseIdentityFields
@@ -41,19 +44,17 @@ export function LicenseFormPanel({
         creating={creating}
         branches={branches}
         staff={staff}
-        onChange={onChange}
+        onChange={(patch) => dispatch(formPatched(patch))}
       />
-      <LicenseDateFields form={form} onChange={onChange} />
+      <LicenseDateFields form={form} onChange={(patch) => dispatch(formPatched(patch))} />
       <LicenseEvidenceFields
         licenseId={selected?.id}
         prior={selected?.evidence ?? []}
-        onFile={(evidence) => onChange({ evidence })}
+        onFile={(evidence) => dispatch(formPatched({ evidence }))}
       />
-      <div className="mt-auto border-t border-line pt-3">
-        <Button type="submit" disabled={busy}>
-          {creating ? 'File this licence' : 'Renew this licence'}
-        </Button>
-      </div>
+      <button type="submit" className="lc-btn lc-btn-primary" disabled={busy}>
+        {creating ? 'File this licence' : 'Renew this licence'}
+      </button>
     </form>
   );
 }

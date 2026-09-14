@@ -1,1 +1,0 @@
-export { ShopBooksFilterBar } from './ShopBooksFilterBar';

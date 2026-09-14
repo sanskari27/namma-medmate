@@ -1,179 +1,91 @@
-import { Button } from '@atoms';
-import type { CurrentSubscription, PlanOffer } from '@/services/subscriptions';
+import { Check, Star } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch } from '@/store';
+import { selectSubCurrent, selectSubPending, selectSubPlans, switchPlan } from '../../store';
+import {
+  formatRupees,
+  isPaidPlan,
+  planFeatures,
+  planLabel,
+  planTagline,
+} from '../../SubscriptionScreen.utils';
 
-const PLAN_ORDER = ['FREE', 'STARTER', 'GROWTH', 'PRO'] as const;
+export function PlanRateBoard() {
+  const dispatch = useDispatch<AppDispatch>();
+  const plans = useSelector(selectSubPlans);
+  const current = useSelector(selectSubCurrent);
+  const pending = useSelector(selectSubPending);
 
-type PlanRateBoardProps = {
-  plans: PlanOffer[];
-  current: CurrentSubscription | null;
-  pendingPlan: string | null;
-  onSwitch: (planCode: string) => void;
-};
-
-function planLabel(code: string): string {
-  switch (code) {
-    case 'FREE':
-      return 'Free';
-    case 'STARTER':
-      return 'Starter';
-    case 'GROWTH':
-      return 'Growth';
-    case 'PRO':
-      return 'Pro';
-    default:
-      return code;
-  }
-}
-
-function stubIndex(code: string): string {
-  const rank = PLAN_ORDER.indexOf(code as (typeof PLAN_ORDER)[number]);
-  return String(rank + 1).padStart(2, '0');
-}
-
-function monthly(paise: number): { amount: string; cadence: string } {
-  if (paise === 0) {
-    return { amount: '₹0.00', cadence: 'no monthly bill' };
-  }
-  return {
-    amount: `₹${(paise / 100).toLocaleString('en-IN', {
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    })}`,
-    cadence: 'a month',
-  };
-}
-
-function fitsFloor(plan: PlanOffer, current: CurrentSubscription | null): boolean {
-  if (!current) {
-    return true;
-  }
-  if (current.branchesUsed > plan.maxBranches) {
-    return false;
-  }
-  if (plan.maxUsers != null && current.usersUsed > plan.maxUsers) {
-    return false;
-  }
-  return true;
-}
-
-function SlotMarks({ count, label }: { count: number; label: string }) {
-  const shown = Math.min(count, 8);
   return (
-    <div>
-      <p className="text-xs text-muted">{label}</p>
-      <ol className="mt-1 flex gap-0.5" aria-hidden="true">
-        {Array.from({ length: shown }, (_, index) => (
-          <li key={index} className="size-3.5 border border-brand bg-brand-soft" />
-        ))}
-        {count > shown ? (
-          <li className="pl-1 font-mono text-[10px] text-muted">+{count - shown}</li>
-        ) : null}
-      </ol>
-    </div>
-  );
-}
-
-export function PlanRateBoard({ plans, current, pendingPlan, onSwitch }: PlanRateBoardProps) {
-  return (
-    <ul className="flex flex-col gap-2">
-      {plans.map((plan) => {
-        const currentPlan = current?.planCode === plan.planCode;
-        const price = monthly(plan.pricePaiseMonthly);
-        const fit = fitsFloor(plan, current);
-        const loyalty = plan.entitledModules.includes('LOYALTY');
-        const kiosk = plan.entitledModules.includes('KIOSK');
-        return (
-          <li key={plan.planCode}>
-            <article
-              className={
-                currentPlan
-                  ? 'flex border border-brand bg-brand-soft'
-                  : 'flex border border-line bg-surface'
-              }
-            >
-              <p
-                className={
-                  currentPlan
-                    ? 'flex w-12 shrink-0 flex-col items-center justify-center bg-brand font-mono text-xs text-surface'
-                    : 'flex w-12 shrink-0 flex-col items-center justify-center bg-ink font-mono text-xs text-surface'
-                }
-                aria-hidden="true"
-              >
-                {stubIndex(plan.planCode)}
-              </p>
-              <div className="min-w-0 flex-1">
-                <div className="flex flex-wrap items-baseline justify-between gap-2 border-b border-dashed border-line px-3 py-2">
-                  <h3 className="font-sans text-base font-semibold text-ink">
-                    {planLabel(plan.planCode)}
-                  </h3>
-                  <p className="font-mono text-ink">
-                    <span className="text-xl tabular-nums">{price.amount}</span>
-                    <span className="ml-2 text-xs text-muted">{price.cadence}</span>
-                  </p>
-                </div>
-                <div className="flex flex-wrap items-end justify-between gap-3 px-3 py-3">
-                  <div className="flex flex-wrap gap-6">
-                    <SlotMarks
-                      count={plan.maxBranches}
-                      label={`${plan.maxBranches} outlet ${plan.maxBranches === 1 ? 'stall' : 'stalls'}`}
-                    />
-                    {plan.maxUsers == null ? (
-                      <div>
-                        <p className="text-xs text-muted">Till logins</p>
-                        <p className="mt-1 font-mono text-sm text-ink">Open</p>
-                      </div>
-                    ) : (
-                      <SlotMarks count={plan.maxUsers} label={`${plan.maxUsers} till logins`} />
-                    )}
-                    <div>
-                      <p className="text-xs text-muted">Loyalty desk</p>
-                      <p className="mt-1 text-sm text-ink">
-                        {loyalty ? 'Points desk open' : 'Locked'}
-                      </p>
-                    </div>
-                    <div>
-                      <p className="text-xs text-muted">Self-order kiosk</p>
-                      <p className="mt-1 text-sm text-ink">{kiosk ? 'Pro kiosk open' : 'Locked'}</p>
-                    </div>
-                  </div>
-                  <div className="flex flex-col items-end gap-1">
-                    {currentPlan ? (
-                      <p className="text-sm text-muted">On this plan</p>
-                    ) : (
-                      <>
-                        <p className={fit ? 'text-xs text-muted' : 'text-xs text-warn'}>
-                          {fit
-                            ? 'Fits this floor’s current stalls and till keys'
-                            : 'Won’t fit this floor until you close an outlet or till login'}
-                        </p>
-                        <Button
-                          type="button"
-                          size="sm"
-                          disabled={pendingPlan !== null}
-                          aria-label={
-                            plan.pricePaiseMonthly > 0
-                              ? `Pay this pharmacy’s plan for ${planLabel(plan.planCode)}`
-                              : `Switch this pharmacy to ${planLabel(plan.planCode)}`
-                          }
-                          onClick={() => onSwitch(plan.planCode)}
-                        >
-                          {pendingPlan === plan.planCode
-                            ? plan.pricePaiseMonthly > 0
-                              ? 'Opening checkout…'
-                              : 'Switching…'
-                            : plan.pricePaiseMonthly > 0
-                              ? 'Pay this plan'
-                              : 'Switch plan'}
-                        </Button>
-                      </>
-                    )}
-                  </div>
-                </div>
+    <>
+      <div className="sb-sec-head sb-flex" style={{ justifyContent: 'space-between' }}>
+        <h2>Plans</h2>
+        <span className="sb-muted">switch anytime · prices exclude 18% GST</span>
+      </div>
+      <div className="sb-plans">
+        {plans.map((plan) => {
+          const on = current?.planCode === plan.planCode;
+          const popular = plan.planCode === 'GROWTH';
+          const label = planLabel(plan.planCode);
+          return (
+            <article key={plan.planCode} className="sb-card sb-plan" data-current={on}>
+              {plan.planCode === 'FREE' ? (
+                <span className="sb-pill sb-plan-badge">
+                  <Check size={12} /> Free forever
+                </span>
+              ) : null}
+              {popular ? (
+                <span className="sb-pill sb-plan-badge" data-tone="gold">
+                  <Star size={12} /> Popular
+                </span>
+              ) : null}
+              <h3>{label}</h3>
+              <div className="sb-muted" style={{ fontSize: 12 }}>
+                {planTagline(plan.planCode)}
               </div>
+              <div className="sb-price">
+                {formatRupees(plan.pricePaiseMonthly)}
+                {plan.pricePaiseMonthly > 0 ? (
+                  <span className="sb-muted" style={{ fontSize: 13, fontWeight: 600 }}>
+                    /month
+                  </span>
+                ) : null}
+              </div>
+              <div className="sb-muted" style={{ fontSize: 11.5, marginBottom: 12 }}>
+                {plan.maxBranches} outlet{plan.maxBranches === 1 ? '' : 's'}
+              </div>
+              <div style={{ marginBottom: 14 }}>
+                {planFeatures(plan).map((feat) => (
+                  <div key={feat} className="sb-feat">
+                    <Check size={13} />
+                    <span>{feat}</span>
+                  </div>
+                ))}
+              </div>
+              {on ? (
+                <button type="button" className="sb-btn sb-btn-ghost sb-btn-block" disabled>
+                  Current plan
+                </button>
+              ) : (
+                <button
+                  type="button"
+                  className={`sb-btn sb-btn-block ${isPaidPlan(plan) ? 'sb-btn-primary' : 'sb-btn-ghost'}`}
+                  disabled={pending !== null}
+                  onClick={() => void dispatch(switchPlan(plan.planCode))}
+                >
+                  {pending === plan.planCode
+                    ? isPaidPlan(plan)
+                      ? 'Opening checkout…'
+                      : 'Switching…'
+                    : isPaidPlan(plan)
+                      ? `Upgrade to ${label}`
+                      : `Switch to ${label}`}
+                </button>
+              )}
             </article>
-          </li>
-        );
-      })}
-    </ul>
+          );
+        })}
+      </div>
+    </>
   );
 }

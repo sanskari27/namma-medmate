@@ -1,4 +1,3 @@
-import { Button, Input, Label } from '@atoms';
 import type { FilterState } from '../../RegistersScreen.utils';
 
 export type RegistersFiltersProps = {
@@ -18,47 +17,47 @@ export function RegistersFilters({
 }: RegistersFiltersProps) {
   return (
     <form
-      className="flex flex-wrap items-end gap-3 border border-line bg-surface p-3"
+      className="rg-card rg-card-pad rg-toolbar"
       aria-label="Register book filters"
       onSubmit={(event) => {
         event.preventDefault();
         onApply();
       }}
     >
-      <div className="space-y-1.5">
-        <Label htmlFor="register-from">From</Label>
-        <Input
-          id="register-from"
+      <label className="rg-field">
+        From
+        <input
+          className="rg-input"
           type="date"
           value={filters.from}
           disabled={disabled}
           onChange={(event) => onChange({ ...filters, from: event.target.value })}
         />
-      </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="register-to">To</Label>
-        <Input
-          id="register-to"
+      </label>
+      <label className="rg-field">
+        To
+        <input
+          className="rg-input"
           type="date"
           value={filters.to}
           disabled={disabled}
           onChange={(event) => onChange({ ...filters, to: event.target.value })}
         />
-      </div>
+      </label>
       {showBatch ? (
-        <div className="space-y-1.5">
-          <Label htmlFor="register-batch">Batch</Label>
-          <Input
-            id="register-batch"
+        <label className="rg-field">
+          Batch
+          <input
+            className="rg-input"
             value={filters.batchNumber}
             disabled={disabled}
             onChange={(event) => onChange({ ...filters, batchNumber: event.target.value })}
           />
-        </div>
+        </label>
       ) : null}
-      <Button type="submit" variant="outline" disabled={disabled}>
-        Apply filters
-      </Button>
+      <button type="submit" className="rg-btn rg-btn-ghost" disabled={disabled}>
+        Apply
+      </button>
     </form>
   );
 }

@@ -9,17 +9,9 @@ export type RegistersUpgradeProps = {
 
 export function RegistersUpgrade({ hint, linkRef }: RegistersUpgradeProps) {
   return (
-    <div
-      className="border border-line bg-surface px-3 py-6"
-      role="region"
-      aria-label="Plan required for this register"
-    >
-      <p className="text-sm text-ink">{hint}</p>
-      <Link
-        ref={linkRef}
-        to={ROUTES.SUBSCRIPTION}
-        className="mt-2 inline-block text-sm font-medium text-brand underline-offset-2 hover:underline"
-      >
+    <div className="rg-card rg-card-pad" role="region" aria-label="Plan required for this register">
+      <p style={{ margin: 0 }}>{hint}</p>
+      <Link ref={linkRef} to={ROUTES.SUBSCRIPTION} className="rg-btn rg-btn-primary" style={{ marginTop: 12 }}>
         Open the plan
       </Link>
     </div>

@@ -16,6 +16,22 @@ import { kioskReducer } from '@/screens/kiosk/store/kiosk.slice';
 import { trendsReducer } from '@/screens/trends/store/trends.slice';
 import { customReportsReducer } from '@/screens/custom-reports/store/customReports.slice';
 import { expensesReducer } from '@/screens/expenses/store/expenses.slice';
+import { agingReducer } from '@/screens/aging/store/aging.slice';
+import { shopBooksReducer } from '@/screens/shop-books/store/shopBooks.slice';
+import { caPackReducer } from '@/screens/ca-pack/store/caPack.slice';
+import { accountReducer } from '@/screens/account/store/account.slice';
+import { subscriptionReducer } from '@/screens/subscription/store/subscription.slice';
+import { staffAccountsReducer } from '@/screens/staff-accounts/store/staffAccounts.slice';
+import { licensesReducer } from '@/screens/licenses/store/licenses.slice';
+import { counterRolesReducer } from '@/screens/counter-roles/store/counterRoles.slice';
+import { signOffRulesReducer } from '@/screens/sign-off-rules/store/signOffRules.slice';
+import { waitingSignOffReducer } from '@/screens/waiting-sign-off/store/waitingSignOff.slice';
+import { floorActivityReducer } from '@/screens/floor-activity/store/floorActivity.slice';
+import { branchesReducer } from '@/screens/branches/store/branches.slice';
+import { whatsappTemplatesReducer } from '@/screens/whatsapp-templates/store/whatsappTemplates.slice';
+import { whatsappSendsReducer } from '@/screens/whatsapp-sends/store/whatsappSends.slice';
+import { registersReducer } from '@/screens/registers/store/registers.slice';
+import { controlledRegisterReducer } from '@/screens/controlled-register/store/controlledRegister.slice';
 
 export {
   authReducer,
@@ -54,7 +70,30 @@ export const store = configureStore({
     trends: trendsReducer,
     customReports: customReportsReducer,
     expenses: expensesReducer,
+    aging: agingReducer,
+    shopBooks: shopBooksReducer,
+    caPack: caPackReducer,
+    account: accountReducer,
+    subscription: subscriptionReducer,
+    staffAccounts: staffAccountsReducer,
+    licenses: licensesReducer,
+    counterRoles: counterRolesReducer,
+    signOffRules: signOffRulesReducer,
+    waitingSignOff: waitingSignOffReducer,
+    floorActivity: floorActivityReducer,
+    branches: branchesReducer,
+    whatsappTemplates: whatsappTemplatesReducer,
+    whatsappSends: whatsappSendsReducer,
+    registers: registersReducer,
+    controlledRegister: controlledRegisterReducer,
   },
+  middleware: (getDefault) =>
+    getDefault({
+      serializableCheck: {
+        ignoredActions: ['licenses/formPatched', 'licenses/save'],
+        ignoredPaths: ['licenses.form.evidence'],
+      },
+    }),
 });
 
 export type RootState = ReturnType<typeof store.getState>;

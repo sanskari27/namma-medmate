@@ -31,6 +31,7 @@ export type CaPackQuery = {
   to?: string;
   branchId?: string;
   scope?: string;
+  sections?: string;
 };
 
 export async function getCaPack(query: CaPackQuery = {}): Promise<CaPack> {

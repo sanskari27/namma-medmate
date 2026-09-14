@@ -1,28 +1,43 @@
-import { Button, Reveal } from '@atoms';
-import type { Ref } from 'react';
+import { Plus } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import { selectLicensesDue, startCreate, licenseSelected } from '../../store';
+import { formatIstDate, typeLabel } from '../../LicensesScreen.utils';
 
-export type LicensesHeaderProps = {
-  addButtonRef?: Ref<HTMLButtonElement>;
-  denied?: boolean;
-  onAdd: () => void;
-};
-
-export function LicensesHeader({ addButtonRef, denied = false, onAdd }: LicensesHeaderProps) {
+export function LicensesHeader({ denied }: { denied: boolean }) {
+  const dispatch = useDispatch();
+  const due = useSelector(selectLicensesDue);
   return (
-    <Reveal>
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
+    <>
+      <div className="lc-toolbar">
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Licences</h1>
-          <p className="mt-1 text-sm text-muted">
-            Drug licence, GST, FSSAI, and pharmacist registration for this pharmacy.
-          </p>
+          <h2 style={{ margin: 0, fontFamily: 'Manrope, Inter, sans-serif', fontSize: 16 }}>Licences</h2>
+          <span className="lc-muted">Drug, GST, FSSAI and pharmacist papers for this pharmacy</span>
         </div>
+        <div className="lc-toolbar-spacer" />
         {denied ? null : (
-          <Button ref={addButtonRef} type="button" onClick={onAdd}>
-            File a licence
-          </Button>
+          <button type="button" className="lc-btn lc-btn-primary" onClick={() => dispatch(startCreate())}>
+            <Plus size={16} /> Add licence
+          </button>
         )}
-      </header>
-    </Reveal>
+      </div>
+      {due.length > 0 ? (
+        <div className="lc-card lc-card-pad" style={{ borderColor: '#f0c9b8', background: '#feecec' }}>
+          <b style={{ color: '#e2542a' }}>Due within 30 days</b>
+          <div className="lc-pills" style={{ marginTop: 8 }}>
+            {due.map((row) => (
+              <button
+                key={row.id}
+                type="button"
+                className="lc-chip"
+                data-on="true"
+                onClick={() => dispatch(licenseSelected(row.id))}
+              >
+                {typeLabel(row.docType)} · {formatIstDate(row.expiresOn)}
+              </button>
+            ))}
+          </div>
+        </div>
+      ) : null}
+    </>
   );
 }

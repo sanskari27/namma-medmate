@@ -31,9 +31,10 @@ public class CaPackController {
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) String branchId,
-      @RequestParam(required = false) String scope) {
+      @RequestParam(required = false) String scope,
+      @RequestParam(required = false) String sections) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(caPackService.preview(principal, from, to, branchId, scope));
+    return ApiResponse.ok(caPackService.preview(principal, from, to, branchId, scope, sections));
   }
 
   @GetMapping("/export")
@@ -43,9 +44,11 @@ public class CaPackController {
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
       @RequestParam(required = false) String branchId,
-      @RequestParam(required = false) String scope) {
+      @RequestParam(required = false) String scope,
+      @RequestParam(required = false) String sections) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    FinanceReportExport file = caPackService.export(principal, format, from, to, branchId, scope);
+    FinanceReportExport file =
+        caPackService.export(principal, format, from, to, branchId, scope, sections);
     return ResponseEntity.ok()
         .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + file.filename() + "\"")
         .contentType(MediaType.parseMediaType(file.contentType()))

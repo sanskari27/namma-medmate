@@ -1,41 +1,27 @@
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { statusCopy, statusIcon, type PageStatus } from '../../ShopBooksScreen.utils';
+import { statusCopy, statusIcon } from '../../ShopBooksScreen.utils';
+import { selectShopBooksPlanGate, selectShopBooksStatus, selectShopBooksStatusHint } from '../../store';
 
-export type ShopBooksStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-  planGate?: boolean;
-};
-
-export function ShopBooksStatusBanner({
-  status,
-  statusId,
-  hint,
-  planGate = false,
-}: ShopBooksStatusBannerProps) {
-  const text = statusCopy(status, hint);
-  if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+export function ShopBooksStatusBanner() {
+  const status = useSelector(selectShopBooksStatus);
+  const hint = useSelector(selectShopBooksStatusHint);
+  const planGate = useSelector(selectShopBooksPlanGate);
+  const copy = statusCopy(status, hint);
+  if (!copy || status === 'loading' || status === 'empty' || status === null) {
+    return null;
   }
   const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
   return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
+    <p className="bk-alert" data-tone={status === 'success' ? 'ok' : 'alert'} role={status === 'denied' ? 'alert' : 'status'}>
+      <Icon size={16} aria-hidden />
       <span>
-        {text}
+        {copy}
         {planGate ? (
           <>
             {' '}
-            <Link className="text-brand underline" to={ROUTES.SUBSCRIPTION}>
-              Open the plan
-            </Link>
+            <Link to={ROUTES.SUBSCRIPTION}>Open the plan</Link>
           </>
         ) : null}
       </span>

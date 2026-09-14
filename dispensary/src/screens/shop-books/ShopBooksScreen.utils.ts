@@ -1,19 +1,86 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import type { FinanceReportCatalogItem } from '@/services/financeReports';
+import type { FilterChipId } from './ShopBooksScreen.content';
 
 export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+  | 'loading'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
 
 export type OutletScope = 'session' | 'tenant';
 
-export type FilterState = {
-  from: string;
-  to: string;
+export type PeriodKind = 'today' | 'month' | 'year' | 'fy' | 'custom' | 'all';
+
+export type PeriodSpan = 'single' | 'range';
+
+export type ReportGroup = 'favourite' | 'gst' | 'transaction';
+
+export type ReportMeta = {
+  group: Exclude<ReportGroup, 'favourite'>;
+  favourite?: boolean;
+  tags: FilterChipId[];
+  catalogTitle: string;
+  hint: string;
 };
 
-export const emptyFilters = (): FilterState => ({
-  from: '',
-  to: '',
-});
+export const REPORT_META: Record<string, ReportMeta> = {
+  PROFIT_AND_LOSS: {
+    group: 'transaction',
+    favourite: true,
+    tags: ['summary'],
+    catalogTitle: 'Profit And Loss Report',
+    hint: 'Revenue, spend and profit for the period',
+  },
+  GSTR1: {
+    group: 'gst',
+    favourite: true,
+    tags: ['invoice'],
+    catalogTitle: 'GSTR-1 (Sales)',
+    hint: 'Outward supplies for the CA',
+  },
+  SALES_SUMMARY: {
+    group: 'transaction',
+    favourite: true,
+    tags: ['summary'],
+    catalogTitle: 'Sales Summary',
+    hint: 'Billed sales in this period',
+  },
+  GSTR3B: {
+    group: 'gst',
+    tags: ['summary'],
+    catalogTitle: 'GSTR-3b',
+    hint: 'GST payable summary',
+  },
+  DAY_BOOK: {
+    group: 'transaction',
+    tags: ['summary'],
+    catalogTitle: 'Daybook',
+    hint: 'Net sales vs purchases per day',
+  },
+  EXPENSE_SUMMARY: {
+    group: 'transaction',
+    tags: ['category'],
+    catalogTitle: 'Expense Category Report',
+    hint: 'Shop spend grouped by head',
+  },
+  PURCHASE_SUMMARY: {
+    group: 'transaction',
+    tags: ['summary'],
+    catalogTitle: 'Purchase Summary',
+    hint: 'Stockist buys in this period',
+  },
+  BRANCH_PNL: {
+    group: 'transaction',
+    tags: ['summary'],
+    catalogTitle: 'Outlet-wise Profit And Loss',
+    hint: 'P&L split by outlet',
+  },
+};
 
 export { hasFinanceAccess } from '@/libs/financeAccess';
 
@@ -21,32 +88,132 @@ export function todayIst(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 }
 
-export function filtersValid(filters: FilterState): boolean {
-  if (!filters.from || !filters.to) {
+export function currentMonth(): string {
+  return todayIst().slice(0, 7);
+}
+
+export function currentYear(): string {
+  return todayIst().slice(0, 4);
+}
+
+export function capToToday(value: string, today = todayIst()): string {
+  return value > today ? today : value;
+}
+
+export function monthEnd(month: string): string {
+  const [year, mo] = month.split('-').map(Number);
+  if (!year || !mo) {
+    return todayIst();
+  }
+  return capToToday(
+    new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date(year, mo, 0)),
+  );
+}
+
+export function fyRange(today = todayIst()): { from: string; to: string } {
+  const [year, month] = today.split('-').map(Number);
+  const startYear = month >= 4 ? year : year - 1;
+  return {
+    from: `${startYear}-04-01`,
+    to: capToToday(`${startYear + 1}-03-31`, today),
+  };
+}
+
+export type PeriodState = {
+  kind: PeriodKind;
+  span: PeriodSpan;
+  month: string;
+  monthTo: string;
+  year: string;
+  customFrom: string;
+  customTo: string;
+};
+
+export function defaultPeriod(): PeriodState {
+  const month = currentMonth();
+  return {
+    kind: 'month',
+    span: 'single',
+    month,
+    monthTo: month,
+    year: currentYear(),
+    customFrom: todayIst(),
+    customTo: todayIst(),
+  };
+}
+
+export function resolveRange(period: PeriodState): { from?: string; to?: string } {
+  const today = todayIst();
+  if (period.kind === 'all') {
+    const start = new Date(`${today}T12:00:00+05:30`);
+    start.setDate(start.getDate() - 365);
+    return {
+      from: new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(start),
+      to: today,
+    };
+  }
+  if (period.kind === 'today') {
+    return { from: today, to: today };
+  }
+  if (period.kind === 'fy') {
+    return fyRange(today);
+  }
+  if (period.kind === 'year') {
+    const year = period.year || currentYear();
+    return { from: `${year}-01-01`, to: capToToday(`${year}-12-31`) };
+  }
+  if (period.kind === 'custom' || period.span === 'range') {
+    if (period.kind === 'month' && period.span === 'range') {
+      return { from: `${period.month}-01`, to: monthEnd(period.monthTo || period.month) };
+    }
+    return {
+      from: period.customFrom || today,
+      to: capToToday(period.customTo || today),
+    };
+  }
+  return { from: `${period.month}-01`, to: monthEnd(period.month) };
+}
+
+export function periodLabel(period: PeriodState): string {
+  if (period.kind === 'today') {
+    return 'Today';
+  }
+  if (period.kind === 'all') {
+    return 'All time';
+  }
+  if (period.kind === 'fy') {
+    const { from } = fyRange();
+    const startYear = from.slice(0, 4);
+    return `FY ${startYear}-${String(Number(startYear) + 1).slice(2)}`;
+  }
+  if (period.kind === 'year') {
+    return period.year;
+  }
+  if (period.kind === 'custom') {
+    return `${period.customFrom} – ${period.customTo}`;
+  }
+  return formatMonth(period.month);
+}
+
+export function formatMonth(month: string): string {
+  const [year, mo] = month.split('-').map(Number);
+  if (!year || !mo) {
+    return month;
+  }
+  return new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(
+    new Date(year, mo - 1, 1),
+  );
+}
+
+export function rangeValid(from?: string, to?: string): boolean {
+  if (!from || !to) {
     return true;
   }
-  return filters.from <= filters.to;
+  return from <= to;
 }
 
-export function isFutureRange(filters: FilterState, today = todayIst()): boolean {
-  return Boolean(filters.to) && filters.to > today;
-}
-
-export function toQuery(
-  filters: FilterState,
-  scope: OutletScope,
-): { from?: string; to?: string; scope?: string } {
-  const query: { from?: string; to?: string; scope?: string } = {};
-  if (filters.from) {
-    query.from = filters.from;
-  }
-  if (filters.to) {
-    query.to = filters.to;
-  }
-  if (scope === 'tenant') {
-    query.scope = 'tenant';
-  }
-  return query;
+export function isFutureRange(to?: string, today = todayIst()): boolean {
+  return Boolean(to) && to > today;
 }
 
 export function filenameFor(key: string, format: 'csv' | 'pdf'): string {
@@ -71,27 +238,41 @@ export function planLabel(minPlan?: string): string | null {
   return null;
 }
 
+export function catalogTitle(key: string, fallback: string): string {
+  return REPORT_META[key]?.catalogTitle ?? shopBookTitle(key, fallback);
+}
+
+export function catalogHint(key: string): string {
+  return REPORT_META[key]?.hint ?? 'Shop book for this outlet';
+}
+
 export function shopBookTitle(key: string, fallback: string): string {
-  switch (key) {
-    case 'DAY_BOOK':
-      return 'Day book';
-    case 'SALES_SUMMARY':
-      return 'Sales';
-    case 'PURCHASE_SUMMARY':
-      return 'Stockist buys';
-    case 'EXPENSE_SUMMARY':
-      return 'Shop spend';
-    case 'PROFIT_AND_LOSS':
-      return 'Shop P&L';
-    case 'GSTR1':
-      return 'GST for the CA (GSTR-1)';
-    case 'GSTR3B':
-      return 'GST for the CA (GSTR-3B)';
-    case 'BRANCH_PNL':
-      return 'Outlet P&L';
-    default:
-      return fallback;
-  }
+  return catalogTitle(key, fallback);
+}
+
+export function groupedCatalog(
+  books: FinanceReportCatalogItem[],
+  search: string,
+  chip: FilterChipId | null,
+): Record<ReportGroup, FinanceReportCatalogItem[]> {
+  const q = search.trim().toLowerCase();
+  const match = (book: FinanceReportCatalogItem) => {
+    const meta = REPORT_META[book.key];
+    const title = catalogTitle(book.key, book.title).toLowerCase();
+    if (q && !title.includes(q) && !book.key.toLowerCase().includes(q)) {
+      return false;
+    }
+    if (chip && !(meta?.tags.includes(chip) ?? false)) {
+      return false;
+    }
+    return true;
+  };
+  const visible = books.filter(match);
+  return {
+    favourite: visible.filter((book) => REPORT_META[book.key]?.favourite),
+    gst: visible.filter((book) => REPORT_META[book.key]?.group === 'gst'),
+    transaction: visible.filter((book) => (REPORT_META[book.key]?.group ?? 'transaction') === 'transaction'),
+  };
 }
 
 export function columnLabel(column: string): string {
@@ -162,7 +343,7 @@ export function formatPaise(paise: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(paise / 100);
 }
@@ -175,6 +356,10 @@ export function cellValue(column: string, value: string | undefined): string {
     return formatPaise(Number(value));
   }
   return value;
+}
+
+export function numericColumn(column: string): boolean {
+  return column.endsWith('Paise') || column === 'days';
 }
 
 export function statusCopy(status: PageStatus, hint?: string | null): string | null {

@@ -1,19 +1,46 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { SHARE_TOGGLES, type ShareToggleId } from './CaPackScreen.content';
 
 export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+  | 'loading'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
 
 export type OutletScope = 'session' | 'tenant';
 
-export type FilterState = {
+export type AdvisorKind = 'CA' | 'Accountant';
+
+export type Advisor = {
+  id: string;
+  kind: AdvisorKind;
+  name: string;
+  firm: string;
+  email: string;
+  phone: string;
+};
+
+export type ShareHistoryItem = {
+  id: string;
+  at: string;
+  period: string;
+  advisorName: string;
+  reports: string[];
+};
+
+export type PeriodOption = {
+  key: string;
+  label: string;
   from: string;
   to: string;
 };
 
-export const emptyFilters = (): FilterState => ({
-  from: '',
-  to: '',
-});
+const ADVISORS_KEY = 'namma-ca-advisors';
+const HISTORY_KEY = 'namma-ca-share-history';
 
 export { hasFinanceAccess } from '@/libs/financeAccess';
 
@@ -21,103 +48,128 @@ export function todayIst(): string {
   return new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(new Date());
 }
 
-export function filtersValid(filters: FilterState): boolean {
-  if (!filters.from || !filters.to) {
-    return true;
-  }
-  return filters.from <= filters.to;
+export function monthStart(month: string): string {
+  return `${month}-01`;
 }
 
-export function isFutureRange(filters: FilterState, today = todayIst()): boolean {
-  return Boolean(filters.to) && filters.to > today;
+export function monthEnd(month: string, today = todayIst()): string {
+  const [year, mo] = month.split('-').map(Number);
+  const end = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Kolkata' }).format(
+    new Date(year, mo, 0),
+  );
+  return end > today ? today : end;
 }
 
-export function toQuery(
-  filters: FilterState,
-  scope: OutletScope,
-): { from?: string; to?: string; scope?: string } {
-  const query: { from?: string; to?: string; scope?: string } = {};
-  if (filters.from) {
-    query.from = filters.from;
+export function periodOptions(today = todayIst()): PeriodOption[] {
+  const [year, month] = today.split('-').map(Number);
+  const options: PeriodOption[] = [];
+  for (let i = 0; i < 3; i += 1) {
+    const date = new Date(year, month - 1 - i, 1);
+    const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+    options.push({
+      key,
+      label: new Intl.DateTimeFormat('en-IN', { month: 'long', year: 'numeric' }).format(date),
+      from: `${key}-01`,
+      to: monthEnd(key, today),
+    });
   }
-  if (filters.to) {
-    query.to = filters.to;
-  }
-  if (scope === 'tenant') {
-    query.scope = 'tenant';
-  }
-  return query;
+  const fyStartYear = month >= 4 ? year : year - 1;
+  options.push({
+    key: `fy-${fyStartYear}`,
+    label: `FY ${fyStartYear}-${String(fyStartYear + 1).slice(2)}`,
+    from: `${fyStartYear}-04-01`,
+    to: monthEnd(`${fyStartYear + 1}-03`, today),
+  });
+  return options;
 }
 
-export function sectionTitle(key: string, fallback: string): string {
-  switch (key) {
-    case 'DAY_BOOK':
-      return 'Day book';
-    case 'SALES_SUMMARY':
-      return 'Sales';
-    case 'PURCHASE_SUMMARY':
-      return 'Stockist buys';
-    case 'EXPENSE_SUMMARY':
-      return 'Shop spend';
-    case 'PROFIT_AND_LOSS':
-      return 'Shop P&L';
-    case 'GSTR1':
-      return 'GST for the CA (GSTR-1)';
-    case 'GSTR3B':
-      return 'GST for the CA (GSTR-3B)';
-    case 'BRANCH_PNL':
-      return 'Outlet P&L';
-    case 'RECEIVABLES':
-      return 'Khata dues';
-    case 'PAYABLES':
-      return 'Stockist dues';
-    default:
-      return fallback;
-  }
+export function defaultEnabled(): Record<ShareToggleId, boolean> {
+  return {
+    gst: true,
+    sales: true,
+    purchase: false,
+    pnl: true,
+    daybook: false,
+  };
+}
+
+export function selectedKeys(enabled: Record<ShareToggleId, boolean>): string[] {
+  return SHARE_TOGGLES.flatMap((row) => (enabled[row.id] ? [...row.keys] : []));
+}
+
+export function selectedCount(enabled: Record<ShareToggleId, boolean>): number {
+  return SHARE_TOGGLES.filter((row) => enabled[row.id]).length;
+}
+
+export function lastName(name: string): string {
+  const parts = name.trim().split(/\s+/);
+  return parts[parts.length - 1] || 'CA';
 }
 
 export function formatPaise(paise: number): string {
   return new Intl.NumberFormat('en-IN', {
     style: 'currency',
     currency: 'INR',
-    minimumFractionDigits: 2,
+    minimumFractionDigits: 0,
     maximumFractionDigits: 2,
   }).format(paise / 100);
 }
 
-export function cellValue(column: string, value: string | undefined): string {
-  if (value == null || value === '') {
-    return '';
-  }
-  if (column.endsWith('Paise') && /^-?\d+$/.test(value)) {
-    return formatPaise(Number(value));
-  }
-  return value;
+export function emptyAdvisor(kind: AdvisorKind): Advisor {
+  return {
+    id: '',
+    kind,
+    name: '',
+    firm: '',
+    email: '',
+    phone: '',
+  };
 }
 
-export function columnLabel(column: string): string {
-  switch (column) {
-    case 'amountPaise':
-      return 'Amount';
-    case 'name':
-      return 'Party';
-    case 'days':
-      return 'Days';
-    case 'line':
-      return 'Line';
-    case 'category':
-      return 'Spend head';
-    case 'invoiceNumber':
-      return 'Bill no.';
-    case 'branchName':
-      return 'Outlet';
-    default:
-      return column.replace(/([A-Z])/g, ' $1').replace(/^./, (ch) => ch.toUpperCase());
+export function loadAdvisors(): Advisor[] {
+  try {
+    const raw = localStorage.getItem(ADVISORS_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as Advisor[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
   }
 }
 
-export function packIsEmpty(sections: { items: unknown[] }[]): boolean {
-  return sections.every((section) => section.items.length === 0);
+export function saveAdvisors(items: Advisor[]): void {
+  localStorage.setItem(ADVISORS_KEY, JSON.stringify(items));
+}
+
+export function loadHistory(): ShareHistoryItem[] {
+  try {
+    const raw = localStorage.getItem(HISTORY_KEY);
+    if (!raw) {
+      return [];
+    }
+    const parsed = JSON.parse(raw) as ShareHistoryItem[];
+    return Array.isArray(parsed) ? parsed : [];
+  } catch {
+    return [];
+  }
+}
+
+export function saveHistory(items: ShareHistoryItem[]): void {
+  localStorage.setItem(HISTORY_KEY, JSON.stringify(items.slice(0, 20)));
+}
+
+export function formatWhen(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return new Intl.DateTimeFormat('en-IN', {
+    dateStyle: 'medium',
+    timeStyle: 'short',
+    timeZone: 'Asia/Kolkata',
+  }).format(date);
 }
 
 export function statusCopy(status: PageStatus, hint?: string | null): string | null {
@@ -130,7 +182,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'empty':
       return 'Nothing to pack yet. Complete a sale or post spend, then take this file.';
     case 'validation':
-      return 'Choose a period that starts on or before the end date.';
+      return 'Choose at least one report to share.';
     case 'denied':
       return 'Till staff cannot open the CA pack. Ask the owner for the Accountant desk.';
     case 'conflict':
@@ -138,7 +190,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'failure':
       return 'Could not load the CA pack. Check the connection and try again.';
     case 'success':
-      return 'CA pack ready for this outlet.';
+      return 'CA pack saved. Hand this file to the CA.';
     default:
       return null;
   }

@@ -1,3 +1,6 @@
+import { useEffect, useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
 import { RegistersBookList } from './components/registers-book-list';
 import { RegistersEmptyState } from './components/registers-empty-state';
 import { RegistersFilters } from './components/registers-filters';
@@ -5,53 +8,97 @@ import { RegistersHeader } from './components/registers-header';
 import { RegistersStatusBanner } from './components/registers-status-banner';
 import { RegistersTable } from './components/registers-table';
 import { RegistersUpgrade } from './components/registers-upgrade';
-import { useRegistersPage } from './useRegistersPage';
+import { hasRegisterAccess } from './RegistersScreen.utils';
+import {
+  accessDenied,
+  bookSelected,
+  exportRegister,
+  filtersChanged,
+  loadRegisterCatalog,
+  loadRegisterTable,
+  selectRegistersBooks,
+  selectRegistersBusy,
+  selectRegistersFilters,
+  selectRegistersPlanGate,
+  selectRegistersSelectedKey,
+  selectRegistersShowBatch,
+  selectRegistersStatus,
+  selectRegistersTable,
+  selectRegistersUpgradeHint,
+} from './store';
+import './RegistersScreen.css';
 
 export default function RegistersScreen() {
-  const page = useRegistersPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const spreadsheetRef = useRef<HTMLButtonElement | null>(null);
+  const pdfRef = useRef<HTMLButtonElement | null>(null);
+  const upgradeRef = useRef<HTMLAnchorElement | null>(null);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const allowed = hasRegisterAccess(user?.modules);
+  const status = useSelector(selectRegistersStatus);
+  const books = useSelector(selectRegistersBooks);
+  const selectedKey = useSelector(selectRegistersSelectedKey);
+  const table = useSelector(selectRegistersTable);
+  const filters = useSelector(selectRegistersFilters);
+  const busy = useSelector(selectRegistersBusy);
+  const showBatch = useSelector(selectRegistersShowBatch);
+  const planGate = useSelector(selectRegistersPlanGate);
+  const upgradeHint = useSelector(selectRegistersUpgradeHint);
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(accessDenied(null));
+      return;
+    }
+    void dispatch(loadRegisterCatalog());
+  }, [allowed, dispatch, user?.activeBranchId]);
+
+  useEffect(() => {
+    if (!allowed || !selectedKey) {
+      return;
+    }
+    void dispatch(loadRegisterTable());
+  }, [allowed, dispatch, selectedKey]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
+    <div className="rg" aria-label="Register book">
       <RegistersHeader
-        spreadsheetRef={page.spreadsheetRef}
-        pdfRef={page.pdfRef}
-        denied={!page.allowed || page.planGate}
-        busy={page.busy}
-        onSpreadsheet={page.onSpreadsheet}
-        onPdf={page.onPdf}
+        spreadsheetRef={spreadsheetRef}
+        pdfRef={pdfRef}
+        denied={!allowed || planGate}
+        busy={busy}
+        onSpreadsheet={() => {
+          void dispatch(exportRegister('csv')).then(() => spreadsheetRef.current?.focus());
+        }}
+        onPdf={() => {
+          void dispatch(exportRegister('pdf')).then(() => pdfRef.current?.focus());
+        }}
       />
-      <RegistersStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-        planGate={page.planGate}
-      />
-      {page.allowed ? (
-        <div className="grid min-h-0 flex-1 grid-cols-1 gap-3 lg:grid-cols-[16rem_minmax(0,1fr)]">
+      <RegistersStatusBanner />
+      {allowed ? (
+        <div className="rg-split">
           <RegistersBookList
-            books={page.books}
-            selectedKey={page.selectedKey}
-            onSelect={page.onSelectBook}
+            books={books}
+            selectedKey={selectedKey}
+            onSelect={(key) => dispatch(bookSelected(key))}
           />
-          <div className="flex min-h-0 flex-col gap-3">
+          <div>
             <RegistersFilters
-              filters={page.filters}
-              showBatch={page.showBatch}
-              disabled={page.busy || page.planGate}
-              onChange={page.onChangeFilters}
-              onApply={page.onApplyFilters}
+              filters={filters}
+              showBatch={showBatch}
+              disabled={busy || planGate}
+              onChange={(next) => dispatch(filtersChanged(next))}
+              onApply={() => {
+                void dispatch(loadRegisterTable());
+              }}
             />
-            {page.planGate ? (
+            {planGate ? (
               <RegistersUpgrade
-                hint={page.upgradeHint ?? 'Near-expiry is on Starter. Open the plan to turn it on.'}
-                linkRef={page.upgradeRef}
+                hint={upgradeHint ?? 'Near-expiry is on Starter. Open the plan to turn it on.'}
+                linkRef={upgradeRef}
               />
-            ) : page.status === 'loading' || page.status === 'denied' ? null : page.table ? (
-              <RegistersTable
-                title={page.table.title}
-                columns={page.table.columns}
-                items={page.table.items}
-              />
+            ) : status === 'loading' || status === 'denied' ? null : table ? (
+              <RegistersTable title={table.title} columns={table.columns} items={table.items} />
             ) : (
               <RegistersEmptyState />
             )}

@@ -1,1 +1,0 @@
-export { ShopBooksUpgrade } from './ShopBooksUpgrade';
