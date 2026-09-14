@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchType;
+import com.nammamedmate.server.domain.KioskConfig;
 import com.nammamedmate.server.domain.KioskSession;
 import com.nammamedmate.server.domain.KioskSessionStatus;
 import com.nammamedmate.server.domain.KioskTicket;
@@ -17,14 +18,20 @@ import com.nammamedmate.server.domain.PlanModuleEntitlements;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.KioskConfigRepository;
 import com.nammamedmate.server.persistence.KioskSessionRepository;
 import com.nammamedmate.server.persistence.KioskTicketRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Instant;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Objects;
+import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
@@ -45,10 +52,15 @@ public class KioskService {
   static final String SESSION_CLOSED_CODE = "SESSION_CLOSED";
   static final String SESSION_CLOSED_MESSAGE = "Open this outlet’s kiosk before taking a pickup.";
 
+  private static final Set<String> PAYMENT_METHODS =
+      Set.of("CASH", "UPI", "CARD", "COD");
+  private static final Set<String> THEMES = Set.of("green", "dark", "gold");
+
   private final AppUserRepository appUserRepository;
   private final LocationRepository locationRepository;
   private final KioskSessionRepository kioskSessionRepository;
   private final KioskTicketRepository kioskTicketRepository;
+  private final KioskConfigRepository kioskConfigRepository;
   private final AccessQueryService accessQueryService;
   private final SubscriptionService subscriptionService;
   private final BranchAssignmentService branchAssignmentService;
@@ -59,6 +71,7 @@ public class KioskService {
       LocationRepository locationRepository,
       KioskSessionRepository kioskSessionRepository,
       KioskTicketRepository kioskTicketRepository,
+      KioskConfigRepository kioskConfigRepository,
       AccessQueryService accessQueryService,
       SubscriptionService subscriptionService,
       BranchAssignmentService branchAssignmentService,
@@ -67,6 +80,7 @@ public class KioskService {
     this.locationRepository = locationRepository;
     this.kioskSessionRepository = kioskSessionRepository;
     this.kioskTicketRepository = kioskTicketRepository;
+    this.kioskConfigRepository = kioskConfigRepository;
     this.accessQueryService = accessQueryService;
     this.subscriptionService = subscriptionService;
     this.branchAssignmentService = branchAssignmentService;
@@ -81,7 +95,8 @@ public class KioskService {
     boolean planEntitled = PlanModuleEntitlements.entitledForTenant(plan, ModuleCode.KIOSK);
     boolean hasModule = accessQueryService.effectiveModules(user).contains(ModuleCode.KIOSK);
     if (branchId == null) {
-      return new KioskView(planEntitled, hasModule, null, null, NO_BRANCH_CODE, null, List.of());
+      return new KioskView(
+          planEntitled, hasModule, null, null, null, NO_BRANCH_CODE, null, defaultConfig(null), List.of());
     }
     Location branch = loadVisibleBranch(user, branchId);
     KioskSession open =
@@ -138,14 +153,42 @@ public class KioskService {
   }
 
   @Transactional
-  public KioskView createTicket(AuthPrincipal principal, String walkInName, String pickupRequest) {
+  public KioskView saveConfig(AuthPrincipal principal, KioskConfigCommand command) {
+    Context ctx = requireReady(principal);
+    Instant now = Instant.now(clock);
+    KioskConfig config =
+        kioskConfigRepository
+            .findByTenantIdAndBranchId(ctx.user().getTenantId(), ctx.branch().getId())
+            .orElseGet(
+                () -> {
+                  KioskConfig created = new KioskConfig();
+                  created.setTenantId(ctx.user().getTenantId());
+                  created.setBranchId(ctx.branch().getId());
+                  created.setCreatedAt(now);
+                  return created;
+                });
+    applyConfig(config, command, ctx.branch().getName());
+    config.setUpdatedAt(now);
+    if (config.getCreatedAt() == null) {
+      config.setCreatedAt(now);
+    }
+    kioskConfigRepository.save(config);
+    return toView(true, true, ctx.branch(), ctx.open(), null);
+  }
+
+  @Transactional
+  public KioskView createTicket(AuthPrincipal principal, KioskTicketCommand command) {
     Context ctx = requireReady(principal);
     KioskSession open = ctx.open();
     if (open == null) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY, SESSION_CLOSED_CODE, SESSION_CLOSED_MESSAGE);
     }
-    String pickup = requiredPickup(pickupRequest);
+    List<Map<String, Object>> items = normalizeItems(command.items());
+    String pickup = resolvePickup(command.pickupRequest(), items);
+    String payment = normalizePayment(command.paymentMethod());
+    boolean requiresRx =
+        items.stream().anyMatch(row -> Boolean.TRUE.equals(row.get("prescriptionRequired")));
     Instant now = Instant.now(clock);
     KioskTicket ticket = new KioskTicket();
     ticket.setId(UUID.randomUUID());
@@ -153,8 +196,11 @@ public class KioskService {
     ticket.setBranchId(ctx.branch().getId());
     ticket.setSessionId(open.getId());
     ticket.setToken(open.getNextToken());
-    ticket.setWalkInName(blankToNull(walkInName));
+    ticket.setWalkInName(blankToNull(command.walkInName()));
     ticket.setPickupRequest(pickup);
+    ticket.setPaymentMethod(payment);
+    ticket.setRequiresRx(requiresRx);
+    ticket.setItemsJson(items);
     ticket.setStatus(KioskTicketStatus.WAITING);
     ticket.setCreatedAt(now);
     ticket.setUpdatedAt(now);
@@ -261,6 +307,9 @@ public class KioskService {
                           t.getToken(),
                           t.getWalkInName(),
                           t.getPickupRequest(),
+                          t.getPaymentMethod(),
+                          t.isRequiresRx(),
+                          t.getItemsJson() == null ? List.of() : t.getItemsJson(),
                           t.getCreatedAt()))
               .toList();
     }
@@ -269,9 +318,154 @@ public class KioskService {
         hasModule,
         branch.getBranchType().name(),
         branch.getId(),
+        branch.getName(),
         blockReason,
         session,
+        loadConfigSlice(branch),
         tickets);
+  }
+
+  private KioskView.KioskConfigSlice loadConfigSlice(Location branch) {
+    return kioskConfigRepository
+        .findByTenantIdAndBranchId(branch.getTenantId(), branch.getId())
+        .map(this::toConfigSlice)
+        .orElseGet(() -> defaultConfig(branch.getName()));
+  }
+
+  private KioskView.KioskConfigSlice toConfigSlice(KioskConfig config) {
+    return new KioskView.KioskConfigSlice(
+        config.getDisplayName(),
+        config.getWelcomeMessage(),
+        config.getStaffExitPin(),
+        config.getIdleResetSeconds(),
+        config.getAccentTheme(),
+        config.isShowPrices(),
+        config.isAllowRxUpload(),
+        config.isAcceptCash(),
+        config.isAcceptUpi(),
+        config.isAcceptCard(),
+        config.isAcceptCod());
+  }
+
+  private static KioskView.KioskConfigSlice defaultConfig(String branchName) {
+    String name =
+        branchName == null || branchName.isBlank()
+            ? "Self Order"
+            : branchName.trim() + " — Self Order";
+    return new KioskView.KioskConfigSlice(
+        name,
+        "Tap to order your medicines & wellness products",
+        "0000",
+        60,
+        "green",
+        true,
+        true,
+        true,
+        true,
+        true,
+        false);
+  }
+
+  private static void applyConfig(KioskConfig config, KioskConfigCommand command, String branchName) {
+    String display =
+        command.displayName() == null || command.displayName().isBlank()
+            ? defaultConfig(branchName).displayName()
+            : command.displayName().trim();
+    if (display.length() > 160) {
+      throw validation();
+    }
+    String welcome =
+        command.welcomeMessage() == null || command.welcomeMessage().isBlank()
+            ? defaultConfig(branchName).welcomeMessage()
+            : command.welcomeMessage().trim();
+    if (welcome.length() > 240) {
+      throw validation();
+    }
+    String pin =
+        command.staffExitPin() == null || command.staffExitPin().isBlank()
+            ? "0000"
+            : command.staffExitPin().trim();
+    if (pin.length() > 16) {
+      throw validation();
+    }
+    int idle = command.idleResetSeconds() == null ? 60 : command.idleResetSeconds();
+    if (idle < 15 || idle > 600) {
+      throw validation();
+    }
+    String theme =
+        command.accentTheme() == null || command.accentTheme().isBlank()
+            ? "green"
+            : command.accentTheme().trim().toLowerCase(Locale.ROOT);
+    if (!THEMES.contains(theme)) {
+      throw validation();
+    }
+    config.setDisplayName(display);
+    config.setWelcomeMessage(welcome);
+    config.setStaffExitPin(pin);
+    config.setIdleResetSeconds(idle);
+    config.setAccentTheme(theme);
+    config.setShowPrices(command.showPrices() == null || command.showPrices());
+    config.setAllowRxUpload(command.allowRxUpload() == null || command.allowRxUpload());
+    config.setAcceptCash(command.acceptCash() == null || command.acceptCash());
+    config.setAcceptUpi(command.acceptUpi() == null || command.acceptUpi());
+    config.setAcceptCard(command.acceptCard() == null || command.acceptCard());
+    config.setAcceptCod(Boolean.TRUE.equals(command.acceptCod()));
+  }
+
+  private static List<Map<String, Object>> normalizeItems(List<KioskTicketCommand.Item> items) {
+    if (items == null || items.isEmpty()) {
+      return List.of();
+    }
+    List<Map<String, Object>> out = new ArrayList<>();
+    for (KioskTicketCommand.Item item : items) {
+      if (item == null || item.productId() == null || item.name() == null || item.name().isBlank()) {
+        throw validation();
+      }
+      if (item.quantity() == null || item.quantity() <= 0 || item.quantity() > 999) {
+        throw validation();
+      }
+      Map<String, Object> row = new LinkedHashMap<>();
+      row.put("productId", item.productId().toString());
+      row.put("name", item.name().trim());
+      row.put("packLabel", blankToNull(item.packLabel()));
+      row.put("quantity", item.quantity());
+      row.put("unitPricePaise", item.unitPricePaise() == null ? 0 : item.unitPricePaise());
+      row.put("prescriptionRequired", Boolean.TRUE.equals(item.prescriptionRequired()));
+      out.add(row);
+    }
+    return out;
+  }
+
+  private static String resolvePickup(String pickupRequest, List<Map<String, Object>> items) {
+    if (!items.isEmpty()) {
+      String built =
+          items.stream()
+              .map(
+                  row -> {
+                    String name = String.valueOf(row.get("name"));
+                    Object qty = row.get("quantity");
+                    boolean rx = Boolean.TRUE.equals(row.get("prescriptionRequired"));
+                    return name + " x" + qty + (rx ? " (Rx)" : "");
+                  })
+              .reduce((a, b) -> a + "; " + b)
+              .orElse("");
+      if (built.length() > 500) {
+        built = built.substring(0, 497) + "...";
+      }
+      return built;
+    }
+    return requiredPickup(pickupRequest);
+  }
+
+  private static String normalizePayment(String paymentMethod) {
+    if (paymentMethod == null || paymentMethod.isBlank()) {
+      return null;
+    }
+    String value = paymentMethod.trim().toUpperCase(Locale.ROOT);
+    if (!PAYMENT_METHODS.contains(value)) {
+      throw validation();
+    }
+    return value;
   }
 
   private static String blockReason(boolean planEntitled, BranchType type, UUID branchId) {
@@ -303,6 +497,10 @@ public class KioskService {
       return null;
     }
     return value.trim();
+  }
+
+  private static ApiException validation() {
+    return new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
   }
 
   private static ApiException forbidden() {

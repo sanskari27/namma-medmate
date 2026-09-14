@@ -1,0 +1,1 @@
+export { KioskCustomerShell } from './KioskCustomerShell';

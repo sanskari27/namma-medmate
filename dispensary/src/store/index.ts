@@ -12,6 +12,7 @@ import { inventoryReducer } from '@/screens/inventory/store/inventory.slice';
 import { purchasesReducer } from '@/screens/purchases/store/purchases.slice';
 import { distributorsReducer } from '@/screens/distributors/store/distributors.slice';
 import { offersReducer } from '@/screens/offers/store/offers.slice';
+import { kioskReducer } from '@/screens/kiosk/store/kiosk.slice';
 
 export {
   authReducer,
@@ -46,6 +47,7 @@ export const store = configureStore({
     purchases: purchasesReducer,
     distributors: distributorsReducer,
     offers: offersReducer,
+    kiosk: kioskReducer,
   },
 });
 

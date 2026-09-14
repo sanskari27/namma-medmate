@@ -30,6 +30,7 @@ export const API = {
   KIOSK: '/api/v1/kiosk',
   KIOSK_OPEN: '/api/v1/kiosk/open',
   KIOSK_CLOSE: '/api/v1/kiosk/close',
+  KIOSK_CONFIG: '/api/v1/kiosk/config',
   KIOSK_TICKETS: '/api/v1/kiosk/tickets',
   CUSTOMERS: '/api/v1/customers',
   CUSTOMERS_WALK_IN_PURCHASES: '/api/v1/customers/walk-in/purchases',

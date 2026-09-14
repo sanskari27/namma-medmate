@@ -1,0 +1,1 @@
+export { KioskSearchBar } from './KioskSearchBar';

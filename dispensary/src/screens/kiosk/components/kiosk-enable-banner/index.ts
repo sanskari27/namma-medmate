@@ -1,0 +1,1 @@
+export { KioskEnableBanner } from './KioskEnableBanner';
