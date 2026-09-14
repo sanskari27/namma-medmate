@@ -1,77 +1,75 @@
-import { DistributorDueStrip } from './components/distributor-due-strip';
-import { DistributorFormPanel } from './components/distributor-form-panel';
-import { DistributorLedgerPanel } from './components/distributor-ledger-panel';
-import { DistributorListPanel } from './components/distributor-list-panel';
-import { DistributorPaymentDialog } from './components/distributor-payment-dialog';
-import { DistributorsHeader } from './components/distributors-header';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { DistributorsComparePanel } from './components/distributors-compare-panel';
+import { DistributorsDirectory } from './components/distributors-directory';
+import { DistributorsFormDialog } from './components/distributors-form-dialog';
+import { DistributorsPaymentDialog } from './components/distributors-payment-dialog';
 import { DistributorsStatusBanner } from './components/distributors-status-banner';
-import { useDistributorsPage } from './useDistributorsPage';
+import { DistributorsSummary } from './components/distributors-summary';
+import { DistributorsSupplyPanel } from './components/distributors-supply-panel';
+import { DistributorsTabs } from './components/distributors-tabs';
+import { DISTRIBUTORS_CONTENT } from './DistributorsScreen.content';
+import './DistributorsScreen.css';
+import { hasSupplierAccess } from './DistributorsScreen.utils';
+import {
+  selectDistributorsStatus,
+  selectDistributorsTab,
+} from './store/distributors.selectors';
+import { loadDistributors } from './store/distributors.thunks';
 
 export default function DistributorsScreen() {
-  const page = useDistributorsPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector(selectDistributorsStatus);
+  const tab = useSelector(selectDistributorsTab);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const allowed = hasSupplierAccess(user?.modules);
+
+  useEffect(() => {
+    if (!allowed) return;
+    void dispatch(loadDistributors());
+  }, [dispatch, allowed]);
+
+  if (!allowed) {
+    return (
+      <div className="dist" aria-label={DISTRIBUTORS_CONTENT.regionLabel}>
+        <div className="dist-banner" data-tone="alert" role="alert">
+          <strong>{DISTRIBUTORS_CONTENT.denied}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'denied') {
+    return (
+      <div className="dist" aria-label={DISTRIBUTORS_CONTENT.regionLabel}>
+        <DistributorsStatusBanner />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3">
-      <DistributorsHeader
-        addButtonId={`${page.formId}-add`}
-        addButtonRef={page.addRef}
-        denied={!page.allowed}
-        onAdd={page.startCreate}
-      />
-      {page.dues ? <DistributorDueStrip dues={page.dues} /> : null}
-      <DistributorsStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        asAlert={page.status === 'denied'}
-        surface={page.surface}
-      />
-      {page.allowed ? (
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
-          <DistributorListPanel
-            formId={page.formId}
-            suppliers={page.suppliers}
-            selectedId={page.creating ? null : (page.selected?.id ?? null)}
-            query={page.query}
-            showEmptyHint={page.suppliers.length === 0 && page.status !== 'loading'}
-            onQueryChange={page.setQuery}
-            onSearch={page.onSearch}
-            onSelect={page.selectSupplier}
-          />
-          <div className="flex min-h-0 flex-col gap-3">
-            <DistributorFormPanel
-              formId={page.formId}
-              form={page.form}
-              selected={page.creating ? null : page.selected}
-              creating={page.creating}
-              busy={page.busy}
-              categories={page.categories}
-              outletName={page.outletName}
-              onChange={page.onChange}
-              onCancel={page.cancelEdit}
-              onSubmit={page.onSubmit}
-            />
-            {page.creating || !page.selected ? null : (
-              <DistributorLedgerPanel
-                ledger={page.ledger}
-                loading={page.ledgerLoading}
-                payButtonRef={page.payRef}
-                onPay={() => {
-                  page.setPayError(null);
-                  page.setPayOpen(true);
-                }}
-              />
-            )}
+    <div className="dist" aria-label={DISTRIBUTORS_CONTENT.regionLabel}>
+      <DistributorsStatusBanner />
+      <DistributorsTabs />
+
+      {status === 'loading' || status === 'idle' ? (
+        <div className="dist-card">
+          <div className="dist-loading" role="status">
+            {DISTRIBUTORS_CONTENT.status.loading}
           </div>
         </div>
-      ) : null}
-      <DistributorPaymentDialog
-        open={page.payOpen}
-        busy={page.payBusy}
-        error={page.payError}
-        onOpenChange={page.setPayOpen}
-        onSubmit={(input) => void page.onPay(input)}
-        onCloseFocus={() => page.payRef.current?.focus()}
-      />
+      ) : (
+        <>
+          <DistributorsSummary />
+          {tab === 'distributors' ? <DistributorsDirectory /> : null}
+          {tab === 'supply' ? <DistributorsSupplyPanel /> : null}
+          {tab === 'compare' ? <DistributorsComparePanel /> : null}
+        </>
+      )}
+
+      <DistributorsFormDialog />
+      <DistributorsPaymentDialog />
     </div>
   );
 }

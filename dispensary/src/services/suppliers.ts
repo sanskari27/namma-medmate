@@ -60,6 +60,8 @@ export interface Supplier {
   notes: string | null;
   createdAt: string;
   updatedAt: string;
+  outstandingPaise: number;
+  productLineCount: number;
   branchProcurement: BranchProcurement;
 }
 

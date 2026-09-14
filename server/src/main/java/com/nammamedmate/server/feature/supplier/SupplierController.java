@@ -160,6 +160,8 @@ public class SupplierController {
         view.notes(),
         view.createdAt(),
         view.updatedAt(),
+        view.outstandingPaise(),
+        view.productLineCount(),
         new BranchProcurementResponse(
             view.branchProcurement().branchId(),
             view.branchProcurement().branchName(),
@@ -252,6 +254,8 @@ public class SupplierController {
       String notes,
       Instant createdAt,
       Instant updatedAt,
+      long outstandingPaise,
+      int productLineCount,
       BranchProcurementResponse branchProcurement) {}
 
   public record UpsertSupplierRequest(

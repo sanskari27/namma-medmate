@@ -32,6 +32,8 @@ public interface SupplierPayableAccountRepository
       findAllByTenantIdAndBranchIdAndBalancePaiseGreaterThanOrderByBalancePaiseDesc(
           UUID tenantId, UUID branchId, long balancePaise);
 
+  List<SupplierPayableAccount> findAllByTenantIdAndBranchId(UUID tenantId, UUID branchId);
+
   List<SupplierPayableAccount> findAllByTenantIdAndBranchIdIn(
       UUID tenantId, Collection<UUID> branchIds);
 }

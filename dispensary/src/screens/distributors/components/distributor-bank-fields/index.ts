@@ -1,1 +1,0 @@
-export { DistributorBankFields } from './DistributorBankFields';

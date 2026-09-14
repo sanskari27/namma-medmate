@@ -1,46 +1,30 @@
-import { AlertCircle } from 'lucide-react';
-import type { BannerSurface, PageStatus } from '../../DistributorsScreen.utils';
-import { statusCopy, statusIconClass } from '../../DistributorsScreen.utils';
+import { useSelector } from 'react-redux';
+import { DISTRIBUTORS_CONTENT } from '../../DistributorsScreen.content';
+import {
+  selectDistributorsStatus,
+  selectDistributorsStatusHint,
+} from '../../store/distributors.selectors';
+import { statusBannerText } from '../../DistributorsScreen.utils';
 
-export type DistributorsStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  asAlert?: boolean;
-  surface?: BannerSurface;
-};
+export function DistributorsStatusBanner() {
+  const status = useSelector(selectDistributorsStatus);
+  const hint = useSelector(selectDistributorsStatusHint);
+  const text = statusBannerText(status, hint);
 
-export function DistributorsStatusBanner({
-  status,
-  statusId,
-  asAlert = false,
-  surface = 'book',
-}: DistributorsStatusBannerProps) {
-  const banner = statusCopy(status, surface);
-  if (!banner) {
+  if (!text || status === 'loading' || status === 'idle' || status === 'empty') {
     return null;
   }
 
-  if (asAlert) {
-    return (
-      <p
-        role="alert"
-        className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-danger"
-      >
-        <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {banner.text}
-      </p>
-    );
-  }
+  const tone =
+    status === 'success' ? 'ok' : status === 'failure' || status === 'denied' ? 'alert' : 'ok';
 
   return (
-    <p
-      id={statusId}
-      role="status"
-      aria-live="polite"
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
+    <div
+      className="dist-banner"
+      data-tone={status === 'validation' || status === 'conflict' ? 'alert' : tone}
+      role={status === 'failure' || status === 'denied' ? 'alert' : 'status'}
     >
-      <banner.icon className={`mt-0.5 size-4 shrink-0 ${statusIconClass(status)}`} aria-hidden />
-      <span>{banner.text}</span>
-    </p>
+      {text}
+    </div>
   );
 }

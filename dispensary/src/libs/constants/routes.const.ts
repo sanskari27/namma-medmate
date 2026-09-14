@@ -78,7 +78,11 @@ export const NAV_SECTIONS = [
     items: [
       { label: 'Inventory', path: ROUTES.INVENTORY, hint: 'Stock, batches & expiry' },
       { label: 'Purchases', path: ROUTES.PURCHASES, hint: 'Distributor billing → auto-stock' },
-      { label: 'Distributors', path: ROUTES.DISTRIBUTORS, hint: 'Supplier book' },
+      {
+        label: 'Distributors',
+        path: ROUTES.DISTRIBUTORS,
+        hint: 'Your distributor & supplier directory',
+      },
       { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },
       { label: 'Self-Order Kiosk', path: ROUTES.KIOSK, hint: 'Kiosk at this branch' },
     ],

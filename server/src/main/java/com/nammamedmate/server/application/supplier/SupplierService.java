@@ -11,6 +11,7 @@ import com.nammamedmate.server.domain.Supplier;
 import com.nammamedmate.server.domain.SupplierBankDetails;
 import com.nammamedmate.server.domain.SupplierCategory;
 import com.nammamedmate.server.domain.SupplierLicenseStatus;
+import com.nammamedmate.server.domain.SupplierPayableAccount;
 import com.nammamedmate.server.domain.SupplierPolicy;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -18,6 +19,7 @@ import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ProductCategoryRepository;
 import com.nammamedmate.server.persistence.PurchaseOrderRepository;
 import com.nammamedmate.server.persistence.SupplierCategoryRepository;
+import com.nammamedmate.server.persistence.SupplierPayableAccountRepository;
 import com.nammamedmate.server.persistence.SupplierRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
@@ -25,8 +27,10 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
@@ -41,6 +45,7 @@ public class SupplierService {
   private final ProductCategoryRepository productCategoryRepository;
   private final LocationRepository locationRepository;
   private final PurchaseOrderRepository purchaseOrderRepository;
+  private final SupplierPayableAccountRepository supplierPayableAccountRepository;
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final AuditService auditService;
@@ -52,6 +57,7 @@ public class SupplierService {
       ProductCategoryRepository productCategoryRepository,
       LocationRepository locationRepository,
       PurchaseOrderRepository purchaseOrderRepository,
+      SupplierPayableAccountRepository supplierPayableAccountRepository,
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       AuditService auditService,
@@ -61,6 +67,7 @@ public class SupplierService {
     this.productCategoryRepository = productCategoryRepository;
     this.locationRepository = locationRepository;
     this.purchaseOrderRepository = purchaseOrderRepository;
+    this.supplierPayableAccountRepository = supplierPayableAccountRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.auditService = auditService;
@@ -75,13 +82,14 @@ public class SupplierService {
         q.isEmpty()
             ? supplierRepository.findAllByTenantIdOrderByLegalNameAsc(tenantId)
             : supplierRepository.searchByTenant(tenantId, q);
-    return rows.stream().map(row -> toView(principal, row)).toList();
+    Map<UUID, Long> outstandingBySupplier = outstandingBySupplier(principal);
+    return rows.stream().map(row -> toView(principal, row, outstandingBySupplier)).toList();
   }
 
   @Transactional(readOnly = true)
   public SupplierView get(AuthPrincipal principal, UUID id) {
     UUID tenantId = requireSupplierAccess(principal);
-    return toView(principal, requireSupplier(id, tenantId));
+    return toView(principal, requireSupplier(id, tenantId), outstandingBySupplier(principal));
   }
 
   @Transactional
@@ -103,7 +111,7 @@ public class SupplierService {
     Supplier saved = supplierRepository.save(supplier);
     replaceCategories(tenantId, saved.getId(), categoryIds);
     audit(principal, "SUPPLIER_CREATE", saved.getId());
-    return toView(principal, saved);
+    return toView(principal, saved, outstandingBySupplier(principal));
   }
 
   @Transactional
@@ -122,7 +130,7 @@ public class SupplierService {
     Supplier saved = supplierRepository.save(supplier);
     replaceCategories(tenantId, saved.getId(), categoryIds);
     audit(principal, "SUPPLIER_UPDATE", saved.getId());
-    return toView(principal, saved);
+    return toView(principal, saved, outstandingBySupplier(principal));
   }
 
   private NormalizedSupplier normalize(
@@ -298,7 +306,22 @@ public class SupplierService {
     return principal.tenantId();
   }
 
-  private SupplierView toView(AuthPrincipal principal, Supplier supplier) {
+  private Map<UUID, Long> outstandingBySupplier(AuthPrincipal principal) {
+    UUID branchId = principal == null ? null : principal.activeBranchId();
+    if (principal == null || principal.tenantId() == null || branchId == null) {
+      return Map.of();
+    }
+    Map<UUID, Long> map = new HashMap<>();
+    for (SupplierPayableAccount account :
+        supplierPayableAccountRepository.findAllByTenantIdAndBranchId(
+            principal.tenantId(), branchId)) {
+      map.put(account.getSupplierId(), account.getBalancePaise());
+    }
+    return map;
+  }
+
+  private SupplierView toView(
+      AuthPrincipal principal, Supplier supplier, Map<UUID, Long> outstandingBySupplier) {
     LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
     SupplierLicenseStatus licenseStatus =
         SupplierPolicy.licenseStatus(
@@ -309,6 +332,7 @@ public class SupplierService {
             .stream()
             .map(SupplierCategory::getCategoryId)
             .toList();
+    long outstandingPaise = outstandingBySupplier.getOrDefault(supplier.getId(), 0L);
     return new SupplierView(
         supplier.getId(),
         supplier.getTenantId(),
@@ -348,6 +372,8 @@ public class SupplierService {
         supplier.getNotes(),
         supplier.getCreatedAt(),
         supplier.getUpdatedAt(),
+        outstandingPaise,
+        categoryIds.size(),
         branchProcurement(principal, supplier));
   }
 

@@ -49,6 +49,8 @@ public record SupplierView(
     String notes,
     Instant createdAt,
     Instant updatedAt,
+    long outstandingPaise,
+    int productLineCount,
     BranchProcurementView branchProcurement) {
 
   public record PurchaseOrderSummary(UUID id, String poNumber, Instant placedAt) {}
