@@ -1,62 +1,64 @@
-import { Button, Reveal } from '@atoms';
 import { Link } from 'react-router-dom';
-import type { Ref } from 'react';
+import { FileDown, Printer } from 'lucide-react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch } from '@/store';
 import { ROUTES } from '@/libs/constants/routes.const';
+import { CUSTOM_REPORTS_CONTENT } from '../../CustomReportsScreen.content';
+import {
+  exportCustomReport,
+  selectCrBusy,
+  selectCrMode,
+  selectCrPlanGate,
+} from '../../store';
 
-export type CustomReportsHeaderProps = {
-  spreadsheetRef?: Ref<HTMLButtonElement>;
-  pdfRef?: Ref<HTMLButtonElement>;
-  denied?: boolean;
-  planGate?: boolean;
-  busy?: boolean;
-  onSpreadsheet: () => void;
-  onPdf: () => void;
-};
+export function CustomReportsHeader() {
+  const dispatch = useDispatch<AppDispatch>();
+  const planGate = useSelector(selectCrPlanGate);
+  const busy = useSelector(selectCrBusy);
+  const mode = useSelector(selectCrMode);
 
-export function CustomReportsHeader({
-  spreadsheetRef,
-  pdfRef,
-  denied = false,
-  planGate = false,
-  busy = false,
-  onSpreadsheet,
-  onPdf,
-}: CustomReportsHeaderProps) {
   return (
-    <Reveal>
-      <header className="flex flex-wrap items-end justify-between gap-3 border-b border-line pb-3">
+    <header className="cr-head">
+      <h1>{CUSTOM_REPORTS_CONTENT.title}</h1>
+      {planGate ? (
         <div>
-          <h1 className="text-2xl font-semibold text-ink">Build a report</h1>
-          <p className="mt-1 text-sm text-muted">
-            Pick columns, dates, and this outlet. Download a sheet or print when you need it.
-            {planGate ? ' Growth unlocks this builder.' : ''}
+          <p>
+            {mode === 'catalog'
+              ? CUSTOM_REPORTS_CONTENT.catalogSubtitle
+              : CUSTOM_REPORTS_CONTENT.subtitle}
+            . Growth unlocks this builder.
           </p>
-          {planGate ? (
-            <Link
-              to={ROUTES.SUBSCRIPTION}
-              className="mt-2 inline-block text-sm font-medium text-brand underline-offset-2 hover:underline"
-            >
-              Open the plan
-            </Link>
-          ) : null}
+          <Link
+            className="cr-link"
+            to={ROUTES.SUBSCRIPTION}
+            style={{ display: 'inline-block', marginTop: 8 }}
+          >
+            {CUSTOM_REPORTS_CONTENT.openPlan}
+          </Link>
         </div>
-        {denied ? null : (
-          <div className="flex flex-wrap gap-2">
-            <Button
-              ref={spreadsheetRef}
-              type="button"
-              variant="outline"
-              disabled={busy}
-              onClick={onSpreadsheet}
-            >
-              Download spreadsheet
-            </Button>
-            <Button ref={pdfRef} type="button" disabled={busy} onClick={onPdf}>
-              Print this report
-            </Button>
-          </div>
-        )}
-      </header>
-    </Reveal>
+      ) : null}
+      {planGate || mode === 'catalog' ? null : (
+        <div className="cr-head-actions">
+          <button
+            type="button"
+            className="cr-btn cr-btn-ghost"
+            disabled={busy}
+            onClick={() => void dispatch(exportCustomReport('csv'))}
+          >
+            <FileDown className="size-4" aria-hidden />
+            {CUSTOM_REPORTS_CONTENT.exportSheet}
+          </button>
+          <button
+            type="button"
+            className="cr-btn"
+            disabled={busy}
+            onClick={() => void dispatch(exportCustomReport('pdf'))}
+          >
+            <Printer className="size-4" aria-hidden />
+            {CUSTOM_REPORTS_CONTENT.exportPdf}
+          </button>
+        </div>
+      )}
+    </header>
   );
 }

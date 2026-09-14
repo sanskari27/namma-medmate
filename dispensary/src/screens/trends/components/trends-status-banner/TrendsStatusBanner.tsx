@@ -1,31 +1,35 @@
-import { ROUTES } from '@/libs/constants/routes.const';
-import { statusCopy, statusIcon, type PageStatus } from '../../TrendsScreen.utils';
+import { useId } from 'react';
+import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
+import { ROUTES } from '@/libs/constants/routes.const';
+import { statusCopy, statusIcon } from '../../TrendsScreen.utils';
+import { TRENDS_CONTENT } from '../../TrendsScreen.content';
+import {
+  selectTrendsPlanGate,
+  selectTrendsStatus,
+  selectTrendsStatusHint,
+} from '../../store';
 
-export type TrendsStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-  planGate?: boolean;
-};
-
-export function TrendsStatusBanner({
-  status,
-  statusId,
-  hint,
-  planGate = false,
-}: TrendsStatusBannerProps) {
+export function TrendsStatusBanner() {
+  const status = useSelector(selectTrendsStatus);
+  const hint = useSelector(selectTrendsStatusHint);
+  const planGate = useSelector(selectTrendsPlanGate);
+  const statusId = useId();
   const text = statusCopy(status, hint);
+
   if (!text) {
     return <div id={statusId} className="min-h-5" />;
   }
+
   const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
+  const tone = status === 'denied' || status === 'failure' || status === 'conflict' ? 'alert' : 'ok';
+
   return (
     <p
       id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
+      role={status === 'denied' ? 'alert' : 'status'}
+      className="tr-alert"
+      data-tone={tone}
     >
       <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
       <span>
@@ -33,9 +37,7 @@ export function TrendsStatusBanner({
         {planGate ? (
           <>
             {' '}
-            <Link className="text-brand underline" to={ROUTES.SUBSCRIPTION}>
-              Open the plan
-            </Link>
+            <Link to={ROUTES.SUBSCRIPTION}>{TRENDS_CONTENT.openPlan}</Link>
           </>
         ) : null}
       </span>

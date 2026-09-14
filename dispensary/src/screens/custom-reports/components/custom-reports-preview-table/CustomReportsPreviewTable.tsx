@@ -1,33 +1,30 @@
-export type CustomReportsPreviewTableProps = {
-  title: string;
-  columns: string[];
-  items: Record<string, string>[];
-};
+import { useSelector } from 'react-redux';
+import { selectCrFields, selectCrPreview } from '../../store';
 
-export function CustomReportsPreviewTable({
-  title,
-  columns,
-  items,
-}: CustomReportsPreviewTableProps) {
+export function CustomReportsPreviewTable() {
+  const preview = useSelector(selectCrPreview);
+  const fields = useSelector(selectCrFields);
+
+  if (!preview) return null;
+
+  const labels = new Map(fields.map((field) => [field.key, field.label]));
+  const columns = preview.columns;
+
   return (
-    <div className="min-h-0 flex-1 overflow-auto border border-line bg-surface">
-      <table className="w-full min-w-max border-collapse text-left text-sm" aria-label={title}>
-        <thead className="sticky top-0 bg-surface">
+    <div className="cr-tbl-wrap">
+      <table className="cr-tbl" aria-label="Report preview">
+        <thead>
           <tr>
             {columns.map((column) => (
-              <th key={column} className="border-b border-line px-3 py-2 font-medium text-ink">
-                {column}
-              </th>
+              <th key={column}>{labels.get(column) ?? column}</th>
             ))}
           </tr>
         </thead>
         <tbody>
-          {items.map((item, index) => (
-            <tr key={`${title}-${index}`}>
+          {preview.items.map((item, index) => (
+            <tr key={`row-${index}`}>
               {columns.map((column) => (
-                <td key={column} className="border-b border-line px-3 py-2 font-mono text-ink">
-                  {item[column] ?? ''}
-                </td>
+                <td key={column}>{item[column] ?? ''}</td>
               ))}
             </tr>
           ))}

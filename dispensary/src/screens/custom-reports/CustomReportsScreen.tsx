@@ -1,77 +1,64 @@
-import { CustomReportsColumns } from './components/custom-reports-columns';
-import { CustomReportsDataset } from './components/custom-reports-dataset';
-import { CustomReportsDateBranch } from './components/custom-reports-date-branch';
-import { CustomReportsEmptyState } from './components/custom-reports-empty-state';
-import { CustomReportsFilters } from './components/custom-reports-filters';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { CustomReportsCatalog } from './components/custom-reports-catalog';
+import { CustomReportsBuilder } from './components/custom-reports-builder';
 import { CustomReportsHeader } from './components/custom-reports-header';
-import { CustomReportsPreviewTable } from './components/custom-reports-preview-table';
 import { CustomReportsStatusBanner } from './components/custom-reports-status-banner';
-import { useCustomReportsPage } from './useCustomReportsPage';
+import { CUSTOM_REPORTS_CONTENT } from './CustomReportsScreen.content';
+import { hasReportingAccess } from './CustomReportsScreen.utils';
+import './CustomReportsScreen.css';
+import {
+  accessDenied,
+  hydrateOwnerScope,
+  loadCustomReportCatalog,
+  selectCrMode,
+  selectCrPlanGate,
+  selectCrStatus,
+} from './store';
 
 export default function CustomReportsScreen() {
-  const page = useCustomReportsPage();
-  const showBuilder = page.allowed && !page.planGate;
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const mode = useSelector(selectCrMode);
+  const status = useSelector(selectCrStatus);
+  const planGate = useSelector(selectCrPlanGate);
+  const allowed = hasReportingAccess(user?.role, user?.modules);
+  const owner = user?.role === 'pharmacy_owner';
+  const showBuilder = allowed && !planGate;
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(
+        accessDenied(
+          'Till staff cannot build a report. Ask the owner for Accounts access.',
+        ),
+      );
+      return;
+    }
+    dispatch(
+      hydrateOwnerScope({
+        owner,
+        hasBranch: Boolean(user?.activeBranchId),
+      }),
+    );
+    void dispatch(loadCustomReportCatalog());
+  }, [allowed, dispatch, owner, user?.activeBranchId]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <CustomReportsHeader
-        spreadsheetRef={page.spreadsheetRef}
-        pdfRef={page.pdfRef}
-        denied={!page.allowed || page.planGate}
-        planGate={page.planGate}
-        busy={page.busy}
-        onSpreadsheet={page.onSpreadsheet}
-        onPdf={page.onPdf}
-      />
-      <CustomReportsStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-      />
+    <div className="cr" aria-label={CUSTOM_REPORTS_CONTENT.regionLabel}>
+      <CustomReportsHeader />
+      <CustomReportsStatusBanner />
+
       {showBuilder ? (
         <>
-          <CustomReportsDataset
-            datasets={page.catalog?.datasets ?? []}
-            selected={page.dataset}
-            disabled={page.busy}
-            onSelect={page.onSelectDataset}
-          />
-          <CustomReportsColumns
-            fields={page.fields}
-            selected={page.columns}
-            disabled={page.busy}
-            onToggle={page.onToggleColumn}
-          />
-          <CustomReportsFilters
-            fields={page.fields}
-            operators={page.operators}
-            draft={page.filter}
-            disabled={page.busy}
-            onChange={page.onFilter}
-          />
-          <CustomReportsDateBranch
-            from={page.from}
-            to={page.to}
-            owner={page.owner}
-            scope={page.scope}
-            disabled={page.busy}
-            applyRef={page.applyRef}
-            onFrom={page.onFrom}
-            onTo={page.onTo}
-            onScope={page.onScope}
-            onApply={page.onApply}
-          />
-          {page.status === 'success' && page.preview ? (
-            <CustomReportsPreviewTable
-              title={
-                page.catalog?.datasets.find((item) => item.key === page.preview?.dataset)?.label ??
-                'Report'
-              }
-              columns={page.preview.columns}
-              items={page.preview.items}
-            />
+          {status === 'loading' && mode === 'catalog' ? (
+            <div className="cr-loading" role="status">
+              {CUSTOM_REPORTS_CONTENT.loading}
+            </div>
           ) : null}
-          {page.status === 'empty' ? <CustomReportsEmptyState /> : null}
+          {mode === 'catalog' && status !== 'loading' ? <CustomReportsCatalog /> : null}
+          {mode === 'builder' ? <CustomReportsBuilder owner={owner} /> : null}
         </>
       ) : null}
     </div>

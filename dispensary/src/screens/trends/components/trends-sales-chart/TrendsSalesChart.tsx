@@ -1,23 +1,31 @@
+import { useSelector } from 'react-redux';
 import { AreaMetricChart } from '@molecules/area-metric-chart';
-import type { AnalyticsView } from '@/services/analytics';
+import { TRENDS_CONTENT } from '../../TrendsScreen.content';
 import { formatPaise } from '../../TrendsScreen.utils';
+import { selectTrendsView } from '../../store';
 
-export function TrendsSalesChart({ view }: { view: AnalyticsView }) {
+export function TrendsSalesChart() {
+  const view = useSelector(selectTrendsView);
+  if (!view) return null;
+
   const data = view.salesTrend.points.map((point) => ({
     label: point.date.slice(8),
     value: point.currentPaise / 100,
   }));
+
   return (
-    <section className="border border-line bg-surface p-3" aria-labelledby="compare-sales-trend">
-      <h2 id="compare-sales-trend" className="text-sm font-semibold text-ink">
-        Collected by day
-      </h2>
-      <p className="mt-1 text-sm text-muted">
-        This window {formatPaise(view.current.salesPaise)} against last window{' '}
-        {formatPaise(view.prior.salesPaise)}.
-      </p>
-      <div className="mt-2">
-        <AreaMetricChart data={data} emptyLabel="No completed bills to plot for this window." />
+    <section className="tr-card" aria-labelledby="compare-sales-trend">
+      <div className="tr-card-head">
+        <div>
+          <h2 id="compare-sales-trend">{TRENDS_CONTENT.chart.title}</h2>
+          <span className="sub">
+            This window {formatPaise(view.current.salesPaise)} against prior{' '}
+            {formatPaise(view.prior.salesPaise)}
+          </span>
+        </div>
+      </div>
+      <div className="tr-card-body">
+        <AreaMetricChart data={data} emptyLabel={TRENDS_CONTENT.chart.empty} />
       </div>
     </section>
   );

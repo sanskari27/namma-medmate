@@ -1,79 +1,75 @@
-import { Button, Input, Label } from '@atoms';
-import type { Ref } from 'react';
+import { useRef } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch } from '@/store';
+import { CUSTOM_REPORTS_CONTENT } from '../../CustomReportsScreen.content';
 import type { OutletScope } from '../../CustomReportsScreen.utils';
+import {
+  fromChanged,
+  loadCustomReportPreview,
+  scopeChanged,
+  selectCrBusy,
+  selectCrFrom,
+  selectCrScope,
+  selectCrTo,
+  toChanged,
+} from '../../store';
 
-export type CustomReportsDateBranchProps = {
-  from: string;
-  to: string;
-  owner: boolean;
-  scope: OutletScope;
-  disabled?: boolean;
-  applyRef?: Ref<HTMLButtonElement>;
-  onFrom: (value: string) => void;
-  onTo: (value: string) => void;
-  onScope: (value: OutletScope) => void;
-  onApply: () => void;
-};
+export function CustomReportsDateBranch({ owner }: { owner: boolean }) {
+  const dispatch = useDispatch<AppDispatch>();
+  const from = useSelector(selectCrFrom);
+  const to = useSelector(selectCrTo);
+  const scope = useSelector(selectCrScope);
+  const busy = useSelector(selectCrBusy);
+  const applyRef = useRef<HTMLButtonElement | null>(null);
 
-export function CustomReportsDateBranch({
-  from,
-  to,
-  owner,
-  scope,
-  disabled = false,
-  applyRef,
-  onFrom,
-  onTo,
-  onScope,
-  onApply,
-}: CustomReportsDateBranchProps) {
   return (
     <form
-      className="flex flex-wrap items-end gap-3 border border-line bg-surface p-3"
+      className="cr-builder-bar"
       aria-label="Dates and outlet"
       onSubmit={(event) => {
         event.preventDefault();
-        onApply();
+        void dispatch(loadCustomReportPreview()).then(() => {
+          queueMicrotask(() => applyRef.current?.focus());
+        });
       }}
     >
-      <div className="space-y-1.5">
-        <Label htmlFor="custom-report-from">From</Label>
-        <Input
+      <div className="cr-field">
+        <label htmlFor="custom-report-from">{CUSTOM_REPORTS_CONTENT.from}</label>
+        <input
           id="custom-report-from"
           type="date"
           value={from}
-          disabled={disabled}
-          onChange={(event) => onFrom(event.target.value)}
+          disabled={busy}
+          onChange={(event) => dispatch(fromChanged(event.target.value))}
         />
       </div>
-      <div className="space-y-1.5">
-        <Label htmlFor="custom-report-to">To</Label>
-        <Input
+      <div className="cr-field">
+        <label htmlFor="custom-report-to">{CUSTOM_REPORTS_CONTENT.to}</label>
+        <input
           id="custom-report-to"
           type="date"
           value={to}
-          disabled={disabled}
-          onChange={(event) => onTo(event.target.value)}
+          disabled={busy}
+          onChange={(event) => dispatch(toChanged(event.target.value))}
         />
       </div>
       {owner ? (
-        <div className="space-y-1.5">
-          <Label htmlFor="custom-report-outlet">Outlet</Label>
+        <div className="cr-field">
+          <label htmlFor="custom-report-outlet">{CUSTOM_REPORTS_CONTENT.outlet}</label>
           <select
             id="custom-report-outlet"
-            className="h-10 w-full min-w-36 rounded-md border border-line bg-surface px-3 text-sm text-ink"
             value={scope}
-            disabled={disabled}
-            onChange={(event) => onScope(event.target.value as OutletScope)}
+            disabled={busy}
+            onChange={(event) => dispatch(scopeChanged(event.target.value as OutletScope))}
           >
-            <option value="session">This outlet</option>
-            <option value="tenant">All outlets</option>
+            <option value="session">{CUSTOM_REPORTS_CONTENT.thisOutlet}</option>
+            <option value="tenant">{CUSTOM_REPORTS_CONTENT.allOutlets}</option>
           </select>
         </div>
       ) : null}
-      <Button ref={applyRef} type="submit" variant="outline" disabled={disabled}>
-        Show rows
-      </Button>
+      <button ref={applyRef} type="submit" className="cr-btn cr-btn-ghost" disabled={busy}>
+        {CUSTOM_REPORTS_CONTENT.showRows}
+      </button>
     </form>
   );
 }

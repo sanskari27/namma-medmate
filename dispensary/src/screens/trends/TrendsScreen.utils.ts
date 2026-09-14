@@ -59,7 +59,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'failure':
       return 'Could not load compare weeks. Check the connection and try again.';
     case 'success':
-      return 'This week vs last week from completed bills.';
+      return null;
     default:
       return null;
   }

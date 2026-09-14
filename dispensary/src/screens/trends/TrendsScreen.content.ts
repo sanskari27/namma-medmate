@@ -1,0 +1,41 @@
+export const TRENDS_CONTENT = {
+  title: 'Compare weeks',
+  subtitle: 'This week vs last week from completed bills',
+  regionLabel: 'Compare weeks',
+  windowLabel: 'Compare window',
+  wow: 'This week vs last',
+  mom: 'This month vs last',
+  outlet: 'Outlet',
+  thisOutlet: 'This outlet',
+  allOutlets: 'All outlets',
+  apply: 'Show this window',
+  openPlan: 'Open the plan',
+  loading: 'Loading this week vs last week…',
+  emptyHint: 'Collect a bill at the till and this window fills in.',
+  stats: {
+    currentSales: 'Collected this window',
+    priorSales: 'Prior window',
+    bills: 'Bills this window',
+    units: 'Units sold',
+    vsPrior: 'Vs prior',
+    avgBill: 'avg bill',
+  },
+  chart: {
+    title: 'Collected by day',
+    empty: 'No completed bills to plot for this window.',
+  },
+  topSellers: {
+    title: 'Top packs this window',
+    empty: 'No top packs in this window.',
+  },
+  slowDead: {
+    title: 'Slow and idle packs',
+    hint: 'Idle means on the shelf with no sale. Slow means five or fewer units moved.',
+    empty: 'No slow or idle packs in this window.',
+  },
+  frequency: {
+    title: 'How often patients buy',
+    hint: 'Walk-in vs regulars from completed bills.',
+    empty: 'No patient visits in this window.',
+  },
+} as const;

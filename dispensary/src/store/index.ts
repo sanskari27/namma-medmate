@@ -13,6 +13,8 @@ import { purchasesReducer } from '@/screens/purchases/store/purchases.slice';
 import { distributorsReducer } from '@/screens/distributors/store/distributors.slice';
 import { offersReducer } from '@/screens/offers/store/offers.slice';
 import { kioskReducer } from '@/screens/kiosk/store/kiosk.slice';
+import { trendsReducer } from '@/screens/trends/store/trends.slice';
+import { customReportsReducer } from '@/screens/custom-reports/store/customReports.slice';
 
 export {
   authReducer,
@@ -48,6 +50,8 @@ export const store = configureStore({
     distributors: distributorsReducer,
     offers: offersReducer,
     kiosk: kioskReducer,
+    trends: trendsReducer,
+    customReports: customReportsReducer,
   },
 });
 

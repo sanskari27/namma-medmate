@@ -139,7 +139,11 @@ public class CustomReportService {
       }
       datasets.add(
           new CustomReportCatalogView.DatasetItem(
-              dataset.name(), datasetLabel(dataset), List.copyOf(fields)));
+              dataset.name(),
+              datasetLabel(dataset),
+              datasetGroup(dataset),
+              dataset == CustomReportDataset.SALES || dataset == CustomReportDataset.STOCK,
+              List.copyOf(fields)));
     }
     List<CustomReportCatalogView.OperatorItem> operators = new ArrayList<>();
     for (CustomReportOperator operator : CustomReportPolicy.operators()) {
@@ -667,6 +671,14 @@ public class CustomReportService {
       case CUSTOMERS -> "Patients";
       case PURCHASES -> "Stockist deliveries";
       case EXPENSES -> "Shop spend";
+    };
+  }
+
+  private static String datasetGroup(CustomReportDataset dataset) {
+    return switch (dataset) {
+      case SALES, PURCHASES, EXPENSES -> "Transaction";
+      case STOCK -> "Item";
+      case CUSTOMERS -> "Party";
     };
   }
 

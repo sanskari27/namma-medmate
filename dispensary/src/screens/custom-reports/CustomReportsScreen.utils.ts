@@ -63,7 +63,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'failure':
       return 'Could not build this report. Check the connection and try again.';
     case 'success':
-      return 'Rows from this outlet for the dates you picked.';
+      return null;
     default:
       return null;
   }

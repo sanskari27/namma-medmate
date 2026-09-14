@@ -1,3 +1,6 @@
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
 import { TrendsEmptyState } from './components/trends-empty-state';
 import { TrendsFilterBar } from './components/trends-filter-bar';
 import { TrendsFrequency } from './components/trends-frequency';
@@ -7,44 +10,68 @@ import { TrendsSlowDead } from './components/trends-slow-dead';
 import { TrendsStatusBanner } from './components/trends-status-banner';
 import { TrendsSummaryStrip } from './components/trends-summary-strip';
 import { TrendsTopSellers } from './components/trends-top-sellers';
-import { useTrendsPage } from './useTrendsPage';
+import { TRENDS_CONTENT } from './TrendsScreen.content';
+import { hasReportingAccess } from './TrendsScreen.utils';
+import './TrendsScreen.css';
+import {
+  accessDenied,
+  hydrateOwnerScope,
+  loadTrends,
+  selectTrendsPlanGate,
+  selectTrendsStatus,
+} from './store';
 
 export default function TrendsScreen() {
-  const page = useTrendsPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const user = useSelector((state: RootState) => state.auth.user);
+  const status = useSelector(selectTrendsStatus);
+  const planGate = useSelector(selectTrendsPlanGate);
+  const allowed = hasReportingAccess(user?.role, user?.modules);
+  const owner = user?.role === 'pharmacy_owner';
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(
+        accessDenied(
+          'Till staff cannot open compare weeks. Ask the owner for Accounts access.',
+        ),
+      );
+      return;
+    }
+    dispatch(
+      hydrateOwnerScope({
+        owner,
+        hasBranch: Boolean(user?.activeBranchId),
+      }),
+    );
+    void dispatch(loadTrends());
+  }, [allowed, dispatch, owner, user?.activeBranchId]);
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <TrendsHeader planGate={page.planGate} />
-      <TrendsStatusBanner
-        status={page.status}
-        statusId={page.statusId}
-        hint={page.statusHint}
-        planGate={page.planGate}
-      />
-      {page.allowed && !page.planGate ? (
+    <div className="tr" aria-label={TRENDS_CONTENT.regionLabel}>
+      <TrendsHeader />
+      <TrendsStatusBanner />
+
+      {allowed && !planGate ? (
         <>
-          <TrendsFilterBar
-            compare={page.compare}
-            owner={page.owner}
-            scope={page.scope}
-            disabled={page.busy}
-            applyRef={page.applyRef}
-            onCompare={page.onCompare}
-            onScope={page.onScope}
-            onApply={page.onApply}
-          />
-          {page.status === 'success' && page.view ? (
+          <TrendsFilterBar owner={owner} />
+          {status === 'loading' ? (
+            <div className="tr-loading" role="status">
+              {TRENDS_CONTENT.loading}
+            </div>
+          ) : null}
+          {status === 'success' ? (
             <>
-              <TrendsSummaryStrip view={page.view} />
-              <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-2">
-                <TrendsSalesChart view={page.view} />
-                <TrendsTopSellers items={page.view.topSellers} />
-                <TrendsSlowDead items={page.view.slowDeadStock} />
-                <TrendsFrequency items={page.view.customerFrequency} />
+              <TrendsSummaryStrip />
+              <div className="tr-grid">
+                <TrendsSalesChart />
+                <TrendsTopSellers />
+                <TrendsSlowDead />
+                <TrendsFrequency />
               </div>
             </>
           ) : null}
-          {page.status === 'empty' ? <TrendsEmptyState /> : null}
+          {status === 'empty' ? <TrendsEmptyState /> : null}
         </>
       ) : null}
     </div>

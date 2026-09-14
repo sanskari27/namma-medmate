@@ -12,6 +12,8 @@ export type CustomReportField = {
 export type CustomReportDataset = {
   key: string;
   label: string;
+  group?: string;
+  favourite?: boolean;
   fields: CustomReportField[];
 };
 

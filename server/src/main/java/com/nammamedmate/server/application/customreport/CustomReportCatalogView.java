@@ -4,7 +4,8 @@ import java.util.List;
 
 public record CustomReportCatalogView(List<DatasetItem> datasets, List<OperatorItem> operators) {
 
-  public record DatasetItem(String key, String label, List<FieldItem> fields) {}
+  public record DatasetItem(
+      String key, String label, String group, boolean favourite, List<FieldItem> fields) {}
 
   public record FieldItem(String key, String label, String kind) {}
 

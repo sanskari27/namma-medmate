@@ -1,15 +1,23 @@
-import { Reveal } from '@atoms';
+import { Link } from 'react-router-dom';
+import { useSelector } from 'react-redux';
+import { ROUTES } from '@/libs/constants/routes.const';
+import { TRENDS_CONTENT } from '../../TrendsScreen.content';
+import { selectTrendsPlanGate } from '../../store';
 
-export function TrendsHeader({ planGate = false }: { planGate?: boolean }) {
+export function TrendsHeader() {
+  const planGate = useSelector(selectTrendsPlanGate);
+
   return (
-    <Reveal>
-      <header className="border-b border-line pb-3">
-        <h1 className="text-2xl font-semibold text-ink">Compare weeks</h1>
-        <p className="mt-1 text-sm text-muted">
-          This week vs last week from completed bills. Only till facts already collected.
-          {planGate ? ' Growth unlocks these charts.' : ''}
-        </p>
-      </header>
-    </Reveal>
+    <header className="tr-head">
+      <h1>{TRENDS_CONTENT.title}</h1>
+      {planGate ? (
+        <div>
+          <p>{TRENDS_CONTENT.subtitle}. Growth unlocks these charts.</p>
+          <Link className="tr-head-link" to={ROUTES.SUBSCRIPTION}>
+            {TRENDS_CONTENT.openPlan}
+          </Link>
+        </div>
+      ) : null}
+    </header>
   );
 }
