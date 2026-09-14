@@ -1,6 +1,7 @@
 package com.nammamedmate.server.application.purchaseorder;
 
 import com.nammamedmate.server.domain.GoodsReceiptStatus;
+import java.math.BigDecimal;
 import java.time.Instant;
 import java.util.List;
 import java.util.UUID;
@@ -14,5 +15,11 @@ public record QualityCheckListResult(List<Summary> items) {
       GoodsReceiptStatus status,
       String supplierLegalName,
       Instant createdAt,
-      Instant checkedAt) {}
+      Instant checkedAt,
+      UUID purchaseOrderId,
+      int lineCount,
+      BigDecimal unitCount,
+      long taxablePaise,
+      long taxPaise,
+      long totalPaise) {}
 }

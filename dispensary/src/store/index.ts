@@ -9,6 +9,7 @@ import { returnsReducer } from '@/screens/returns/store/returns.slice';
 import { customersReducer } from '@/screens/customers/store/customers.slice';
 import { creditReducer } from '@/screens/credit/store/credit.slice';
 import { inventoryReducer } from '@/screens/inventory/store/inventory.slice';
+import { purchasesReducer } from '@/screens/purchases/store/purchases.slice';
 
 export {
   authReducer,
@@ -40,6 +41,7 @@ export const store = configureStore({
     customers: customersReducer,
     credit: creditReducer,
     inventory: inventoryReducer,
+    purchases: purchasesReducer,
   },
 });
 

@@ -1,1 +1,0 @@
-export { PurchaseOrderListPanel } from './PurchaseOrderListPanel';

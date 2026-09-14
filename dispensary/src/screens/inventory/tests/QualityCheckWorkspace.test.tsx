@@ -37,6 +37,12 @@ const pending: GoodsReceiptSummary = {
   supplierLegalName: 'Acme Pharma Pvt Ltd',
   createdAt: '2026-09-04T10:00:00Z',
   checkedAt: null,
+  purchaseOrderId: 'po1',
+  lineCount: 1,
+  unitCount: 10,
+  taxablePaise: 10000,
+  taxPaise: 1200,
+  totalPaise: 11200,
 };
 
 const detail: GoodsReceiptDetail = {

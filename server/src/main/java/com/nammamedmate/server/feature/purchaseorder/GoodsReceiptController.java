@@ -90,7 +90,13 @@ public class GoodsReceiptController {
         row.status(),
         row.supplierLegalName(),
         row.createdAt(),
-        row.checkedAt());
+        row.checkedAt(),
+        row.purchaseOrderId(),
+        row.lineCount(),
+        row.unitCount(),
+        row.taxablePaise(),
+        row.taxPaise(),
+        row.totalPaise());
   }
 
   private QualityCheckResponse toResponse(QualityCheckView view) {
@@ -143,7 +149,13 @@ public class GoodsReceiptController {
       GoodsReceiptStatus status,
       String supplierLegalName,
       Instant createdAt,
-      Instant checkedAt) {}
+      Instant checkedAt,
+      UUID purchaseOrderId,
+      int lineCount,
+      BigDecimal unitCount,
+      long taxablePaise,
+      long taxPaise,
+      long totalPaise) {}
 
   public record ChecklistResponse(
       Boolean packagingIntact, Boolean labelMatches, Boolean batchReadable, Boolean noDamage) {}

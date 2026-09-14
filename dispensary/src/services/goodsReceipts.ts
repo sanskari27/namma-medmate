@@ -13,6 +13,12 @@ export type GoodsReceiptSummary = {
   supplierLegalName: string;
   createdAt: string;
   checkedAt: string | null;
+  purchaseOrderId: string;
+  lineCount: number;
+  unitCount: number | string;
+  taxablePaise: number;
+  taxPaise: number;
+  totalPaise: number;
 };
 
 export type GoodsReceiptQcChecklist = {

@@ -1,1 +1,0 @@
-export { PurchasesHeader } from './PurchasesHeader';

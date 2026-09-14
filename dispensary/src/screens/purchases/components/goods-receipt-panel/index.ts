@@ -1,1 +1,0 @@
-export { GoodsReceiptPanel } from './GoodsReceiptPanel';

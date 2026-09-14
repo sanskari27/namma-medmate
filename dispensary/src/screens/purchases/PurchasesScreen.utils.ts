@@ -1,265 +1,252 @@
 import type { Product } from '@/services/products';
-import type { Supplier } from '@/services/suppliers';
-import type {
-  PurchaseOrder,
-  PurchaseOrderLineInput,
-  PurchaseOrderStatus,
-  PurchaseOrderVersion,
-  PurchasePaymentTerms,
-} from '@/services/purchaseOrders';
-import { AlertCircle, BadgeCheck, ClipboardList, Unplug } from 'lucide-react';
+import type { GoodsReceiptQcStatus, GoodsReceiptSummary } from '@/services/goodsReceipts';
+import type { ApiError } from '@/services/axios';
 
 export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+  | 'idle'
+  | 'loading'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'no_branch'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
 
-export type LineForm = {
+export type CreateStatus =
+  | null
+  | 'validation'
+  | 'saving'
+  | 'success'
+  | 'failure'
+  | 'conflict'
+  | 'denied';
+
+export type EntryLine = {
+  key: string;
   productId: string;
   quantity: string;
+  freeQuantity: string;
   rateRupees: string;
 };
 
-export type FormState = {
+export type EntryDraft = {
   supplierId: string;
-  expectedDeliveryDate: string;
-  paymentTerms: PurchasePaymentTerms;
-  notes: string;
-  lines: LineForm[];
+  invoiceNo: string;
+  invoiceDate: string;
+  lines: EntryLine[];
 };
-
-export const emptyLine: LineForm = { productId: '', quantity: '', rateRupees: '' };
-
-export const emptyForm: FormState = {
-  supplierId: '',
-  expectedDeliveryDate: '',
-  paymentTerms: 'CREDIT',
-  notes: '',
-  lines: [{ ...emptyLine }],
-};
-
-export const PAYMENT_TERMS: PurchasePaymentTerms[] = ['COD', 'ADVANCE', 'CREDIT'];
 
 export function hasPurchaseAccess(modules: string[] | undefined): boolean {
   return modules?.includes('PROCUREMENT') === true;
 }
 
-export function canDraftFromReorder(planCode: string | null | undefined): boolean {
-  return planCode === 'GROWTH' || planCode === 'PRO';
+export function emptyEntryLine(key = crypto.randomUUID()): EntryLine {
+  return {
+    key,
+    productId: '',
+    quantity: '',
+    freeQuantity: '',
+    rateRupees: '',
+  };
 }
 
-export function isProPlan(planCode: string | null | undefined): boolean {
-  return planCode === 'PRO';
+export function emptyEntryDraft(): EntryDraft {
+  return {
+    supplierId: '',
+    invoiceNo: '',
+    invoiceDate: new Date().toISOString().slice(0, 10),
+    lines: [emptyEntryLine()],
+  };
 }
 
-export function unmappedReasonLabel(reason: string): string {
-  switch (reason) {
-    case 'AMBIGUOUS':
-      return 'More than one stockist covers this pack';
-    case 'NO_RATE':
-      return 'No last rate on file';
-    case 'PRODUCT_INACTIVE':
-      return 'Pack is off the shelf list';
-    case 'SUPPLIER_INACTIVE':
-      return 'Stockist is inactive';
-    case 'ZERO_QTY':
-      return 'Suggested qty is zero';
-    default:
-      return 'No stockist mapped';
-  }
-}
-
-export function statusLabel(status: PurchaseOrderStatus): string {
-  switch (status) {
-    case 'DRAFT':
-      return 'Draft';
-    case 'ISSUED':
-      return 'Issued';
-    case 'CLOSED':
-      return 'Closed';
-    case 'CANCELLED':
-      return 'Cancelled';
-    default:
-      return status;
-  }
-}
-
-export function termsLabel(terms: PurchasePaymentTerms): string {
-  switch (terms) {
-    case 'COD':
-      return 'Cash on delivery';
-    case 'ADVANCE':
-      return 'Advance';
-    case 'CREDIT':
-      return 'Credit days';
-    default:
-      return terms;
-  }
-}
-
-export function formatPaise(paise: number): string {
-  return `₹${(paise / 100).toLocaleString('en-IN', {
+export function formatPaise(paise: number | null | undefined): string {
+  const value = Number(paise);
+  if (!Number.isFinite(value)) return '₹0.00';
+  return `₹${(value / 100).toLocaleString('en-IN', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2,
   })}`;
 }
 
-export function canEdit(status: PurchaseOrderStatus | undefined): boolean {
-  return status === 'DRAFT' || status === 'ISSUED';
-}
-
-export function validateForm(form: FormState): boolean {
-  if (!form.supplierId) {
-    return false;
+export function formatDate(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' });
+  } catch {
+    return iso.slice(0, 10);
   }
-  return form.lines.some(
-    (line) => line.productId && Number(line.quantity) > 0 && Number(line.rateRupees) > 0,
-  );
 }
 
-export function toLineInputs(form: FormState): PurchaseOrderLineInput[] {
-  return form.lines
-    .filter((line) => line.productId && Number(line.quantity) > 0 && Number(line.rateRupees) > 0)
-    .map((line) => ({
-      productId: line.productId,
-      quantity: Number(line.quantity),
-      unitRatePaise: Math.round(Number(line.rateRupees) * 100),
-    }));
+export function toNumber(value: string | number | null | undefined): number {
+  const n = Number(value);
+  return Number.isFinite(n) ? n : 0;
 }
 
-export function toForm(order: PurchaseOrder): FormState {
+export function rupeesToPaise(rupees: string): number {
+  return Math.round(toNumber(rupees) * 100);
+}
+
+export function statusPill(status: GoodsReceiptQcStatus): 'green' | 'gold' {
+  return status === 'CHECKED' ? 'green' : 'gold';
+}
+
+export function filteredBills(
+  items: GoodsReceiptSummary[],
+  query: string,
+): GoodsReceiptSummary[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return items;
+  return items.filter((row) => {
+    const hay = [
+      row.receiptNumber,
+      row.receiptReference,
+      row.supplierLegalName,
+    ]
+      .join(' ')
+      .toLowerCase();
+    return hay.includes(q);
+  });
+}
+
+export function monthKeyIst(iso: string): string {
+  try {
+    return new Date(iso).toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).slice(0, 7);
+  } catch {
+    return iso.slice(0, 7);
+  }
+}
+
+export function currentMonthKeyIst(): string {
+  return new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }).slice(0, 7);
+}
+
+export type PurchasesKpis = {
+  monthSpendPaise: number;
+  monthBillCount: number;
+  monthGstPaise: number;
+  totalGrns: number;
+};
+
+export function summaryKpis(items: GoodsReceiptSummary[]): PurchasesKpis {
+  const month = currentMonthKeyIst();
+  let monthSpendPaise = 0;
+  let monthBillCount = 0;
+  let monthGstPaise = 0;
+  for (const row of items) {
+    if (monthKeyIst(row.createdAt) === month) {
+      monthSpendPaise += row.totalPaise ?? 0;
+      monthGstPaise += row.taxPaise ?? 0;
+      monthBillCount += 1;
+    }
+  }
   return {
-    supplierId: order.supplierId,
-    expectedDeliveryDate: order.expectedDeliveryDate ?? '',
-    paymentTerms: order.paymentTerms,
-    notes: order.notes ?? '',
-    lines:
-      order.lines.length === 0
-        ? [{ ...emptyLine }]
-        : order.lines.map((line) => ({
-            productId: line.productId,
-            quantity: String(line.quantity),
-            rateRupees: String(line.unitRatePaise / 100),
-          })),
+    monthSpendPaise,
+    monthBillCount,
+    monthGstPaise,
+    totalGrns: items.length,
   };
 }
 
-export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text: string } | null {
-  switch (status) {
-    case 'loading':
-      return { icon: ClipboardList, text: 'Loading purchase orders for this outlet…' };
-    case 'empty':
-      return {
-        icon: ClipboardList,
-        text: 'No indents on this outlet yet. Start one for a single stockist.',
-      };
-    case 'validation':
-      return {
-        icon: AlertCircle,
-        text: 'Pick one stockist and at least one pack with quantity and agreed rate.',
-      };
-    case 'denied':
-      return {
-        icon: AlertCircle,
-        text: 'This till login cannot place purchase orders. Ask the owner to grant Purchases.',
-      };
-    case 'conflict':
-      return {
-        icon: AlertCircle,
-        text: 'Reorder numbers moved, or someone else saved this indent. Reload and try again.',
-      };
-    case 'failure':
-      return { icon: Unplug, text: 'Could not reach the server for purchase orders. Try again.' };
-    case 'success':
-      return { icon: BadgeCheck, text: 'Outlet indent saved. Totals and version updated.' };
-    default:
-      return null;
-  }
+export function lineMoney(
+  quantity: string,
+  rateRupees: string,
+  gstRate: number | null | undefined,
+): { taxablePaise: number; taxPaise: number; totalPaise: number; units: number } {
+  const units = toNumber(quantity);
+  const taxablePaise = Math.round(units * toNumber(rateRupees) * 100);
+  const rate = gstRate == null ? 0 : gstRate;
+  const taxPaise =
+    rate > 0 ? Math.round((taxablePaise * rate) / 100) : 0;
+  return {
+    taxablePaise,
+    taxPaise,
+    totalPaise: taxablePaise + taxPaise,
+    units,
+  };
 }
 
-export function statusIconClass(status: PageStatus): string {
-  if (status === 'success') {
-    return 'text-brand';
+export function entryTotals(
+  lines: EntryLine[],
+  productsById: Map<string, Product>,
+): { lineCount: number; units: number; taxablePaise: number; taxPaise: number; totalPaise: number } {
+  let lineCount = 0;
+  let units = 0;
+  let taxablePaise = 0;
+  let taxPaise = 0;
+  for (const line of lines) {
+    if (!line.productId || toNumber(line.quantity) <= 0) continue;
+    const product = productsById.get(line.productId);
+    const money = lineMoney(line.quantity, line.rateRupees, product?.gstRate);
+    lineCount += 1;
+    units += money.units + toNumber(line.freeQuantity);
+    taxablePaise += money.taxablePaise;
+    taxPaise += money.taxPaise;
   }
-  if (status === 'conflict' || status === 'validation') {
-    return 'text-warn';
-  }
-  if (status === 'failure' || status === 'denied') {
-    return 'text-danger';
-  }
-  return 'text-brand';
+  return {
+    lineCount,
+    units,
+    taxablePaise,
+    taxPaise,
+    totalPaise: taxablePaise + taxPaise,
+  };
 }
 
-export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
-    return 'denied';
+export function validateEntry(draft: EntryDraft): string | null {
+  if (!draft.supplierId) return 'Pick a distributor.';
+  if (!draft.invoiceNo.trim()) return 'Enter the distributor invoice no.';
+  if (!draft.invoiceDate) return 'Enter the invoice date.';
+  const filled = draft.lines.filter(
+    (line) => line.productId && toNumber(line.quantity) + toNumber(line.freeQuantity) > 0,
+  );
+  if (filled.length === 0) return 'Add at least one billed line with qty.';
+  for (const line of filled) {
+    if (!line.productId) return 'Every line needs a product.';
+    if (toNumber(line.quantity) < 0 || toNumber(line.freeQuantity) < 0) {
+      return 'Qty cannot be negative.';
+    }
+    if (toNumber(line.quantity) > 0 && toNumber(line.rateRupees) < 0) {
+      return 'Rate cannot be negative.';
+    }
+    if (toNumber(line.quantity) > 0 && line.rateRupees.trim() === '') {
+      return 'Enter Rate / PTR for charged qty.';
+    }
   }
-  if (error.code === 'PLAN_LIMIT') {
-    return 'denied';
+  const productIds = filled.map((line) => line.productId);
+  if (new Set(productIds).size !== productIds.length) {
+    return 'Each product can appear on only one line.';
   }
-  if (error.status === 409 || error.code === 'STALE_STATE') {
+  return null;
+}
+
+export function mapLoadError(error: ApiError): PageStatus {
+  if (error.status === 403 || error.code === 'FORBIDDEN') return 'denied';
+  if (error.code === 'NO_ACTIVE_BRANCH') return 'no_branch';
+  return 'failure';
+}
+
+export function mapCreateError(error: ApiError): CreateStatus {
+  if (error.status === 403 || error.code === 'FORBIDDEN') return 'denied';
+  if (
+    error.status === 409 ||
+    error.code === 'DUPLICATE_RECEIPT' ||
+    error.code === 'STALE_STATE' ||
+    error.code === 'IDEMPOTENCY_CONFLICT'
+  ) {
     return 'conflict';
   }
   if (
     error.status === 400 ||
     error.status === 422 ||
     error.code === 'VALIDATION_ERROR' ||
-    error.code === 'MIXED_SUPPLIER' ||
-    error.code === 'SUPPLIER_INACTIVE' ||
-    error.code === 'PRODUCT_INACTIVE' ||
-    error.code === 'INVALID_QUANTITY' ||
-    error.code === 'PO_CLOSED' ||
-    error.code === 'REORDER_EMPTY'
+    error.code === 'PRICE_MISMATCH'
   ) {
     return 'validation';
   }
   return 'failure';
 }
 
-export type VersionDiffRow = {
-  productName: string;
-  leftQty: string;
-  rightQty: string;
-  leftTotal: string;
-  rightTotal: string;
-  changed: boolean;
-};
-
-export function compareVersions(
-  left: PurchaseOrderVersion | null,
-  right: PurchaseOrderVersion | null,
-): VersionDiffRow[] {
-  if (!left || !right) {
-    return [];
-  }
-  const leftLines = left.snapshot.lines ?? [];
-  const rightLines = right.snapshot.lines ?? [];
-  const ids = [
-    ...new Set([
-      ...leftLines.map((row) => row.productId),
-      ...rightLines.map((row) => row.productId),
-    ]),
-  ];
-  return ids.map((id) => {
-    const a = leftLines.find((row) => row.productId === id);
-    const b = rightLines.find((row) => row.productId === id);
-    const leftQty = a?.quantity ?? '—';
-    const rightQty = b?.quantity ?? '—';
-    const leftTotal = a ? formatPaise(a.lineTotalPaise) : '—';
-    const rightTotal = b ? formatPaise(b.lineTotalPaise) : '—';
-    return {
-      productName: a?.productName ?? b?.productName ?? 'Pack',
-      leftQty,
-      rightQty,
-      leftTotal,
-      rightTotal,
-      changed: leftQty !== rightQty || leftTotal !== rightTotal,
-    };
-  });
-}
-
-export function supplierOptionLabel(supplier: Supplier): string {
-  return `${supplier.tradeName || supplier.legalName} (${supplier.supplierCode})`;
-}
-
-export function productOptionLabel(product: Product): string {
-  return `${product.name} · ${product.sku}`;
+export function productLabel(product: Product): string {
+  const pack = product.packDescription?.trim();
+  return pack ? `${product.name} · ${pack}` : product.name;
 }

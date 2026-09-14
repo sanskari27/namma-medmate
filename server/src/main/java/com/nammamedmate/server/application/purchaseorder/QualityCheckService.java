@@ -13,6 +13,8 @@ import com.nammamedmate.server.domain.GoodsReceiptLine;
 import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
+import com.nammamedmate.server.domain.PurchaseOrderLine;
+import com.nammamedmate.server.domain.PurchaseOrderPolicy;
 import com.nammamedmate.server.domain.QualityCheckPolicy;
 import com.nammamedmate.server.domain.StockMovement;
 import com.nammamedmate.server.domain.Supplier;
@@ -21,6 +23,7 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.GoodsReceiptLineRepository;
 import com.nammamedmate.server.persistence.GoodsReceiptRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
+import com.nammamedmate.server.persistence.PurchaseOrderLineRepository;
 import com.nammamedmate.server.persistence.StockMovementRepository;
 import com.nammamedmate.server.persistence.SupplierRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
@@ -29,6 +32,7 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashSet;
 import java.util.List;
@@ -36,6 +40,7 @@ import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
 import java.util.UUID;
+import java.util.stream.Collectors;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -49,6 +54,7 @@ public class QualityCheckService {
 
   private final GoodsReceiptRepository goodsReceiptRepository;
   private final GoodsReceiptLineRepository goodsReceiptLineRepository;
+  private final PurchaseOrderLineRepository purchaseOrderLineRepository;
   private final ProductRepository productRepository;
   private final SupplierRepository supplierRepository;
   private final StockMovementRepository stockMovementRepository;
@@ -62,6 +68,7 @@ public class QualityCheckService {
   public QualityCheckService(
       GoodsReceiptRepository goodsReceiptRepository,
       GoodsReceiptLineRepository goodsReceiptLineRepository,
+      PurchaseOrderLineRepository purchaseOrderLineRepository,
       ProductRepository productRepository,
       SupplierRepository supplierRepository,
       StockMovementRepository stockMovementRepository,
@@ -73,6 +80,7 @@ public class QualityCheckService {
       Clock clock) {
     this.goodsReceiptRepository = goodsReceiptRepository;
     this.goodsReceiptLineRepository = goodsReceiptLineRepository;
+    this.purchaseOrderLineRepository = purchaseOrderLineRepository;
     this.productRepository = productRepository;
     this.supplierRepository = supplierRepository;
     this.stockMovementRepository = stockMovementRepository;
@@ -90,8 +98,35 @@ public class QualityCheckService {
     List<GoodsReceipt> receipts =
         goodsReceiptRepository.findAllByTenantIdAndBranchIdOrderByCreatedAtDesc(
             ctx.tenantId(), ctx.branchId());
+    if (receipts.isEmpty()) {
+      return new QualityCheckListResult(List.of());
+    }
+    List<UUID> receiptIds = receipts.stream().map(GoodsReceipt::getId).toList();
+    List<GoodsReceiptLine> allLines =
+        goodsReceiptLineRepository.findAllByGoodsReceiptIdInAndTenantIdAndBranchIdOrderBySortOrderAsc(
+            receiptIds, ctx.tenantId(), ctx.branchId());
+    Map<UUID, List<GoodsReceiptLine>> linesByReceipt =
+        allLines.stream().collect(Collectors.groupingBy(GoodsReceiptLine::getGoodsReceiptId));
+    Set<UUID> poLineIds =
+        allLines.stream()
+            .map(GoodsReceiptLine::getPurchaseOrderLineId)
+            .collect(Collectors.toCollection(LinkedHashSet::new));
+    Map<UUID, PurchaseOrderLine> poLinesById =
+        poLineIds.isEmpty()
+            ? Map.of()
+            : purchaseOrderLineRepository.findAllByTenantIdAndIdIn(ctx.tenantId(), poLineIds)
+                .stream()
+                .collect(Collectors.toMap(PurchaseOrderLine::getId, line -> line));
     return new QualityCheckListResult(
-        receipts.stream().map(row -> toSummary(row, supplierName(row))).toList());
+        receipts.stream()
+            .map(
+                row ->
+                    toSummary(
+                        row,
+                        supplierName(row),
+                        linesByReceipt.getOrDefault(row.getId(), List.of()),
+                        poLinesById))
+            .toList());
   }
 
   @Transactional(readOnly = true)
@@ -291,7 +326,23 @@ public class QualityCheckService {
     return true;
   }
 
-  private QualityCheckListResult.Summary toSummary(GoodsReceipt receipt, String supplierName) {
+  private QualityCheckListResult.Summary toSummary(
+      GoodsReceipt receipt,
+      String supplierName,
+      List<GoodsReceiptLine> lines,
+      Map<UUID, PurchaseOrderLine> poLinesById) {
+    List<PurchaseOrderPolicy.LineMoney> money = new ArrayList<>(lines.size());
+    BigDecimal unitCount = BigDecimal.ZERO;
+    for (GoodsReceiptLine line : lines) {
+      unitCount = unitCount.add(line.getQuantity());
+      PurchaseOrderLine poLine = poLinesById.get(line.getPurchaseOrderLineId());
+      BigDecimal gstRate = poLine == null ? null : poLine.getGstRate();
+      boolean taxable = gstRate != null && gstRate.compareTo(BigDecimal.ZERO) > 0;
+      money.add(
+          PurchaseOrderPolicy.lineMoney(
+              line.getQuantity(), line.getUnitRatePaise(), gstRate, taxable));
+    }
+    PurchaseOrderPolicy.OrderMoney totals = PurchaseOrderPolicy.orderMoney(money);
     return new QualityCheckListResult.Summary(
         receipt.getId(),
         receipt.getReceiptNumber(),
@@ -299,7 +350,13 @@ public class QualityCheckService {
         receipt.getStatus(),
         supplierName,
         receipt.getCreatedAt(),
-        receipt.getCheckedAt());
+        receipt.getCheckedAt(),
+        receipt.getPurchaseOrderId(),
+        lines.size(),
+        strip(unitCount),
+        totals.subtotalPaise(),
+        totals.taxPaise(),
+        totals.totalPaise());
   }
 
   private QualityCheckView toView(GoodsReceipt receipt, List<GoodsReceiptLine> lines) {

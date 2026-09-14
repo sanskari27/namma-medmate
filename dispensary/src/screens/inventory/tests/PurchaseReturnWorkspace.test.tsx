@@ -89,6 +89,12 @@ const checkedReceipt: GoodsReceiptSummary = {
   supplierLegalName: 'Acme Pharma Pvt Ltd',
   createdAt: '2026-09-04T10:00:00Z',
   checkedAt: '2026-09-05T04:30:00Z',
+  purchaseOrderId: 'po2',
+  lineCount: 1,
+  unitCount: 5,
+  taxablePaise: 5000,
+  taxPaise: 600,
+  totalPaise: 5600,
 };
 
 const checkedDetail: GoodsReceiptDetail = {

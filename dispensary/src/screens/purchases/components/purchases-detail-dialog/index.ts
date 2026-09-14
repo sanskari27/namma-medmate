@@ -1,0 +1,1 @@
+export { PurchasesDetailDialog } from './PurchasesDetailDialog';

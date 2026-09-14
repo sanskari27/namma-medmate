@@ -1,44 +1,48 @@
-import { AlertCircle } from 'lucide-react';
-import type { PageStatus } from '../../PurchasesScreen.utils';
-import { statusCopy, statusIconClass } from '../../PurchasesScreen.utils';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch } from '@/store';
+import { PURCHASES_CONTENT } from '../../PurchasesScreen.content';
+import { selectPurchasesStatusHint, selectPurchasesStatus } from '../../store/purchases.selectors';
+import { loadPurchases } from '../../store/purchases.thunks';
 
-export type PurchasesStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  asAlert?: boolean;
-};
+export function PurchasesStatusBanner() {
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector(selectPurchasesStatus);
+  const hint = useSelector(selectPurchasesStatusHint);
 
-export function PurchasesStatusBanner({
-  status,
-  statusId,
-  asAlert = false,
-}: PurchasesStatusBannerProps) {
-  const banner = statusCopy(status);
-  if (!banner) {
-    return null;
-  }
-
-  if (asAlert) {
+  if (status === 'failure') {
     return (
-      <p
-        role="alert"
-        className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-danger"
-      >
-        <AlertCircle className="mt-0.5 size-4 shrink-0" aria-hidden />
-        {banner.text}
-      </p>
+      <div className="purchases-banner" data-tone="alert" role="alert">
+        <strong>{hint ?? PURCHASES_CONTENT.loadFailed}</strong>{' '}
+        <button type="button" className="purchases-btn purchases-btn-outline" onClick={() => void dispatch(loadPurchases())}>
+          {PURCHASES_CONTENT.retry}
+        </button>
+      </div>
     );
   }
 
-  return (
-    <p
-      id={statusId}
-      role="status"
-      aria-live="polite"
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <banner.icon className={`mt-0.5 size-4 shrink-0 ${statusIconClass(status)}`} aria-hidden />
-      <span>{banner.text}</span>
-    </p>
-  );
+  if (status === 'success' && hint) {
+    return (
+      <div className="purchases-banner" data-tone="ok" role="status">
+        {hint}
+      </div>
+    );
+  }
+
+  if (status === 'denied') {
+    return (
+      <div className="purchases-banner" data-tone="alert" role="alert">
+        <strong>{PURCHASES_CONTENT.denied}</strong>
+      </div>
+    );
+  }
+
+  if (status === 'no_branch') {
+    return (
+      <div className="purchases-banner" data-tone="alert" role="alert">
+        <strong>{PURCHASES_CONTENT.noBranch}</strong>
+      </div>
+    );
+  }
+
+  return null;
 }

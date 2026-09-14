@@ -1,0 +1,1 @@
+export { PurchasesTip } from './PurchasesTip';
