@@ -106,13 +106,15 @@ public class ExpenseService {
       UUID categoryId,
       LocalDate from,
       LocalDate to,
-      String status) {
+      String status,
+      String q) {
     Context ctx = requireFinance(principal);
     List<UUID> branchIds = resolveListBranches(principal, ctx, branchId, scope);
     Map<UUID, String> names = branchNames(ctx.tenantId(), branchIds);
     ExpensePostingStatus posting = ExpensePolicy.parseListStatus(status);
+    String query = q == null || q.isBlank() ? "" : q.trim();
     return expenseRepository
-        .findScoped(ctx.tenantId(), branchIds, categoryId, from, to, posting)
+        .findScoped(ctx.tenantId(), branchIds, categoryId, from, to, posting, query)
         .stream()
         .map(row -> toView(row, names.get(row.getBranchId())))
         .toList();
@@ -125,31 +127,50 @@ public class ExpenseService {
       String scope,
       UUID categoryId,
       LocalDate from,
-      LocalDate to) {
+      LocalDate to,
+      String q) {
     Context ctx = requireFinance(principal);
     List<UUID> branchIds = resolveListBranches(principal, ctx, branchId, scope);
     Map<UUID, String> names = branchNames(ctx.tenantId(), branchIds);
+    String query = q == null || q.isBlank() ? "" : q.trim();
     List<Expense> rows =
         expenseRepository.findScoped(
-            ctx.tenantId(), branchIds, categoryId, from, to, ExpensePostingStatus.POSTED);
+            ctx.tenantId(),
+            branchIds,
+            categoryId,
+            from,
+            to,
+            ExpensePostingStatus.POSTED,
+            query);
     long total = 0;
+    long gstTotal = 0;
+    long count = 0;
     Map<UUID, ExpenseTotalsView.CategoryTotal> byCategory = new LinkedHashMap<>();
     Map<UUID, ExpenseTotalsView.BranchTotal> byBranch = new LinkedHashMap<>();
     for (Expense row : rows) {
+      count += 1;
       total += row.getAmountPaise();
+      gstTotal += row.getGstPaise();
+      long taxable = row.getAmountPaise() - row.getGstPaise();
       byCategory.merge(
           row.getCategoryId(),
           new ExpenseTotalsView.CategoryTotal(
               row.getCategoryId(),
               row.getCategoryCode(),
               row.getCategoryLabel(),
-              row.getAmountPaise()),
+              1,
+              row.getAmountPaise(),
+              row.getGstPaise(),
+              taxable),
           (left, right) ->
               new ExpenseTotalsView.CategoryTotal(
                   left.categoryId(),
                   left.code(),
                   left.label(),
-                  left.totalPaise() + right.totalPaise()));
+                  left.entries() + right.entries(),
+                  left.totalPaise() + right.totalPaise(),
+                  left.gstPaise() + right.gstPaise(),
+                  left.taxablePaise() + right.taxablePaise()));
       String branchName = names.getOrDefault(row.getBranchId(), "Outlet");
       byBranch.merge(
           row.getBranchId(),
@@ -160,6 +181,8 @@ public class ExpenseService {
     }
     return new ExpenseTotalsView(
         total,
+        gstTotal,
+        count,
         byCategory.values().stream()
             .sorted(Comparator.comparing(ExpenseTotalsView.CategoryTotal::code))
             .toList(),
@@ -198,15 +221,22 @@ public class ExpenseService {
       }
     }
     ExpenseCategory category = requireCategory(ctx.tenantId(), command.categoryId());
+    int gstPercent = ExpensePolicy.requireGstPercent(command.gstPercent());
+    long gstPaise = ExpensePolicy.gstPaiseFromInclusive(amount, gstPercent);
     Instant now = Instant.now(clock);
     Expense row = new Expense();
     row.setId(UUID.randomUUID());
     row.setTenantId(ctx.tenantId());
     row.setBranchId(branchId);
+    row.setExpenseNo(nextExpenseNo(ctx.tenantId()));
     row.setCategoryId(category.getId());
     row.setCategoryCode(category.getCode());
     row.setCategoryLabel(category.getLabel());
+    row.setPartyName(ExpensePolicy.requirePartyName(command.partyName()));
+    row.setPaymentMode(ExpensePolicy.requirePaymentMode(command.paymentMode()));
     row.setAmountPaise(amount);
+    row.setGstPercent(gstPercent);
+    row.setGstPaise(gstPaise);
     row.setOccurredOn(occurred);
     row.setNotes(notes);
     row.setStatus(ExpensePolicy.postedWriteStatus());
@@ -239,11 +269,17 @@ public class ExpenseService {
     LocalDate occurred = ExpensePolicy.requireOccurredOn(command.occurredOn(), today());
     ExpensePolicy.assertPeriodOpen(occurred);
     ExpenseCategory category = requireCategory(ctx.tenantId(), command.categoryId());
+    int gstPercent = ExpensePolicy.requireGstPercent(command.gstPercent());
+    long gstPaise = ExpensePolicy.gstPaiseFromInclusive(amount, gstPercent);
     row.setBranchId(branchId);
     row.setCategoryId(category.getId());
     row.setCategoryCode(category.getCode());
     row.setCategoryLabel(category.getLabel());
+    row.setPartyName(ExpensePolicy.requirePartyName(command.partyName()));
+    row.setPaymentMode(ExpensePolicy.requirePaymentMode(command.paymentMode()));
     row.setAmountPaise(amount);
+    row.setGstPercent(gstPercent);
+    row.setGstPaise(gstPaise);
     row.setOccurredOn(occurred);
     row.setNotes(ExpensePolicy.requireNotes(command.notes()));
     row.setStatus(ExpensePolicy.postedWriteStatus());
@@ -252,6 +288,27 @@ public class ExpenseService {
     expenseRepository.saveAndFlush(row);
     audit(principal, "EXPENSE_UPDATE", row.getId(), branchId);
     return toView(row, branchName(ctx.tenantId(), branchId));
+  }
+
+  @Transactional
+  public void delete(AuthPrincipal principal, UUID id) {
+    Context ctx = requireFinance(principal);
+    Expense row =
+        expenseRepository
+            .findByIdAndTenantId(id, ctx.tenantId())
+            .orElseThrow(ExpensePolicy::notFound);
+    requireAccessibleBranch(principal, ctx, row.getBranchId());
+    List<ExpenseEvidence> evidence =
+        evidenceRepository.findAllByTenantIdAndExpenseIdOrderByUploadedAtAsc(
+            ctx.tenantId(), row.getId());
+    row.setCurrentEvidenceId(null);
+    expenseRepository.saveAndFlush(row);
+    for (ExpenseEvidence item : evidence) {
+      evidenceRepository.delete(item);
+    }
+    evidenceRepository.flush();
+    expenseRepository.delete(row);
+    audit(principal, "EXPENSE_DELETE", id, row.getBranchId());
   }
 
   @Transactional
@@ -306,7 +363,13 @@ public class ExpenseService {
   private void ensureSystemCategories() {
     Instant now = Instant.now(clock);
     for (Map.Entry<String, String> entry : ExpensePolicy.SYSTEM_LABELS.entrySet()) {
-      if (categoryRepository.findByTenantIdIsNullAndCode(entry.getKey()).isPresent()) {
+      var existing = categoryRepository.findByTenantIdIsNullAndCode(entry.getKey());
+      if (existing.isPresent()) {
+        ExpenseCategory row = existing.get();
+        if (!entry.getValue().equals(row.getLabel())) {
+          row.setLabel(entry.getValue());
+          categoryRepository.save(row);
+        }
         continue;
       }
       ExpenseCategory row = new ExpenseCategory();
@@ -422,10 +485,15 @@ public class ExpenseService {
         row.getTenantId(),
         row.getBranchId(),
         branchName,
+        row.getExpenseNo(),
         row.getCategoryId(),
         row.getCategoryCode(),
         row.getCategoryLabel(),
+        row.getPartyName(),
+        row.getPaymentMode(),
         row.getAmountPaise(),
+        row.getGstPercent(),
+        row.getGstPaise(),
         row.getOccurredOn(),
         row.getStatus(),
         row.getNotes(),
@@ -434,6 +502,11 @@ public class ExpenseService {
         row.getCreatedAt(),
         row.getUpdatedAt(),
         evidence);
+  }
+
+  private String nextExpenseNo(UUID tenantId) {
+    long next = expenseRepository.maxExpenseSequence(tenantId) + 1;
+    return ExpensePolicy.formatExpenseNo(next);
   }
 
   private ExpenseCategoryView toCategoryView(ExpenseCategory row) {

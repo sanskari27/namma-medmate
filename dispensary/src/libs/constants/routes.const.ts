@@ -97,7 +97,7 @@ export const NAV_SECTIONS = [
         path: ROUTES.CUSTOM_REPORTS,
         hint: 'Pick columns and download a sheet',
       },
-      { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Shop-floor spend' },
+      { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Track business spend & categories' },
       { label: 'Credit · Khata', path: ROUTES.CREDIT, hint: 'Customer credit, dues & repayments' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'What the shop is owed and owes' },
       { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Day book, GST and P&L' },

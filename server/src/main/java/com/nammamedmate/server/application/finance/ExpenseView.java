@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.finance;
 
+import com.nammamedmate.server.domain.ExpensePaymentMode;
 import com.nammamedmate.server.domain.ExpensePostingStatus;
 import java.time.Instant;
 import java.time.LocalDate;
@@ -11,10 +12,15 @@ public record ExpenseView(
     UUID tenantId,
     UUID branchId,
     String branchName,
+    String expenseNo,
     UUID categoryId,
     String categoryCode,
     String categoryLabel,
+    String partyName,
+    ExpensePaymentMode paymentMode,
     long amountPaise,
+    int gstPercent,
+    long gstPaise,
     LocalDate occurredOn,
     ExpensePostingStatus status,
     String notes,

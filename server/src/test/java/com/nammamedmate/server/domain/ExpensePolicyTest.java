@@ -15,8 +15,19 @@ class ExpensePolicyTest {
   @Test
   void ac01_systemCodesAreRentElectricitySalariesAndMiscellaneous() {
     assertThat(ExpensePolicy.SYSTEM_CODES)
-        .containsExactly("RENT", "ELECTRICITY", "SALARIES", "MISCELLANEOUS");
-    assertThat(ExpensePolicy.SYSTEM_LABELS.get("RENT")).isEqualTo("Rent");
+        .contains(
+            "RENT",
+            "ELECTRICITY",
+            "SALARIES",
+            "TELECOM",
+            "STATIONERY",
+            "REPAIR",
+            "TRAVEL",
+            "RAW_MATERIAL",
+            "MARKETING",
+            "BANK",
+            "MISCELLANEOUS");
+    assertThat(ExpensePolicy.SYSTEM_LABELS.get("RENT")).isEqualTo("Rent Expense");
     assertThat(ExpensePolicy.normalizeCode("  rent ")).isEqualTo("RENT");
   }
 

@@ -6,6 +6,7 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
 import java.util.Map;
+import java.util.Set;
 import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 
@@ -22,17 +23,36 @@ public final class ExpensePolicy {
   public static final String NO_ACTIVE_BRANCH = "NO_ACTIVE_BRANCH";
 
   public static final List<String> SYSTEM_CODES =
-      List.of("RENT", "ELECTRICITY", "SALARIES", "MISCELLANEOUS");
+      List.of(
+          "RENT",
+          "ELECTRICITY",
+          "SALARIES",
+          "TELECOM",
+          "STATIONERY",
+          "REPAIR",
+          "TRAVEL",
+          "RAW_MATERIAL",
+          "MARKETING",
+          "BANK",
+          "MISCELLANEOUS");
 
   public static final Map<String, String> SYSTEM_LABELS;
 
   private static final Pattern CUSTOM_CODE = Pattern.compile("^[A-Z][A-Z0-9_]{0,31}$");
+  private static final Set<Integer> GST_PERCENTS = Set.of(0, 5, 12, 18, 28);
 
   static {
     Map<String, String> labels = new LinkedHashMap<>();
-    labels.put("RENT", "Rent");
-    labels.put("ELECTRICITY", "Electricity");
-    labels.put("SALARIES", "Salaries");
+    labels.put("RENT", "Rent Expense");
+    labels.put("ELECTRICITY", "Electricity Bill");
+    labels.put("SALARIES", "Employee Salaries & Advances");
+    labels.put("TELECOM", "Telephone & Internet Expense");
+    labels.put("STATIONERY", "Printing and Stationery");
+    labels.put("REPAIR", "Repair & Maintenance");
+    labels.put("TRAVEL", "Transportation & Travel");
+    labels.put("RAW_MATERIAL", "Raw Material");
+    labels.put("MARKETING", "Marketing & Promotion");
+    labels.put("BANK", "Bank Charges");
     labels.put("MISCELLANEOUS", "Miscellaneous");
     SYSTEM_LABELS = Map.copyOf(labels);
   }
@@ -139,6 +159,41 @@ public final class ExpensePolicy {
       throw shape();
     }
     return trimmed;
+  }
+
+  public static String requirePartyName(String partyName) {
+    if (partyName == null || partyName.isBlank()) {
+      return null;
+    }
+    String trimmed = partyName.trim();
+    if (trimmed.length() > 120) {
+      throw shape();
+    }
+    return trimmed;
+  }
+
+  public static ExpensePaymentMode requirePaymentMode(ExpensePaymentMode mode) {
+    return mode == null ? ExpensePaymentMode.CASH : mode;
+  }
+
+  public static int requireGstPercent(Integer gstPercent) {
+    int value = gstPercent == null ? 0 : gstPercent;
+    if (!GST_PERCENTS.contains(value)) {
+      throw shape();
+    }
+    return value;
+  }
+
+  /** Amount is GST-inclusive; returns the GST portion in paise. */
+  public static long gstPaiseFromInclusive(long amountPaise, int gstPercent) {
+    if (gstPercent <= 0) {
+      return 0L;
+    }
+    return amountPaise * gstPercent / (100L + gstPercent);
+  }
+
+  public static String formatExpenseNo(long sequence) {
+    return "EXP-" + sequence;
   }
 
   public static void requireVersion(int current, Integer expected) {

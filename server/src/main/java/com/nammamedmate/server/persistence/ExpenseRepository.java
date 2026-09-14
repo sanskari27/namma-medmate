@@ -23,9 +23,16 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
       where e.tenantId = :tenantId
         and e.branchId in :branchIds
         and e.status = :status
-        and (:categoryId is null or e.categoryId = :categoryId)
-        and (:fromDate is null or e.occurredOn >= :fromDate)
-        and (:toDate is null or e.occurredOn <= :toDate)
+        and (cast(:categoryId as uuid) is null or e.categoryId = :categoryId)
+        and (cast(:fromDate as date) is null or e.occurredOn >= :fromDate)
+        and (cast(:toDate as date) is null or e.occurredOn <= :toDate)
+        and (
+          cast(:q as string) = ''
+          or lower(coalesce(e.partyName, '')) like lower(concat('%', cast(:q as string), '%'))
+          or lower(e.expenseNo) like lower(concat('%', cast(:q as string), '%'))
+          or lower(e.categoryLabel) like lower(concat('%', cast(:q as string), '%'))
+          or lower(coalesce(e.notes, '')) like lower(concat('%', cast(:q as string), '%'))
+        )
       order by e.occurredOn desc, e.createdAt desc
       """)
   List<Expense> findScoped(
@@ -34,7 +41,19 @@ public interface ExpenseRepository extends JpaRepository<Expense, UUID> {
       @Param("categoryId") UUID categoryId,
       @Param("fromDate") LocalDate fromDate,
       @Param("toDate") LocalDate toDate,
-      @Param("status") ExpensePostingStatus status);
+      @Param("status") ExpensePostingStatus status,
+      @Param("q") String q);
+
+  @Query(
+      value =
+          """
+          select coalesce(max(cast(substring(expense_no from 5) as bigint)), 1000)
+          from expense
+          where tenant_id = :tenantId
+            and expense_no ~ '^EXP-[0-9]+$'
+          """,
+      nativeQuery = true)
+  long maxExpenseSequence(@Param("tenantId") UUID tenantId);
 
   @Query(
       """

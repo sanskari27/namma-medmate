@@ -1,1 +1,0 @@
-export { ExpensesHeader } from './ExpensesHeader';

@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.finance.ExpenseEvidenceStream;
 import com.nammamedmate.server.application.finance.ExpenseService;
 import com.nammamedmate.server.application.finance.ExpenseTotalsView;
 import com.nammamedmate.server.application.finance.ExpenseView;
+import com.nammamedmate.server.domain.ExpensePaymentMode;
 import com.nammamedmate.server.domain.ExpensePostingStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
@@ -24,6 +25,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PatchMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -69,11 +71,14 @@ public class ExpenseController {
       @RequestParam(required = false) UUID categoryId,
       @RequestParam(required = false) LocalDate from,
       @RequestParam(required = false) LocalDate to,
-      @RequestParam(required = false) String status) {
+      @RequestParam(required = false) String status,
+      @RequestParam(required = false) String q) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(
         new ExpenseListResponse(
-            expenseService.list(principal, branchId, scope, categoryId, from, to, status).stream()
+            expenseService
+                .list(principal, branchId, scope, categoryId, from, to, status, q)
+                .stream()
                 .map(this::toExpense)
                 .toList()));
   }
@@ -85,18 +90,27 @@ public class ExpenseController {
       @RequestParam(required = false) String scope,
       @RequestParam(required = false) UUID categoryId,
       @RequestParam(required = false) LocalDate from,
-      @RequestParam(required = false) LocalDate to) {
+      @RequestParam(required = false) LocalDate to,
+      @RequestParam(required = false) String q) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     ExpenseTotalsView view =
-        expenseService.totals(principal, branchId, scope, categoryId, from, to);
+        expenseService.totals(principal, branchId, scope, categoryId, from, to, q);
     return ApiResponse.ok(
         new TotalsResponse(
             view.totalPaise(),
+            view.gstPaise(),
+            view.count(),
             view.byCategory().stream()
                 .map(
                     item ->
                         new CategoryTotalResponse(
-                            item.categoryId(), item.code(), item.label(), item.totalPaise()))
+                            item.categoryId(),
+                            item.code(),
+                            item.label(),
+                            item.entries(),
+                            item.totalPaise(),
+                            item.gstPaise(),
+                            item.taxablePaise()))
                 .toList(),
             view.byBranch().stream()
                 .map(
@@ -130,6 +144,13 @@ public class ExpenseController {
             expenseService.update(principal, id, toCommand(request, request.expectedVersion()))));
   }
 
+  @DeleteMapping("/expenses/{id}")
+  public ApiResponse<Void> delete(Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    expenseService.delete(principal, id);
+    return ApiResponse.ok(null);
+  }
+
   @PostMapping(path = "/expenses/{id}/evidence", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
   public ApiResponse<ExpenseResponse> evidence(
       Authentication authentication,
@@ -161,6 +182,9 @@ public class ExpenseController {
         request.amountPaise(),
         request.occurredOn(),
         request.notes(),
+        request.partyName(),
+        request.paymentMode(),
+        request.gstPercent(),
         request.branchId(),
         request.idempotencyKey(),
         expectedVersion);
@@ -177,10 +201,15 @@ public class ExpenseController {
         view.tenantId(),
         view.branchId(),
         view.branchName(),
+        view.expenseNo(),
         view.categoryId(),
         view.categoryCode(),
         view.categoryLabel(),
+        view.partyName(),
+        view.paymentMode(),
         view.amountPaise(),
+        view.gstPercent(),
+        view.gstPaise(),
         view.occurredOn(),
         view.status(),
         view.notes(),
@@ -208,6 +237,9 @@ public class ExpenseController {
       @NotNull Long amountPaise,
       @NotNull LocalDate occurredOn,
       @Size(max = 500) String notes,
+      @Size(max = 120) String partyName,
+      ExpensePaymentMode paymentMode,
+      Integer gstPercent,
       UUID branchId,
       @Size(max = 128) String idempotencyKey,
       Integer expectedVersion) {}
@@ -224,10 +256,15 @@ public class ExpenseController {
       UUID tenantId,
       UUID branchId,
       String branchName,
+      String expenseNo,
       UUID categoryId,
       String categoryCode,
       String categoryLabel,
+      String partyName,
+      ExpensePaymentMode paymentMode,
       long amountPaise,
+      int gstPercent,
+      long gstPaise,
       LocalDate occurredOn,
       ExpensePostingStatus status,
       String notes,
@@ -242,11 +279,19 @@ public class ExpenseController {
 
   public record TotalsResponse(
       long totalPaise,
+      long gstPaise,
+      long count,
       List<CategoryTotalResponse> byCategory,
       List<BranchTotalResponse> byBranch) {}
 
   public record CategoryTotalResponse(
-      UUID categoryId, String code, String label, long totalPaise) {}
+      UUID categoryId,
+      String code,
+      String label,
+      long entries,
+      long totalPaise,
+      long gstPaise,
+      long taxablePaise) {}
 
   public record BranchTotalResponse(UUID branchId, String branchName, long totalPaise) {}
 }

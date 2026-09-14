@@ -21,15 +21,22 @@ export interface ExpenseEvidence {
 
 export type ExpensePostingStatus = 'PENDING' | 'POSTED' | 'REJECTED';
 
+export type ExpensePaymentMode = 'CASH' | 'UPI' | 'CARD' | 'COD';
+
 export interface ShopExpense {
   id: string;
   tenantId: string;
   branchId: string;
   branchName: string;
+  expenseNo: string;
   categoryId: string;
   categoryCode: string;
   categoryLabel: string;
+  partyName: string | null;
+  paymentMode: ExpensePaymentMode;
   amountPaise: number;
+  gstPercent: number;
+  gstPaise: number;
   occurredOn: string;
   status: ExpensePostingStatus;
   notes: string | null;
@@ -42,11 +49,16 @@ export interface ShopExpense {
 
 export interface ExpenseTotals {
   totalPaise: number;
+  gstPaise: number;
+  count: number;
   byCategory: Array<{
     categoryId: string;
     code: string;
     label: string;
+    entries: number;
     totalPaise: number;
+    gstPaise: number;
+    taxablePaise: number;
   }>;
   byBranch: Array<{ branchId: string; branchName: string; totalPaise: number }>;
 }
@@ -56,6 +68,9 @@ export interface ExpenseWriteInput {
   amountPaise: number;
   occurredOn: string;
   notes?: string;
+  partyName?: string;
+  paymentMode?: ExpensePaymentMode;
+  gstPercent?: number;
   branchId?: string;
   idempotencyKey?: string;
   expectedVersion?: number;
@@ -68,6 +83,7 @@ export interface ExpenseListQuery {
   from?: string;
   to?: string;
   status?: ExpensePostingStatus;
+  q?: string;
 }
 
 export async function listExpenseCategories(): Promise<ExpenseCategory[]> {
@@ -101,6 +117,10 @@ export async function createExpense(input: ExpenseWriteInput): Promise<ShopExpen
 export async function updateExpense(id: string, input: ExpenseWriteInput): Promise<ShopExpense> {
   const { data } = await apiClient.patch<ShopExpense>(API.expense(id), input);
   return data;
+}
+
+export async function deleteExpense(id: string): Promise<void> {
+  await apiClient.delete(API.expense(id));
 }
 
 export async function attachExpenseEvidence(id: string, evidence: File): Promise<ShopExpense> {

@@ -35,8 +35,24 @@ public class Expense {
   @Column(name = "category_label", nullable = false, length = 80)
   private String categoryLabel;
 
+  @Column(name = "expense_no", nullable = false, length = 32)
+  private String expenseNo;
+
+  @Column(name = "party_name", length = 120)
+  private String partyName;
+
+  @Enumerated(EnumType.STRING)
+  @Column(name = "payment_mode", nullable = false, length = 16)
+  private ExpensePaymentMode paymentMode;
+
   @Column(name = "amount_paise", nullable = false)
   private long amountPaise;
+
+  @Column(name = "gst_percent", nullable = false)
+  private int gstPercent;
+
+  @Column(name = "gst_paise", nullable = false)
+  private long gstPaise;
 
   @Column(name = "occurred_on", nullable = false)
   private LocalDate occurredOn;

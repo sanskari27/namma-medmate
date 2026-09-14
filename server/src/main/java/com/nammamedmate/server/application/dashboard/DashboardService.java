@@ -280,7 +280,7 @@ public class DashboardService {
       AuthPrincipal principal, UUID requested, String scope) {
     String branchParam = requested == null ? null : requested.toString();
     long expenses =
-        expenseService.totals(principal, branchParam, scope, null, null, null).totalPaise();
+        expenseService.totals(principal, branchParam, scope, null, null, null, null).totalPaise();
     if (!agingEntitled(principal)) {
       return new DashboardView.AccountantDesk(
           null,
@@ -397,7 +397,7 @@ public class DashboardService {
     long expenseTotalPaise = 0L;
     try {
       expenseTotalPaise =
-          expenseService.totals(principal, branchParam, scope, null, null, null).totalPaise();
+          expenseService.totals(principal, branchParam, scope, null, null, null, null).totalPaise();
     } catch (RuntimeException ignored) {
       expenseTotalPaise = 0L;
     }

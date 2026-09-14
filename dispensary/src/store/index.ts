@@ -15,6 +15,7 @@ import { offersReducer } from '@/screens/offers/store/offers.slice';
 import { kioskReducer } from '@/screens/kiosk/store/kiosk.slice';
 import { trendsReducer } from '@/screens/trends/store/trends.slice';
 import { customReportsReducer } from '@/screens/custom-reports/store/customReports.slice';
+import { expensesReducer } from '@/screens/expenses/store/expenses.slice';
 
 export {
   authReducer,
@@ -52,6 +53,7 @@ export const store = configureStore({
     kiosk: kioskReducer,
     trends: trendsReducer,
     customReports: customReportsReducer,
+    expenses: expensesReducer,
   },
 });
 

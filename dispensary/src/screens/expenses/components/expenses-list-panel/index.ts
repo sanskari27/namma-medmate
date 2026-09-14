@@ -1,1 +1,0 @@
-export { ExpensesListPanel } from './ExpensesListPanel';
