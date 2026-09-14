@@ -17,6 +17,8 @@ public record OfferCommand(
     Integer getQuantity,
     OfferBenefitType benefitType,
     Long benefitValue,
+    String couponCode,
+    Boolean onlineVisible,
     Integer expectedVersion,
     List<ProductRef> products) {
 

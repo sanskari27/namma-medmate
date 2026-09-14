@@ -24,6 +24,8 @@ export interface SalesOffer {
   getQuantity: number | null;
   benefitType: OfferBenefitType;
   benefitValue: number;
+  couponCode: string | null;
+  onlineVisible: boolean;
   version: number;
   products: SalesOfferProduct[];
   createdAt: string;
@@ -40,6 +42,8 @@ export interface OfferInput {
   getQuantity?: number | null;
   benefitType: OfferBenefitType;
   benefitValue: number;
+  couponCode?: string | null;
+  onlineVisible?: boolean;
   expectedVersion?: number;
   products: SalesOfferProduct[];
 }
@@ -73,4 +77,11 @@ export async function deactivateOffer(
 ): Promise<SalesOffer> {
   const { data } = await apiClient.post<SalesOffer>(API.offerDeactivate(id), input);
   return data;
+}
+
+export async function deleteOffer(
+  id: string,
+  input: { expectedVersion: number },
+): Promise<void> {
+  await apiClient.post(API.offerDelete(id), input);
 }

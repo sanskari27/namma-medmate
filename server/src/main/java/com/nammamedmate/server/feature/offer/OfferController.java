@@ -89,6 +89,16 @@ public class OfferController {
         toResponse(offerService.deactivate(principal, id, request.expectedVersion())));
   }
 
+  @PostMapping("/{id}/delete")
+  public ApiResponse<Void> delete(
+      Authentication authentication,
+      @PathVariable UUID id,
+      @Valid @RequestBody VersionRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    offerService.delete(principal, id, request.expectedVersion());
+    return ApiResponse.ok(null);
+  }
+
   private OfferCommand toCommand(UpsertOfferRequest request) {
     return new OfferCommand(
         request.name(),
@@ -100,6 +110,8 @@ public class OfferController {
         request.getQuantity(),
         parseBenefit(request.benefitType()),
         request.benefitValue(),
+        request.couponCode(),
+        request.onlineVisible(),
         request.expectedVersion(),
         request.products().stream()
             .map(row -> new OfferCommand.ProductRef(row.productId(), parseSlot(row.slot())))
@@ -120,6 +132,8 @@ public class OfferController {
         view.getQuantity(),
         view.benefitType(),
         view.benefitValue(),
+        view.couponCode(),
+        view.onlineVisible(),
         view.version(),
         view.products().stream()
             .map(row -> new ProductResponse(row.productId(), row.slot()))
@@ -162,6 +176,8 @@ public class OfferController {
       Integer getQuantity,
       @NotBlank String benefitType,
       Long benefitValue,
+      @Size(max = 32) String couponCode,
+      Boolean onlineVisible,
       Integer expectedVersion,
       @NotEmpty List<@Valid ProductRequest> products) {}
 
@@ -184,6 +200,8 @@ public class OfferController {
       Integer getQuantity,
       OfferBenefitType benefitType,
       long benefitValue,
+      String couponCode,
+      boolean onlineVisible,
       int version,
       List<ProductResponse> products,
       Instant createdAt,

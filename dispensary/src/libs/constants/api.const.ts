@@ -152,6 +152,7 @@ export const API = {
   offer: (id: string) => `/api/v1/offers/${id}`,
   offerPublish: (id: string) => `/api/v1/offers/${id}/publish`,
   offerDeactivate: (id: string) => `/api/v1/offers/${id}/deactivate`,
+  offerDelete: (id: string) => `/api/v1/offers/${id}/delete`,
   SALES_PRESCRIPTIONS: '/api/v1/sales/prescriptions',
   PRESCRIPTION_REFERENCES: '/api/v1/prescription-references',
   PRESCRIPTION_REFERENCES_SCAN: '/api/v1/prescription-references/scan',

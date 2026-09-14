@@ -1,1 +1,0 @@
-export { OffersHeader } from './OffersHeader';

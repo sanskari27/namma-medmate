@@ -1,26 +1,30 @@
-import { statusCopy, statusIcon, type PageStatus } from '../../OffersScreen.utils';
+import { useSelector } from 'react-redux';
+import { OFFERS_CONTENT } from '../../OffersScreen.content';
+import { statusCopy, statusIcon } from '../../OffersScreen.utils';
+import {
+  selectOffersStatus,
+  selectOffersStatusHint,
+} from '../../store/offers.selectors';
 
-export type OffersStatusBannerProps = {
-  status: PageStatus;
-  statusId: string;
-  hint?: string | null;
-};
-
-export function OffersStatusBanner({ status, statusId, hint }: OffersStatusBannerProps) {
-  const text = statusCopy(status, hint);
-  if (!text) {
-    return <div id={statusId} className="min-h-5" />;
+export function OffersStatusBanner() {
+  const status = useSelector(selectOffersStatus);
+  const hint = useSelector(selectOffersStatusHint);
+  const copy = statusCopy(status, hint);
+  if (!copy || status === 'loading' || status === 'idle' || status === 'empty') {
+    return null;
   }
   const Icon = statusIcon(status);
-  const role = status === 'denied' ? 'alert' : 'status';
+  const tone =
+    status === 'success' ? 'ok' : status === 'denied' || status === 'failure' || status === 'conflict'
+      ? 'alert'
+      : undefined;
+
   return (
-    <p
-      id={statusId}
-      role={role}
-      className="flex items-start gap-2 border border-line bg-surface px-3 py-2 text-sm text-ink"
-    >
-      <Icon className="mt-0.5 size-4 shrink-0" aria-hidden />
-      <span>{text}</span>
-    </p>
+    <div className="off-banner" data-tone={tone} role={tone === 'alert' ? 'alert' : 'status'}>
+      <strong style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+        <Icon size={16} aria-hidden />
+        {copy}
+      </strong>
+    </div>
   );
 }

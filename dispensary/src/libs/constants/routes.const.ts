@@ -83,7 +83,7 @@ export const NAV_SECTIONS = [
         path: ROUTES.DISTRIBUTORS,
         hint: 'Your distributor & supplier directory',
       },
-      { label: 'Offers', path: ROUTES.OFFERS, hint: 'Schemes at this counter' },
+      { label: 'Offers', path: ROUTES.OFFERS, hint: 'Discounts & promotions' },
       { label: 'Self-Order Kiosk', path: ROUTES.KIOSK, hint: 'Kiosk at this branch' },
     ],
   },

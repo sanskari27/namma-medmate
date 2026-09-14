@@ -111,11 +111,9 @@ public class OfferService {
     SalesOffer offer =
         salesOfferRepository.lockByIdAndTenantId(id, tenantId).orElseThrow(OfferService::notFound);
     InvoicePolicy.assertVersion(offer.getVersion(), expectedVersion);
-    if (offer.getStatus() != OfferStatus.DRAFT && offer.getStatus() != OfferStatus.ACTIVE) {
+    if (offer.getStatus() == null) {
       throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY,
-          OfferPolicy.OFFER_INVALID,
-          "Only a draft or live scheme can be published.");
+          HttpStatus.UNPROCESSABLE_ENTITY, OfferPolicy.OFFER_INVALID, "Scheme status is missing.");
     }
     Instant now = clock.instant();
     offer.setStatus(OfferStatus.ACTIVE);
@@ -139,6 +137,17 @@ public class OfferService {
     salesOfferRepository.save(offer);
     audit(principal, offer.getId(), "OFFER_DEACTIVATE");
     return toView(offer, productsOf(offer));
+  }
+
+  @Transactional
+  public void delete(AuthPrincipal principal, UUID id, Integer expectedVersion) {
+    UUID tenantId = requireSalesAccess(principal);
+    SalesOffer offer =
+        salesOfferRepository.lockByIdAndTenantId(id, tenantId).orElseThrow(OfferService::notFound);
+    InvoicePolicy.assertVersion(offer.getVersion(), expectedVersion);
+    salesOfferProductRepository.deleteByOfferIdAndTenantId(offer.getId(), tenantId);
+    salesOfferRepository.delete(offer);
+    audit(principal, offer.getId(), "OFFER_DELETE");
   }
 
   private void applyBody(SalesOffer offer, OfferCommand command, UUID tenantId, Instant now) {
@@ -216,6 +225,20 @@ public class OfferService {
           OfferPolicy.OFFER_INVALID,
           "A bundle needs medicines on this bill together.");
     }
+    String coupon = normalizeCoupon(command.couponCode());
+    if (coupon != null) {
+      boolean taken =
+          salesOfferRepository.findAllByTenantId(tenantId).stream()
+              .anyMatch(
+                  row ->
+                      !row.getId().equals(offer.getId())
+                          && row.getCouponCode() != null
+                          && coupon.equalsIgnoreCase(row.getCouponCode()));
+      if (taken) {
+        throw new ApiException(
+            HttpStatus.CONFLICT, "COUPON_TAKEN", "Another scheme already uses this coupon code.");
+      }
+    }
     offer.setName(name);
     offer.setKind(command.kind());
     offer.setPriority(command.priority());
@@ -225,7 +248,20 @@ public class OfferService {
     offer.setGetQuantity(command.getQuantity());
     offer.setBenefitType(command.benefitType());
     offer.setBenefitValue(command.benefitValue() == null ? 0L : command.benefitValue());
+    offer.setCouponCode(coupon);
+    offer.setOnlineVisible(Boolean.TRUE.equals(command.onlineVisible()));
     offer.setUpdatedAt(now);
+  }
+
+  private static String normalizeCoupon(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    String code = raw.trim().toUpperCase();
+    if (code.length() > 32) {
+      throw validation();
+    }
+    return code;
   }
 
   private void replaceProducts(SalesOffer offer, OfferCommand command, UUID tenantId) {
@@ -261,6 +297,8 @@ public class OfferService {
         offer.getGetQuantity(),
         offer.getBenefitType(),
         offer.getBenefitValue(),
+        offer.getCouponCode(),
+        offer.isOnlineVisible(),
         offer.getVersion(),
         products.stream()
             .map(row -> new OfferView.ProductView(row.getProductId(), row.getSlot()))

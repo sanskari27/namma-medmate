@@ -55,6 +55,12 @@ public class SalesOffer {
   @Column(name = "benefit_value", nullable = false)
   private long benefitValue;
 
+  @Column(name = "coupon_code", length = 32)
+  private String couponCode;
+
+  @Column(name = "online_visible", nullable = false)
+  private boolean onlineVisible;
+
   @Column(nullable = false)
   private int version = 1;
 

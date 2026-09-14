@@ -11,6 +11,7 @@ import { creditReducer } from '@/screens/credit/store/credit.slice';
 import { inventoryReducer } from '@/screens/inventory/store/inventory.slice';
 import { purchasesReducer } from '@/screens/purchases/store/purchases.slice';
 import { distributorsReducer } from '@/screens/distributors/store/distributors.slice';
+import { offersReducer } from '@/screens/offers/store/offers.slice';
 
 export {
   authReducer,
@@ -44,6 +45,7 @@ export const store = configureStore({
     inventory: inventoryReducer,
     purchases: purchasesReducer,
     distributors: distributorsReducer,
+    offers: offersReducer,
   },
 });
 

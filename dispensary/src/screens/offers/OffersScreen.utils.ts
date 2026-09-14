@@ -1,8 +1,23 @@
-import type { OfferInput, OfferKind, OfferStatus, SalesOffer } from '@/services/offers';
+import type {
+  OfferBenefitType,
+  OfferInput,
+  OfferKind,
+  OfferStatus,
+  SalesOffer,
+} from '@/services/offers';
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
+import { OFFERS_CONTENT } from './OffersScreen.content';
 
 export type PageStatus =
-  'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
+  | 'loading'
+  | 'idle'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
 
 export type FormState = {
   name: string;
@@ -12,19 +27,27 @@ export type FormState = {
   getQuantity: string;
   startsAt: string;
   endsAt: string;
-  percentBps: string;
+  benefitMode: 'PERCENT' | 'FLAT';
+  percentValue: string;
+  flatRupees: string;
+  couponCode: string;
+  onlineVisible: boolean;
   productIds: string[];
 };
 
 export const emptyForm = (): FormState => ({
   name: '',
-  kind: 'BOGO',
+  kind: 'SEASONAL',
   priority: '10',
   buyQuantity: '2',
   getQuantity: '1',
   startsAt: '',
   endsAt: '',
-  percentBps: '1000',
+  benefitMode: 'PERCENT',
+  percentValue: '10',
+  flatRupees: '50',
+  couponCode: '',
+  onlineVisible: true,
   productIds: [],
 });
 
@@ -33,70 +56,41 @@ export function hasSalesAccess(modules: string[] | undefined): boolean {
 }
 
 export function statusCopy(status: PageStatus, hint?: string | null): string | null {
-  if (hint) {
-    return hint;
-  }
+  if (hint) return hint;
   switch (status) {
     case 'loading':
-      return 'Loading schemes at this counter…';
+      return OFFERS_CONTENT.status.loading;
     case 'empty':
-      return 'No schemes yet. Add a BOGO or seasonal scheme for this counter.';
+      return OFFERS_CONTENT.status.empty;
     case 'validation':
-      return 'Name and at least one medicine are needed before saving this scheme.';
+      return OFFERS_CONTENT.status.validation;
     case 'denied':
-      return 'This till cannot manage schemes. Ask the owner to grant Sales.';
+      return OFFERS_CONTENT.status.denied;
     case 'conflict':
-      return 'This scheme was updated on another till. Refresh, then publish again.';
+      return OFFERS_CONTENT.status.conflict;
     case 'failure':
-      return 'Could not load schemes. Check the connection and try again.';
+      return OFFERS_CONTENT.status.failure;
     case 'success':
-      return 'Scheme saved.';
+      return OFFERS_CONTENT.status.success;
     default:
       return null;
   }
 }
 
 export function statusIcon(status: PageStatus) {
-  if (status === 'success') {
-    return CheckCircle2;
-  }
-  if (status === 'failure' || status === 'conflict') {
-    return WifiOff;
-  }
+  if (status === 'success') return CheckCircle2;
+  if (status === 'failure' || status === 'conflict') return WifiOff;
   return AlertCircle;
 }
 
-export function kindLabel(kind: OfferKind): string {
-  switch (kind) {
-    case 'BOGO':
-      return 'Buy 2 get 1';
-    case 'SEASONAL':
-      return 'Seasonal';
-    case 'BUNDLE':
-      return 'Bundle';
-    default:
-      return kind;
-  }
-}
-
-export function statusLabel(status: OfferStatus): string {
-  switch (status) {
-    case 'DRAFT':
-      return 'Draft';
-    case 'ACTIVE':
-      return 'Live';
-    case 'INACTIVE':
-      return 'Off';
-    default:
-      return status;
-  }
-}
-
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') {
-    return 'denied';
-  }
-  if (error.status === 409 || error.code === 'STALE_STATE' || error.code === 'CONFLICT') {
+  if (error.status === 403 || error.code === 'FORBIDDEN') return 'denied';
+  if (
+    error.status === 409 ||
+    error.code === 'STALE_STATE' ||
+    error.code === 'CONFLICT' ||
+    error.code === 'COUPON_TAKEN'
+  ) {
     return 'conflict';
   }
   if (error.status === 400 || error.status === 422 || error.code === 'VALIDATION_ERROR') {
@@ -115,6 +109,9 @@ export function apiStatusHint(code: string | null): string | null {
   if (code === 'AMBIGUOUS_PRECEDENCE') {
     return 'Two live schemes share the same priority. Change one priority, then save again.';
   }
+  if (code === 'COUPON_TAKEN') {
+    return 'Another offer already uses this coupon code.';
+  }
   return null;
 }
 
@@ -125,13 +122,9 @@ export function formValid(form: FormState): boolean {
 const IST = 'Asia/Kolkata';
 
 export function utcIsoToIstLocal(value: string | null): string {
-  if (!value) {
-    return '';
-  }
+  if (!value) return '';
   const date = new Date(value);
-  if (Number.isNaN(date.getTime())) {
-    return '';
-  }
+  if (Number.isNaN(date.getTime())) return '';
   const parts = Object.fromEntries(
     new Intl.DateTimeFormat('en-GB', {
       timeZone: IST,
@@ -149,17 +142,17 @@ export function utcIsoToIstLocal(value: string | null): string {
 }
 
 export function istLocalToUtcIso(value: string): string | null {
-  if (!value) {
-    return null;
-  }
+  if (!value) return null;
   const instant = new Date(`${value}:00+05:30`);
-  if (Number.isNaN(instant.getTime())) {
-    return null;
-  }
+  if (Number.isNaN(instant.getTime())) return null;
   return instant.toISOString();
 }
 
 export function toForm(offer: SalesOffer): FormState {
+  const percent =
+    offer.benefitType === 'PERCENT' ? String((offer.benefitValue || 0) / 100) : '10';
+  const flat =
+    offer.benefitType === 'FLAT' ? String((offer.benefitValue || 0) / 100) : '50';
   return {
     name: offer.name,
     kind: offer.kind,
@@ -168,8 +161,28 @@ export function toForm(offer: SalesOffer): FormState {
     getQuantity: String(offer.getQuantity ?? 1),
     startsAt: utcIsoToIstLocal(offer.startsAt),
     endsAt: utcIsoToIstLocal(offer.endsAt),
-    percentBps: String(offer.kind === 'BOGO' ? 1000 : offer.benefitValue),
+    benefitMode: offer.benefitType === 'FLAT' ? 'FLAT' : 'PERCENT',
+    percentValue: percent,
+    flatRupees: flat,
+    couponCode: offer.couponCode ?? '',
+    onlineVisible: offer.onlineVisible,
     productIds: [...new Set(offer.products.map((row) => row.productId))],
+  };
+}
+
+function benefitForForm(form: FormState): { benefitType: OfferBenefitType; benefitValue: number } {
+  if (form.kind === 'BOGO') {
+    return { benefitType: 'FREE_QTY', benefitValue: Number(form.getQuantity) || 0 };
+  }
+  if (form.benefitMode === 'FLAT') {
+    return {
+      benefitType: 'FLAT',
+      benefitValue: Math.round((Number(form.flatRupees) || 0) * 100),
+    };
+  }
+  return {
+    benefitType: 'PERCENT',
+    benefitValue: Math.round((Number(form.percentValue) || 0) * 100),
   };
 }
 
@@ -184,17 +197,55 @@ export function toInput(form: FormState, expectedVersion?: number): OfferInput {
       : form.kind === 'BUNDLE'
         ? productIds.map((productId) => ({ productId, slot: 'BUNDLE' as const }))
         : productIds.map((productId) => ({ productId, slot: 'TRIGGER' as const }));
+  const benefit = benefitForForm(form);
+  let startsAt = form.kind === 'SEASONAL' ? istLocalToUtcIso(form.startsAt) : null;
+  let endsAt = form.kind === 'SEASONAL' ? istLocalToUtcIso(form.endsAt) : null;
+  if (form.kind === 'SEASONAL' && (!startsAt || !endsAt)) {
+    const start = new Date();
+    const end = new Date(start.getTime() + 90 * 24 * 60 * 60 * 1000);
+    startsAt = startsAt ?? start.toISOString();
+    endsAt = endsAt ?? end.toISOString();
+  }
   return {
     name: form.name.trim(),
     kind: form.kind,
-    priority: Number(form.priority),
-    startsAt: istLocalToUtcIso(form.startsAt),
-    endsAt: istLocalToUtcIso(form.endsAt),
+    priority: Number(form.priority) || 10,
+    startsAt,
+    endsAt,
     buyQuantity: form.kind === 'BOGO' ? Number(form.buyQuantity) : null,
     getQuantity: form.kind === 'BOGO' ? Number(form.getQuantity) : null,
-    benefitType: form.kind === 'BOGO' ? 'FREE_QTY' : 'PERCENT',
-    benefitValue: form.kind === 'BOGO' ? Number(form.getQuantity) : Number(form.percentBps),
+    benefitType: benefit.benefitType,
+    benefitValue: benefit.benefitValue,
+    couponCode: form.couponCode.trim() || null,
+    onlineVisible: form.onlineVisible,
     expectedVersion,
     products,
   };
+}
+
+export function benefitBadge(offer: SalesOffer): string {
+  if (offer.kind === 'BOGO' || offer.benefitType === 'FREE_QTY') {
+    return `Buy ${offer.buyQuantity ?? 1} Get ${offer.getQuantity ?? 1}`;
+  }
+  if (offer.benefitType === 'FLAT') {
+    return `₹${Math.round((offer.benefitValue || 0) / 100)} OFF`;
+  }
+  return `${(offer.benefitValue || 0) / 100}% OFF`;
+}
+
+export function runStateLabel(status: OfferStatus): string {
+  if (status === 'ACTIVE') return OFFERS_CONTENT.running;
+  if (status === 'DRAFT') return OFFERS_CONTENT.draft;
+  return OFFERS_CONTENT.paused;
+}
+
+export function isOfferRunning(status: OfferStatus): boolean {
+  return status === 'ACTIVE';
+}
+
+export function appliesCopy(offer: SalesOffer): { scope: string; count: number } {
+  const count = new Set(offer.products.map((p) => p.productId)).size;
+  if (count === 0) return { scope: 'no products', count: 0 };
+  if (count === 1) return { scope: '1 medicine', count };
+  return { scope: 'selected medicines', count };
 }

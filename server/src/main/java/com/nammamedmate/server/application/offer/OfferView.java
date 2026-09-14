@@ -21,6 +21,8 @@ public record OfferView(
     Integer getQuantity,
     OfferBenefitType benefitType,
     long benefitValue,
+    String couponCode,
+    boolean onlineVisible,
     int version,
     List<ProductView> products,
     Instant createdAt,

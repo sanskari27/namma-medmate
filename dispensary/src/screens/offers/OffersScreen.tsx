@@ -1,40 +1,59 @@
-import { OffersFormPanel } from './components/offers-form-panel';
-import { OffersHeader } from './components/offers-header';
-import { OffersListPanel } from './components/offers-list-panel';
+import { useEffect } from 'react';
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '@/store';
+import { OffersFormDialog } from './components/offers-form-dialog';
+import { OffersGrid } from './components/offers-grid';
 import { OffersStatusBanner } from './components/offers-status-banner';
-import { useOffersPage } from './useOffersPage';
+import { OffersToolbar } from './components/offers-toolbar';
+import { OFFERS_CONTENT } from './OffersScreen.content';
+import './OffersScreen.css';
+import { hasSalesAccess } from './OffersScreen.utils';
+import { selectOffersStatus } from './store/offers.selectors';
+import { loadOffers } from './store/offers.thunks';
 
 export default function OffersScreen() {
-  const page = useOffersPage();
+  const dispatch = useDispatch<AppDispatch>();
+  const status = useSelector(selectOffersStatus);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const allowed = hasSalesAccess(user?.modules);
+
+  useEffect(() => {
+    if (!allowed) return;
+    void dispatch(loadOffers());
+  }, [dispatch, allowed]);
+
+  if (!allowed) {
+    return (
+      <div className="off" aria-label={OFFERS_CONTENT.regionLabel}>
+        <div className="off-banner" data-tone="alert" role="alert">
+          <strong>{OFFERS_CONTENT.denied}</strong>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === 'denied') {
+    return (
+      <div className="off" aria-label={OFFERS_CONTENT.regionLabel}>
+        <OffersStatusBanner />
+      </div>
+    );
+  }
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col gap-3 p-4">
-      <OffersHeader addButtonRef={page.addRef} denied={!page.allowed} onAdd={page.startCreate} />
-      <OffersStatusBanner status={page.status} statusId={page.statusId} hint={page.statusHint} />
-      {page.allowed ? (
-        <div className="grid min-h-0 flex-1 gap-3 lg:grid-cols-[minmax(16rem,20rem)_1fr]">
-          <OffersListPanel
-            items={page.items}
-            selectedId={page.creating ? null : (page.selected?.id ?? null)}
-            onSelect={page.selectOffer}
-          />
-          {page.creating || page.selected ? (
-            <OffersFormPanel
-              form={page.form}
-              products={page.products}
-              creating={page.creating}
-              canPublish={Boolean(page.selected && page.selected.status === 'DRAFT')}
-              canDeactivate={Boolean(page.selected && page.selected.status === 'ACTIVE')}
-              busy={page.busy}
-              onChange={page.onChange}
-              onToggleProduct={page.toggleProduct}
-              onSave={page.onSave}
-              onPublish={page.onPublish}
-              onDeactivate={page.onDeactivate}
-            />
-          ) : null}
+    <div className="off" aria-label={OFFERS_CONTENT.regionLabel}>
+      <OffersStatusBanner />
+      <OffersToolbar />
+
+      {status === 'loading' || status === 'idle' ? (
+        <div className="off-loading" role="status">
+          {OFFERS_CONTENT.status.loading}
         </div>
-      ) : null}
+      ) : (
+        <OffersGrid />
+      )}
+
+      <OffersFormDialog />
     </div>
   );
 }
