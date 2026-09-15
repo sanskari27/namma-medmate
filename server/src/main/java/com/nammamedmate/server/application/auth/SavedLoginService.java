@@ -72,7 +72,10 @@ public class SavedLoginService {
         .map(
             user ->
                 new SavedLoginPerson(
-                    user.getId(), user.getDisplayName(), user.getRole().name(), user.getEmail()))
+                    user.getId(),
+                    user.getDisplayName(),
+                    user.getRole().name(),
+                    maskEmail(user.getEmail())))
         .toList();
   }
 
@@ -232,6 +235,17 @@ public class SavedLoginService {
         PasswordPolicy.mustChange(user.isMustChangePassword(), user.getPasswordChangedAt(), now),
         tenantStatus,
         emailVerified);
+  }
+
+  static String maskEmail(String email) {
+    if (email == null || email.isBlank()) {
+      return "***";
+    }
+    int at = email.indexOf('@');
+    if (at <= 0 || at == email.length() - 1) {
+      return "***";
+    }
+    return email.charAt(0) + "***" + email.substring(at);
   }
 
   private static void requireSixDigitPin(String pin) {

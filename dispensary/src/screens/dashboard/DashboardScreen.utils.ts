@@ -141,19 +141,19 @@ export function statusCopy(
   }
   switch (status) {
     case 'loading':
-      return desk ? "Loading this outlet's desk…" : 'Loading today at a glance…';
+      return desk && desk !== 'owner' ? "Loading this outlet's desk…" : 'Loading today at a glance…';
     case 'empty':
       return desk ? emptyCopy(desk) : 'Quiet counter so far — no bills or alerts yet.';
     case 'validation':
       return 'Select an outlet before opening this desk.';
     case 'denied':
-      return desk
+      return desk && desk !== 'owner'
         ? 'This desk is not on your floor roles. Ask the owner.'
         : 'This counter dashboard is not on your floor roles. Ask the owner.';
     case 'conflict':
       return 'These figures changed on another till. Refresh, then look again.';
     case 'failure':
-      return desk
+      return desk && desk !== 'owner'
         ? 'Could not load this desk. Check the connection and try again.'
         : 'Could not load the dashboard. Check the connection and try again.';
     case 'success':

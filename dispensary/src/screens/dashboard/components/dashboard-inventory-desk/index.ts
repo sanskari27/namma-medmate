@@ -1,0 +1,1 @@
+export { DashboardInventoryDesk } from './DashboardInventoryDesk';

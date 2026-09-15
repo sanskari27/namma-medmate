@@ -5,8 +5,11 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PosScreen from '@/screens/pos/PosScreen';
+import { posReducer } from '@/screens/pos/store/pos.slice';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
+import type { SalesCatalogueItem } from '@/services/salesCatalogue';
+import type { SalesInvoice } from '@/services/salesInvoices';
 
 vi.mock('@/services/customers', async () => {
   const axios = await import('@/services/axios');
@@ -17,12 +20,11 @@ vi.mock('@/services/customers', async () => {
   };
 });
 
-vi.mock('@/services/products', async () => {
-  const axios = await import('@/services/axios');
+vi.mock('@/services/salesCatalogue', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/salesCatalogue')>();
   return {
-    listProducts: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
+    ...actual,
+    listSalesCatalogue: vi.fn(),
   };
 });
 
@@ -66,21 +68,17 @@ vi.mock('@/services/doctors', async () => {
   };
 });
 
-vi.mock('@/services/controlledStock', async () => {
-  const axios = await import('@/services/axios');
-  return {
-    verifyControlledStock: vi.fn(),
-    listControlledStock: vi.fn(),
-    downloadControlledStockExport: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
-  };
-});
-
 vi.mock('@/services/credit', async () => {
   const axios = await import('@/services/axios');
   return {
-    getCustomerCredit: vi.fn(),
+    getCustomerCredit: vi.fn().mockResolvedValue({
+      customerId: 'c1',
+      limitPaise: 0,
+      balancePaise: 0,
+      availablePaise: 0,
+      version: 0,
+      entries: [],
+    }),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -92,11 +90,10 @@ vi.mock('@/services/salesInvoices', async () => {
     createSalesInvoice: vi.fn(),
     updateSalesInvoice: vi.fn(),
     applyInvoicePricing: vi.fn(),
-    adjustInvoiceTax: vi.fn(),
-    assertInvoicePricingReady: vi.fn(),
+    attachInvoicePrescription: vi.fn(),
     completeSalesInvoice: vi.fn(),
     getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
-    listSalesInvoices: vi.fn(),
+    listSalesInvoices: vi.fn().mockResolvedValue({ items: [] }),
     holdSalesInvoice: vi.fn(),
     resumeSalesInvoice: vi.fn(),
     listInvoiceOffers: vi.fn(),
@@ -113,171 +110,171 @@ vi.mock('@/services/salesInvoices', async () => {
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
-import { listProducts } from '@/services/products';
-import { convertProductUnit, listProductUnits } from '@/services/productUnits';
+import { evaluateMedicationSafety } from '@/services/medicationSafety';
+import { listProductUnits, convertProductUnit } from '@/services/productUnits';
+import { listSalesCatalogue } from '@/services/salesCatalogue';
 import {
   applyInvoiceOffers,
   applyInvoicePricing,
+  completeSalesInvoice,
   createSalesInvoice,
   listInvoiceOffers,
-  listSalesInvoices,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
-const listProductsMock = vi.mocked(listProducts);
+const listCatalogueMock = vi.mocked(listSalesCatalogue);
+const evaluateMock = vi.mocked(evaluateMedicationSafety);
 const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
-const listHeldMock = vi.mocked(listSalesInvoices);
+const completeInvoiceMock = vi.mocked(completeSalesInvoice);
 const listOffersMock = vi.mocked(listInvoiceOffers);
 const applyOffersMock = vi.mocked(applyInvoiceOffers);
 
-const customer = {
-  id: 'c1',
-  tenantId: 't1',
-  name: 'Ravi Kumar',
-  phone: '9876500001',
-  email: null,
-  dateOfBirth: null,
-  gender: null,
-  address: null,
-  bloodGroup: null,
-  allergies: null,
-  chronicConditions: null,
-  createdAt: '2026-09-04T00:00:00Z',
-  updatedAt: '2026-09-04T00:00:00Z',
+const festive = {
+  id: 'o1',
+  name: 'Festive 10',
+  kind: 'SEASONAL' as const,
+  priority: 8,
+  explanation: 'Festive 10 — scheme on this line (1000 paise).',
+  benefitPaise: 1000,
 };
 
-const productA = {
+const itemA: SalesCatalogueItem = {
   id: 'p1',
-  tenantId: 't1',
   sku: 'SKU-A',
   barcode: null,
   name: 'Penicillin V',
   genericName: 'Penicillin',
   brandName: 'PenV',
-  manufacturerId: null,
   categoryId: 'cat1',
-  productType: 'Medicine' as const,
-  dosageForm: 'Tablet' as const,
-  therapeuticClass: null,
-  composition: 'Penicillin',
-  strength: null,
-  route: null,
+  categoryName: 'Antibiotics',
+  categoryIcon: null,
+  dosageForm: 'Tablet',
   prescriptionRequired: false,
   scheduleClassification: null,
-  hsnCode: '30049099',
-  gstRate: 12,
-  baseUnit: 'Tablet' as const,
+  controlledSubstance: false,
+  baseUnit: 'Tablet',
   packSize: 10,
-  packUnit: 'strip' as const,
+  packUnit: 'strip',
   packDescription: null,
-  storageConditions: null,
-  requiresColdStorage: false,
   rackLocation: null,
   reorderLevel: null,
-  reorderQuantity: null,
   minimumStock: null,
-  isDiscontinued: false,
-  isReturnable: true,
-  isTaxable: true,
-  taxCategory: 'GST-12',
   requiresBatchTracking: false,
-  requiresExpiryTracking: false,
-  requiresSerialTracking: false,
-  controlledSubstance: false,
-  notes: null,
-  isActive: true,
-  createdAt: '2026-09-04T00:00:00Z',
-  updatedAt: '2026-09-04T00:00:00Z',
+  active: true,
+  onHandQuantity: 20,
+  suggestedMrpPaise: 12000,
+  suggestedSellingPaise: 10000,
 };
 
-const draftInvoice = {
-  id: 'inv-1',
-  tenantId: 't1',
-  branchId: 'b1',
-  invoiceNumber: 'INV/2026-27/BR01/00001',
-  status: 'DRAFT' as const,
-  staffUserId: 'u1',
-  terminalId: 'sess-1',
-  customerId: null as string | null,
-  doctorId: null as string | null,
-  prescriptionReference: null as string | null,
-  prescriptionVerified: false,
-  version: 1,
-  subtotalPaise: 10000,
-  discountPaise: 0,
-  taxPaise: 1200,
-  totalPaise: 11200,
-  billDiscountType: 'NONE' as const,
-  billDiscountValue: 0,
-  customerGstin: null,
-  taxJurisdiction: 'INTRA' as const,
-  cgstPaise: 600,
-  sgstPaise: 600,
-  igstPaise: 0,
-  roundOffPaise: 0,
-  discountApprovalRequestId: null,
-  discountApprovalStatus: 'NOT_REQUIRED' as const,
-  taxAdjustmentReason: null,
-  taxAdjusted: false,
-  amountPaidPaise: 0,
-  amountDuePaise: 0,
-  changePaise: 0,
-  completedAt: null,
-  payments: [] as {
-    mode: 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
-    amountPaise: number;
-    reference: string | null;
-  }[],
-  lines: [
-    {
-      id: 'l1',
-      productId: 'p1',
-      productName: 'Penicillin V',
-      sku: 'SKU-A',
-      batchId: null,
-      batchNumber: null,
-      expiresOn: null,
-      quantity: 1,
-      unit: 'Tablet' as const,
-      baseQuantity: 1,
-      mrpPaise: 12000,
-      sellingPricePaise: 10000,
-      discountPaise: 0,
-      discountType: 'FLAT' as const,
-      discountValue: 0,
-      billDiscountPaise: 0,
-      hsnCode: '30049099',
-      taxCategory: 'GST-12',
-      gstRate: 12,
-      gstRateSource: 'PRODUCT' as const,
-      originalGstRate: 12,
-      cgstPaise: 600,
-      sgstPaise: 600,
-      igstPaise: 0,
-      lineTaxablePaise: 10000,
-      lineTaxPaise: 1200,
-      lineTotalPaise: 11200,
-      offerId: null as string | null,
-      offerName: null as string | null,
-      offerKind: null as 'BOGO' | 'SEASONAL' | 'BUNDLE' | null,
-      offerPriority: null as number | null,
-      offerBenefitPaise: 0,
-      offerExplanation: null as string | null,
-    },
-  ],
-  createdAt: '2026-09-05T08:00:00Z',
-  updatedAt: '2026-09-05T08:00:00Z',
-  revalidation: null,
-};
+function draftInvoice(overrides: Partial<SalesInvoice> = {}): SalesInvoice {
+  return {
+    id: 'inv-1',
+    tenantId: 't1',
+    branchId: 'b1',
+    invoiceNumber: 'INV/2026-27/BR01/00001',
+    status: 'DRAFT',
+    staffUserId: 'u1',
+    terminalId: 'sess-1',
+    customerId: null,
+    doctorId: null,
+    prescriptionReference: null,
+    prescriptionVerified: false,
+    version: 1,
+    subtotalPaise: 10000,
+    discountPaise: 0,
+    taxPaise: 1200,
+    totalPaise: 11200,
+    billDiscountType: 'NONE',
+    billDiscountValue: 0,
+    customerGstin: null,
+    taxJurisdiction: 'INTRA',
+    cgstPaise: 600,
+    sgstPaise: 600,
+    igstPaise: 0,
+    roundOffPaise: 0,
+    discountApprovalRequestId: null,
+    discountApprovalStatus: 'NOT_REQUIRED',
+    taxAdjustmentReason: null,
+    taxAdjusted: false,
+    amountPaidPaise: 0,
+    amountDuePaise: 0,
+    changePaise: 0,
+    completedAt: null,
+    payments: [],
+    lines: [
+      {
+        id: 'l1',
+        productId: 'p1',
+        productName: 'Penicillin V',
+        sku: 'SKU-A',
+        batchId: null,
+        batchNumber: null,
+        expiresOn: null,
+        quantity: 1,
+        unit: 'Tablet',
+        baseQuantity: 1,
+        mrpPaise: 12000,
+        sellingPricePaise: 10000,
+        discountPaise: 0,
+        discountType: 'FLAT',
+        discountValue: 0,
+        billDiscountPaise: 0,
+        hsnCode: '30049099',
+        taxCategory: 'GST-12',
+        gstRate: 12,
+        gstRateSource: 'PRODUCT',
+        originalGstRate: 12,
+        cgstPaise: 600,
+        sgstPaise: 600,
+        igstPaise: 0,
+        lineTaxablePaise: 10000,
+        lineTaxPaise: 1200,
+        lineTotalPaise: 11200,
+        offerId: null,
+        offerName: null,
+        offerKind: null,
+        offerPriority: null,
+        offerBenefitPaise: 0,
+        offerExplanation: null,
+      },
+    ],
+    createdAt: '2026-09-05T08:00:00Z',
+    updatedAt: '2026-09-05T08:00:00Z',
+    revalidation: null,
+    ...overrides,
+  };
+}
+
+function appliedInvoice(version = 2): SalesInvoice {
+  const base = draftInvoice({ version, discountPaise: 1000, totalPaise: 10080 });
+  return {
+    ...base,
+    lines: [
+      {
+        ...base.lines[0],
+        offerId: festive.id,
+        offerName: festive.name,
+        offerKind: festive.kind,
+        offerPriority: festive.priority,
+        offerBenefitPaise: festive.benefitPaise,
+        offerExplanation: festive.explanation,
+        discountPaise: 1000,
+        lineTaxablePaise: 9000,
+        lineTaxPaise: 1080,
+        lineTotalPaise: 10080,
+      },
+    ],
+  };
+}
 
 function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, pos: posReducer },
     preloadedState: {
       auth: {
         user: {
@@ -303,76 +300,86 @@ function renderPage(modules: string[] = ['SALES', 'CRM', 'INVENTORY']) {
   );
 }
 
-async function saveWalkInDraft(user: ReturnType<typeof userEvent.setup>) {
+async function addWalkInAndProceed(user: ReturnType<typeof userEvent.setup>) {
   await screen.findByText('Penicillin V');
-  await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-  await user.type(screen.getByLabelText('MRP ₹'), '120');
-  await user.type(screen.getByLabelText('Selling ₹'), '100');
-  await user.click(screen.getByRole('button', { name: 'Skip — walk-in' }));
-  await user.click(screen.getByRole('button', { name: 'Save bill' }));
-  expect(await screen.findByRole('status')).toHaveTextContent('INV/2026-27/BR01/00001');
+  await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
+  await user.click(screen.getByRole('button', { name: 'Select customer' }));
+  await user.click(screen.getByRole('button', { name: 'Continue as walk-in' }));
+  await user.click(screen.getByRole('button', { name: 'Proceed to bill' }));
 }
 
-describe('PosScreen schemes on this bill', () => {
+describe('POS schemes on this bill M6-OFFER-001', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
-    listProductsMock.mockReset();
+    listCatalogueMock.mockReset();
+    evaluateMock.mockReset();
     listUnitsMock.mockReset();
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
     createInvoiceMock.mockReset();
     applyPricingMock.mockReset();
-    listHeldMock.mockReset();
+    completeInvoiceMock.mockReset();
     listOffersMock.mockReset();
     applyOffersMock.mockReset();
-    listCustomersMock.mockResolvedValue([customer]);
-    listProductsMock.mockResolvedValue([productA]);
+    listCustomersMock.mockResolvedValue([]);
+    listCatalogueMock.mockResolvedValue([itemA]);
     listDoctorsMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
+    evaluateMock.mockResolvedValue({
+      checkStatus: 'CHECKED',
+      checkLabel: null,
+      productsChecked: 1,
+      warnings: [],
+    });
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
-      units: [],
+      units: [{ unit: 'strip', factorToBase: 10, version: 1 }],
     });
     convertMock.mockResolvedValue({
-      quantity: 1,
+      quantity: 10,
       unit: 'Tablet',
-      baseQuantity: 1,
+      baseQuantity: 10,
       baseUnit: 'Tablet',
       displayQuantity: 1,
-      displayUnit: 'Tablet',
+      displayUnit: 'strip',
       conversionVersion: 1,
-      factorToBase: 1,
+      factorToBase: 10,
     });
-    createInvoiceMock.mockResolvedValue(draftInvoice);
-    applyPricingMock.mockResolvedValue(draftInvoice);
-    listHeldMock.mockResolvedValue({ items: [] });
+    const invoice = draftInvoice();
+    createInvoiceMock.mockResolvedValue(invoice);
+    applyPricingMock.mockImplementation(async (_id, input) => ({
+      ...invoice,
+      version: input.expectedVersion,
+    }));
+    applyOffersMock.mockResolvedValue(invoice);
     listOffersMock.mockResolvedValue({ items: [] });
+    completeInvoiceMock.mockResolvedValue({ ...invoice, status: 'COMPLETED', version: 3 });
   });
 
-  it('loading: waits for schemes on a saved bill', async () => {
+  it('loading: waits for schemes after Proceed (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
     listOffersMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    await saveWalkInDraft(user);
+    await addWalkInAndProceed(user);
     expect(await screen.findByText('Loading schemes on this bill…')).toBeInTheDocument();
   });
 
-  it('empty: no live scheme fits this bill', async () => {
+  it('empty: no live scheme fits this bill (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
     renderPage();
-    await saveWalkInDraft(user);
+    await addWalkInAndProceed(user);
     expect(await screen.findByText('No live scheme fits this bill.')).toBeInTheDocument();
   });
 
-  it('denied: till without Sales cannot apply a scheme', () => {
+  it('denied: till without Sales cannot apply a scheme (M6-OFFER-001)', () => {
     renderPage(['CRM']);
-    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
+    expect(screen.getByRole('alert')).toHaveTextContent('This counter cannot save Sales bills');
     expect(screen.queryByRole('button', { name: 'Apply scheme' })).not.toBeInTheDocument();
   });
 
-  it('validation: Apply scheme needs a saved draft', async () => {
+  it('validation: Apply scheme needs a saved draft (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Penicillin V');
@@ -383,122 +390,79 @@ describe('PosScreen schemes on this bill', () => {
     expect(applyOffersMock).not.toHaveBeenCalled();
   });
 
-  it('conflict: another till already changed this bill', async () => {
+  it('conflict: another counter already changed this bill (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
-    listOffersMock.mockResolvedValue({
-      items: [
-        {
-          id: 'o1',
-          name: 'Festive 10',
-          kind: 'SEASONAL',
-          priority: 8,
-          explanation: 'Festive 10 — scheme on this line.',
-          benefitPaise: 1000,
-        },
-      ],
-    });
+    listOffersMock.mockResolvedValue({ items: [festive] });
     applyOffersMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await saveWalkInDraft(user);
+    await addWalkInAndProceed(user);
     await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'This bill was updated on another till. Refresh, then apply the scheme again.',
+      'This bill was updated on another counter. Refresh, then apply the scheme again.',
     );
   });
 
-  it('failure: apply scheme network error', async () => {
+  it('failure: apply scheme network error (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
-    listOffersMock.mockResolvedValue({
-      items: [
-        {
-          id: 'o1',
-          name: 'Festive 10',
-          kind: 'SEASONAL',
-          priority: 8,
-          explanation: 'Festive 10 — scheme on this line.',
-          benefitPaise: 1000,
-        },
-      ],
-    });
+    listOffersMock.mockResolvedValue({ items: [festive] });
     applyOffersMock.mockRejectedValue(new Error('network'));
     renderPage();
-    await saveWalkInDraft(user);
+    await addWalkInAndProceed(user);
     await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not apply this scheme. Check the connection and try again.',
     );
   });
 
-  it('success: apply scheme snapshots the saving on the line', async () => {
+  it('success: Proceed posts offers and snapshots the line (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
-    listOffersMock.mockResolvedValue({
-      items: [
-        {
-          id: 'o1',
-          name: 'Festive 10',
-          kind: 'SEASONAL',
-          priority: 8,
-          explanation: 'Festive 10 — scheme on this line (1000 paise).',
-          benefitPaise: 1000,
-        },
-      ],
-    });
-    applyOffersMock.mockResolvedValue({
-      ...draftInvoice,
-      version: 2,
-      discountPaise: 1000,
-      subtotalPaise: 9000,
-      taxPaise: 1080,
-      totalPaise: 10080,
-      lines: [
-        {
-          ...draftInvoice.lines[0],
-          offerId: 'o1',
-          offerName: 'Festive 10',
-          offerKind: 'SEASONAL',
-          offerPriority: 8,
-          offerBenefitPaise: 1000,
-          offerExplanation: 'Festive 10 — scheme on this line (1000 paise).',
-          discountPaise: 1000,
-          lineTaxablePaise: 9000,
-          lineTaxPaise: 1080,
-          lineTotalPaise: 10080,
-        },
-      ],
-    });
+    applyOffersMock.mockResolvedValue(appliedInvoice());
+    listOffersMock.mockResolvedValue({ items: [festive] });
     renderPage();
-    await saveWalkInDraft(user);
-    expect(await screen.findByText('Festive 10')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Apply scheme' }));
+    await addWalkInAndProceed(user);
     expect(await screen.findByRole('status')).toHaveTextContent('Festive 10 applied on this bill.');
+    expect(await screen.findByText('Festive 10')).toBeInTheDocument();
     expect(screen.getByText('Festive 10 — scheme on this line (1000 paise).')).toBeInTheDocument();
     await waitFor(() => {
-      expect(screen.getByLabelText('Find medicine')).toHaveFocus();
+      expect(applyOffersMock).toHaveBeenCalledWith('inv-1', { expectedVersion: 1 });
     });
-    expect(applyOffersMock).toHaveBeenCalledWith('inv-1', { expectedVersion: 1 });
   });
 
-  it('validation: two live schemes share a line priority', async () => {
+  it('validation: two live schemes share a line priority (M6-OFFER-001)', async () => {
     const user = userEvent.setup();
-    listOffersMock.mockResolvedValue({
-      items: [
-        {
-          id: 'o1',
-          name: 'Festive 10',
-          kind: 'SEASONAL',
-          priority: 8,
-          explanation: 'Festive 10 — scheme on this line.',
-          benefitPaise: 1000,
-        },
-      ],
-    });
+    listOffersMock.mockResolvedValue({ items: [festive] });
     applyOffersMock.mockRejectedValue(new ApiError('tie', 422, 'AMBIGUOUS_PRECEDENCE'));
     renderPage();
-    await saveWalkInDraft(user);
-    await user.click(await screen.findByRole('button', { name: 'Apply scheme' }));
+    await addWalkInAndProceed(user);
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Two live schemes share the same priority on a line. Change priority on Schemes, then apply again.',
     );
-    expect(screen.queryByRole('alert')).not.toHaveTextContent('Save this bill first');
+    expect(applyOffersMock).toHaveBeenCalled();
+    expect(completeInvoiceMock).not.toHaveBeenCalled();
+  });
+
+  it('success: Charge posts offers before complete (M6-OFFER-001)', async () => {
+    const user = userEvent.setup();
+    applyOffersMock.mockImplementation(async (_id, input) =>
+      appliedInvoice(input.expectedVersion + 1),
+    );
+    listOffersMock.mockResolvedValue({ items: [festive] });
+    completeInvoiceMock.mockResolvedValue({
+      ...appliedInvoice(4),
+      status: 'COMPLETED',
+    });
+    renderPage();
+    await addWalkInAndProceed(user);
+    await screen.findByText('Festive 10');
+    applyOffersMock.mockClear();
+    await user.click(screen.getByRole('button', { name: 'Cash' }));
+    await user.click(screen.getByRole('button', { name: /Charge ₹/ }));
+    await waitFor(() => {
+      expect(applyOffersMock).toHaveBeenCalled();
+    });
+    expect(completeInvoiceMock).toHaveBeenCalled();
+    const completeArg = completeInvoiceMock.mock.calls[0]?.[1];
+    const applyArg = applyOffersMock.mock.calls[0]?.[1];
+    expect(completeArg?.expectedVersion).toBeGreaterThan(applyArg?.expectedVersion ?? 0);
   });
 });

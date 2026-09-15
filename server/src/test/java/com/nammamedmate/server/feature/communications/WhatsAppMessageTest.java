@@ -2,8 +2,11 @@ package com.nammamedmate.server.feature.communications;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.argThat;
+import static org.mockito.ArgumentMatchers.eq;
 import static org.mockito.Mockito.doReturn;
 import static org.mockito.Mockito.doThrow;
+import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -161,6 +164,26 @@ class WhatsAppMessageTest extends AbstractIntegrationTest {
         .first()
         .extracting(WhatsAppMessage::getKind, WhatsAppMessage::getTemplateUniqueName)
         .containsExactly(WhatsAppMessageKind.REFILL_DUE, "refill_due");
+  }
+
+  @Test
+  void ac_graphTemplateNameIsUniqueName_M10_WA_001() throws Exception {
+    Fixture fx = seed("msg-wa001");
+    UUID customerId = createCustomer(fx.cookie(), "Ravi", "9411000099");
+    createRefill(fx.cookie(), customerId, "Crocin");
+    approveTemplate(fx.cookie(), "refill_due", "Varshmaan");
+
+    refillDueScanner.scanTenant(fx.tenantId());
+
+    verify(metaWhatsAppAdapter)
+        .sendTemplate(
+            eq("919411000099"),
+            eq("refill_due"),
+            argThat(
+                vars ->
+                    "Ravi".equals(vars.get("customer_name"))
+                        && "Crocin".equals(vars.get("medicine_name"))
+                        && "Varshmaan".equals(vars.get("pharmacy_name"))));
   }
 
   @Test

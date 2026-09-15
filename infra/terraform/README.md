@@ -13,7 +13,9 @@ Hosts:
 6. First deploy runs `scripts/setup-prod-tls.sh` for Let's Encrypt on the three hostnames.
 
 Outputs include EC2 instance ID (SSM tunnel) and `ssm_compose_env_parameter`.
-The first apply seeds `/namma-medmate-prod/compose.env`; later applies leave
-that value alone (`ignore_changes`). After that, add/update/remove keys with
-the **Prod env (SSM)** workflow or `./scripts/update-prod-env.sh`. Deploy pulls
-the blob with `./scripts/pull-prod-env.sh`.
+The first apply seeds `/namma-medmate-prod/compose.env` (including HTTPS
+password-reset and verify-email URLs); later applies leave that value alone
+(`ignore_changes`). After that, add/update/remove keys with the **Prod env
+(SSM)** workflow or `./scripts/update-prod-env.sh`. Existing blobs that predate
+those email URL keys need a one-time `set`. Deploy pulls the blob with
+`./scripts/pull-prod-env.sh`.

@@ -17,6 +17,20 @@ export interface LoginIdentity {
 export { ApiError, isApiError };
 
 export function toAuthUser(data: LoginIdentity): AuthUser {
+  const impersonation = data.impersonation ?? null;
+  if (impersonation) {
+    return {
+      userId: impersonation.originalUserId,
+      displayName: impersonation.originalDisplayName,
+      role: 'admin_super',
+      tenantId: null,
+      pinSet: Boolean(data.pinSet),
+      mustChangePassword: Boolean(data.mustChangePassword),
+      roles: data.roles,
+      modules: data.modules,
+      impersonation,
+    };
+  }
   return {
     userId: data.userId,
     displayName: data.displayName,
@@ -26,7 +40,7 @@ export function toAuthUser(data: LoginIdentity): AuthUser {
     mustChangePassword: Boolean(data.mustChangePassword),
     roles: data.roles,
     modules: data.modules,
-    impersonation: data.impersonation ?? null,
+    impersonation: null,
   };
 }
 

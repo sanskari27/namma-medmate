@@ -276,6 +276,37 @@ class RoleDashboardTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void homeOpensStaffDefaultDeskWithoutOwnerForbidden() throws Exception {
+    Fixture fx = seed("dash-home");
+    Stocked product = stocked(fx, "DASH-H", "Home Pack", null);
+    completeCash(fx, createDraft(fx, product, "dash-h"), 1, "dash-h-c");
+    UUID heldId = createDraft(fx, product, "dash-h-h");
+    hold(fx.cookie(), heldId, 1);
+    Cookie cashier = staffWithPredefined(fx, "cashier", "till@dash-home.local");
+    Cookie inventory = staffWithPredefined(fx, "inventory", "stock@dash-home.local");
+    Cookie accountant = staffWithPredefined(fx, "accountant", "books@dash-home.local");
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(cashier))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.kpis.todaySalesPaise").value((int) TOTAL))
+        .andExpect(jsonPath("$.data.kpis.heldBillCount").value(1));
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(inventory))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true));
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(accountant))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true));
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.hero.monthSalesPaise").value((int) TOTAL));
+  }
+
+  @Test
   void ac06_isolationValidationAndUnsupportedRoleDiscloseNothing() throws Exception {
     Fixture fx = seed("dash-ac06");
     Stocked product = stocked(fx, "DASH-6", "Iso Pack", null);

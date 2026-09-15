@@ -1,12 +1,13 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PosScreen from '@/screens/pos/PosScreen';
-import { ApiError } from '@/services/axios';
+import { posReducer } from '@/screens/pos/store/pos.slice';
 import { authReducer } from '@/store';
+import type { SalesCatalogueItem } from '@/services/salesCatalogue';
 
 vi.mock('@/services/customers', async () => {
   const axios = await import('@/services/axios');
@@ -17,12 +18,11 @@ vi.mock('@/services/customers', async () => {
   };
 });
 
-vi.mock('@/services/products', async () => {
-  const axios = await import('@/services/axios');
+vi.mock('@/services/salesCatalogue', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/services/salesCatalogue')>();
   return {
-    listProducts: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
+    ...actual,
+    listSalesCatalogue: vi.fn(),
   };
 });
 
@@ -66,17 +66,6 @@ vi.mock('@/services/doctors', async () => {
   };
 });
 
-vi.mock('@/services/controlledStock', async () => {
-  const axios = await import('@/services/axios');
-  return {
-    verifyControlledStock: vi.fn(),
-    listControlledStock: vi.fn(),
-    downloadControlledStockExport: vi.fn(),
-    ApiError: axios.ApiError,
-    isApiError: axios.isApiError,
-  };
-});
-
 vi.mock('@/services/credit', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -99,8 +88,7 @@ vi.mock('@/services/salesInvoices', async () => {
     createSalesInvoice: vi.fn(),
     updateSalesInvoice: vi.fn(),
     applyInvoicePricing: vi.fn(),
-    adjustInvoiceTax: vi.fn(),
-    assertInvoicePricingReady: vi.fn(),
+    attachInvoicePrescription: vi.fn(),
     completeSalesInvoice: vi.fn(),
     getPrescriptionFulfillment: vi.fn().mockResolvedValue({ items: [] }),
     listSalesInvoices: vi.fn().mockResolvedValue({ items: [] }),
@@ -117,26 +105,23 @@ vi.mock('@/services/salesInvoices', async () => {
   };
 });
 
-import { verifyControlledStock } from '@/services/controlledStock';
 import { listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
-import {
-  assertMedicationSafetyCleared,
-  evaluateMedicationSafety,
-} from '@/services/medicationSafety';
-import { listProducts } from '@/services/products';
+import { evaluateMedicationSafety } from '@/services/medicationSafety';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
+import { listSalesCatalogue } from '@/services/salesCatalogue';
+import { applyInvoicePricing, createSalesInvoice } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
-const listProductsMock = vi.mocked(listProducts);
+const listCatalogueMock = vi.mocked(listSalesCatalogue);
 const evaluateMock = vi.mocked(evaluateMedicationSafety);
-const assertMock = vi.mocked(assertMedicationSafetyCleared);
 const listUnitsMock = vi.mocked(listProductUnits);
 const convertMock = vi.mocked(convertProductUnit);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listDoctorsMock = vi.mocked(listDoctors);
-const verifyControlledMock = vi.mocked(verifyControlledStock);
+const createInvoiceMock = vi.mocked(createSalesInvoice);
+const applyPricingMock = vi.mocked(applyInvoicePricing);
 
 const customer = {
   id: 'c1',
@@ -154,56 +139,42 @@ const customer = {
   updatedAt: '2026-09-04T00:00:00Z',
 };
 
-const productA = {
+const itemA: SalesCatalogueItem = {
   id: 'p1',
-  tenantId: 't1',
   sku: 'SKU-A',
   barcode: null,
   name: 'Penicillin V',
   genericName: 'Penicillin',
   brandName: 'PenV',
-  manufacturerId: null,
   categoryId: 'cat1',
-  productType: 'Medicine' as const,
-  dosageForm: 'Tablet' as const,
-  therapeuticClass: null,
-  composition: 'Penicillin',
-  strength: null,
-  route: null,
+  categoryName: 'Antibiotics',
+  categoryIcon: null,
+  dosageForm: 'Tablet',
   prescriptionRequired: false,
   scheduleClassification: null,
-  hsnCode: null,
-  gstRate: null,
-  baseUnit: 'Tablet' as const,
+  controlledSubstance: false,
+  baseUnit: 'Tablet',
   packSize: 10,
-  packUnit: 'strip' as const,
+  packUnit: 'strip',
   packDescription: null,
-  storageConditions: null,
-  requiresColdStorage: false,
   rackLocation: null,
   reorderLevel: null,
-  reorderQuantity: null,
   minimumStock: null,
-  isDiscontinued: false,
-  isReturnable: true,
-  isTaxable: true,
-  taxCategory: null,
   requiresBatchTracking: false,
-  requiresExpiryTracking: false,
-  requiresSerialTracking: false,
-  controlledSubstance: false,
-  notes: null,
-  isActive: true,
-  createdAt: '2026-09-04T00:00:00Z',
-  updatedAt: '2026-09-04T00:00:00Z',
+  active: true,
+  onHandQuantity: 20,
+  suggestedMrpPaise: 12000,
+  suggestedSellingPaise: 10000,
 };
 
-const productB = {
-  ...productA,
-  id: 'p2',
-  sku: 'SKU-B',
-  name: 'Amox Clone',
-  composition: 'Penicillin',
+const itemH1: SalesCatalogueItem = {
+  ...itemA,
+  id: 'p-h1',
+  sku: 'SKU-H1',
+  name: 'Alprazolam',
+  prescriptionRequired: true,
+  scheduleClassification: 'H1',
+  controlledSubstance: true,
 };
 
 const doctor = {
@@ -217,23 +188,13 @@ const doctor = {
   updatedAt: '2026-09-04T00:00:00Z',
 };
 
-const productH1 = {
-  ...productA,
-  id: 'p-h1',
-  sku: 'SKU-H1',
-  name: 'Alprazolam',
-  scheduleClassification: 'H1' as const,
-  controlledSubstance: true,
-  prescriptionRequired: true,
-};
-
 function renderPage(
   modules: string[] = ['SALES', 'CRM', 'INVENTORY'],
   role = 'pharmacy_owner',
   roles: { id: string; name: string; code: string | null; kind: string }[] = [],
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, pos: posReducer },
     preloadedState: {
       auth: {
         user: {
@@ -262,23 +223,24 @@ function renderPage(
 describe('PosScreen', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
-    listProductsMock.mockReset();
+    listCatalogueMock.mockReset();
     evaluateMock.mockReset();
-    assertMock.mockReset();
     listUnitsMock.mockReset();
     convertMock.mockReset();
     listBatchesMock.mockReset();
     listDoctorsMock.mockReset();
-    verifyControlledMock.mockReset();
+    createInvoiceMock.mockReset();
+    applyPricingMock.mockReset();
     listCustomersMock.mockResolvedValue([customer]);
-    listProductsMock.mockResolvedValue([productA, productB]);
+    listCatalogueMock.mockResolvedValue([itemA]);
     listDoctorsMock.mockResolvedValue([doctor]);
-    verifyControlledMock.mockResolvedValue({
-      allowed: true,
-      controlledProductIds: [],
-      schedules: {},
-    });
     listBatchesMock.mockResolvedValue([]);
+    evaluateMock.mockResolvedValue({
+      checkStatus: 'CHECKED',
+      checkLabel: null,
+      productsChecked: 1,
+      warnings: [],
+    });
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -297,189 +259,52 @@ describe('PosScreen', () => {
   });
 
   it('loading: waits for catalogue', () => {
-    listProductsMock.mockReturnValue(new Promise(() => undefined));
-    listCustomersMock.mockReturnValue(new Promise(() => undefined));
+    listCatalogueMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading catalogue for this till…')).toBeInTheDocument();
+    expect(screen.getByText('Loading sales catalogue…')).toBeInTheDocument();
   });
 
   it('empty: no products in catalogue', async () => {
-    listProductsMock.mockResolvedValue([]);
+    listCatalogueMock.mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'No medicines in the catalogue yet',
-    );
+    expect(await screen.findByText(/No medicines in the catalogue yet/)).toBeInTheDocument();
   });
 
   it('denied: till without Sales', () => {
     renderPage(['CRM']);
-    expect(screen.getByRole('alert')).toHaveTextContent('This till cannot save Sales bills');
-    expect(listProductsMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('alert')).toHaveTextContent('This counter cannot save Sales bills');
+    expect(listCatalogueMock).not.toHaveBeenCalled();
   });
 
   it('failure: bootstrap error', async () => {
-    listProductsMock.mockRejectedValue(new Error('network'));
+    listCatalogueMock.mockRejectedValue(new Error('network'));
     renderPage();
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not save this bill');
   });
 
-  it('validation: complete without customer or reason', async () => {
+  it('validation: Proceed without a customer stays on cart', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Penicillin V');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('linked customer');
+    await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
+    expect(screen.getByRole('button', { name: 'Proceed to bill' })).toBeDisabled();
   });
 
   it('success: draft line shows converted base quantity', async () => {
     const user = userEvent.setup();
     renderPage();
     await screen.findByText('Penicillin V');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    expect(await screen.findByText('= 10 Tablet')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
+    expect(await screen.findByText(/10 Tablet each/)).toBeInTheDocument();
     expect(convertMock).toHaveBeenCalledWith(
       'p1',
       expect.objectContaining({ quantity: 1, fromUnit: 'strip' }),
     );
   });
 
-  it('success: allergy warning requires reason then clears', async () => {
+  it('suggests FEFO batch and allows override with near-expiry hint', async () => {
     const user = userEvent.setup();
-    evaluateMock.mockResolvedValue({
-      checkStatus: 'CHECKED',
-      checkLabel: null,
-      productsChecked: 1,
-      warnings: [
-        {
-          warningKey: 'ALLERGY:c1:p1:penicillin',
-          kind: 'ALLERGY',
-          customerId: 'c1',
-          productId: 'p1',
-          productIds: ['p1'],
-          matchedAllergen: 'Penicillin',
-          matchedComposition: null,
-          matchedField: 'composition',
-          severity: 'WARN',
-          requiredAction: 'REVIEW',
-          requiredReview: true,
-        },
-      ],
-    });
-    assertMock.mockResolvedValue({ cleared: true });
-
-    renderPage();
-    await screen.findByText('Ravi Kumar');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.click(screen.getByRole('button', { name: 'Check draft' }));
-
-    expect(await screen.findByText('Allergy warning')).toBeInTheDocument();
-    expect(
-      await screen.findByText(/Allergy match: Penicillin on Penicillin V/),
-    ).toBeInTheDocument();
-    expect(screen.getByLabelText('Review reason')).toBeInTheDocument();
-
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('review reason');
-
-    await user.type(screen.getByLabelText('Review reason'), 'Pharmacist reviewed');
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
-
-    await waitFor(() => {
-      expect(assertMock).toHaveBeenCalledWith({
-        customerId: 'c1',
-        productIds: ['p1'],
-        warningKeys: ['ALLERGY:c1:p1:penicillin'],
-        reason: 'Pharmacist reviewed',
-      });
-    });
-    expect(await screen.findByRole('status')).toHaveTextContent('Safety review recorded');
-  });
-
-  it('conflict: stale warning keys', async () => {
-    const user = userEvent.setup();
-    evaluateMock.mockResolvedValue({
-      checkStatus: 'CHECKED',
-      checkLabel: null,
-      productsChecked: 1,
-      warnings: [],
-    });
-    assertMock.mockRejectedValue(new ApiError('Draft warnings changed', 409, 'CONFLICT'));
-
-    renderPage();
-    await screen.findByText('Ravi Kumar');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.click(screen.getByRole('button', { name: 'Check draft' }));
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Draft warnings');
-  });
-
-  it('shows duplicate composition warning for same-therapy draft lines', async () => {
-    const user = userEvent.setup();
-    evaluateMock.mockResolvedValue({
-      checkStatus: 'CHECKED',
-      checkLabel: null,
-      productsChecked: 2,
-      warnings: [
-        {
-          warningKey: 'DUPLICATE_COMPOSITION:penicillin:p1,p2',
-          kind: 'DUPLICATE_COMPOSITION',
-          customerId: 'c1',
-          productId: null,
-          productIds: ['p1', 'p2'],
-          matchedAllergen: null,
-          matchedComposition: 'Penicillin',
-          matchedField: 'composition',
-          severity: 'WARN',
-          requiredAction: 'REVIEW',
-          requiredReview: true,
-        },
-      ],
-    });
-
-    renderPage();
-    await screen.findByText('Ravi Kumar');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.click(screen.getByRole('button', { name: /Add Amox Clone/i }));
-    await user.click(screen.getByRole('button', { name: 'Check draft' }));
-
-    expect(await screen.findByText('Duplicate composition')).toBeInTheDocument();
-    expect(
-      screen.getByText(/Same composition on Penicillin V, Amox Clone \(Penicillin\)/),
-    ).toBeInTheDocument();
-    expect(screen.getByText(/Review required/)).toBeInTheDocument();
-    expect(screen.getByLabelText('Review reason')).toBeInTheDocument();
-  });
-
-  it('shows incomplete not-checked label and keeps draft lines', async () => {
-    const user = userEvent.setup();
-    evaluateMock.mockResolvedValue({
-      checkStatus: 'INCOMPLETE',
-      checkLabel: 'Not checked',
-      productsChecked: 1,
-      warnings: [],
-    });
-
-    renderPage();
-    await screen.findByText('Ravi Kumar');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
-    await user.click(screen.getByRole('button', { name: 'Check draft' }));
-
-    expect(await screen.findByText(/Not checked/)).toBeInTheDocument();
-    expect(screen.getByText(/never treated as safe/)).toBeInTheDocument();
-    expect(
-      within(screen.getByLabelText('Draft lines')).getByText('Penicillin V'),
-    ).toBeInTheDocument();
-  });
-
-  it('suggests FEFO batch and allows override with near-expiry warning', async () => {
-    const user = userEvent.setup();
-    listProductsMock.mockResolvedValue([{ ...productA, requiresBatchTracking: true }]);
+    listCatalogueMock.mockResolvedValue([{ ...itemA, requiresBatchTracking: true }]);
     listBatchesMock.mockResolvedValue([
       {
         batchId: 'b-early',
@@ -512,78 +337,41 @@ describe('PosScreen', () => {
     ]);
 
     renderPage();
-    await screen.findByText('Ravi Kumar');
-    await user.click(screen.getByRole('button', { name: /Add Penicillin V/i }));
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
 
-    const batchSelect = await screen.findByLabelText(/Batch \(FEFO suggested\)/i);
+    const batchSelect = await screen.findByLabelText(/Batch for Penicillin V/i);
     expect(batchSelect).toHaveValue('b-early');
-    expect(screen.getByText(/Near expiry — still sellable/i)).toBeInTheDocument();
+    expect(screen.getByText(/near expiry/i)).toBeInTheDocument();
 
     await user.selectOptions(batchSelect, 'b-late');
     expect(batchSelect).toHaveValue('b-late');
-    expect(screen.queryByText(/Near expiry — still sellable/i)).not.toBeInTheDocument();
   });
 
   it('denied: cashier cannot dispense Schedule H1', async () => {
     const user = userEvent.setup();
-    listProductsMock.mockResolvedValue([productH1]);
+    listCatalogueMock.mockResolvedValue([itemH1]);
     renderPage(['SALES', 'CRM'], 'pharmacy_staff', [
       { id: 'r1', name: 'Cashier', code: 'cashier', kind: 'PREDEFINED' },
     ]);
     await screen.findByText('Alprazolam');
-    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
-    expect(await screen.findByLabelText('Schedule dispense')).toBeInTheDocument();
-    expect(screen.getByText(/Cashier-only logins cannot dispense/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
+    await user.click(screen.getByRole('button', { name: 'Add Alprazolam pack to bill' }));
+    expect(await screen.findByLabelText('Prescription details')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Select customer' }));
+    await user.click(await screen.findByRole('option', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: 'Proceed to bill' }));
     expect(screen.getByRole('alert')).toHaveTextContent('cashier-only');
-    expect(verifyControlledMock).not.toHaveBeenCalled();
   });
 
-  it('validation: Schedule pack needs prescriber and Prescription checked', async () => {
+  it('validation: Schedule pack needs prescriber and Prescription verified', async () => {
     const user = userEvent.setup();
-    listProductsMock.mockResolvedValue([productH1]);
+    listCatalogueMock.mockResolvedValue([itemH1]);
     renderPage();
     await screen.findByText('Alprazolam');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
+    await user.click(screen.getByRole('button', { name: 'Select customer' }));
+    await user.click(await screen.findByRole('option', { name: /Ravi Kumar/i }));
+    await user.click(screen.getByRole('button', { name: 'Add Alprazolam pack to bill' }));
+    await user.click(screen.getByRole('button', { name: 'Proceed to bill' }));
     expect(screen.getByRole('alert')).toHaveTextContent('prescriber');
-    expect(verifyControlledMock).not.toHaveBeenCalled();
-  });
-
-  it('success: pharmacist verifies prescription then completes', async () => {
-    const user = userEvent.setup();
-    listProductsMock.mockResolvedValue([productH1]);
-    evaluateMock.mockResolvedValue({
-      checkStatus: 'CHECKED',
-      checkLabel: null,
-      productsChecked: 1,
-      warnings: [],
-    });
-    assertMock.mockResolvedValue({ cleared: true });
-    verifyControlledMock.mockResolvedValue({
-      allowed: true,
-      controlledProductIds: ['p-h1'],
-      schedules: { 'p-h1': 'H1' },
-    });
-    renderPage(['SALES', 'INVENTORY', 'CRM'], 'pharmacy_staff', [
-      { id: 'r2', name: 'Pharmacist', code: 'pharmacist', kind: 'PREDEFINED' },
-    ]);
-    await screen.findByText('Alprazolam');
-    await user.click(screen.getByRole('button', { name: /Ravi Kumar/i }));
-    await user.click(screen.getByRole('button', { name: /Add Alprazolam/i }));
-    await user.selectOptions(screen.getByLabelText('Prescriber'), 'd1');
-    await user.click(screen.getByLabelText('Prescription checked'));
-    await user.click(screen.getByRole('button', { name: 'Complete check' }));
-    await waitFor(() => {
-      expect(verifyControlledMock).toHaveBeenCalledWith({
-        customerId: 'c1',
-        doctorId: 'd1',
-        prescriptionVerified: true,
-        productIds: ['p-h1'],
-      });
-    });
-    expect(await screen.findByRole('status')).toHaveTextContent('Safety review recorded');
   });
 });

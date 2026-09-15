@@ -77,9 +77,11 @@ describe('dispensary pharmacy registration', () => {
     );
   });
 
-  it('conflict: 409 says the owner email is already taken', async () => {
+  it('conflict: taken email is opaque like a failed sign-in', async () => {
     const user = userEvent.setup();
-    registerMock.mockRejectedValue(new ApiError('Taken', 409, 'EMAIL_TAKEN'));
+    registerMock.mockRejectedValue(
+      new ApiError('Invalid email or password', 401, 'INVALID_CREDENTIALS'),
+    );
     renderRegister();
     await user.type(screen.getByLabelText('Pharmacy name'), 'Asha Chemist');
     await user.type(screen.getByLabelText('Owner email'), 'asha@chemist.local');
@@ -87,7 +89,7 @@ describe('dispensary pharmacy registration', () => {
     await user.type(screen.getByLabelText('Password'), 'counter-pass-1');
     await user.click(screen.getByRole('button', { name: 'Register pharmacy' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
-      'That owner email is already on a pharmacy',
+      'This counter cannot open a new pharmacy',
     );
   });
 

@@ -61,7 +61,8 @@ import {
   NAV_SECTIONS,
   ROUTES,
   type NavItem,
-} from '@/libs/constants/routes.const';import { cn } from '@/libs/cn';
+} from '@/libs/constants/routes.const';
+import { cn } from '@/libs/cn';
 import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
 import { hasReportingAccess, isReportingNavPath } from '@/libs/reportingAccess';
 import { hasCampaignAccess, isCampaignNavPath } from '@/libs/campaignAccess';
@@ -181,6 +182,35 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
       });
   };
 
+  const outletMenu = (
+    <>
+      <DropdownMenuLabel>This outlet</DropdownMenuLabel>
+      <DropdownMenuRadioGroup value={selectedId} onValueChange={selectOutlet}>
+        {isOwner ? (
+          <DropdownMenuRadioItem value={ALL_OUTLETS_ID} aria-label={ALL_OUTLETS_LABEL}>
+            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+              <span className="truncate">{ALL_OUTLETS_LABEL}</span>
+              <span className="font-mono text-[10px] text-muted">ALL</span>
+            </span>
+          </DropdownMenuRadioItem>
+        ) : null}
+        {branches.map((item) => (
+          <DropdownMenuRadioItem key={item.id} value={item.id} aria-label={item.name}>
+            <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
+              <span className="truncate">{item.name}</span>
+              <span className="font-mono text-[10px] text-muted">{item.branchCode}</span>
+            </span>
+          </DropdownMenuRadioItem>
+        ))}
+      </DropdownMenuRadioGroup>
+      {switchError ? (
+        <p role="alert" className="px-2 py-1.5 text-xs text-danger">
+          {switchError}
+        </p>
+      ) : null}
+    </>
+  );
+
   const toggleSection = (id: string) => {
     setOpenSections((current) =>
       current.includes(id) ? current.filter((item) => item !== id) : [...current, id],
@@ -229,75 +259,54 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
         )}
 
         <div className={cn(collapsed ? 'mt-2 flex justify-center' : 'mt-3')}>
-          {collapsed ? (
+          <DropdownMenu>
             <Tooltip>
               <TooltipTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`This outlet: ${selectedLabel}`}
-                  className="flex size-9 cursor-pointer items-center justify-center rounded-md bg-canvas text-ink hover:bg-brand-soft"
-                  disabled={switchBusy || branches.length === 0}
-                >
-                  <MapPin className="size-4 text-brand" aria-hidden />
-                </button>
+                <DropdownMenuTrigger asChild>
+                  <button
+                    type="button"
+                    aria-label={`This outlet: ${selectedLabel}`}
+                    className={
+                      collapsed
+                        ? 'flex size-9 cursor-pointer items-center justify-center rounded-md bg-canvas text-ink hover:bg-brand-soft disabled:opacity-60'
+                        : 'flex w-full cursor-pointer items-center gap-2 rounded-md bg-canvas px-2.5 py-2 text-left text-ink hover:bg-brand-soft disabled:opacity-60'
+                    }
+                    disabled={switchBusy || (collapsed ? branches.length === 0 : branches.length === 0 && !isOwner)}
+                  >
+                    {collapsed ? (
+                      <MapPin className="size-4 text-brand" aria-hidden />
+                    ) : (
+                      <>
+                        <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-brand-soft text-brand">
+                          <MapPin className="size-3.5" aria-hidden />
+                        </span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[10px] leading-none text-muted">This outlet</span>
+                          <span className="mt-0.5 block truncate text-sm leading-tight font-medium">
+                            {selectedLabel}
+                          </span>
+                        </span>
+                        <span className="font-mono text-[10px] text-muted">{selectedCode}</span>
+                        <ChevronsUpDown className="size-3.5 shrink-0 text-muted" aria-hidden />
+                      </>
+                    )}
+                  </button>
+                </DropdownMenuTrigger>
               </TooltipTrigger>
-              <TooltipContent side="right">This outlet: {selectedLabel}</TooltipContent>
+              {collapsed ? (
+                <TooltipContent side="right">This outlet: {selectedLabel}</TooltipContent>
+              ) : null}
             </Tooltip>
-          ) : (
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <button
-                  type="button"
-                  aria-label={`This outlet: ${selectedLabel}`}
-                  className="flex w-full cursor-pointer items-center gap-2 rounded-md bg-canvas px-2.5 py-2 text-left text-ink hover:bg-brand-soft disabled:opacity-60"
-                  disabled={switchBusy || (branches.length === 0 && !isOwner)}
-                >
-                  <span className="flex size-7 shrink-0 items-center justify-center rounded-sm bg-brand-soft text-brand">
-                    <MapPin className="size-3.5" aria-hidden />
-                  </span>
-                  <span className="min-w-0 flex-1">
-                    <span className="block text-[10px] leading-none text-muted">This outlet</span>
-                    <span className="mt-0.5 block truncate text-sm leading-tight font-medium">
-                      {selectedLabel}
-                    </span>
-                  </span>
-                  <span className="font-mono text-[10px] text-muted">{selectedCode}</span>
-                  <ChevronsUpDown className="size-3.5 shrink-0 text-muted" aria-hidden />
-                </button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent
-                align="start"
-                className="w-[var(--radix-dropdown-menu-trigger-width)]"
-              >
-                <DropdownMenuLabel>This outlet</DropdownMenuLabel>
-                <DropdownMenuRadioGroup value={selectedId} onValueChange={selectOutlet}>
-                  {isOwner ? (
-                    <DropdownMenuRadioItem value={ALL_OUTLETS_ID} aria-label={ALL_OUTLETS_LABEL}>
-                      <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-                        <span className="truncate">{ALL_OUTLETS_LABEL}</span>
-                        <span className="font-mono text-[10px] text-muted">ALL</span>
-                      </span>
-                    </DropdownMenuRadioItem>
-                  ) : null}
-                  {branches.map((item) => (
-                    <DropdownMenuRadioItem key={item.id} value={item.id} aria-label={item.name}>
-                      <span className="flex min-w-0 flex-1 items-baseline justify-between gap-3">
-                        <span className="truncate">{item.name}</span>
-                        <span className="font-mono text-[10px] text-muted">{item.branchCode}</span>
-                      </span>
-                    </DropdownMenuRadioItem>
-                  ))}
-                </DropdownMenuRadioGroup>
-                {switchError ? (
-                  <p role="alert" className="px-2 py-1.5 text-xs text-danger">
-                    {switchError}
-                  </p>
-                ) : null}
-              </DropdownMenuContent>
-            </DropdownMenu>
-          )}
-          {switchError && !collapsed ? (
-            <p role="alert" className="mt-1.5 px-0.5 text-[11px] text-danger">
+            <DropdownMenuContent
+              align="start"
+              side={collapsed ? 'right' : 'bottom'}
+              className={collapsed ? 'w-56' : 'w-[var(--radix-dropdown-menu-trigger-width)]'}
+            >
+              {outletMenu}
+            </DropdownMenuContent>
+          </DropdownMenu>
+          {switchError ? (
+            <p role="alert" className={collapsed ? 'sr-only' : 'mt-1.5 px-0.5 text-[11px] text-danger'}>
               {switchError}
             </p>
           ) : null}

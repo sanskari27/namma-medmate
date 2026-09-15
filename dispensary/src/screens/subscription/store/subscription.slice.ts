@@ -10,6 +10,7 @@ export type SubscriptionScreenState = {
   current: CurrentSubscription | null;
   plans: PlanOffer[];
   pendingPlan: string | null;
+  heldPlan: string | null;
 };
 
 export const initialSubscriptionScreenState: SubscriptionScreenState = {
@@ -19,6 +20,7 @@ export const initialSubscriptionScreenState: SubscriptionScreenState = {
   current: null,
   plans: [],
   pendingPlan: null,
+  heldPlan: null,
 };
 
 const subscriptionSlice = createSlice({
@@ -35,6 +37,9 @@ const subscriptionSlice = createSlice({
     },
     paymentNoted(state, action: PayloadAction<string | null>) {
       state.paymentNote = action.payload;
+    },
+    checkoutHeld(state, action: PayloadAction<string | null>) {
+      state.heldPlan = action.payload;
     },
   },
   extraReducers: (builder) => {
@@ -74,5 +79,5 @@ const subscriptionSlice = createSlice({
   },
 });
 
-export const { accessDenied, statusSet, paymentNoted } = subscriptionSlice.actions;
+export const { accessDenied, statusSet, paymentNoted, checkoutHeld } = subscriptionSlice.actions;
 export const subscriptionReducer = subscriptionSlice.reducer;

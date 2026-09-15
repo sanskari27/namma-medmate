@@ -87,4 +87,17 @@ class WhatsAppTemplatePolicyTest {
             Map.of("pharmacy_name", "Varshmaan"));
     assertThat(preview).isEqualTo("Hi {{customer_name}}, visit Varshmaan for {{medicine_name}}.");
   }
+
+  @Test
+  void orderedSlotsFollowBody_M10_WA_002() {
+    Map<String, String> ordered =
+        WhatsAppTemplatePolicy.bodySlotOrder(
+            "Hi {{customer_name}}, your refill for {{medicine_name}} is due. Visit {{pharmacy_name}} to restock.",
+            Map.of(
+                "pharmacy_name", "Varshmaan",
+                "customer_name", "Ravi",
+                "medicine_name", "Crocin"));
+    assertThat(ordered.keySet()).containsExactly("customer_name", "medicine_name", "pharmacy_name");
+    assertThat(ordered.values()).containsExactly("Ravi", "Crocin", "Varshmaan");
+  }
 }

@@ -13,6 +13,7 @@ import {
   isApiError,
   listSavedLogins,
   loginWithPassword,
+  logoutSession,
   type SavedLoginPerson,
 } from '@/services/auth';
 import { sessionStarted, type AuthUser } from '@/store';
@@ -37,7 +38,7 @@ export default function LoginScreen() {
 
   const loadPeople = async () => {
     try {
-      const items = await listSavedLogins();
+      const items = (await listSavedLogins()).filter((item) => isHqOperator(item.role));
       setPeople(items);
       setListFailed(false);
       if (items.length === 0) {
@@ -54,8 +55,11 @@ export default function LoginScreen() {
     void loadPeople();
   }, []);
 
-  const finishSignIn = (user: AuthUser) => {
+  const finishSignIn = async (user: AuthUser) => {
     if (!isHqOperator(user.role)) {
+      await logoutSession().catch(() => undefined);
+      await forgetSavedLogin(user.userId).catch(() => undefined);
+      setPeople((current) => (current ?? []).filter((item) => item.userId !== user.userId));
       setStatus('denied');
       setSelected(null);
       setPasswordMode(true);
@@ -75,7 +79,7 @@ export default function LoginScreen() {
     setStatus('loading');
     try {
       const user = await loginWithPassword(email, password);
-      finishSignIn(user);
+      await finishSignIn(user);
     } catch (error) {
       if (isApiError(error) || error instanceof ApiError) {
         if (error.status === 401) {

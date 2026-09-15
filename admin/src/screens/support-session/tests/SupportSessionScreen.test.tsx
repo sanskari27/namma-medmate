@@ -120,10 +120,10 @@ describe('Support session screen', () => {
     expect(screen.getByText('Opening support session…')).toBeInTheDocument();
 
     resolve({
-      userId: 'o1',
-      displayName: 'Varshmaan',
-      role: 'pharmacy_owner',
-      tenantId: 't1',
+      userId: 'm1',
+      displayName: 'Sanskar',
+      role: 'admin_super',
+      tenantId: null,
       pinSet: true,
       impersonation: {
         originalUserId: 'm1',
@@ -139,6 +139,9 @@ describe('Support session screen', () => {
     await waitFor(() => {
       expect(screen.getByText(/Entered Varshmaan in varshmaan/)).toBeInTheDocument();
     });
+    expect(store.getState().auth.user?.role).toBe('admin_super');
+    expect(store.getState().auth.user?.userId).toBe('m1');
+    expect(store.getState().auth.user?.impersonation?.effectiveUserId).toBe('o1');
     expect(store.getState().auth.user?.impersonation?.tenantName).toBe('varshmaan');
   });
 

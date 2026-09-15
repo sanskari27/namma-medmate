@@ -292,7 +292,10 @@ public class WhatsAppMessageService {
       String phone = WhatsAppMessagePolicy.requirePhone(message.getPhone());
       String to = WhatsAppMessagePolicy.graphAddress(phone);
       MetaSendResult result =
-          metaWhatsAppAdapter.sendTemplate(to, message.getNamespaceName(), message.getVariables());
+          metaWhatsAppAdapter.sendTemplate(
+              to,
+              message.getTemplateUniqueName(),
+              WhatsAppTemplatePolicy.bodySlotOrder(template.body(), message.getVariables()));
       if (result != null && result.sent()) {
         message.setStatus(WhatsAppMessageStatus.SENT);
         message.setProviderMessageId(result.providerMessageId());

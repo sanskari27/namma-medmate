@@ -7,13 +7,14 @@ import {
   selectKioskOrderSuccess,
   selectKioskPinInput,
   selectKioskPinPromptOpen,
+  selectKioskStatusHint,
 } from '../../store/kiosk.selectors';
 import {
   closePinPrompt,
   closeSession,
   openPinPrompt,
-  setCustomerMode,
   setPinInput,
+  verifyExitPin,
 } from '../../store';
 import { KioskCartPanel } from '../kiosk-cart-panel';
 import { KioskProductGrid } from '../kiosk-product-grid';
@@ -25,25 +26,22 @@ export function KioskCustomerShell() {
   const success = useSelector(selectKioskOrderSuccess);
   const pinOpen = useSelector(selectKioskPinPromptOpen);
   const pinInput = useSelector(selectKioskPinInput);
+  const pinHint = useSelector(selectKioskStatusHint);
 
   function tryExit() {
     dispatch(openPinPrompt());
   }
 
   function confirmPin() {
-    if (pinInput === config.staffExitPin) {
-      dispatch(setCustomerMode(false));
-      dispatch(closePinPrompt());
-      return;
-    }
-    // Wrong PIN — keep prompt open; staff can retry
+    void dispatch(verifyExitPin(pinInput));
   }
 
   function closeKioskFully() {
-    if (pinInput === config.staffExitPin) {
-      void dispatch(closeSession());
-      return;
-    }
+    void dispatch(verifyExitPin(pinInput)).then((result) => {
+      if (verifyExitPin.fulfilled.match(result)) {
+        void dispatch(closeSession());
+      }
+    });
   }
 
   return (
@@ -84,9 +82,9 @@ export function KioskCustomerShell() {
                   }}
                 />
               </div>
-              {pinInput && pinInput !== config.staffExitPin ? (
+              {pinHint ? (
                 <p className="ko-hint" style={{ color: '#dc2626' }}>
-                  {KIOSK_CONTENT.pinWrong}
+                  {pinHint}
                 </p>
               ) : null}
               <div className="ko-pin-actions">

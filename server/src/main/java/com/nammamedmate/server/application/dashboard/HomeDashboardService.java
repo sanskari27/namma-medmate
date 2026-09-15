@@ -8,6 +8,8 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.DashboardPolicy;
+import com.nammamedmate.server.domain.DashboardRole;
+import com.nammamedmate.server.domain.FinanceAccessPolicy;
 import com.nammamedmate.server.domain.GoodsReceipt;
 import com.nammamedmate.server.domain.GoodsReceiptStatus;
 import com.nammamedmate.server.domain.Location;
@@ -114,7 +116,13 @@ public class HomeDashboardService {
   @Transactional(readOnly = true)
   public HomeDashboardView open(AuthPrincipal principal, String periodRaw) {
     AppUser user = requireUser(principal);
-    requireFloorAccess(user);
+    Set<ModuleCode> modules = accessQueryService.effectiveModules(user);
+    boolean accountantDesk =
+        accessQueryService.hasAssignedRoleCode(user, FinanceAccessPolicy.ACCOUNTANT_CODE);
+    List<DashboardRole> desks = DashboardPolicy.permitted(user.getRole(), modules, accountantDesk);
+    if (desks.isEmpty()) {
+      throw DashboardPolicy.forbidden();
+    }
     UUID tenantId = principal.tenantId();
     ResolvedScope resolved = resolveScope(principal, user);
     Instant now = clock.instant();
@@ -122,13 +130,16 @@ public class HomeDashboardService {
     String period = normalizePeriod(periodRaw);
     LocalDate periodFrom = periodFrom(asOf, period);
 
-    String ownerBranchParam =
-        resolved.primaryBranchId() == null ? null : resolved.primaryBranchId().toString();
-    DashboardView ownerView =
-        dashboardService.open(principal, "owner", ownerBranchParam, resolved.scope());
-    DashboardView.OwnerDesk owner = ownerView.owner();
-    if (owner == null) {
-      throw DashboardPolicy.forbidden();
+    DashboardView.OwnerDesk owner = null;
+    if (desks.contains(DashboardRole.OWNER)) {
+      String ownerBranchParam =
+          resolved.primaryBranchId() == null ? null : resolved.primaryBranchId().toString();
+      DashboardView ownerView =
+          dashboardService.open(principal, "owner", ownerBranchParam, resolved.scope());
+      owner = ownerView.owner();
+      if (owner == null) {
+        throw DashboardPolicy.forbidden();
+      }
     }
 
     List<UUID> branchIds = resolved.branchIds();
@@ -150,9 +161,14 @@ public class HomeDashboardService {
     long itemsSoldToday = unitsSold(tenantId, todayCompleted);
     long avgBillToday = todayBills == 0 ? 0L : todaySales / todayBills;
 
-    ReceivableSnapshot receivables = receivables(principal, resolved);
+    ReceivableSnapshot receivables;
+    if (desks.contains(DashboardRole.OWNER) || desks.contains(DashboardRole.ACCOUNTANT)) {
+      receivables = receivables(principal, resolved);
+    } else {
+      receivables = new ReceivableSnapshot(0L, 0);
+    }
     int pendingPrescriptions = pendingPrescriptions(tenantId, branchIds);
-    int lowStockCount = owner.lowStockCount();
+    int lowStockCount = owner == null ? 0 : owner.lowStockCount();
     int expiringCount = expiryCount(owner);
     int stockAlerts = lowStockCount + expiringCount;
 
@@ -424,6 +440,9 @@ public class HomeDashboardService {
               DashboardPolicy.PRESCRIPTIONS_HREF,
               "Review"));
     }
+    if (owner == null) {
+      return items;
+    }
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.LowStockItem>> lowStock =
         owner.lowStock();
     if (lowStock != null && lowStock.data() != null) {
@@ -517,6 +536,9 @@ public class HomeDashboardService {
   }
 
   private List<DashboardView.ExpiryItem> expiringItems(DashboardView.OwnerDesk owner) {
+    if (owner == null) {
+      return List.of();
+    }
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.ExpiryItem>> expiry =
         owner.expiry();
     if (expiry == null || expiry.data() == null) {
@@ -572,6 +594,9 @@ public class HomeDashboardService {
   }
 
   private int approvalCount(DashboardView.OwnerDesk owner) {
+    if (owner == null) {
+      return 0;
+    }
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.WorkItem>> approvals =
         owner.approvals();
     if (approvals == null || approvals.data() == null) {
@@ -581,6 +606,9 @@ public class HomeDashboardService {
   }
 
   private int expiryCount(DashboardView.OwnerDesk owner) {
+    if (owner == null) {
+      return 0;
+    }
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.ExpiryItem>> expiry =
         owner.expiry();
     if (expiry == null || expiry.data() == null) {
@@ -680,16 +708,6 @@ public class HomeDashboardService {
       case "12M" -> asOf.minusMonths(11).withDayOfMonth(1);
       default -> asOf.minusDays(6);
     };
-  }
-
-  private void requireFloorAccess(AppUser user) {
-    Set<ModuleCode> modules = accessQueryService.effectiveModules(user);
-    boolean accountant =
-        accessQueryService.hasAssignedRoleCode(
-            user, com.nammamedmate.server.domain.FinanceAccessPolicy.ACCOUNTANT_CODE);
-    if (DashboardPolicy.permitted(user.getRole(), modules, accountant).isEmpty()) {
-      throw DashboardPolicy.forbidden();
-    }
   }
 
   private AppUser requireUser(AuthPrincipal principal) {

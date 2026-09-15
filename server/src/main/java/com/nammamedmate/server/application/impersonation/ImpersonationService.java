@@ -5,6 +5,7 @@ import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.EmailNormalizer;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
@@ -53,6 +54,12 @@ public class ImpersonationService {
             .findById(target.getTenantId())
             .filter(t -> t.getDeletedAt() == null)
             .orElseThrow(ImpersonationService::notFound);
+    if (tenant.getStatus() != TenantStatus.ACTIVE) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          "TARGET_TENANT_INACTIVE",
+          "That pharmacy cannot be entered for support.");
+    }
 
     UserSession session = requireActiveMasterSession(principal);
     Instant now = Instant.now(clock);

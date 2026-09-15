@@ -58,18 +58,19 @@ const support = {
   tenantName: 'varshmaan-rx',
 };
 
-function renderShell(withSupport: boolean) {
+function renderShell(withSupport: boolean, extra: { mustChangePassword?: boolean } = {}) {
   const store = configureStore({
     reducer: { auth: authReducer, inbox: inboxReducer },
     preloadedState: {
       auth: {
         user: {
-          userId: withSupport ? 'o1' : 'm1',
-          displayName: withSupport ? 'Varshmaan' : 'Sanskar',
-          role: withSupport ? 'pharmacy_owner' : 'admin_super',
-          tenantId: withSupport ? 't1' : null,
+          userId: 'm1',
+          displayName: 'Sanskar',
+          role: 'admin_super',
+          tenantId: null,
           pinSet: true,
           impersonation: withSupport ? support : null,
+          mustChangePassword: Boolean(extra.mustChangePassword),
         },
       },
       inbox: {
@@ -135,5 +136,11 @@ describe('HQ support banner', () => {
       expect(store.getState().auth.user?.role).toBe('admin_super');
       expect(store.getState().auth.user?.impersonation).toBeNull();
     });
+  });
+
+  it('denied: support session does not show the target password rotate overlay', () => {
+    renderShell(true, { mustChangePassword: true });
+    expect(screen.queryByRole('dialog', { name: 'Rotate HQ password' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Exit support session' })).toBeInTheDocument();
   });
 });

@@ -111,7 +111,8 @@ public class JwtService {
         actingRole,
         sessionUserId,
         sessionTenantId,
-        sessionUserId);
+        sessionUserId,
+        sessionRole);
   }
 
   public record ActingIdentity(UUID userId, UUID tenantId, AppUserRole role) {}

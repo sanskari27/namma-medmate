@@ -353,7 +353,7 @@ class MedicationSafetyTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assertJson(null, List.of(productA), List.of(warningKey), "Reviewed")))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("UNLINKED_CUSTOMER"));
+        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
 
     mockMvc
         .perform(

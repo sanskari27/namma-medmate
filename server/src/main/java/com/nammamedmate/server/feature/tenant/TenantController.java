@@ -6,8 +6,10 @@ import com.nammamedmate.server.application.kyc.KycService;
 import com.nammamedmate.server.application.tenant.TenantRegistrationResult;
 import com.nammamedmate.server.application.tenant.TenantRegistrationService;
 import com.nammamedmate.server.application.tenant.TenantVerifyResult;
+import com.nammamedmate.server.application.auth.AuthIpThrottle;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import java.util.List;
 import java.util.UUID;
@@ -29,16 +31,21 @@ public class TenantController {
 
   private final TenantRegistrationService tenantRegistrationService;
   private final KycService kycService;
+  private final AuthIpThrottle authIpThrottle;
 
   public TenantController(
-      TenantRegistrationService tenantRegistrationService, KycService kycService) {
+      TenantRegistrationService tenantRegistrationService,
+      KycService kycService,
+      AuthIpThrottle authIpThrottle) {
     this.tenantRegistrationService = tenantRegistrationService;
     this.kycService = kycService;
+    this.authIpThrottle = authIpThrottle;
   }
 
   @PostMapping("/register")
   public ApiResponse<TenantRegistrationResponse> register(
-      @Valid @RequestBody RegisterTenantRequest request) {
+      @Valid @RequestBody RegisterTenantRequest request, HttpServletRequest httpRequest) {
+    authIpThrottle.check(httpRequest);
     TenantRegistrationResult result =
         tenantRegistrationService.register(
             request.businessName(), request.email(), request.phone(), request.password());

@@ -21,6 +21,10 @@ public interface SubscriptionPaymentRepository extends JpaRepository<Subscriptio
   List<SubscriptionPayment> findAllByOrderByCreatedAtDesc();
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
+  @Query("select p from SubscriptionPayment p where p.id = :id")
+  Optional<SubscriptionPayment> lockById(@Param("id") UUID id);
+
+  @Lock(LockModeType.PESSIMISTIC_WRITE)
   @Query("select p from SubscriptionPayment p where p.id = :id and p.tenantId = :tenantId")
   Optional<SubscriptionPayment> lockByIdAndTenantId(
       @Param("id") UUID id, @Param("tenantId") UUID tenantId);

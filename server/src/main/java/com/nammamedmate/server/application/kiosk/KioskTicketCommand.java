@@ -7,6 +7,7 @@ public record KioskTicketCommand(
     String walkInName,
     String pickupRequest,
     String paymentMethod,
+    String idempotencyKey,
     List<Item> items) {
 
   public record Item(

@@ -1,6 +1,7 @@
 package com.nammamedmate.server.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
@@ -17,9 +18,11 @@ import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
+import org.springframework.security.authorization.AuthorizationDecision;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.core.Authentication;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
@@ -36,8 +39,10 @@ public class SecurityConfig {
       JwtService jwtService,
       AuthCookieService authCookieService,
       UserSessionRepository userSessionRepository,
+      AppUserRepository appUserRepository,
       Clock clock) {
-    return new JwtAuthenticationFilter(jwtService, authCookieService, userSessionRepository, clock);
+    return new JwtAuthenticationFilter(
+        jwtService, authCookieService, userSessionRepository, appUserRepository, clock);
   }
 
   @Bean
@@ -116,6 +121,10 @@ public class SecurityConfig {
             auth ->
                 auth.requestMatchers("/actuator/health", "/actuator/info", "/api/v1/health")
                     .permitAll()
+                    .requestMatchers("/actuator/prometheus")
+                    .access(
+                        (authentication, context) ->
+                            new AuthorizationDecision(isHqMaster(authentication.get())))
                     .requestMatchers(HttpMethod.POST, "/api/v1/auth/login")
                     .permitAll()
                     .requestMatchers(HttpMethod.GET, "/api/v1/auth/saved-logins")
@@ -161,6 +170,13 @@ public class SecurityConfig {
         .addFilterAfter(passwordChangeRequiredFilter, JwtAuthenticationFilter.class)
         .addFilterAfter(tenantAccessFilter, PasswordChangeRequiredFilter.class);
     return http.build();
+  }
+
+  private static boolean isHqMaster(Authentication authentication) {
+    if (authentication == null || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
+      return false;
+    }
+    return principal.hqRole() == AppUserRole.admin_super;
   }
 
   private static void writeError(

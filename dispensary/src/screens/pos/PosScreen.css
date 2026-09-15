@@ -454,6 +454,112 @@
   padding: 0 8px;
 }
 
+.pos-cart-prices {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) auto;
+  gap: 6px;
+  align-items: end;
+}
+
+.pos-cart-prices label {
+  display: grid;
+  gap: 2px;
+  font-size: 11px;
+  color: var(--pos-muted);
+  font-weight: 600;
+}
+
+.pos-cart-prices input {
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid var(--pos-line);
+  background: #f8fbf9;
+  padding: 0 8px;
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.pos-line-discount-type {
+  height: 32px;
+  min-width: 36px;
+  border-radius: 8px;
+  border: 1px solid var(--pos-line);
+  background: #f8fbf9;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.pos-gst,
+.pos-points,
+.pos-copy {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border: 1px solid var(--pos-line);
+  border-radius: var(--pos-r);
+  background: var(--pos-paper);
+  font-size: 13px;
+}
+
+.pos-gstin,
+.pos-points label,
+.pos-tax-override label {
+  display: grid;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--pos-muted);
+}
+
+.pos-gstin input,
+.pos-points input,
+.pos-tax-override input {
+  height: 34px;
+  border-radius: 8px;
+  border: 1px solid var(--pos-line);
+  padding: 0 10px;
+  font-family: 'IBM Plex Mono', ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.pos-gst-actions,
+.pos-copy-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.pos-gst-actions button,
+.pos-copy-actions button {
+  height: 36px;
+  padding: 0 12px;
+  border-radius: 8px;
+  border: 1px solid var(--pos-line);
+  background: #f8fbf9;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pos-new-sale {
+  background: var(--pos-dark) !important;
+  color: #fff !important;
+  border-color: var(--pos-dark) !important;
+}
+
+.pos-khata-left {
+  margin: 8px 0 0;
+  font-size: 13px;
+  font-weight: 700;
+  color: var(--pos-dark);
+}
+
+.pos-tax-override {
+  display: grid;
+  gap: 8px;
+  padding-top: 8px;
+  border-top: 1px solid var(--pos-line);
+}
+
 .pos-qty {
   display: inline-flex;
   align-items: center;
@@ -545,6 +651,106 @@
   gap: 12px;
   align-items: start;
   width: 100%;
+}
+
+.pos-pay-col {
+  display: grid;
+  gap: 12px;
+}
+
+.pos-safety {
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid #f0c9b8;
+  background: var(--pos-rose-soft);
+}
+
+.pos-safety-unchecked {
+  display: grid;
+  gap: 4px;
+  margin: 0 0 8px;
+  font-size: 13px;
+}
+
+.pos-safety-unchecked strong {
+  font-size: 14px;
+}
+
+.pos-safety-warning {
+  margin-bottom: 10px;
+}
+
+.pos-safety-warning h3 {
+  margin: 0 0 4px;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pos-safety-warning p {
+  margin: 0;
+  font-size: 13px;
+}
+
+.pos-safety-review {
+  margin-top: 4px !important;
+  font-weight: 700;
+}
+
+.pos-safety-reason {
+  display: grid;
+  gap: 6px;
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.pos-safety-reason textarea {
+  width: 100%;
+  border: 1px solid var(--pos-line);
+  border-radius: 8px;
+  padding: 8px;
+  font: inherit;
+  font-weight: 400;
+  resize: vertical;
+  background: #fff;
+}
+
+.pos-offers {
+  display: grid;
+  gap: 8px;
+  padding: 12px 14px;
+  border-radius: 12px;
+  border: 1px solid var(--pos-line);
+  background: var(--pos-paper);
+}
+
+.pos-offers h3 {
+  margin: 0;
+  font-size: 14px;
+  font-weight: 800;
+}
+
+.pos-offers p {
+  margin: 0;
+  font-size: 13px;
+  color: var(--pos-ink-2);
+}
+
+.pos-offer-apply {
+  justify-self: start;
+  border: 1px solid var(--pos-line);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 13px;
+  font-weight: 700;
+  background: var(--pos-wash);
+  color: var(--pos-dark);
+  cursor: pointer;
+}
+
+.pos-offer-apply:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .pos-customer-btn,

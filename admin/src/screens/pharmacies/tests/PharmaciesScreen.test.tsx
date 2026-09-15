@@ -5,7 +5,7 @@ import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PharmaciesScreen from '@/screens/pharmacies/PharmaciesScreen';
 import { ApiError } from '@/services/axios';
-import { authReducer } from '@/store';
+import { authReducer, type ImpersonationState } from '@/store';
 import type { AdminTenant } from '@/services/tenants';
 
 vi.mock('@/services/tenants', () => ({
@@ -29,17 +29,28 @@ const active: AdminTenant = {
   allowedTransitions: ['SUSPENDED', 'EXPIRED', 'TERMINATED'],
 };
 
-function renderPage(role: string) {
+const support: ImpersonationState = {
+  originalUserId: 'm1',
+  originalDisplayName: 'Sanskar',
+  effectiveUserId: 'o1',
+  effectiveDisplayName: 'Varshmaan',
+  effectiveRole: 'pharmacy_owner',
+  tenantId: 't1',
+  tenantName: 'varshmaan',
+};
+
+function renderPage(role: string, impersonation: ImpersonationState | null = null) {
   const store = configureStore({
     reducer: { auth: authReducer },
     preloadedState: {
       auth: {
         user: {
-          userId: 'm1',
-          displayName: 'Sanskar',
+          userId: impersonation ? impersonation.originalUserId : 'm1',
+          displayName: impersonation ? impersonation.originalDisplayName : 'Sanskar',
           role,
           tenantId: null,
           pinSet: true,
+          impersonation,
         },
       },
     },
@@ -77,6 +88,16 @@ describe('pharmacies lifecycle', () => {
       'Only MASTER can change pharmacy lifecycle status.',
     );
     expect(listMock).not.toHaveBeenCalled();
+  });
+
+  it('success: MASTER chrome still lists pharmacies during support', async () => {
+    listMock.mockResolvedValue([active]);
+    renderPage('admin_super', support);
+    expect(await screen.findByText('Varshmaan Pharmacy')).toBeInTheDocument();
+    expect(listMock).toHaveBeenCalled();
+    expect(
+      screen.queryByText('Only MASTER can change pharmacy lifecycle status.'),
+    ).not.toBeInTheDocument();
   });
 
   it('validation: reason is required before filing', async () => {

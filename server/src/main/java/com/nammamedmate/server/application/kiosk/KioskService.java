@@ -2,6 +2,7 @@ package com.nammamedmate.server.application.kiosk;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.branch.BranchAssignmentService;
+import com.nammamedmate.server.application.inventory.InventoryStockService;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -15,6 +16,8 @@ import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PlanModuleEntitlements;
+import com.nammamedmate.server.domain.Product;
+import com.nammamedmate.server.domain.StockBalance;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -22,10 +25,14 @@ import com.nammamedmate.server.persistence.KioskConfigRepository;
 import com.nammamedmate.server.persistence.KioskSessionRepository;
 import com.nammamedmate.server.persistence.KioskTicketRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.ProductRepository;
+import com.nammamedmate.server.persistence.StockBalanceRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
+import java.math.BigDecimal;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Locale;
@@ -35,6 +42,7 @@ import java.util.Set;
 import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -51,6 +59,12 @@ public class KioskService {
   static final String NO_BRANCH_MESSAGE = "Pick an outlet on this till before opening the kiosk.";
   static final String SESSION_CLOSED_CODE = "SESSION_CLOSED";
   static final String SESSION_CLOSED_MESSAGE = "Open this outlet’s kiosk before taking a pickup.";
+  static final String EXIT_PIN_REQUIRED_CODE = "EXIT_PIN_REQUIRED";
+  static final String EXIT_PIN_REQUIRED_MESSAGE =
+      "Set a staff exit PIN before opening this outlet’s kiosk.";
+  static final String INSUFFICIENT_STOCK_CODE = "INSUFFICIENT_STOCK";
+  static final String INSUFFICIENT_STOCK_MESSAGE =
+      "That item is not on the shelf at this kiosk outlet.";
 
   private static final Set<String> PAYMENT_METHODS =
       Set.of("CASH", "UPI", "CARD", "COD");
@@ -61,9 +75,13 @@ public class KioskService {
   private final KioskSessionRepository kioskSessionRepository;
   private final KioskTicketRepository kioskTicketRepository;
   private final KioskConfigRepository kioskConfigRepository;
+  private final ProductRepository productRepository;
+  private final StockBalanceRepository stockBalanceRepository;
   private final AccessQueryService accessQueryService;
   private final SubscriptionService subscriptionService;
   private final BranchAssignmentService branchAssignmentService;
+  private final InventoryStockService inventoryStockService;
+  private final PasswordEncoder passwordEncoder;
   private final Clock clock;
 
   public KioskService(
@@ -72,18 +90,26 @@ public class KioskService {
       KioskSessionRepository kioskSessionRepository,
       KioskTicketRepository kioskTicketRepository,
       KioskConfigRepository kioskConfigRepository,
+      ProductRepository productRepository,
+      StockBalanceRepository stockBalanceRepository,
       AccessQueryService accessQueryService,
       SubscriptionService subscriptionService,
       BranchAssignmentService branchAssignmentService,
+      InventoryStockService inventoryStockService,
+      PasswordEncoder passwordEncoder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.locationRepository = locationRepository;
     this.kioskSessionRepository = kioskSessionRepository;
     this.kioskTicketRepository = kioskTicketRepository;
     this.kioskConfigRepository = kioskConfigRepository;
+    this.productRepository = productRepository;
+    this.stockBalanceRepository = stockBalanceRepository;
     this.accessQueryService = accessQueryService;
     this.subscriptionService = subscriptionService;
     this.branchAssignmentService = branchAssignmentService;
+    this.inventoryStockService = inventoryStockService;
+    this.passwordEncoder = passwordEncoder;
     this.clock = clock;
   }
 
@@ -111,6 +137,10 @@ public class KioskService {
   @Transactional
   public KioskView open(AuthPrincipal principal) {
     Context ctx = requireReady(principal);
+    if (!staffExitPinSet(loadConfig(ctx.branch()))) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, EXIT_PIN_REQUIRED_CODE, EXIT_PIN_REQUIRED_MESSAGE);
+    }
     if (ctx.open() != null) {
       throw new ApiException(
           HttpStatus.CONFLICT, "STALE_STATE", "This outlet’s kiosk is already open.");
@@ -177,6 +207,16 @@ public class KioskService {
   }
 
   @Transactional
+  public KioskView verifyExitPin(AuthPrincipal principal, String staffExitPin) {
+    Context ctx = requireReady(principal);
+    KioskConfig config = loadConfig(ctx.branch());
+    if (!staffExitPinSet(config) || !passwordEncoder.matches(staffExitPin == null ? "" : staffExitPin, config.getStaffExitPin())) {
+      throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_PIN", "Incorrect PIN");
+    }
+    return toView(true, true, ctx.branch(), ctx.open(), null);
+  }
+
+  @Transactional
   public KioskView createTicket(AuthPrincipal principal, KioskTicketCommand command) {
     Context ctx = requireReady(principal);
     KioskSession open = ctx.open();
@@ -184,7 +224,19 @@ public class KioskService {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY, SESSION_CLOSED_CODE, SESSION_CLOSED_MESSAGE);
     }
-    List<Map<String, Object>> items = normalizeItems(command.items());
+    String key = blankToNull(command.idempotencyKey() == null ? null : command.idempotencyKey().trim());
+    if (key != null && key.length() > 128) {
+      throw validation();
+    }
+    if (key != null) {
+      var existing =
+          kioskTicketRepository.findByTenantIdAndBranchIdAndIdempotencyKey(
+              ctx.user().getTenantId(), ctx.branch().getId(), key);
+      if (existing.isPresent()) {
+        return toView(true, true, ctx.branch(), open, null);
+      }
+    }
+    List<Map<String, Object>> items = pricedItems(principal, ctx, command.items());
     String pickup = resolvePickup(command.pickupRequest(), items);
     String payment = normalizePayment(command.paymentMethod());
     boolean requiresRx =
@@ -202,12 +254,17 @@ public class KioskService {
     ticket.setRequiresRx(requiresRx);
     ticket.setItemsJson(items);
     ticket.setStatus(KioskTicketStatus.WAITING);
+    ticket.setIdempotencyKey(key);
     ticket.setCreatedAt(now);
     ticket.setUpdatedAt(now);
     open.setNextToken(open.getNextToken() + 1);
     open.setUpdatedAt(now);
     kioskSessionRepository.save(open);
-    kioskTicketRepository.save(ticket);
+    try {
+      kioskTicketRepository.saveAndFlush(ticket);
+    } catch (DataIntegrityViolationException ex) {
+      return toView(true, true, ctx.branch(), open, null);
+    }
     return toView(true, true, ctx.branch(), open, null);
   }
 
@@ -223,6 +280,7 @@ public class KioskService {
       throw new ApiException(
           HttpStatus.CONFLICT, "STALE_STATE", "That pickup slip is no longer waiting.");
     }
+    releaseReservedStock(principal, ticket);
     ticket.setStatus(KioskTicketStatus.CANCELLED);
     ticket.setUpdatedAt(Instant.now(clock));
     kioskTicketRepository.save(ticket);
@@ -336,7 +394,7 @@ public class KioskService {
     return new KioskView.KioskConfigSlice(
         config.getDisplayName(),
         config.getWelcomeMessage(),
-        config.getStaffExitPin(),
+        staffExitPinSet(config),
         config.getIdleResetSeconds(),
         config.getAccentTheme(),
         config.isShowPrices(),
@@ -355,7 +413,7 @@ public class KioskService {
     return new KioskView.KioskConfigSlice(
         name,
         "Tap to order your medicines & wellness products",
-        "0000",
+        false,
         60,
         "green",
         true,
@@ -366,7 +424,7 @@ public class KioskService {
         false);
   }
 
-  private static void applyConfig(KioskConfig config, KioskConfigCommand command, String branchName) {
+  private void applyConfig(KioskConfig config, KioskConfigCommand command, String branchName) {
     String display =
         command.displayName() == null || command.displayName().isBlank()
             ? defaultConfig(branchName).displayName()
@@ -383,10 +441,18 @@ public class KioskService {
     }
     String pin =
         command.staffExitPin() == null || command.staffExitPin().isBlank()
-            ? "0000"
+            ? ""
             : command.staffExitPin().trim();
-    if (pin.length() > 16) {
-      throw validation();
+    if (!pin.isEmpty()) {
+      if (!pin.matches("^[0-9]{4,8}$") || pin.equals("0000")) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "EXIT_PIN_INVALID",
+            "Choose a 4–8 digit staff exit PIN that is not 0000.");
+      }
+      config.setStaffExitPin(passwordEncoder.encode(pin));
+    } else if (config.getStaffExitPin() == null) {
+      config.setStaffExitPin("");
     }
     int idle = command.idleResetSeconds() == null ? 60 : command.idleResetSeconds();
     if (idle < 15 || idle > 600) {
@@ -401,7 +467,6 @@ public class KioskService {
     }
     config.setDisplayName(display);
     config.setWelcomeMessage(welcome);
-    config.setStaffExitPin(pin);
     config.setIdleResetSeconds(idle);
     config.setAccentTheme(theme);
     config.setShowPrices(command.showPrices() == null || command.showPrices());
@@ -412,28 +477,113 @@ public class KioskService {
     config.setAcceptCod(Boolean.TRUE.equals(command.acceptCod()));
   }
 
-  private static List<Map<String, Object>> normalizeItems(List<KioskTicketCommand.Item> items) {
+  private List<Map<String, Object>> pricedItems(
+      AuthPrincipal principal, Context ctx, List<KioskTicketCommand.Item> items) {
     if (items == null || items.isEmpty()) {
       return List.of();
     }
     List<Map<String, Object>> out = new ArrayList<>();
     for (KioskTicketCommand.Item item : items) {
-      if (item == null || item.productId() == null || item.name() == null || item.name().isBlank()) {
+      if (item == null || item.productId() == null) {
         throw validation();
       }
       if (item.quantity() == null || item.quantity() <= 0 || item.quantity() > 999) {
         throw validation();
       }
+      Product product =
+          productRepository
+              .findByIdAndTenantId(item.productId(), ctx.user().getTenantId())
+              .orElseThrow(KioskService::notFound);
+      BigDecimal remaining = BigDecimal.valueOf(item.quantity());
+      List<StockBalance> balances =
+          stockBalanceRepository
+              .findAllByTenantIdAndBranchIdAndProductId(
+                  ctx.user().getTenantId(), ctx.branch().getId(), product.getId())
+              .stream()
+              .filter(row -> row.getQuantity().compareTo(BigDecimal.ZERO) > 0)
+              .sorted(Comparator.comparing(StockBalance::getBatchId, Comparator.nullsFirst(UUID::compareTo)))
+              .toList();
+      BigDecimal onHand =
+          balances.stream().map(StockBalance::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
+      if (onHand.compareTo(remaining) < 0) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_ENTITY, INSUFFICIENT_STOCK_CODE, INSUFFICIENT_STOCK_MESSAGE);
+      }
+      long unitPrice =
+          product.getDefaultMrpPaise() == null ? 0L : product.getDefaultMrpPaise();
+      List<Map<String, Object>> reservations = new ArrayList<>();
+      for (StockBalance balance : balances) {
+        if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
+          break;
+        }
+        BigDecimal take = remaining.min(balance.getQuantity());
+        String stockKey = "kiosk-" + UUID.randomUUID();
+        inventoryStockService.issue(
+            principal,
+            product.getId(),
+            balance.getBatchId(),
+            take,
+            stockKey,
+            balance.getVersion());
+        Map<String, Object> reservation = new LinkedHashMap<>();
+        reservation.put("batchId", balance.getBatchId() == null ? null : balance.getBatchId().toString());
+        reservation.put("quantity", take.stripTrailingZeros().toPlainString());
+        reservation.put("stockKey", stockKey);
+        reservations.add(reservation);
+        remaining = remaining.subtract(take);
+      }
       Map<String, Object> row = new LinkedHashMap<>();
-      row.put("productId", item.productId().toString());
-      row.put("name", item.name().trim());
+      row.put("productId", product.getId().toString());
+      row.put("name", product.getName());
       row.put("packLabel", blankToNull(item.packLabel()));
       row.put("quantity", item.quantity());
-      row.put("unitPricePaise", item.unitPricePaise() == null ? 0 : item.unitPricePaise());
-      row.put("prescriptionRequired", Boolean.TRUE.equals(item.prescriptionRequired()));
+      row.put("unitPricePaise", unitPrice);
+      row.put("prescriptionRequired", product.isPrescriptionRequired());
+      row.put("reservations", reservations);
       out.add(row);
     }
     return out;
+  }
+
+  private void releaseReservedStock(AuthPrincipal principal, KioskTicket ticket) {
+    if (ticket.getItemsJson() == null) {
+      return;
+    }
+    for (Map<String, Object> row : ticket.getItemsJson()) {
+      Object raw = row.get("reservations");
+      if (!(raw instanceof List<?> reservations)) {
+        continue;
+      }
+      UUID productId = UUID.fromString(String.valueOf(row.get("productId")));
+      for (Object reservationObj : reservations) {
+        if (!(reservationObj instanceof Map<?, ?> reservation)) {
+          continue;
+        }
+        Object batchRaw = reservation.get("batchId");
+        UUID batchId =
+            batchRaw == null || String.valueOf(batchRaw).isBlank() || "null".equals(String.valueOf(batchRaw))
+                ? null
+                : UUID.fromString(String.valueOf(batchRaw));
+        BigDecimal qty = new BigDecimal(String.valueOf(reservation.get("quantity")));
+        String stockKey = String.valueOf(reservation.get("stockKey"));
+        inventoryStockService.restockFromSalesReturn(
+            principal, productId, batchId, qty, stockKey + "-void");
+      }
+    }
+  }
+
+  private KioskConfig loadConfig(Location branch) {
+    return kioskConfigRepository
+        .findByTenantIdAndBranchId(branch.getTenantId(), branch.getId())
+        .orElse(null);
+  }
+
+  private static boolean staffExitPinSet(KioskConfig config) {
+    if (config == null) {
+      return false;
+    }
+    String pin = config.getStaffExitPin();
+    return pin != null && pin.startsWith("$2");
   }
 
   private static String resolvePickup(String pickupRequest, List<Map<String, Object>> items) {

@@ -262,6 +262,30 @@ public class CashfreeBillingService {
         .toList();
   }
 
+  @Transactional
+  public AdminCashfreePaymentView reconcileForAdmin(AuthPrincipal principal, UUID paymentId) {
+    requireMaster(principal);
+    SubscriptionPayment payment =
+        paymentRepository.lockById(paymentId).orElseThrow(CashfreeBillingPolicy::notFound);
+    finishReconcile(payment);
+    Instant now = Instant.now(clock);
+    String name =
+        tenantRepository
+            .findById(payment.getTenantId())
+            .map(tenant -> tenant.getName())
+            .orElse("Unknown pharmacy");
+    return new AdminCashfreePaymentView(
+        payment.getId(),
+        payment.getTenantId(),
+        name,
+        payment.getPlanCode(),
+        payment.getAmountPaise(),
+        payment.getStatus(),
+        payment.getErrorCode(),
+        CashfreeBillingPolicy.isException(payment.getStatus(), payment.getCreatedAt(), now),
+        payment.getCreatedAt());
+  }
+
   private void applySuccess(
       SubscriptionPayment payment,
       java.math.BigDecimal amountRupees,
@@ -411,7 +435,7 @@ public class CashfreeBillingService {
   }
 
   private void requireMaster(AuthPrincipal principal) {
-    if (principal == null || principal.role() != AppUserRole.admin_super) {
+    if (principal == null || principal.hqRole() != AppUserRole.admin_super) {
       throw CashfreeBillingPolicy.forbidden();
     }
   }

@@ -88,6 +88,7 @@ class MetaWhatsAppAdapterTest {
         .send(
             org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any(),
+            org.mockito.ArgumentMatchers.any(),
             org.mockito.ArgumentMatchers.any());
     String joined =
         logAppender.list.stream()
@@ -100,13 +101,46 @@ class MetaWhatsAppAdapterTest {
   }
 
   @Test
+  void graphTemplateNameIsMetaUniqueName_M10_WA_001() {
+    Map<String, Object> body =
+        MetaWhatsAppAdapter.graphMessageBody(
+            "919876500001",
+            "refill_due",
+            Map.of(
+                "customer_name", "Ravi",
+                "medicine_name", "Crocin",
+                "pharmacy_name", "Varshmaan"));
+    @SuppressWarnings("unchecked")
+    Map<String, Object> template = (Map<String, Object>) body.get("template");
+    assertThat(template.get("name")).isEqualTo("refill_due");
+    assertThat(String.valueOf(template.get("name"))).doesNotContain("11111111");
+  }
+
+  @Test
+  void graphBodySendsOrderedComponents_M10_WA_002() {
+    Map<String, Object> body =
+        MetaWhatsAppAdapter.graphMessageBody(
+            "919876500001",
+            "refill_due",
+            Map.of(
+                "customer_name", "Ravi",
+                "medicine_name", "Crocin",
+                "pharmacy_name", "Varshmaan"));
+    String json = body.toString();
+    assertThat(json).contains("customer_name", "medicine_name", "pharmacy_name");
+    assertThat(json).contains("Ravi", "Crocin", "Varshmaan");
+    assertThat(json).contains("components");
+  }
+
+  @Test
   void sendUsesSenderWithoutLoggingTokenOrSms() {
-    when(sender.send("phone-1", "919876500001", "tenant_campaign")).thenReturn("wamid.9");
+    when(sender.send("phone-1", "919876500001", "campaign", Map.of("customer_name", "Ravi")))
+        .thenReturn("wamid.9");
     MetaWhatsAppAdapter adapter =
         MetaWhatsAppAdapter.withSender(sender, "phone-1", "+91 90000 00000");
 
     MetaSendResult result =
-        adapter.sendTemplate("919876500001", "tenant_campaign", Map.of("customer_name", "Ravi"));
+        adapter.sendTemplate("919876500001", "campaign", Map.of("customer_name", "Ravi"));
 
     assertThat(result.sent()).isTrue();
     assertThat(result.providerMessageId()).isEqualTo("wamid.9");

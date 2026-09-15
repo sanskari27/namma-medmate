@@ -40,7 +40,23 @@ vi.mock('@/services/inbox', async () => {
   };
 });
 
-function renderShell(pinSet: boolean) {
+vi.mock('@/services/impersonation', () => ({
+  exitImpersonation: vi.fn(),
+  startImpersonation: vi.fn(),
+  fetchSession: vi.fn(),
+}));
+
+const support = {
+  originalUserId: 'm1',
+  originalDisplayName: 'Sanskar',
+  effectiveUserId: 'o1',
+  effectiveDisplayName: 'Varshmaan',
+  effectiveRole: 'pharmacy_owner',
+  tenantId: 't1',
+  tenantName: 'varshmaan-rx',
+};
+
+function renderShell(pinSet: boolean, impersonation: typeof support | null = null) {
   const store = configureStore({
     reducer: { auth: authReducer, inbox: inboxReducer },
     preloadedState: {
@@ -51,6 +67,7 @@ function renderShell(pinSet: boolean) {
           role: 'admin_super',
           tenantId: null,
           pinSet,
+          impersonation,
         },
       },
       inbox: {
@@ -105,5 +122,19 @@ describe('admin idle PIN lock', () => {
     expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
     expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
     expect(store.getState().auth.user).not.toBeNull();
+  });
+
+  it('locks HQ after five minutes of inactivity during a support session', () => {
+    vi.useFakeTimers();
+    const { store } = renderShell(true, support);
+    expect(screen.getByRole('status')).toHaveTextContent('Support session');
+    expect(screen.queryByRole('dialog', { name: 'HQ session locked' })).not.toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('Varshmaan');
+    expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
+    expect(store.getState().auth.user?.impersonation).toEqual(support);
   });
 });

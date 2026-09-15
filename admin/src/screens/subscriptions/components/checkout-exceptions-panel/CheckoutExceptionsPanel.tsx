@@ -15,12 +15,16 @@ export function CheckoutExceptionsPanel({
   busy,
   refreshRef,
   onRefresh,
+  reconcilingId,
+  onReconcile,
 }: {
   payStatus: PayStatus;
   items: AdminCashfreePayment[];
   busy: boolean;
   refreshRef: RefObject<HTMLButtonElement | null>;
   onRefresh: () => void;
+  reconcilingId: string | null;
+  onReconcile: (id: string) => void;
 }) {
   const banner = paymentCopy(payStatus);
   const exceptions = items.filter((row) => row.exception);
@@ -86,6 +90,9 @@ export function CheckoutExceptionsPanel({
                 <th scope="col" className="px-3 py-2 font-medium">
                   Filed (IST)
                 </th>
+                <th scope="col" className="px-3 py-2 font-medium">
+                  Action
+                </th>
               </tr>
             </thead>
             <tbody>
@@ -111,6 +118,21 @@ export function CheckoutExceptionsPanel({
                   </td>
                   <td className="px-3 py-3 font-mono text-[11px] text-muted">
                     {formatIstStamp(row.createdAt)}
+                  </td>
+                  <td className="px-3 py-3">
+                    {row.status === 'PENDING' || row.exception ? (
+                      <Button
+                        type="button"
+                        size="sm"
+                        variant="outline"
+                        disabled={busy || reconcilingId === row.id}
+                        onClick={() => onReconcile(row.id)}
+                      >
+                        {reconcilingId === row.id ? 'Reconciling…' : 'Reconcile with Cashfree'}
+                      </Button>
+                    ) : (
+                      <span className="font-mono text-[11px] text-muted">Settled</span>
+                    )}
                   </td>
                 </tr>
               ))}

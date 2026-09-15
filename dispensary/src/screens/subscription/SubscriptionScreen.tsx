@@ -11,6 +11,7 @@ import { PlanStatusBanner } from './components/plan-status-banner';
 import { paymentStatusCopy } from './SubscriptionScreen.utils';
 import {
   accessDenied,
+  checkoutHeld,
   loadSubscription,
   paymentNoted,
   statusSet,
@@ -44,11 +45,17 @@ export default function SubscriptionScreen() {
         }
         dispatch(paymentNoted(paymentStatusCopy(payment.status)));
         if (payment.status === 'SUCCESS') {
+          sessionStorage.removeItem(`nmm.cf.checkout.${payment.planCode}`);
+          dispatch(checkoutHeld(null));
           await dispatch(loadSubscription());
           dispatch(statusSet({ status: 'success' }));
+        } else if (payment.status === 'PENDING') {
+          dispatch(checkoutHeld(payment.planCode));
         } else if (payment.status === 'FAILED') {
+          dispatch(checkoutHeld(null));
           dispatch(statusSet({ status: 'failure' }));
         }
+        window.history.replaceState({}, '', window.location.pathname);
       } catch (error) {
         if (cancelled) {
           return;

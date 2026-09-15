@@ -57,6 +57,13 @@ public class AdminSubscriptionController {
                 .toList()));
   }
 
+  @PostMapping("/payments/{id}/reconcile")
+  public ApiResponse<AdminPaymentResponse> reconcile(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toPayment(cashfreeBillingService.reconcileForAdmin(principal, id)));
+  }
+
   @PostMapping("/{tenantId}/override")
   public ApiResponse<SubscriptionController.CurrentSubscriptionResponse> override(
       Authentication authentication,

@@ -59,10 +59,9 @@ export default function DashboardLayout() {
     Boolean(s.auth.user?.mustChangePassword),
   );
   const support = useSelector((s: RootState) => s.auth.user?.impersonation);
+  const rotateOwnPassword = Boolean(mustChangePassword && !support);
   const [exiting, setExiting] = useState(false);
-  const { locked, abandoned, clearLock } = useIdleLock(
-    pinSet && !mustChangePassword && !support,
-  );
+  const { locked, abandoned, clearLock } = useIdleLock(pinSet && !rotateOwnPassword);
 
   const leaveHq = useCallback(
     (reason?: string) => {
@@ -154,12 +153,12 @@ export default function DashboardLayout() {
           <Outlet />
         </main>
       </div>
-      {mustChangePassword ? (
+      {rotateOwnPassword ? (
         <HqPasswordChange onChanged={() => dispatch(passwordChanged())} />
       ) : !pinSet && !support ? (
         <HqPinEnroll onEnrolled={() => dispatch(pinEnrolled())} />
       ) : null}
-      {locked && pinSet && !mustChangePassword && !support ? (
+      {locked && pinSet && !rotateOwnPassword ? (
         <HqSessionLock
           operatorName={displayName?.trim() || 'Operator'}
           onUnlocked={clearLock}

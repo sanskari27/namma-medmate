@@ -118,7 +118,7 @@ public class TenantLifecycleService {
     }
     AppUser actor =
         appUserRepository
-            .findById(principal.userId())
+            .findById(principal.hqUserId())
             .filter(user -> user.getDeletedAt() == null)
             .orElseThrow(
                 () ->

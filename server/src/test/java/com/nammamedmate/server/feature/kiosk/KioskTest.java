@@ -25,9 +25,14 @@ import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.TenantSubscription;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.KioskConfigRepository;
 import com.nammamedmate.server.persistence.KioskSessionRepository;
 import com.nammamedmate.server.persistence.KioskTicketRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.ProductCategoryRepository;
+import com.nammamedmate.server.persistence.ProductRepository;
+import com.nammamedmate.server.persistence.StockBalanceRepository;
+import com.nammamedmate.server.persistence.StockMovementRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
 import com.nammamedmate.server.persistence.UserBranchRepository;
@@ -61,12 +66,22 @@ class KioskTest extends AbstractIntegrationTest {
   @Autowired private UserBranchRepository userBranchRepository;
   @Autowired private KioskSessionRepository kioskSessionRepository;
   @Autowired private KioskTicketRepository kioskTicketRepository;
+  @Autowired private KioskConfigRepository kioskConfigRepository;
+  @Autowired private ProductRepository productRepository;
+  @Autowired private ProductCategoryRepository productCategoryRepository;
+  @Autowired private StockBalanceRepository stockBalanceRepository;
+  @Autowired private StockMovementRepository stockMovementRepository;
   @Autowired private PasswordEncoder passwordEncoder;
 
   @BeforeEach
   void wipe() {
     kioskTicketRepository.deleteAll();
     kioskSessionRepository.deleteAll();
+    kioskConfigRepository.deleteAll();
+    stockMovementRepository.deleteAll();
+    stockBalanceRepository.deleteAll();
+    productRepository.deleteAll();
+    productCategoryRepository.deleteAll();
     userBranchRepository.deleteAll();
     userSessionRepository.deleteAll();
     locationRepository.deleteAll();
@@ -128,6 +143,15 @@ class KioskTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.code").value("BRANCH_TYPE"));
 
     selectBranch(cookie, kiosk.getId());
+    mockMvc
+        .perform(
+            put("/api/v1/kiosk/config")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"staffExitPin\":\"2468\"}"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.config.staffExitPinSet").value(true))
+        .andExpect(jsonPath("$.data.config.staffExitPin").doesNotExist());
     mockMvc
         .perform(post("/api/v1/kiosk/open").cookie(cookie))
         .andExpect(status().isOk())
@@ -218,6 +242,7 @@ class KioskTest extends AbstractIntegrationTest {
     mockMvc.perform(post("/api/v1/kiosk/open").cookie(clerk)).andExpect(status().isForbidden());
 
     selectBranch(owner, kiosk.getId());
+    saveExitPin(owner);
     mockMvc.perform(post("/api/v1/kiosk/open").cookie(owner)).andExpect(status().isOk());
     mockMvc
         .perform(
@@ -244,6 +269,7 @@ class KioskTest extends AbstractIntegrationTest {
     Cookie ownerB = login("owner@iso-b.local");
 
     selectBranch(ownerA, a1.getId());
+    saveExitPin(ownerA);
     mockMvc.perform(post("/api/v1/kiosk/open").cookie(ownerA)).andExpect(status().isOk());
     String ticketId =
         objectMapper
@@ -297,6 +323,193 @@ class KioskTest extends AbstractIntegrationTest {
         .perform(post("/api/v1/kiosk/open").cookie(cookie))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.code").value("PLAN_LIMIT"));
+  }
+
+  @Test
+  void ac_kiosk001_lineItemsUseServerPriceAndReserveStock() throws Exception {
+    Tenant tenant = persistTenant("kiosk-stock", "Kiosk Stock");
+    persistPlan(tenant.getId(), PlanCode.PRO);
+    persistUser(tenant.getId(), "owner@kiosk-stock.local", AppUserRole.pharmacy_owner);
+    Location stall = persistBranch(tenant.getId(), "Stall", "BR01", true, BranchType.KIOSK);
+    Cookie cookie = login("owner@kiosk-stock.local");
+    selectBranch(cookie, stall.getId());
+    saveExitPin(cookie);
+    mockMvc.perform(post("/api/v1/kiosk/open").cookie(cookie)).andExpect(status().isOk());
+    UUID productId = createPlainProduct(cookie, "SKU-KO", "Crocin 650");
+    mockMvc
+        .perform(
+            post("/api/v1/inventory/receipts")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"productId":"%s","batchNumber":null,"manufacturedOn":null,"expiresOn":null,"purchasePricePaise":null,"quantity":2,"idempotencyKey":"kiosk-recv","expectedVersion":0}
+                    """
+                        .formatted(productId)))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(
+            post("/api/v1/kiosk/tickets")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"walkInName":"Meera","paymentMethod":"UPI","idempotencyKey":"tok-1","items":[{"productId":"%s","name":"FAKE","quantity":1,"unitPricePaise":1}]}
+                    """
+                        .formatted(productId)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.waitingTickets[0].items[0].name").value("Crocin 650"))
+        .andExpect(jsonPath("$.data.waitingTickets.length()").value(1));
+
+    mockMvc
+        .perform(
+            post("/api/v1/kiosk/tickets")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"paymentMethod":"UPI","idempotencyKey":"tok-1","items":[{"productId":"%s","quantity":1}]}
+                    """
+                        .formatted(productId)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.waitingTickets.length()").value(1));
+
+    mockMvc
+        .perform(
+            post("/api/v1/kiosk/tickets")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {"paymentMethod":"UPI","idempotencyKey":"tok-2","items":[{"productId":"%s","quantity":2}]}
+                    """
+                        .formatted(productId)))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("INSUFFICIENT_STOCK"));
+  }
+
+  @Test
+  void ac_kiosk003_openRequiresExitPinAndNeverEchoesIt() throws Exception {
+    Tenant tenant = persistTenant("kiosk-pin", "Kiosk Pin");
+    persistPlan(tenant.getId(), PlanCode.PRO);
+    persistUser(tenant.getId(), "owner@kiosk-pin.local", AppUserRole.pharmacy_owner);
+    Location stall = persistBranch(tenant.getId(), "Stall", "BR01", true, BranchType.KIOSK);
+    Cookie cookie = login("owner@kiosk-pin.local");
+    selectBranch(cookie, stall.getId());
+    mockMvc
+        .perform(get("/api/v1/kiosk").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.config.staffExitPinSet").value(false))
+        .andExpect(jsonPath("$.data.config.staffExitPin").doesNotExist());
+    mockMvc
+        .perform(post("/api/v1/kiosk/open").cookie(cookie))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("EXIT_PIN_REQUIRED"));
+    saveExitPin(cookie);
+    mockMvc.perform(post("/api/v1/kiosk/open").cookie(cookie)).andExpect(status().isOk());
+    mockMvc
+        .perform(
+            post("/api/v1/kiosk/exit-pin")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"staffExitPin\":\"0000\"}"))
+        .andExpect(status().isUnauthorized());
+    mockMvc
+        .perform(
+            post("/api/v1/kiosk/exit-pin")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"staffExitPin\":\"2468\"}"))
+        .andExpect(status().isOk());
+  }
+
+  private void saveExitPin(Cookie cookie) throws Exception {
+    mockMvc
+        .perform(
+            put("/api/v1/kiosk/config")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"staffExitPin\":\"2468\"}"))
+        .andExpect(status().isOk());
+  }
+
+  private UUID createPlainProduct(Cookie cookie, String sku, String name) throws Exception {
+    UUID categoryId =
+        UUID.fromString(
+            objectMapper
+                .readTree(
+                    mockMvc
+                        .perform(
+                            post("/api/v1/product-categories")
+                                .cookie(cookie)
+                                .contentType(MediaType.APPLICATION_JSON)
+                                .content("{\"name\":\"OTC-" + sku + "\"}"))
+                        .andExpect(status().isOk())
+                        .andReturn()
+                        .getResponse()
+                        .getContentAsString())
+                .path("data")
+                .path("id")
+                .asText());
+    return UUID.fromString(
+        objectMapper
+            .readTree(
+                mockMvc
+                    .perform(
+                        post("/api/v1/products")
+                            .cookie(cookie)
+                            .contentType(MediaType.APPLICATION_JSON)
+                            .content(
+                                """
+                                {
+                                  "sku":"%s",
+                                  "barcode":null,
+                                  "name":"%s",
+                                  "genericName":null,
+                                  "brandName":null,
+                                  "manufacturerId":null,
+                                  "categoryId":"%s",
+                                  "productType":"Medicine",
+                                  "dosageForm":"Tablet",
+                                  "therapeuticClass":null,
+                                  "composition":null,
+                                  "strength":null,
+                                  "route":null,
+                                  "prescriptionRequired":false,
+                                  "scheduleClassification":null,
+                                  "hsnCode":null,
+                                  "gstRate":null,
+                                  "baseUnit":"Tablet",
+                                  "packSize":10,
+                                  "packUnit":"strip",
+                                  "packDescription":null,
+                                  "storageConditions":null,
+                                  "requiresColdStorage":false,
+                                  "rackLocation":null,
+                                  "reorderLevel":null,
+                                  "reorderQuantity":null,
+                                  "minimumStock":null,
+                                  "isDiscontinued":false,
+                                  "isReturnable":true,
+                                  "isTaxable":true,
+                                  "taxCategory":null,
+                                  "requiresBatchTracking":false,
+                                  "requiresExpiryTracking":false,
+                                  "requiresSerialTracking":false,
+                                  "controlledSubstance":false,
+                                  "notes":null,
+                                  "isActive":true
+                                }
+                                """
+                                    .formatted(sku, name, categoryId)))
+                    .andExpect(status().isOk())
+                    .andReturn()
+                    .getResponse()
+                    .getContentAsString())
+            .path("data")
+            .path("id")
+            .asText());
   }
 
   private void selectBranch(Cookie cookie, UUID branchId) throws Exception {

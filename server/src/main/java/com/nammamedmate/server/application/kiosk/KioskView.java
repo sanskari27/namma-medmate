@@ -23,7 +23,7 @@ public record KioskView(
   public record KioskConfigSlice(
       String displayName,
       String welcomeMessage,
-      String staffExitPin,
+      boolean staffExitPinSet,
       int idleResetSeconds,
       String accentTheme,
       boolean showPrices,

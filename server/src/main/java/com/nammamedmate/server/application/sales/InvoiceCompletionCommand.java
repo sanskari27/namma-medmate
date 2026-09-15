@@ -9,7 +9,9 @@ public record InvoiceCompletionCommand(
     Long changePaise,
     String idempotencyKey,
     Integer redeemPoints,
-    List<Payment> payments) {
+    List<Payment> payments,
+    List<String> safetyWarningKeys,
+    String safetyReason) {
 
   public record Payment(PaymentMode mode, Long amountPaise, String reference) {}
 }

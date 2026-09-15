@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import { Outlet, Link, useNavigate } from 'react-router-dom';
+import { Outlet, Link, useLocation, useNavigate } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import {
   AppSidebar,
@@ -15,8 +15,8 @@ import { useMediaQuery } from '@/hooks/useMediaQuery';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { SHELL } from '@/libs/constants/shell.const';
 import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
-import { logout, passwordChanged, pinEnrolled, type RootState } from '@/store';
-import { logoutSession } from '@/services/auth';
+import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
+import { fetchSession, logoutSession } from '@/services/auth';
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
@@ -27,6 +27,9 @@ export default function DashboardLayout() {
     Boolean(s.auth.user?.mustChangePassword),
   );
   const tenantStatus = useSelector((s: RootState) => s.auth.user?.tenantStatus);
+  const activeBranchId = useSelector((s: RootState) => s.auth.user?.activeBranchId);
+  const kioskCustomerMode = useSelector((s: RootState) => s.kiosk?.customerMode);
+  const location = useLocation();
   const { locked, abandoned, clearLock } = useIdleLock(pinSet && !mustChangePassword);
   const isDesktop = useMediaQuery('(min-width: 768px)');
   const [mobileOpen, setMobileOpen] = useState(false);
@@ -43,6 +46,32 @@ export default function DashboardLayout() {
     },
     [dispatch, navigate],
   );
+
+  useEffect(() => {
+    const hydrate = () => {
+      void fetchSession()
+        .then((user) => dispatch(sessionStarted(user)))
+        .catch(() => undefined);
+    };
+    hydrate();
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        hydrate();
+      }
+    };
+    window.addEventListener('focus', hydrate);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', hydrate);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [dispatch]);
+
+  useEffect(() => {
+    if (kioskCustomerMode && location.pathname !== ROUTES.KIOSK) {
+      navigate(ROUTES.KIOSK, { replace: true });
+    }
+  }, [kioskCustomerMode, location.pathname, navigate]);
 
   useEffect(() => {
     if (!abandoned) {
@@ -142,7 +171,7 @@ export default function DashboardLayout() {
             </p>
           ) : null}
           <div className="flex min-h-0 min-w-0 flex-1 flex-col">
-            <Outlet />
+            <Outlet key={activeBranchId ?? 'all'} />
           </div>
         </main>
       </div>

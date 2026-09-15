@@ -36,6 +36,11 @@ function toAuthUser(data: LoginIdentity): AuthUser {
   };
 }
 
+export async function fetchSession(): Promise<AuthUser> {
+  const { data } = await apiClient.get<LoginIdentity>(API.ME);
+  return toAuthUser(data);
+}
+
 export async function loginWithPassword(email: string, password: string): Promise<AuthUser> {
   const { data } = await apiClient.post<LoginIdentity>(API.LOGIN, { email, password });
   return toAuthUser(data);

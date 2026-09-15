@@ -9,6 +9,7 @@ import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
 import jakarta.validation.constraints.Max;
 import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import java.time.Instant;
@@ -100,7 +101,16 @@ public class KioskController {
                     request.walkInName(),
                     request.pickupRequest(),
                     request.paymentMethod(),
+                    request.idempotencyKey(),
                     items))));
+  }
+
+  @PostMapping("/exit-pin")
+  public ApiResponse<KioskResponse> verifyExitPin(
+      Authentication authentication, @Valid @RequestBody ExitPinRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        toResponse(kioskService.verifyExitPin(principal, request.staffExitPin())));
   }
 
   @PostMapping("/tickets/{id}/cancel")
@@ -130,7 +140,7 @@ public class KioskController {
             : new ConfigResponse(
                 view.config().displayName(),
                 view.config().welcomeMessage(),
-                view.config().staffExitPin(),
+                view.config().staffExitPinSet(),
                 view.config().idleResetSeconds(),
                 view.config().accentTheme(),
                 view.config().showPrices(),
@@ -170,7 +180,7 @@ public class KioskController {
   public record ConfigResponse(
       String displayName,
       String welcomeMessage,
-      String staffExitPin,
+      boolean staffExitPinSet,
       int idleResetSeconds,
       String accentTheme,
       boolean showPrices,
@@ -194,6 +204,7 @@ public class KioskController {
       @Size(max = 120) String walkInName,
       @Size(max = 500) String pickupRequest,
       @Size(max = 32) String paymentMethod,
+      @Size(max = 128) String idempotencyKey,
       List<@Valid TicketItemRequest> items) {}
 
   public record TicketItemRequest(
@@ -216,4 +227,6 @@ public class KioskController {
       Boolean acceptUpi,
       Boolean acceptCard,
       Boolean acceptCod) {}
+
+  public record ExitPinRequest(@NotBlank @Size(max = 16) String staffExitPin) {}
 }

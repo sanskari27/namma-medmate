@@ -1,7 +1,9 @@
 package com.nammamedmate.server.infrastructure.whatsapp;
 
 import com.fasterxml.jackson.databind.JsonNode;
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -24,7 +26,8 @@ public class MetaWhatsAppAdapter {
 
   @FunctionalInterface
   public interface GraphSender {
-    String send(String phoneNumberId, String toE164, String templateName);
+    String send(
+        String phoneNumberId, String toE164, String templateName, Map<String, String> variables);
   }
 
   private final GraphFetcher fetcher;
@@ -87,12 +90,36 @@ public class MetaWhatsAppAdapter {
       return MetaSendResult.unavailable();
     }
     try {
-      String id = sender.send(phoneNumberId, toE164, templateName);
+      String id = sender.send(phoneNumberId, toE164, templateName, variables);
       return MetaSendResult.sent(id == null || id.isBlank() ? "wamid.local" : id);
     } catch (RuntimeException ex) {
       log.info("meta whatsapp send failed");
       throw ex;
     }
+  }
+
+  static Map<String, Object> graphMessageBody(
+      String to, String templateName, Map<String, String> variables) {
+    Map<String, Object> body = new LinkedHashMap<>();
+    body.put("messaging_product", "whatsapp");
+    body.put("to", to);
+    body.put("type", "template");
+    Map<String, Object> template = new LinkedHashMap<>();
+    template.put("name", templateName);
+    template.put("language", Map.of("code", "en"));
+    if (variables != null && !variables.isEmpty()) {
+      List<Map<String, String>> parameters = new ArrayList<>();
+      for (Map.Entry<String, String> entry : variables.entrySet()) {
+        Map<String, String> param = new LinkedHashMap<>();
+        param.put("type", "text");
+        param.put("parameter_name", entry.getKey());
+        param.put("text", entry.getValue() == null ? "" : entry.getValue());
+        parameters.add(param);
+      }
+      template.put("components", List.of(Map.of("type", "body", "parameters", parameters)));
+    }
+    body.put("template", template);
+    return body;
   }
 
   private static GraphFetcher fetcherFrom(String token) {
@@ -119,16 +146,9 @@ public class MetaWhatsAppAdapter {
       return null;
     }
     RestClient client = RestClient.create();
-    return (id, to, name) -> {
+    return (id, to, name, vars) -> {
       try {
-        Map<String, Object> body = new LinkedHashMap<>();
-        body.put("messaging_product", "whatsapp");
-        body.put("to", to);
-        body.put("type", "template");
-        Map<String, Object> template = new LinkedHashMap<>();
-        template.put("name", name);
-        template.put("language", Map.of("code", "en"));
-        body.put("template", template);
+        Map<String, Object> body = graphMessageBody(to, name, vars);
         JsonNode response =
             client
                 .post()

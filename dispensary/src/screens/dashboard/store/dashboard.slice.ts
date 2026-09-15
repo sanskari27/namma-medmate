@@ -1,7 +1,8 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { DashboardView } from '@/services/dashboards';
 import type { DashboardPeriod, HomeDashboardView } from '@/services/homeDashboard';
-import type { PageStatus } from '../DashboardScreen.utils';
-import { loadDashboard, reloadDashboardPeriod } from './dashboard.thunks';
+import type { DashboardDesk, PageStatus } from '../DashboardScreen.utils';
+import { deskStatusForView, loadDashboard, reloadDashboardPeriod } from './dashboard.thunks';
 
 export type DashboardChartType = 'donut' | 'bars' | 'line';
 export type DashboardMetric = 'revenue' | 'orders';
@@ -10,6 +11,8 @@ export type DashboardState = {
   status: PageStatus;
   statusHint: string | null;
   view: HomeDashboardView | null;
+  deskView: DashboardView | null;
+  desk: DashboardDesk | null;
   period: DashboardPeriod;
   metric: DashboardMetric;
   chartType: DashboardChartType;
@@ -20,6 +23,8 @@ const initialState: DashboardState = {
   status: 'loading',
   statusHint: null,
   view: null,
+  deskView: null,
+  desk: null,
   period: '7D',
   metric: 'revenue',
   chartType: 'donut',
@@ -42,14 +47,32 @@ const dashboardSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
-      .addCase(loadDashboard.pending, (state) => {
+      .addCase(loadDashboard.pending, (state, action) => {
         state.status = 'loading';
         state.statusHint = null;
+        if (action.meta.arg !== undefined) {
+          state.desk = action.meta.arg;
+        }
+        if (action.meta.arg && action.meta.arg !== 'owner') {
+          state.view = null;
+        }
+        if (action.meta.arg === 'owner') {
+          state.deskView = null;
+        }
       })
       .addCase(loadDashboard.fulfilled, (state, action) => {
-        state.view = action.payload;
-        state.status = 'success';
+        state.desk = action.payload.desk;
         state.refreshing = false;
+        state.statusHint = null;
+        if (action.payload.kind === 'home') {
+          state.view = action.payload.home;
+          state.deskView = null;
+          state.status = 'success';
+          return;
+        }
+        state.view = null;
+        state.deskView = action.payload.deskView;
+        state.status = deskStatusForView(action.payload.desk, action.payload.deskView);
       })
       .addCase(loadDashboard.rejected, (state, action) => {
         state.status = action.payload?.status ?? 'failure';
@@ -62,6 +85,8 @@ const dashboardSlice = createSlice({
       })
       .addCase(reloadDashboardPeriod.fulfilled, (state, action) => {
         state.view = action.payload;
+        state.deskView = null;
+        state.desk = 'owner';
         state.period = action.payload.analytics.period;
         state.status = 'success';
         state.refreshing = false;

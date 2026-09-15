@@ -14,5 +14,8 @@ public interface KioskTicketRepository extends JpaRepository<KioskTicket, UUID> 
 
   Optional<KioskTicket> findByIdAndTenantIdAndBranchId(UUID id, UUID tenantId, UUID branchId);
 
+  Optional<KioskTicket> findByTenantIdAndBranchIdAndIdempotencyKey(
+      UUID tenantId, UUID branchId, String idempotencyKey);
+
   long countByTenantIdAndBranchIdAndSessionId(UUID tenantId, UUID branchId, UUID sessionId);
 }

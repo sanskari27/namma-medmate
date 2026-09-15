@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.UUID;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 import org.springframework.http.HttpStatus;
 
 public final class WhatsAppTemplatePolicy {
@@ -18,6 +20,7 @@ public final class WhatsAppTemplatePolicy {
   public static final String FORBIDDEN = "FORBIDDEN";
   public static final String NOT_FOUND = "NOT_FOUND";
   public static final Set<String> ALLOWED_PUT_FIELDS = Set.of("variables", "version");
+  private static final Pattern BODY_SLOT = Pattern.compile("\\{\\{([a-zA-Z0-9_]+)\\}\\}");
 
   private WhatsAppTemplatePolicy() {}
 
@@ -75,6 +78,23 @@ public final class WhatsAppTemplatePolicy {
           STALE_STATE,
           "These WhatsApp slots were updated. Reload and save again.");
     }
+  }
+
+  public static Map<String, String> bodySlotOrder(String body, Map<String, String> variables) {
+    Map<String, String> ordered = new LinkedHashMap<>();
+    if (body == null || body.isBlank() || variables == null || variables.isEmpty()) {
+      return ordered;
+    }
+    Matcher matcher = BODY_SLOT.matcher(body);
+    while (matcher.find()) {
+      String key = matcher.group(1);
+      if (ordered.containsKey(key) || !variables.containsKey(key)) {
+        continue;
+      }
+      String value = variables.get(key);
+      ordered.put(key, value == null ? "" : value);
+    }
+    return ordered;
   }
 
   public static String preview(String body, Map<String, String> variables) {

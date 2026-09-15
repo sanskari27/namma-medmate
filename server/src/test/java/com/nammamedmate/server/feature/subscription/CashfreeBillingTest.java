@@ -293,6 +293,32 @@ class CashfreeBillingTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac_cf008_masterReconcileFetchesProviderStatus() throws Exception {
+    Fixture fx = seed("cf-recon");
+    persistUser(null, "ops@cf-recon.local", AppUserRole.admin_super);
+    Cookie master = login("ops@cf-recon.local");
+    Checkout checkout = startCheckout(fx.cookie(), "STARTER");
+    when(cashfreePgAdapter.fetchOrder(checkout.orderId()))
+        .thenReturn(
+            Optional.of(
+                new com.nammamedmate.server.infrastructure.cashfree.CashfreeOrderStatus(
+                    checkout.orderId(), "PAID", new java.math.BigDecimal("699.00"))));
+    mockMvc
+        .perform(
+            post("/api/v1/admin/subscriptions/payments/" + checkout.id() + "/reconcile")
+                .cookie(fx.cookie()))
+        .andExpect(status().isForbidden());
+    mockMvc
+        .perform(
+            post("/api/v1/admin/subscriptions/payments/" + checkout.id() + "/reconcile")
+                .cookie(master))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("SUCCESS"));
+    assertThat(paymentRepository.findById(checkout.id()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionPaymentStatus.SUCCESS);
+  }
+
+  @Test
   void ac05_paidUpgradeWithoutCheckoutIsRejected() throws Exception {
     Fixture fx = seed("cf-up");
     mockMvc

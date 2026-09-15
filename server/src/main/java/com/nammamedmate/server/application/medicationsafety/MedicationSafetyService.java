@@ -103,15 +103,24 @@ public class MedicationSafetyService {
       AuthPrincipal principal, MedicationSafetyAcknowledgeCommand command) {
     ActorContext actor = requireSalesAccess(principal);
     List<UUID> productIds = normalizeProductIds(command == null ? null : command.productIds());
-    if (!productIds.isEmpty() && (command == null || command.customerId() == null)) {
-      throw unlinkedCustomer();
-    }
     Customer customer =
         resolveCustomer(actor.tenantId(), command == null ? null : command.customerId());
     List<Product> products = loadProducts(actor.tenantId(), productIds);
     MedicationSafetyEvaluationView evaluation = buildEvaluation(customer, products);
 
     if (evaluation.warnings().isEmpty()) {
+      Set<String> providedKeys =
+          command == null || command.warningKeys() == null
+              ? Set.of()
+              : command.warningKeys().stream()
+                  .filter(key -> key != null && !key.isBlank())
+                  .collect(Collectors.toCollection(LinkedHashSet::new));
+      if (!providedKeys.isEmpty()) {
+        throw new ApiException(
+            HttpStatus.UNPROCESSABLE_ENTITY,
+            "VALIDATION_ERROR",
+            "Warning keys must match the current draft evaluation.");
+      }
       return new MedicationSafetyClearedView(true);
     }
     if (customer == null) {

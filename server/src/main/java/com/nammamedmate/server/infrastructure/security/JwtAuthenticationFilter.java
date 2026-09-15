@@ -1,6 +1,8 @@
 package com.nammamedmate.server.infrastructure.security;
 
+import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
+import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
@@ -23,16 +25,19 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final JwtService jwtService;
   private final AuthCookieService authCookieService;
   private final UserSessionRepository userSessionRepository;
+  private final AppUserRepository appUserRepository;
   private final Clock clock;
 
   public JwtAuthenticationFilter(
       JwtService jwtService,
       AuthCookieService authCookieService,
       UserSessionRepository userSessionRepository,
+      AppUserRepository appUserRepository,
       Clock clock) {
     this.jwtService = jwtService;
     this.authCookieService = authCookieService;
     this.userSessionRepository = userSessionRepository;
+    this.appUserRepository = appUserRepository;
     this.clock = clock;
   }
 
@@ -52,7 +57,10 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                     principal.sessionId(), principal.sessionUserId(), principal.sessionTenantId())
                 .orElse(null);
         Instant now = Instant.now(clock);
-        if (session != null && session.getExpiresAt().isAfter(now)) {
+        boolean sessionLive = session != null && session.getExpiresAt().isAfter(now);
+        boolean actingEnded =
+            principal.impersonating() && !isSupportEscape(request) && !actingUserActive(principal);
+        if (sessionLive && !actingEnded) {
           AuthPrincipal withBranch = principal.withActiveBranchId(session.getActiveBranchId());
           UsernamePasswordAuthenticationToken authentication =
               new UsernamePasswordAuthenticationToken(
@@ -67,6 +75,26 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       }
     }
     filterChain.doFilter(request, response);
+  }
+
+  private boolean actingUserActive(AuthPrincipal principal) {
+    return appUserRepository
+        .findById(principal.userId())
+        .filter(user -> user.getDeletedAt() == null)
+        .filter(user -> user.getStatus() == UserAccountStatus.ACTIVE)
+        .isPresent();
+  }
+
+  private static boolean isSupportEscape(HttpServletRequest request) {
+    String path = request.getServletPath();
+    if (path == null || path.isEmpty()) {
+      path = request.getRequestURI();
+    }
+    String method = request.getMethod();
+    if ("DELETE".equalsIgnoreCase(method) && "/api/v1/admin/impersonation".equals(path)) {
+      return true;
+    }
+    return "POST".equalsIgnoreCase(method) && "/api/v1/auth/logout".equals(path);
   }
 
   private static boolean isPinUnlock(HttpServletRequest request) {

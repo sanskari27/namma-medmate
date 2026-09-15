@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import { branchSwitched } from '@/store/auth.slice';
 import { clearPendingPrescriptionFile } from '../pos.prescriptionFile';
 import type { Customer } from '@/services/customers';
 import type { Doctor } from '@/services/doctors';
@@ -6,23 +7,32 @@ import type { ProductCategory } from '@/services/productCategories';
 import type { ProductUnit } from '@/services/products';
 import type { SafetyEvaluation } from '@/services/medicationSafety';
 import type { SalesCatalogueItem } from '@/services/salesCatalogue';
-import type { DiscountType, PaymentMode, SalesInvoice } from '@/services/salesInvoices';
+import type { DiscountType, InvoiceOfferItem, PaymentMode, SalesInvoice } from '@/services/salesInvoices';
 import type { PosDraftLine } from '../pos.types';
 import { POS_CONTENT } from '../PosScreen.content';
 import {
   emptyTender,
+  appliedOfferHint,
+  tenderForMode,
   type PageStatus,
   type TenderDraft,
 } from '../PosScreen.utils';
+import { collectiblePaise, parseRedeemPoints } from '@/services/loyalty';
 import {
   addProduct,
+  adjustTax,
+  applyOffers,
   applyPricing,
   changeLineUnit,
   collectPayment,
   continueInvoice,
+  emailCopy,
   holdBill,
   loadBootstrap,
   loadCustomerCredit,
+  loadCustomerLoyalty,
+  loadInvoiceOffers,
+  printInvoice,
   saveInvoice,
   scanBarcode,
   searchCatalogue,
@@ -67,8 +77,14 @@ export type PosState = {
   taxReason: string;
   creditAvailablePaise: number | null;
   redeemPoints: string;
+  loyaltyBalancePoints: number | null;
+  loyaltyLoading: boolean;
+  copyBusy: boolean;
+  copyHint: string | null;
   evaluation: SafetyEvaluation | null;
   reason: string;
+  offers: InvoiceOfferItem[];
+  offersLoading: boolean;
   createKey: string;
   completeKey: string;
 };
@@ -109,8 +125,14 @@ export const initialPosState: PosState = {
   taxReason: '',
   creditAvailablePaise: null,
   redeemPoints: '',
+  loyaltyBalancePoints: null,
+  loyaltyLoading: false,
+  copyBusy: false,
+  copyHint: null,
   evaluation: null,
   reason: '',
+  offers: [],
+  offersLoading: false,
   createKey: crypto.randomUUID(),
   completeKey: crypto.randomUUID(),
 };
@@ -121,6 +143,26 @@ function patchDraftLine(
   patch: Partial<PosDraftLine>,
 ): PosDraftLine[] {
   return draft.map((line) => (line.id === lineId ? { ...line, ...patch } : line));
+}
+
+function draftTotalPaise(state: PosState): number {
+  return state.draft.reduce((sum, line) => {
+    const qty = Number(line.quantity);
+    const selling = Number(line.sellingRupees);
+    if (!Number.isFinite(qty) || !Number.isFinite(selling) || qty <= 0 || selling < 0) {
+      return sum;
+    }
+    return sum + Math.round(qty * selling * 100);
+  }, 0);
+}
+
+function retender(state: PosState) {
+  if (!state.paymentMode || state.invoice?.status === 'COMPLETED') {
+    return;
+  }
+  const totalPaise = state.invoice?.totalPaise ?? draftTotalPaise(state);
+  const points = parseRedeemPoints(state.redeemPoints) ?? 0;
+  state.tender = tenderForMode(state.paymentMode, collectiblePaise(totalPaise, points));
 }
 
 function clearBillFields(state: PosState) {
@@ -137,6 +179,8 @@ function clearBillFields(state: PosState) {
   clearPendingPrescriptionFile();
   state.evaluation = null;
   state.reason = '';
+  state.offers = [];
+  state.offersLoading = false;
   state.billType = 'FLAT';
   state.billValue = '';
   state.customerGstin = '';
@@ -147,6 +191,10 @@ function clearBillFields(state: PosState) {
   state.paymentMode = null;
   state.creditAvailablePaise = null;
   state.redeemPoints = '';
+  state.loyaltyBalancePoints = null;
+  state.loyaltyLoading = false;
+  state.copyBusy = false;
+  state.copyHint = null;
   state.productQuery = '';
   state.barcodeQuery = '';
   state.customerQuery = '';
@@ -276,32 +324,8 @@ const posSlice = createSlice({
       state.customerGstin = action.payload;
     },
     paymentModeSelected: (state, action: PayloadAction<PaymentMode>) => {
-      const mode = action.payload;
-      state.paymentMode = mode;
-      const totalPaise =
-        state.invoice?.totalPaise ??
-        state.draft.reduce((sum, line) => {
-          const qty = Number(line.quantity);
-          const selling = Number(line.sellingRupees);
-          if (!Number.isFinite(qty) || !Number.isFinite(selling) || qty <= 0 || selling < 0) {
-            return sum;
-          }
-          return sum + Math.round(qty * selling * 100);
-        }, 0);
-      const totalRupees = (totalPaise / 100).toFixed(2);
-      const blank = emptyTender();
-      if (mode === 'CASH') {
-        blank.cashRupees = totalRupees;
-      } else if (mode === 'UPI') {
-        blank.upiRupees = totalRupees;
-      } else if (mode === 'CARD') {
-        blank.cardRupees = totalRupees;
-      } else if (mode === 'CREDIT') {
-        blank.creditRupees = totalRupees;
-      } else {
-        blank.bankRupees = totalRupees;
-      }
-      state.tender = blank;
+      state.paymentMode = action.payload;
+      retender(state);
     },
     tenderPatched: (state, action: PayloadAction<Partial<TenderDraft>>) => {
       state.tender = { ...state.tender, ...action.payload };
@@ -314,6 +338,9 @@ const posSlice = createSlice({
       state.evaluation = null;
       state.status = null;
       state.statusHint = null;
+      state.redeemPoints = '';
+      state.loyaltyBalancePoints = null;
+      state.loyaltyLoading = false;
     },
     continueAsWalkIn: (state) => {
       state.selectedCustomer = null;
@@ -321,6 +348,9 @@ const posSlice = createSlice({
       state.walkInName = '';
       state.walkInPhone = '';
       state.creditAvailablePaise = null;
+      state.loyaltyBalancePoints = null;
+      state.loyaltyLoading = false;
+      state.redeemPoints = '';
       state.tender = { ...state.tender, creditRupees: '' };
       state.evaluation = null;
       state.status = null;
@@ -332,6 +362,9 @@ const posSlice = createSlice({
       state.walkInName = '';
       state.walkInPhone = '';
       state.creditAvailablePaise = null;
+      state.loyaltyBalancePoints = null;
+      state.loyaltyLoading = false;
+      state.redeemPoints = '';
       state.tender = { ...state.tender, creditRupees: '' };
     },
     doctorsLoaded: (state, action: PayloadAction<Doctor[]>) => {
@@ -365,6 +398,7 @@ const posSlice = createSlice({
     },
     redeemPointsChanged: (state, action: PayloadAction<string>) => {
       state.redeemPoints = action.payload;
+      retender(state);
     },
     openTaxOverride: (state, action: PayloadAction<string>) => {
       const line = state.draft.find((item) => item.product.id === action.payload);
@@ -404,6 +438,15 @@ const posSlice = createSlice({
   },
   extraReducers: (builder) => {
     builder
+      .addCase(branchSwitched, (state) => {
+        if (state.draft.length === 0 && !state.invoice) {
+          return;
+        }
+        clearBillFields(state);
+        state.step = 'cart';
+        state.status = state.catalogue.length === 0 ? 'empty' : null;
+        state.statusHint = null;
+      })
       .addCase(loadBootstrap.pending, (state) => {
         if (state.allowed) {
           state.status = 'loading';
@@ -501,13 +544,44 @@ const posSlice = createSlice({
       .addCase(saveInvoice.fulfilled, (state, action) => {
         state.busy = false;
         state.invoice = action.payload.invoice;
+        state.evaluation = action.payload.evaluation;
         if (action.payload.advanceToPayment) {
           state.step = 'payment';
         }
         state.status = 'success';
-        state.statusHint = null;
+        state.statusHint = appliedOfferHint(action.payload.invoice);
+        retender(state);
       })
       .addCase(saveInvoice.rejected, (state, action) => {
+        state.busy = false;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? null;
+        if (action.payload?.invoice) {
+          state.invoice = action.payload.invoice;
+        }
+      })
+      .addCase(loadInvoiceOffers.pending, (state) => {
+        state.offersLoading = true;
+      })
+      .addCase(loadInvoiceOffers.fulfilled, (state, action) => {
+        state.offersLoading = false;
+        state.offers = action.payload;
+      })
+      .addCase(loadInvoiceOffers.rejected, (state) => {
+        state.offersLoading = false;
+        state.offers = [];
+      })
+      .addCase(applyOffers.pending, (state) => {
+        state.busy = true;
+      })
+      .addCase(applyOffers.fulfilled, (state, action) => {
+        state.busy = false;
+        state.invoice = action.payload;
+        state.status = 'success';
+        state.statusHint = appliedOfferHint(action.payload);
+        retender(state);
+      })
+      .addCase(applyOffers.rejected, (state, action) => {
         state.busy = false;
         state.status = action.payload?.status ?? 'failure';
         state.statusHint = action.payload?.hint ?? null;
@@ -519,6 +593,7 @@ const posSlice = createSlice({
         state.busy = false;
         state.invoice = action.payload;
         state.status = 'success';
+        retender(state);
       })
       .addCase(applyPricing.rejected, (state, action) => {
         state.busy = false;
@@ -586,6 +661,60 @@ const posSlice = createSlice({
       })
       .addCase(loadCustomerCredit.fulfilled, (state, action) => {
         state.creditAvailablePaise = action.payload;
+      })
+      .addCase(loadCustomerLoyalty.pending, (state) => {
+        state.loyaltyLoading = true;
+      })
+      .addCase(loadCustomerLoyalty.fulfilled, (state, action) => {
+        state.loyaltyLoading = false;
+        state.loyaltyBalancePoints = action.payload?.balancePoints ?? null;
+      })
+      .addCase(loadCustomerLoyalty.rejected, (state, action) => {
+        state.loyaltyLoading = false;
+        state.loyaltyBalancePoints = null;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? POS_CONTENT.loyalty.loadFailure;
+      })
+      .addCase(adjustTax.pending, (state) => {
+        state.busy = true;
+      })
+      .addCase(adjustTax.fulfilled, (state, action) => {
+        state.busy = false;
+        state.invoice = action.payload;
+        state.taxProductId = null;
+        state.taxReason = '';
+        state.status = 'success';
+        retender(state);
+      })
+      .addCase(adjustTax.rejected, (state, action) => {
+        state.busy = false;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? null;
+      })
+      .addCase(printInvoice.pending, (state) => {
+        state.copyBusy = true;
+      })
+      .addCase(printInvoice.fulfilled, (state) => {
+        state.copyBusy = false;
+        state.copyHint = POS_CONTENT.invoiceOutput.ready;
+      })
+      .addCase(printInvoice.rejected, (state, action) => {
+        state.copyBusy = false;
+        state.copyHint = null;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? POS_CONTENT.invoiceOutput.failure;
+      })
+      .addCase(emailCopy.pending, (state) => {
+        state.copyBusy = true;
+      })
+      .addCase(emailCopy.fulfilled, (state) => {
+        state.copyBusy = false;
+        state.copyHint = POS_CONTENT.invoiceOutput.emailQueued;
+      })
+      .addCase(emailCopy.rejected, (state, action) => {
+        state.copyBusy = false;
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? POS_CONTENT.invoiceOutput.failure;
       });
   },
 });

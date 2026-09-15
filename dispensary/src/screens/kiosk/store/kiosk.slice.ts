@@ -12,13 +12,15 @@ import {
   type PageStatus,
   toCartLine,
 } from '../KioskScreen.utils';
+import { KIOSK_CONTENT } from '../KioskScreen.content';
 import {
   cancelTicket,
   closeSession,
   loadKiosk,
   openSession,
-  placeOrder,
   persistConfig,
+  placeOrder,
+  verifyExitPin,
 } from './kiosk.thunks';
 
 export type KioskScreenState = {
@@ -39,6 +41,7 @@ export type KioskScreenState = {
   rxFileName: string | null;
   pinPromptOpen: boolean;
   pinInput: string;
+  orderKey: string | null;
 };
 
 export const initialKioskScreenState: KioskScreenState = {
@@ -59,6 +62,7 @@ export const initialKioskScreenState: KioskScreenState = {
   rxFileName: null,
   pinPromptOpen: false,
   pinInput: '',
+  orderKey: null,
 };
 
 function applyKiosk(state: KioskScreenState, next: KioskState) {
@@ -230,6 +234,9 @@ const kioskSlice = createSlice({
       })
       .addCase(placeOrder.pending, (state) => {
         state.busy = true;
+        if (!state.orderKey) {
+          state.orderKey = crypto.randomUUID();
+        }
       })
       .addCase(placeOrder.fulfilled, (state, action) => {
         state.busy = false;
@@ -239,6 +246,7 @@ const kioskSlice = createSlice({
         state.cart = [];
         state.rxFileName = null;
         state.status = 'success';
+        state.orderKey = null;
       })
       .addCase(placeOrder.rejected, (state, action) => {
         state.busy = false;
@@ -257,6 +265,15 @@ const kioskSlice = createSlice({
         state.busy = false;
         state.status = action.payload?.status ?? 'failure';
         state.statusHint = action.payload?.message ?? null;
+      })
+      .addCase(verifyExitPin.fulfilled, (state) => {
+        state.customerMode = false;
+        state.pinPromptOpen = false;
+        state.pinInput = '';
+        state.statusHint = null;
+      })
+      .addCase(verifyExitPin.rejected, (state, action) => {
+        state.statusHint = action.payload?.message ?? KIOSK_CONTENT.pinWrong;
       });
   },
 });

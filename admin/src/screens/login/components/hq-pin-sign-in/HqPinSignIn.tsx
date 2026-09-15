@@ -29,7 +29,7 @@ export function HqPinSignIn({
   onBack,
 }: {
   person: SavedLoginPerson;
-  onSignedIn: (user: AuthUser) => void;
+  onSignedIn: (user: AuthUser) => void | Promise<void>;
   onBack: () => void;
 }) {
   const statusId = useId();
@@ -58,7 +58,7 @@ export function HqPinSignIn({
     setStatus('loading');
     try {
       const user = await pinLogin(person.userId, pin);
-      onSignedIn(user);
+      await onSignedIn(user);
     } catch (error) {
       if (isApiError(error) || error instanceof ApiError) {
         if (error.status === 409) {

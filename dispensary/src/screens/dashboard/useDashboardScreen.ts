@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { FALLBACK_STAFF_NAME } from '@/libs/constants/counters.const';
 import type { AppDispatch, RootState } from '@/store';
@@ -13,6 +13,8 @@ import {
 import {
   selectDashboardBusy,
   selectDashboardChartType,
+  selectDashboardDesk,
+  selectDashboardDeskView,
   selectDashboardHint,
   selectDashboardMetric,
   selectDashboardPeriod,
@@ -20,6 +22,11 @@ import {
   selectDashboardView,
 } from './store/dashboard.selectors';
 import { loadDashboard, reloadDashboardPeriod } from './store/dashboard.thunks';
+import {
+  clientPermittedDesks,
+  defaultDesk,
+  type DashboardDesk,
+} from './DashboardScreen.utils';
 
 export function useDashboardScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -29,14 +36,18 @@ export function useDashboardScreen() {
   const status = useSelector(selectDashboardStatus);
   const statusHint = useSelector(selectDashboardHint);
   const view = useSelector(selectDashboardView);
+  const deskView = useSelector(selectDashboardDeskView);
+  const desk = useSelector(selectDashboardDesk);
   const period = useSelector(selectDashboardPeriod);
   const metric = useSelector(selectDashboardMetric);
   const chartType = useSelector(selectDashboardChartType);
   const busy = useSelector(selectDashboardBusy);
+  const desks = useMemo(() => clientPermittedDesks(user), [user]);
+  const initialDesk = useMemo(() => defaultDesk(user), [user]);
 
   useEffect(() => {
-    void dispatch(loadDashboard());
-  }, [dispatch, activeBranchId]);
+    void dispatch(loadDashboard(initialDesk));
+  }, [dispatch, activeBranchId, initialDesk]);
 
   const onPeriod = useCallback(
     (next: DashboardPeriod) => {
@@ -61,8 +72,15 @@ export function useDashboardScreen() {
   );
 
   const onRefresh = useCallback(() => {
-    void dispatch(loadDashboard());
-  }, [dispatch]);
+    void dispatch(loadDashboard(desk ?? initialDesk));
+  }, [dispatch, desk, initialDesk]);
+
+  const onDesk = useCallback(
+    (next: DashboardDesk) => {
+      void dispatch(loadDashboard(next));
+    },
+    [dispatch],
+  );
 
   return {
     statusId,
@@ -70,6 +88,9 @@ export function useDashboardScreen() {
     status,
     statusHint,
     view,
+    deskView,
+    desk,
+    desks,
     period,
     metric,
     chartType,
@@ -78,5 +99,6 @@ export function useDashboardScreen() {
     onMetric,
     onChartType,
     onRefresh,
+    onDesk,
   };
 }

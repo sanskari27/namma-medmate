@@ -14,6 +14,7 @@ import com.nammamedmate.server.AbstractIntegrationTest;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.AuditEventRepository;
@@ -259,6 +260,56 @@ class AuthImpersonationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac03_nonActiveTenantDenied_M1_IMPERSON_004() throws Exception {
+    Tenant tenant = persistTenant("locked-pharmacy");
+    tenant.setStatus(TenantStatus.SUSPENDED);
+    tenantRepository.saveAndFlush(tenant);
+    persistUser(null, "master@locked.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    persistUser(
+        tenant.getId(), "owner@locked.local", AppUserRole.pharmacy_owner, UserAccountStatus.ACTIVE);
+    Cookie masterCookie = login("master@locked.local");
+    String before = masterCookie.getValue();
+
+    mockMvc
+        .perform(
+            post("/api/v1/admin/impersonation")
+                .cookie(masterCookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(emailJson("owner@locked.local")))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("TARGET_TENANT_INACTIVE"));
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").cookie(masterCookie))
+        .andExpect(jsonPath("$.data.impersonation").doesNotExist());
+    assertThat(masterCookie.getValue()).isEqualTo(before);
+  }
+
+  @Test
+  void ac_s08_offboardedTargetEndsActingSession_SEC_NEW_001() throws Exception {
+    Tenant tenant = persistTenant("offboard-act");
+    persistUser(null, "master@offboard.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    AppUser owner =
+        persistUser(
+            tenant.getId(),
+            "owner@offboard.local",
+            AppUserRole.pharmacy_owner,
+            UserAccountStatus.ACTIVE);
+    Cookie support = startImpersonation(login("master@offboard.local"), "owner@offboard.local");
+
+    owner.setStatus(UserAccountStatus.TERMINATED);
+    appUserRepository.saveAndFlush(owner);
+
+    mockMvc.perform(get("/api/v1/auth/me").cookie(support)).andExpect(status().isUnauthorized());
+
+    mockMvc
+        .perform(delete("/api/v1/admin/impersonation").cookie(support))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.role").value("admin_super"))
+        .andExpect(jsonPath("$.data.impersonation").doesNotExist());
+  }
+
+  @Test
   void ac03_missingTargetIsNotFoundWithoutDisclosure() throws Exception {
     persistUser(null, "master@missing.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
 
@@ -333,6 +384,91 @@ class AuthImpersonationTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"email\":\"  \"}"))
         .andExpect(status().isBadRequest());
+  }
+
+  @Test
+  void ac01_hqModulesStayMasterCapableWhileActing_M1_IMPERSON_002() throws Exception {
+    Tenant tenant = persistTenant("hq-chrome");
+    persistUser(null, "master@hq.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    persistUser(
+        tenant.getId(), "owner@hq.local", AppUserRole.pharmacy_owner, UserAccountStatus.ACTIVE);
+    Cookie ownerCookie = login("owner@hq.local");
+    Cookie support = startImpersonation(login("master@hq.local"), "owner@hq.local");
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").cookie(support))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.role").value("pharmacy_owner"))
+        .andExpect(jsonPath("$.data.impersonation.originalUserId").exists());
+
+    mockMvc
+        .perform(get("/api/v1/admin/tenants").cookie(support))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.items[0].slug").value("hq-chrome"));
+
+    mockMvc.perform(get("/api/v1/admin/kyc").cookie(support)).andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/admin/tenants").cookie(ownerCookie))
+        .andExpect(status().isForbidden());
+  }
+
+  @Test
+  void ac_s08_impersonatingPasswordChangeIsForbidden_M1_PWD_003() throws Exception {
+    Tenant tenant = persistTenant("pwd-block");
+    persistUser(null, "master@pwd.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    AppUser owner =
+        persistUser(
+            tenant.getId(),
+            "owner@pwd.local",
+            AppUserRole.pharmacy_owner,
+            UserAccountStatus.ACTIVE);
+    Cookie support = startImpersonation(login("master@pwd.local"), "owner@pwd.local");
+    String hashBefore = owner.getPasswordHash();
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/password")
+                .cookie(support)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"currentPassword\":\""
+                        + PASSWORD
+                        + "\",\"newPassword\":\"rotated-pass-1\"}"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.code").value("SUPPORT_CREDENTIALS_BLOCKED"));
+
+    AppUser stored = appUserRepository.findById(owner.getId()).orElseThrow();
+    assertThat(stored.getPasswordHash()).isEqualTo(hashBefore);
+    assertThat(passwordEncoder.matches(PASSWORD, stored.getPasswordHash())).isTrue();
+  }
+
+  @Test
+  void ac_s08_impersonatingPinEnrollIsForbidden_M1_PWD_003() throws Exception {
+    Tenant tenant = persistTenant("pin-block");
+    persistUser(null, "master@pin.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    AppUser owner =
+        persistUser(
+            tenant.getId(),
+            "owner@pin.local",
+            AppUserRole.pharmacy_owner,
+            UserAccountStatus.ACTIVE);
+    Cookie support = startImpersonation(login("master@pin.local"), "owner@pin.local");
+
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin")
+                .cookie(support)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\":\"123456\"}"))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.success").value(false))
+        .andExpect(jsonPath("$.code").value("SUPPORT_CREDENTIALS_BLOCKED"));
+
+    AppUser stored = appUserRepository.findById(owner.getId()).orElseThrow();
+    assertThat(stored.getPinHash()).isNull();
   }
 
   @Test

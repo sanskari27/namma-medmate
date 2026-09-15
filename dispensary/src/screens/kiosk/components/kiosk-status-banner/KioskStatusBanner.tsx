@@ -1,7 +1,6 @@
 import { useSelector } from 'react-redux';
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/libs/constants/routes.const';
-import { KIOSK_CONTENT } from '../../KioskScreen.content';
 import { statusCopy } from '../../KioskScreen.utils';
 import { selectKioskStatus, selectKioskStatusHint } from '../../store/kiosk.selectors';
 

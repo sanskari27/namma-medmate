@@ -32,6 +32,8 @@ export const API = {
   KIOSK_CLOSE: '/api/v1/kiosk/close',
   KIOSK_CONFIG: '/api/v1/kiosk/config',
   KIOSK_TICKETS: '/api/v1/kiosk/tickets',
+  KIOSK_EXIT_PIN: '/api/v1/kiosk/exit-pin',
+  ME: '/api/v1/auth/me',
   CUSTOMERS: '/api/v1/customers',
   CUSTOMERS_WALK_IN_PURCHASES: '/api/v1/customers/walk-in/purchases',
   CUSTOMERS_MERGE: '/api/v1/customers/merge',

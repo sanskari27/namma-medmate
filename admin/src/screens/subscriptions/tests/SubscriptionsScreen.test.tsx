@@ -17,6 +17,7 @@ vi.mock('@/services/subscriptions', () => ({
   overrideSubscription: vi.fn(),
   listOverrideHistory: vi.fn(),
   listCashfreePayments: vi.fn(),
+  reconcileCashfreePayment: vi.fn(),
   isApiError: (error: unknown) => error instanceof ApiError,
 }));
 
@@ -25,12 +26,14 @@ import {
   listOverrideHistory,
   listSubscriptions,
   overrideSubscription,
+  reconcileCashfreePayment,
 } from '@/services/subscriptions';
 
 const listMock = vi.mocked(listSubscriptions);
 const overrideMock = vi.mocked(overrideSubscription);
 const historyMock = vi.mocked(listOverrideHistory);
 const paymentsMock = vi.mocked(listCashfreePayments);
+const reconcileMock = vi.mocked(reconcileCashfreePayment);
 
 const row: AdminSubscription = {
   tenantId: 't1',
@@ -102,6 +105,7 @@ describe('HQ plan overrides', () => {
     historyMock.mockReset();
     paymentsMock.mockReset();
     paymentsMock.mockResolvedValue([]);
+    reconcileMock.mockReset();
   });
 
   it('loading: waits for tenant subscriptions', () => {
@@ -258,6 +262,16 @@ describe('HQ pharmacy-to-platform charges', () => {
     expect(screen.getByText('Checkout exception')).toBeInTheDocument();
     expect(screen.getByText('₹699.00')).toBeInTheDocument();
     expect(screen.getByText('AMOUNT_MISMATCH')).toBeInTheDocument();
+  });
+
+  it('success: MASTER can reconcile a checkout exception', async () => {
+    const user = userEvent.setup();
+    paymentsMock.mockResolvedValue([failedCharge]);
+    reconcileMock.mockResolvedValue({ ...failedCharge, status: 'SUCCESS', exception: false });
+    renderPage('admin_super');
+    await user.click(await screen.findByRole('button', { name: 'Reconcile with Cashfree' }));
+    expect(reconcileMock).toHaveBeenCalledWith('pay-1');
+    expect(await screen.findByText('Settled')).toBeInTheDocument();
   });
 
   it('success: refresh restores focus on the charges ledger', async () => {

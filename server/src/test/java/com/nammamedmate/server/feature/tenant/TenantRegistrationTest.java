@@ -241,8 +241,8 @@ class TenantRegistrationTest extends AbstractIntegrationTest {
             post("/api/v1/tenants/register")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(registerJson("Second Shop", "dup@till.local", "9000000000", PASSWORD)))
-        .andExpect(status().isConflict())
-        .andExpect(jsonPath("$.code").value("EMAIL_TAKEN"));
+        .andExpect(status().isUnauthorized())
+        .andExpect(jsonPath("$.code").value("INVALID_CREDENTIALS"));
 
     assertThat(tenantRepository.count()).isEqualTo(tenants);
     assertThat(appUserRepository.count()).isEqualTo(users);

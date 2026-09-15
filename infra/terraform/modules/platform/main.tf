@@ -363,6 +363,9 @@ resource "aws_ssm_parameter" "compose_env" {
     "CASHFREE_WEBHOOK_SECRET=${var.cashfree_webhook_secret}",
     "CASHFREE_ENV=${var.cashfree_env}",
     "CASHFREE_RETURN_URL=${var.cashfree_return_url}",
+    "PASSWORD_RESET_DISPENSARY_URL=${var.password_reset_dispensary_url}",
+    "PASSWORD_RESET_ADMIN_URL=${var.password_reset_admin_url}",
+    "EMAIL_VERIFICATION_DISPENSARY_URL=${var.email_verification_dispensary_url}",
   ])
 
   lifecycle {

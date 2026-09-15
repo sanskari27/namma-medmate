@@ -73,7 +73,7 @@ export default function RegisterScreen() {
           return;
         }
         if (error.status === 409) {
-          setStatus('conflict');
+          setStatus('failure');
           return;
         }
       }

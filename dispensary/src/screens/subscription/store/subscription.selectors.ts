@@ -7,3 +7,4 @@ export const selectSubPaymentNote = (state: RootState) => state.subscription.pay
 export const selectSubCurrent = (state: RootState) => state.subscription.current;
 export const selectSubPlans = (state: RootState) => sortPlans(state.subscription.plans);
 export const selectSubPending = (state: RootState) => state.subscription.pendingPlan;
+export const selectSubHeldPlan = (state: RootState) => state.subscription.heldPlan;

@@ -96,5 +96,6 @@ export const store = configureStore({
     }),
 });
 
+export { kioskReducer } from '@/screens/kiosk/store/kiosk.slice';
 export type RootState = ReturnType<typeof store.getState>;
 export type AppDispatch = typeof store.dispatch;

@@ -241,7 +241,7 @@ public class WhatsAppTemplateService {
   }
 
   private void requireMaster(AuthPrincipal principal) {
-    if (principal == null || principal.role() != AppUserRole.admin_super) {
+    if (principal == null || principal.hqRole() != AppUserRole.admin_super) {
       throw WhatsAppTemplatePolicy.forbidden();
     }
   }

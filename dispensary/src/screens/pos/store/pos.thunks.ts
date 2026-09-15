@@ -4,6 +4,7 @@ import { getCustomer, listCustomers, type Customer } from '@/services/customers'
 import { listDoctors, type Doctor } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import { isApiError } from '@/services/axios';
+import { evaluateMedicationSafety, type SafetyEvaluation } from '@/services/medicationSafety';
 import { listProductCategories, type ProductCategory } from '@/services/productCategories';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import type { ProductUnit } from '@/services/products';
@@ -13,19 +14,32 @@ import {
   type SalesCatalogueItem,
 } from '@/services/salesCatalogue';
 import {
+  adjustInvoiceTax,
+  applyInvoiceOffers,
   applyInvoicePricing,
   attachInvoicePrescription,
   completeSalesInvoice,
   createSalesInvoice,
+  downloadInvoicePdf,
+  emailInvoiceCopy,
   getSalesInvoice,
   holdSalesInvoice,
+  listInvoiceOffers,
+  openInvoicePdf,
   resumeSalesInvoice,
   updateSalesInvoice,
   type DiscountType,
+  type InvoiceOfferItem,
   type SalesInvoice,
   type SalesInvoiceLine,
 } from '@/services/salesInvoices';
-import { collectiblePaise, parseRedeemPoints } from '@/services/loyalty';
+import {
+  collectiblePaise,
+  getCustomerLoyalty,
+  maxRedeemPoints,
+  parseRedeemPoints,
+  type CustomerLoyalty,
+} from '@/services/loyalty';
 import type { AppDispatch, RootState } from '@/store';
 import type { PosDraftLine } from '../pos.types';
 import {
@@ -36,6 +50,7 @@ import { POS_CONTENT } from '../PosScreen.content';
 import {
   collectStatusHint,
   holdStatusHint,
+  offerStatusHint,
   isControlledProduct,
   isPrescriptionProduct,
   mapApiStatus,
@@ -47,7 +62,11 @@ import {
   type PageStatus,
 } from '../PosScreen.utils';
 
-export type PosReject = { status: PageStatus; hint: string | null };
+export type PosReject = {
+  status: PageStatus;
+  hint: string | null;
+  invoice?: SalesInvoice;
+};
 
 function toReject(error: unknown, hintFallback?: string | null): PosReject {
   if (!isApiError(error)) {
@@ -56,6 +75,14 @@ function toReject(error: unknown, hintFallback?: string | null): PosReject {
   const status = mapApiStatus(error);
   const hint = collectStatusHint(status, error.code) ?? hintFallback ?? null;
   return { status, hint };
+}
+
+function toOfferReject(error: unknown): PosReject {
+  if (!isApiError(error)) {
+    return { status: 'failure', hint: POS_CONTENT.offer.failure };
+  }
+  const status = mapApiStatus(error);
+  return { status, hint: offerStatusHint(status, error.code) };
 }
 
 function lineDiscountValue(line: PosDraftLine): number | null {
@@ -601,8 +628,40 @@ export const scanBarcode = createAsyncThunk<
   }
 });
 
+export const loadInvoiceOffers = createAsyncThunk<
+  InvoiceOfferItem[],
+  string,
+  { rejectValue: PosReject }
+>('pos/loadInvoiceOffers', async (invoiceId, { rejectWithValue }) => {
+  try {
+    const result = await listInvoiceOffers(invoiceId);
+    return result?.items ?? [];
+  } catch (error) {
+    return rejectWithValue(toOfferReject(error));
+  }
+});
+
+export const applyOffers = createAsyncThunk<
+  SalesInvoice,
+  void,
+  { state: RootState; rejectValue: PosReject }
+>('pos/applyOffers', async (_, { getState, rejectWithValue }) => {
+  const { invoice } = getState().pos;
+  if (!invoice) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.offer.validation,
+    });
+  }
+  try {
+    return await applyInvoiceOffers(invoice.id, { expectedVersion: invoice.version });
+  } catch (error) {
+    return rejectWithValue(toOfferReject(error));
+  }
+});
+
 export const saveInvoice = createAsyncThunk<
-  { invoice: SalesInvoice; advanceToPayment: boolean },
+  { invoice: SalesInvoice; advanceToPayment: boolean; evaluation: SafetyEvaluation | null },
   { advanceToPayment?: boolean } | void,
   { state: RootState; rejectValue: PosReject }
 >('pos/saveInvoice', async (arg, { getState, rejectWithValue }) => {
@@ -673,7 +732,21 @@ export const saveInvoice = createAsyncThunk<
       return rejectWithValue({ status: 'validation', hint: null });
     }
     const priced = await applyInvoicePricing(withRx.id, pricing);
-    return { invoice: priced, advanceToPayment };
+    let withOffers = priced;
+    try {
+      const offered = await applyInvoiceOffers(priced.id, { expectedVersion: priced.version });
+      if (offered) {
+        withOffers = offered;
+      }
+    } catch (error) {
+      return rejectWithValue({ ...toOfferReject(error), invoice: priced });
+    }
+    const productIds = [...new Set(state.draft.map((line) => line.product.id))];
+    const evaluation = await evaluateMedicationSafety(
+      state.selectedCustomer?.id ?? null,
+      productIds,
+    );
+    return { invoice: withOffers, advanceToPayment, evaluation };
   } catch (error) {
     return rejectWithValue(toReject(error));
   }
@@ -730,7 +803,44 @@ export const collectPayment = createAsyncThunk<
       hint: POS_CONTENT.thunk.needPaymentMode,
     });
   }
-  const points = parseRedeemPoints(state.redeemPoints) ?? 0;
+  const warnings = state.evaluation?.warnings ?? [];
+  if (warnings.length > 0 && !state.reason.trim()) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.safety.needReason,
+    });
+  }
+  if (warnings.length > 0 && (state.walkIn || !state.selectedCustomer)) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.safety.needCustomer,
+    });
+  }
+  const points = parseRedeemPoints(state.redeemPoints);
+  if (points == null) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: collectStatusHint('validation'),
+    });
+  }
+  if (points > 0 && (state.walkIn || !state.selectedCustomer)) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.collect.loyaltyCustomer,
+    });
+  }
+  if (points > maxRedeemPoints(state.invoice.totalPaise)) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.collect.redeemLimit,
+    });
+  }
+  if (state.loyaltyBalancePoints != null && points > state.loyaltyBalancePoints) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.collect.insufficientPoints,
+    });
+  }
   const duePaise = collectiblePaise(state.invoice.totalPaise, points);
   const preview = previewTender(duePaise, state.tender);
   if (preview.invalid || preview.parts.length === 0 || preview.remainingPaise > 0) {
@@ -752,6 +862,14 @@ export const collectPayment = createAsyncThunk<
     if (pricing) {
       invoice = await applyInvoicePricing(invoice.id, pricing);
     }
+    try {
+      const offered = await applyInvoiceOffers(invoice.id, { expectedVersion: invoice.version });
+      if (offered) {
+        invoice = offered;
+      }
+    } catch (error) {
+      return rejectWithValue(toOfferReject(error));
+    }
     const due = collectiblePaise(invoice.totalPaise, points);
     const finalPreview = previewTender(due, getState().pos.tender);
     return await completeSalesInvoice(invoice.id, {
@@ -761,8 +879,30 @@ export const collectPayment = createAsyncThunk<
       idempotencyKey: state.completeKey,
       payments: finalPreview.parts,
       redeemPoints: points,
+      safetyWarningKeys: warnings.map((warning) => warning.warningKey),
+      safetyReason: state.reason.trim() || null,
     });
   } catch (error) {
+    if (isApiError(error)) {
+      if (error.code === 'UNLINKED_CUSTOMER') {
+        return rejectWithValue({
+          status: 'validation',
+          hint: POS_CONTENT.safety.needCustomer,
+        });
+      }
+      if (error.status === 422 && (error.message ?? '').includes('Warning keys')) {
+        return rejectWithValue({
+          status: 'conflict',
+          hint: POS_CONTENT.status.conflict,
+        });
+      }
+      if (error.status === 422 && (error.message ?? '').includes('review reason')) {
+        return rejectWithValue({
+          status: 'validation',
+          hint: POS_CONTENT.safety.needReason,
+        });
+      }
+    }
     return rejectWithValue(toReject(error));
   }
 });
@@ -812,3 +952,117 @@ export const loadCustomerCredit = createAsyncThunk<number | null, string>(
     }
   },
 );
+
+export const loadCustomerLoyalty = createAsyncThunk<
+  CustomerLoyalty | null,
+  string,
+  { state: RootState; rejectValue: PosReject }
+>('pos/loadCustomerLoyalty', async (customerId, { getState, rejectWithValue }) => {
+  if (!getState().pos.loyaltyEntitled) {
+    return null;
+  }
+  try {
+    return await getCustomerLoyalty(customerId);
+  } catch {
+    return rejectWithValue({
+      status: 'failure',
+      hint: POS_CONTENT.loyalty.loadFailure,
+    });
+  }
+});
+
+export const adjustTax = createAsyncThunk<
+  SalesInvoice,
+  void,
+  { state: RootState; rejectValue: PosReject }
+>('pos/adjustTax', async (_, { getState, rejectWithValue }) => {
+  const state = getState().pos;
+  if (!state.invoice) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.offer.validation,
+    });
+  }
+  if (!state.taxProductId) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.gst.needReason,
+    });
+  }
+  if (!state.taxReason.trim()) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.gst.needReason,
+    });
+  }
+  const gstRate = Number(state.taxRate);
+  if (!Number.isFinite(gstRate) || gstRate < 0) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.gst.needReason,
+    });
+  }
+  try {
+    return await adjustInvoiceTax(state.invoice.id, {
+      expectedVersion: state.invoice.version,
+      reason: state.taxReason.trim(),
+      lines: [{ productId: state.taxProductId, gstRate }],
+    });
+  } catch (error) {
+    return rejectWithValue(toReject(error));
+  }
+});
+
+export const printInvoice = createAsyncThunk<
+  void,
+  void,
+  { state: RootState; rejectValue: PosReject }
+>('pos/printInvoice', async (_, { getState, rejectWithValue }) => {
+  const invoice = getState().pos.invoice;
+  if (!invoice || invoice.status !== 'COMPLETED') {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.invoiceOutput.empty,
+    });
+  }
+  try {
+    const blob = await downloadInvoicePdf(invoice.id);
+    openInvoicePdf(blob, `${invoice.invoiceNumber}.pdf`, true);
+  } catch {
+    return rejectWithValue({
+      status: 'failure',
+      hint: POS_CONTENT.invoiceOutput.failure,
+    });
+  }
+});
+
+export const emailCopy = createAsyncThunk<
+  void,
+  void,
+  { state: RootState; rejectValue: PosReject }
+>('pos/emailCopy', async (_, { getState, rejectWithValue }) => {
+  const { invoice, selectedCustomer, walkIn } = getState().pos;
+  if (!invoice || invoice.status !== 'COMPLETED') {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.invoiceOutput.empty,
+    });
+  }
+  if (walkIn || !selectedCustomer) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.invoiceOutput.emailRequired,
+    });
+  }
+  if (!selectedCustomer.email?.trim()) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.invoiceOutput.emailRequired,
+    });
+  }
+  try {
+    await emailInvoiceCopy(invoice.id);
+  } catch (error) {
+    return rejectWithValue(toReject(error, POS_CONTENT.invoiceOutput.failure));
+  }
+});

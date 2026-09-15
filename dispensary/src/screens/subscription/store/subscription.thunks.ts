@@ -11,6 +11,18 @@ import {
 import type { RootState } from '@/store';
 import { isPaidPlan, type PageStatus } from '../SubscriptionScreen.utils';
 
+const CHECKOUT_KEY = 'nmm.cf.checkout.';
+
+function checkoutKey(planCode: string): string {
+  const stored = sessionStorage.getItem(CHECKOUT_KEY + planCode);
+  if (stored) {
+    return stored;
+  }
+  const next = crypto.randomUUID();
+  sessionStorage.setItem(CHECKOUT_KEY + planCode, next);
+  return next;
+}
+
 export type SubReject = { status: PageStatus; hint: string | null };
 
 export const loadSubscription = createAsyncThunk<
@@ -41,10 +53,16 @@ export const switchPlan = createAsyncThunk<
   if (current && planCode === current.planCode) {
     return rejectWithValue({ status: 'validation', hint: null });
   }
+  if (getState().subscription.heldPlan === planCode) {
+    return rejectWithValue({
+      status: 'conflict',
+      hint: 'Payment is still settling with Cashfree. This pharmacy’s plan is unchanged — do not pay again.',
+    });
+  }
   const offer = getState().subscription.plans.find((plan) => plan.planCode === planCode);
   try {
     if (offer && isPaidPlan(offer)) {
-      const checkout = await startCashfreeCheckout(planCode, crypto.randomUUID());
+      const checkout = await startCashfreeCheckout(planCode, checkoutKey(planCode));
       if (checkout.checkoutUrl) {
         window.location.assign(checkout.checkoutUrl);
         return { current: null, redirect: true };

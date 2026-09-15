@@ -81,3 +81,10 @@ export async function listCashfreePayments(): Promise<AdminCashfreePayment[]> {
   );
   return data.items;
 }
+
+export async function reconcileCashfreePayment(id: string): Promise<AdminCashfreePayment> {
+  const { data } = await apiClient.post<AdminCashfreePayment>(
+    `${API.ADMIN_SUBSCRIPTION_PAYMENTS}/${id}/reconcile`,
+  );
+  return data;
+}

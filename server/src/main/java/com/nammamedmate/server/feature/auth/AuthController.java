@@ -5,6 +5,7 @@ import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.application.access.AccessRoleView;
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.application.auth.AuthIpThrottle;
 import com.nammamedmate.server.application.auth.AuthService;
 import com.nammamedmate.server.application.auth.AuthenticatedUser;
 import com.nammamedmate.server.application.auth.LoginOutcome;
@@ -47,6 +48,7 @@ public class AuthController {
   private final AuditService auditService;
   private final ImpersonationService impersonationService;
   private final SessionBranchService sessionBranchService;
+  private final AuthIpThrottle authIpThrottle;
 
   public AuthController(
       AuthService authService,
@@ -56,7 +58,8 @@ public class AuthController {
       AccessQueryService accessQueryService,
       AuditService auditService,
       ImpersonationService impersonationService,
-      SessionBranchService sessionBranchService) {
+      SessionBranchService sessionBranchService,
+      AuthIpThrottle authIpThrottle) {
     this.authService = authService;
     this.passwordLifecycleService = passwordLifecycleService;
     this.savedLoginService = savedLoginService;
@@ -65,6 +68,7 @@ public class AuthController {
     this.auditService = auditService;
     this.impersonationService = impersonationService;
     this.sessionBranchService = sessionBranchService;
+    this.authIpThrottle = authIpThrottle;
   }
 
   @PostMapping("/login")
@@ -72,6 +76,7 @@ public class AuthController {
       @Valid @RequestBody LoginRequest request,
       HttpServletRequest httpRequest,
       HttpServletResponse response) {
+    authIpThrottle.check(httpRequest);
     try {
       LoginOutcome outcome = authService.login(request.email(), request.password());
       authCookieService.writeAccessToken(response, outcome.accessToken());
@@ -125,6 +130,7 @@ public class AuthController {
           httpRequest);
       throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
     }
+    authIpThrottle.check(httpRequest);
     try {
       LoginOutcome outcome = savedLoginService.pinLogin(deviceId, request.userId(), request.pin());
       authCookieService.writeAccessToken(response, outcome.accessToken());
@@ -221,7 +227,8 @@ public class AuthController {
 
   @PostMapping("/password/reset-request")
   public ApiResponse<PasswordResetAcceptedResponse> requestReset(
-      @Valid @RequestBody PasswordResetRequest request) {
+      @Valid @RequestBody PasswordResetRequest request, HttpServletRequest httpRequest) {
+    authIpThrottle.check(httpRequest);
     ResetAccepted accepted = passwordLifecycleService.requestReset(request.email());
     return ApiResponse.ok(new PasswordResetAcceptedResponse(accepted.accepted()));
   }

@@ -142,7 +142,7 @@ export function statusCopy(status: PageStatus): { icon: typeof AlertCircle; text
 
 export function paymentStatusCopy(status: string | null): string | null {
   if (status === 'PENDING') {
-    return 'Checkout not finished — plan unchanged.';
+    return 'Payment is still settling with Cashfree. This pharmacy’s plan is unchanged — do not pay again.';
   }
   if (status === 'ABANDONED' || status === 'FAILED') {
     return 'Checkout not finished — plan unchanged.';

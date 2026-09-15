@@ -48,6 +48,7 @@ export function KioskConfigPanel() {
             onChange={(e) => dispatch(patchConfigDraft({ staffExitPin: e.target.value }))}
             inputMode="numeric"
             autoComplete="off"
+            placeholder={draft.staffExitPinSet ? 'PIN is set — enter to replace' : '4–8 digits'}
           />
         </div>
         <div className="ko-field">

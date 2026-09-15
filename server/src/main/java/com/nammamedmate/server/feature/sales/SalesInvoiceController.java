@@ -313,7 +313,9 @@ public class SalesInvoiceController {
                                     InvoicePaymentPolicy.requireMode(payment.mode()),
                                     payment.amountPaise(),
                                     payment.reference()))
-                        .toList()))));
+                        .toList(),
+                    request.safetyWarningKeys(),
+                    request.safetyReason()))));
   }
 
   private DiscountType parseDiscountType(String type) {
@@ -489,7 +491,9 @@ public class SalesInvoiceController {
       Long changePaise,
       @NotBlank @Size(max = 128) String idempotencyKey,
       Integer redeemPoints,
-      @NotEmpty List<@Valid PaymentRequest> payments) {}
+      @NotEmpty List<@Valid PaymentRequest> payments,
+      List<String> safetyWarningKeys,
+      String safetyReason) {}
 
   public record PaymentRequest(
       @NotBlank @Size(max = 16) String mode,

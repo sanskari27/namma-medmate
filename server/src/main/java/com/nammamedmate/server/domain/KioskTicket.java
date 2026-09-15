@@ -56,6 +56,9 @@ public class KioskTicket {
   @Column(nullable = false, length = 16)
   private KioskTicketStatus status;
 
+  @Column(name = "idempotency_key", length = 128)
+  private String idempotencyKey;
+
   @Column(name = "created_at", nullable = false)
   private Instant createdAt;
 

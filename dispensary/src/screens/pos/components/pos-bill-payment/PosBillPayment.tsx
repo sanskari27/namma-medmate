@@ -14,6 +14,7 @@ import {
   selectPosBillValue,
   selectPosBusy,
   selectPosCollected,
+  selectPosCreditAvailablePaise,
   selectPosPaymentMode,
   selectPosTotals,
   selectPosWalkIn,
@@ -45,6 +46,7 @@ export function PosBillPayment({ offline }: PosBillPaymentProps) {
   const collected = useSelector(selectPosCollected);
   const walkIn = useSelector(selectPosWalkIn);
   const customer = useSelector(selectPosSelectedCustomer);
+  const creditAvailablePaise = useSelector(selectPosCreditAvailablePaise);
 
   const taxable = Math.max(0, totals.subtotalPaise);
   const disabled = busy || collected || offline;
@@ -91,14 +93,6 @@ export function PosBillPayment({ offline }: PosBillPaymentProps) {
           <span>{POS_CONTENT.taxable}</span>
           <strong>{formatPaise(taxable)}</strong>
         </div>
-        <div className="pos-money-row">
-          <span>{POS_CONTENT.cgst}</span>
-          <strong>{formatPaise(totals.cgstPaise)}</strong>
-        </div>
-        <div className="pos-money-row">
-          <span>{POS_CONTENT.sgst}</span>
-          <strong>{formatPaise(totals.sgstPaise)}</strong>
-        </div>
       </div>
       <div className="pos-to-pay">
         <span>{POS_CONTENT.toPay}</span>
@@ -123,6 +117,9 @@ export function PosBillPayment({ offline }: PosBillPaymentProps) {
           );
         })}
       </div>
+      {paymentMode === 'CREDIT' && creditAvailablePaise != null ? (
+        <p className="pos-khata-left">{POS_CONTENT.khataLeft(formatPaise(creditAvailablePaise))}</p>
+      ) : null}
       <button
         type="button"
         className="pos-charge"

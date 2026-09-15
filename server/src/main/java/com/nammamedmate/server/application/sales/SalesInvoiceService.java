@@ -12,6 +12,8 @@ import com.nammamedmate.server.application.customerhistory.CustomerHistoryServic
 import com.nammamedmate.server.application.inventory.InventoryStockService;
 import com.nammamedmate.server.application.loyalty.LoyaltyCompleteResult;
 import com.nammamedmate.server.application.loyalty.LoyaltyService;
+import com.nammamedmate.server.application.medicationsafety.MedicationSafetyAcknowledgeCommand;
+import com.nammamedmate.server.application.medicationsafety.MedicationSafetyService;
 import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.offer.OfferEvaluator;
 import com.nammamedmate.server.application.prescription.PrescriptionReferenceService;
@@ -120,6 +122,7 @@ public class SalesInvoiceService {
   private final ControlledSaleRecorder controlledSaleRecorder;
   private final PrescriptionReferenceService prescriptionReferenceService;
   private final PrescriptionFileStorage prescriptionFileStorage;
+  private final MedicationSafetyService medicationSafetyService;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -150,6 +153,7 @@ public class SalesInvoiceService {
       ControlledSaleRecorder controlledSaleRecorder,
       PrescriptionReferenceService prescriptionReferenceService,
       PrescriptionFileStorage prescriptionFileStorage,
+      MedicationSafetyService medicationSafetyService,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -178,6 +182,7 @@ public class SalesInvoiceService {
     this.controlledSaleRecorder = controlledSaleRecorder;
     this.prescriptionReferenceService = prescriptionReferenceService;
     this.prescriptionFileStorage = prescriptionFileStorage;
+    this.medicationSafetyService = medicationSafetyService;
     this.clock = clock;
   }
 
@@ -647,6 +652,14 @@ public class SalesInvoiceService {
     InvoicePaymentPolicy.Allocation allocation =
         InvoicePaymentPolicy.allocate(collectible, changePaise, parts);
     InvoicePaymentPolicy.requireKhataCustomer(allocation.amountDuePaise(), invoice.getCustomerId());
+    List<UUID> productIds = lines.stream().map(SalesInvoiceLine::getProductId).distinct().toList();
+    medicationSafetyService.assertCleared(
+        principal,
+        new MedicationSafetyAcknowledgeCommand(
+            invoice.getCustomerId(),
+            productIds,
+            command.safetyWarningKeys() == null ? List.of() : command.safetyWarningKeys(),
+            command.safetyReason()));
     long paidExcludingKhata = collectible - allocation.amountDuePaise();
     LoyaltyCompleteResult loyalty =
         loyaltyService.applyOnComplete(

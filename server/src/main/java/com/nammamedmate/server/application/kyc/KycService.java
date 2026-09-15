@@ -381,7 +381,7 @@ public class KycService {
     if (principal == null) {
       throw forbidden();
     }
-    if (principal.role() == AppUserRole.admin_super) {
+    if (principal.hqRole() == AppUserRole.admin_super) {
       return;
     }
     AppUser user =

@@ -227,6 +227,8 @@ export interface InvoiceCompleteInput {
   idempotencyKey: string;
   payments: { mode: PaymentMode; amountPaise: number; reference: string | null }[];
   redeemPoints?: number;
+  safetyWarningKeys?: string[];
+  safetyReason?: string | null;
 }
 
 export async function completeSalesInvoice(

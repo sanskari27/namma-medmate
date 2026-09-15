@@ -1,6 +1,5 @@
 import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getInventoryOverview, type InventoryOverviewRow } from '@/services/inventory';
-import { listProducts } from '@/services/products';
 import {
   cancelKioskTicket,
   closeKiosk,
@@ -9,6 +8,7 @@ import {
   isApiError,
   openKiosk,
   saveKioskConfig,
+  verifyKioskExitPin,
   type KioskConfig,
   type KioskPaymentMethod,
   type KioskState,
@@ -24,43 +24,22 @@ import {
 
 type Reject = { message: string; status?: PageStatus };
 
-function productsAsCatalogueRows(
-  products: Awaited<ReturnType<typeof listProducts>>,
-): InventoryOverviewRow[] {
-  return products
-    .filter((p) => p.isActive)
-    .map((p) => ({
-      productId: p.id,
-      sku: p.sku,
-      name: p.name,
-      genericName: p.genericName,
-      brandName: p.brandName,
-      manufacturerName: null,
-      categoryId: p.categoryId,
-      categoryName: null,
-      categoryIcon: p.categoryIcon,
-      scheduleClassification: p.scheduleClassification,
-      prescriptionRequired: p.prescriptionRequired,
-      rackLocation: p.rackLocation,
-      baseUnit: p.baseUnit,
-      packUnit: p.packUnit,
-      packSize: p.packSize,
-      batchCount: 0,
-      earliestExpiry: null,
-      expired: false,
-      nearExpiry: false,
-      onHandQuantity: 1,
-      lowStock: false,
-      outOfStock: false,
-      mrpPaise: null,
-      costValuePaise: 0,
-      retailValuePaise: 0,
-      looseUnitPaise: null,
-      looseSellingEnabled: false,
-      onlineListed: true,
-      unallocated: false,
-      deadStock: false,
-    }));
+function statusMessage(status: PageStatus | undefined): string | undefined {
+  if (!status || status === 'idle' || status === 'success' || status === 'loading') {
+    return undefined;
+  }
+  return KIOSK_CONTENT.status[status];
+}
+
+function rejectFrom(error: unknown): Reject {
+  if (isApiError(error)) {
+    const status = mapApiStatus(error);
+    return {
+      message: statusMessage(status) || error.message || KIOSK_CONTENT.status.failure,
+      status,
+    };
+  }
+  return { message: KIOSK_CONTENT.status.failure, status: 'failure' };
 }
 
 export const loadKiosk = createAsyncThunk<
@@ -73,24 +52,14 @@ export const loadKiosk = createAsyncThunk<
       getKiosk(),
       getInventoryOverview().catch(() => ({ items: [] as InventoryOverviewRow[] })),
     ]);
-    let catalogue = catalogueForKiosk(overview.items ?? []);
-    if (catalogue.length === 0) {
-      const products = await listProducts().catch(() => []);
-      catalogue = productsAsCatalogueRows(products);
-    }
+    const catalogue = catalogueForKiosk(overview.items ?? []);
     return {
       kiosk,
       catalogue,
       status: mapBlockReason(kiosk),
     };
   } catch (error) {
-    if (isApiError(error)) {
-      return rejectWithValue({
-        message: error.message || KIOSK_CONTENT.loadFailed,
-        status: mapApiStatus(error),
-      });
-    }
-    return rejectWithValue({ message: KIOSK_CONTENT.loadFailed, status: 'failure' });
+    return rejectWithValue(rejectFrom(error));
   }
 });
 
@@ -100,13 +69,7 @@ export const openSession = createAsyncThunk<KioskState, void, { rejectValue: Rej
     try {
       return await openKiosk();
     } catch (error) {
-      if (isApiError(error)) {
-        return rejectWithValue({
-          message: error.message || KIOSK_CONTENT.status.failure,
-          status: mapApiStatus(error),
-        });
-      }
-      return rejectWithValue({ message: KIOSK_CONTENT.status.failure, status: 'failure' });
+      return rejectWithValue(rejectFrom(error));
     }
   },
 );
@@ -117,13 +80,7 @@ export const closeSession = createAsyncThunk<KioskState, void, { rejectValue: Re
     try {
       return await closeKiosk();
     } catch (error) {
-      if (isApiError(error)) {
-        return rejectWithValue({
-          message: error.message || KIOSK_CONTENT.status.failure,
-          status: mapApiStatus(error),
-        });
-      }
-      return rejectWithValue({ message: KIOSK_CONTENT.status.failure, status: 'failure' });
+      return rejectWithValue(rejectFrom(error));
     }
   },
 );
@@ -149,12 +106,14 @@ export const persistConfig = createAsyncThunk<
 export const placeOrder = createAsyncThunk<
   { kiosk: KioskState; token: number },
   { cart: CartLine[]; paymentMethod: KioskPaymentMethod; walkInName?: string },
-  { rejectValue: Reject }
->('kiosk/placeOrder', async ({ cart, paymentMethod, walkInName }, { rejectWithValue }) => {
+  { rejectValue: Reject; state: { kiosk: { orderKey: string | null } } }
+>('kiosk/placeOrder', async ({ cart, paymentMethod, walkInName }, { getState, rejectWithValue }) => {
   try {
+    const key = getState().kiosk.orderKey ?? crypto.randomUUID();
     const kiosk = await createKioskTicket({
       walkInName,
       paymentMethod,
+      idempotencyKey: key,
       items: cart.map((line) => ({
         productId: line.productId,
         name: line.name,
@@ -190,6 +149,23 @@ export const cancelTicket = createAsyncThunk<KioskState, string, { rejectValue: 
         });
       }
       return rejectWithValue({ message: KIOSK_CONTENT.status.failure, status: 'failure' });
+    }
+  },
+);
+
+export const verifyExitPin = createAsyncThunk<KioskState, string, { rejectValue: Reject }>(
+  'kiosk/verifyExitPin',
+  async (staffExitPin, { rejectWithValue }) => {
+    try {
+      return await verifyKioskExitPin(staffExitPin);
+    } catch (error) {
+      if (isApiError(error)) {
+        return rejectWithValue({
+          message: error.message || KIOSK_CONTENT.pinWrong,
+          status: mapApiStatus(error),
+        });
+      }
+      return rejectWithValue({ message: KIOSK_CONTENT.pinWrong, status: 'failure' });
     }
   },
 );

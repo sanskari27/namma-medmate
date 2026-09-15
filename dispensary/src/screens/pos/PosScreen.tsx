@@ -5,8 +5,13 @@ import { PosBillPayment } from './components/pos-bill-payment';
 import { PosCartPanel } from './components/pos-cart-panel';
 import { PosCategoryChips } from './components/pos-category-chips';
 import { PosConnectivityOverlay } from './components/pos-connectivity-overlay';
+import { PosGstPanel } from './components/pos-gst-panel';
+import { PosInvoiceCopy } from './components/pos-invoice-copy';
+import { PosLoyaltyPanel } from './components/pos-loyalty-panel';
+import { PosOfferPanel } from './components/pos-offer-panel';
 import { PosOrderSummary } from './components/pos-order-summary';
 import { PosProductGrid } from './components/pos-product-grid';
+import { PosSafetyPanel } from './components/pos-safety-panel';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosStepper } from './components/pos-stepper';
 import { PosToolbar } from './components/pos-toolbar';
@@ -75,7 +80,14 @@ export default function PosScreen() {
           </button>
           <div className="pos-pay">
             <PosOrderSummary />
-            <PosBillPayment offline={connectivity.offline} />
+            <div className="pos-pay-col">
+              <PosOfferPanel />
+              <PosGstPanel />
+              <PosLoyaltyPanel />
+              <PosSafetyPanel />
+              <PosBillPayment offline={connectivity.offline} />
+              <PosInvoiceCopy offline={connectivity.offline} />
+            </div>
           </div>
         </>
       )}

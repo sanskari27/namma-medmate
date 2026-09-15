@@ -32,7 +32,8 @@ export function defaultConfig(branchName?: string | null): KioskConfig {
   return {
     displayName: branchName ? `${branchName} — Self Order` : 'Self Order',
     welcomeMessage: 'Tap to order your medicines & wellness products',
-    staffExitPin: '0000',
+    staffExitPin: '',
+    staffExitPinSet: false,
     idleResetSeconds: 60,
     accentTheme: 'green',
     showPrices: true,
@@ -57,7 +58,7 @@ export function mapBlockReason(state: KioskState | null): PageStatus {
   return null;
 }
 
-export function mapApiStatus(error: { status?: number; code?: string }): PageStatus {
+export function mapApiStatus(error: { status?: number; code?: string | null }): PageStatus {
   if (error.status === 403) return 'denied';
   if (error.status === 409) return 'conflict';
   if (error.code === 'PLAN_LIMIT') return 'quota';
@@ -115,10 +116,7 @@ export function toCartLine(row: InventoryOverviewRow, loose = false): CartLine {
 }
 
 export function catalogueForKiosk(rows: InventoryOverviewRow[]): InventoryOverviewRow[] {
-  const inStock = rows.filter((row) => !row.outOfStock && row.onHandQuantity > 0);
-  // Prefer online-listed when available; otherwise show in-stock so the kiosk is usable.
-  const online = inStock.filter((row) => row.onlineListed);
-  return online.length > 0 ? online : inStock;
+  return rows.filter((row) => !row.outOfStock && row.onHandQuantity > 0);
 }
 
 export function matchesQuery(row: InventoryOverviewRow, query: string): boolean {

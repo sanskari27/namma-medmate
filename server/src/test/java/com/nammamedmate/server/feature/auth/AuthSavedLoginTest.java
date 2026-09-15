@@ -102,7 +102,7 @@ class AuthSavedLoginTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.items[0].userId").value(user.getId().toString()))
         .andExpect(jsonPath("$.data.items[0].displayName").value("Test ops@hq.local"))
         .andExpect(jsonPath("$.data.items[0].role").value("admin_super"))
-        .andExpect(jsonPath("$.data.items[0].email").value("ops@hq.local"));
+        .andExpect(jsonPath("$.data.items[0].email").value("o***@hq.local"));
 
     mockMvc
         .perform(post("/api/v1/auth/logout").cookie(cookies.access()))
@@ -139,7 +139,7 @@ class AuthSavedLoginTest extends AbstractIntegrationTest {
             .path("items");
     assertThat(items).hasSize(2);
     assertThat(List.of(items.get(0).path("email").asText(), items.get(1).path("email").asText()))
-        .containsExactlyInAnyOrder("ops@hq.local", "desk@hq.local");
+        .containsExactlyInAnyOrder("o***@hq.local", "d***@hq.local");
 
     Cookie pinAccess =
         mockMvc
@@ -406,7 +406,7 @@ class AuthSavedLoginTest extends AbstractIntegrationTest {
         .perform(get("/api/v1/auth/saved-logins").cookie(deviceA.device()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items.length()").value(1))
-        .andExpect(jsonPath("$.data.items[0].email").value("a@till.local"));
+        .andExpect(jsonPath("$.data.items[0].email").value("a***@till.local"));
 
     mockMvc
         .perform(
@@ -442,7 +442,7 @@ class AuthSavedLoginTest extends AbstractIntegrationTest {
         .perform(get("/api/v1/auth/saved-logins").cookie(cookies.device()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items.length()").value(1))
-        .andExpect(jsonPath("$.data.items[0].email").value("desk@hq.local"));
+        .andExpect(jsonPath("$.data.items[0].email").value("d***@hq.local"));
   }
 
   @Test

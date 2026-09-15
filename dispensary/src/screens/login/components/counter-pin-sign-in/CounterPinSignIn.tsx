@@ -34,7 +34,7 @@ export function CounterPinSignIn({
   onBack,
 }: {
   person: SavedLoginPerson;
-  onSignedIn: (user: AuthUser) => void;
+  onSignedIn: (user: AuthUser) => void | Promise<void>;
   onBack: () => void;
 }) {
   const statusId = useId();
@@ -61,7 +61,7 @@ export function CounterPinSignIn({
     setStatus('loading');
     try {
       const user = await pinLogin(person.userId, value);
-      onSignedIn(user);
+      await onSignedIn(user);
     } catch (error) {
       if (isApiError(error) || error instanceof ApiError) {
         if (error.status === 409) {

@@ -83,7 +83,8 @@ public class TenantRegistrationService {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
     if (appUserRepository.findByNormalizedEmail(normalized).isPresent()) {
-      throw new ApiException(HttpStatus.CONFLICT, EMAIL_TAKEN_CODE, EMAIL_TAKEN_MESSAGE);
+      throw new ApiException(
+          HttpStatus.UNAUTHORIZED, "INVALID_CREDENTIALS", "Invalid email or password");
     }
 
     Instant now = Instant.now(clock);

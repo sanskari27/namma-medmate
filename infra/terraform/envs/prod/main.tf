@@ -36,4 +36,7 @@ module "platform" {
   cashfree_webhook_secret = var.cashfree_webhook_secret
   cashfree_env          = var.cashfree_env
   cashfree_return_url   = var.cashfree_return_url
+  password_reset_dispensary_url = var.password_reset_dispensary_url
+  password_reset_admin_url = var.password_reset_admin_url
+  email_verification_dispensary_url = var.email_verification_dispensary_url
 }

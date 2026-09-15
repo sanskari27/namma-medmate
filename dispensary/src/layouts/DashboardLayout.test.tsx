@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -7,12 +7,46 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@atoms';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES } from '@/libs/constants/routes.const';
-import { authReducer, notificationsReducer } from '@/store';
+import { authReducer, kioskReducer, notificationsReducer } from '@/store';
+import { initialKioskScreenState } from '@/screens/kiosk/store';
+
+const SESSION_BRANCHES = [
+  { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+  { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+];
+
+function sessionUser(tenantStatus: string | null = 'ACTIVE') {
+  return {
+    userId: 'user-1',
+    displayName: 'Chemist',
+    role: 'pharmacy_owner' as const,
+    tenantId: 'tenant-1',
+    pinSet: true,
+    tenantStatus,
+    emailVerified: true,
+    branches: SESSION_BRANCHES,
+    activeBranchId: null as string | null,
+  };
+}
 
 vi.mock('@/services/auth', async () => {
   const axios = await import('@/services/axios');
   return {
     logoutSession: vi.fn().mockResolvedValue(undefined),
+    fetchSession: vi.fn().mockResolvedValue({
+      userId: 'user-1',
+      displayName: 'Chemist',
+      role: 'pharmacy_owner',
+      tenantId: 'tenant-1',
+      pinSet: true,
+      tenantStatus: 'ACTIVE',
+      emailVerified: true,
+      branches: [
+        { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+        { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+      ],
+      activeBranchId: null,
+    }),
     setPin: vi.fn(),
     unlockPin: vi.fn(),
     loginWithPassword: vi.fn(),
@@ -50,17 +84,20 @@ vi.mock('@/services/notifications', async () => {
   };
 });
 
+import { fetchSession } from '@/services/auth';
 import { switchSessionBranch } from '@/services/sessionBranch';
 
 const switchMock = vi.mocked(switchSessionBranch);
+const fetchMock = vi.mocked(fetchSession);
 
 function renderDashboard(
   path = ROUTES.DASHBOARD,
   displayName = 'Chemist',
   tenantStatus: string | null = 'ACTIVE',
 ) {
+  fetchMock.mockResolvedValue(sessionUser(tenantStatus));
   const store = configureStore({
-    reducer: { auth: authReducer, notifications: notificationsReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer, kiosk: kioskReducer },
     preloadedState: {
       auth: {
         user: {
@@ -71,10 +108,7 @@ function renderDashboard(
           pinSet: true,
           tenantStatus,
           emailVerified: true,
-          branches: [
-            { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
-            { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
-          ],
+          branches: SESSION_BRANCHES,
           activeBranchId: null,
         },
       },
@@ -86,6 +120,7 @@ function renderDashboard(
         totalPages: 0,
         totalItems: 0,
       },
+      kiosk: initialKioskScreenState,
     },
   });
 
@@ -113,7 +148,12 @@ function renderDashboard(
 
 describe('dispensary counter rail', () => {
   beforeEach(() => {
-    switchMock.mockClear();
+    switchMock.mockReset();
+    switchMock.mockResolvedValue({
+      activeBranchId: 'b2',
+      branches: SESSION_BRANCHES,
+    });
+    fetchMock.mockResolvedValue(sessionUser('ACTIVE'));
   });
 
   it('shows a KYC lock banner when the pharmacy is still VERIFICATION_REQUIRED', () => {
@@ -156,16 +196,27 @@ describe('dispensary counter rail', () => {
     expect(within(rail).getByText('This pharmacy')).toBeInTheDocument();
   });
 
-  it('lets the chemist switch outlet from the branch switcher', async () => {
+  it('lets the chemist switch outlet from the collapsed MapPin', async () => {
     const user = userEvent.setup();
     const { store } = renderDashboard();
 
+    await user.click(screen.getByRole('button', { name: 'Collapse module rail' }));
     await user.click(screen.getByRole('button', { name: /this outlet/i }));
     await user.click(screen.getByRole('menuitemradio', { name: /annex outlet/i }));
 
     expect(switchMock).toHaveBeenCalledWith('b2');
     expect(store.getState().auth.user?.activeBranchId).toBe('b2');
-    expect(screen.getByRole('button', { name: /annex outlet/i })).toBeInTheDocument();
+  });
+
+  it('remounts the open screen after an outlet switch', async () => {
+    const user = userEvent.setup();
+    renderDashboard();
+    expect(screen.getByText('Counter overview')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('button', { name: /this outlet/i }));
+    await user.click(screen.getByRole('menuitemradio', { name: /annex outlet/i }));
+
+    expect(await screen.findByText('Counter overview')).toBeInTheDocument();
   });
 
   it('lets the owner return to all outlets consolidated view', async () => {
@@ -178,13 +229,15 @@ describe('dispensary counter rail', () => {
       ],
     });
     const { store } = renderDashboard();
+    await waitFor(() => expect(fetchMock).toHaveBeenCalled());
     store.dispatch({
       type: 'auth/branchSwitched',
       payload: {
         activeBranchId: 'b1',
-        branches: store.getState().auth.user?.branches,
+        branches: SESSION_BRANCHES,
       },
     });
+    expect(store.getState().auth.user?.activeBranchId).toBe('b1');
 
     await user.click(screen.getByRole('button', { name: /this outlet/i }));
     await user.click(screen.getByRole('menuitemradio', { name: /all outlets/i }));
@@ -272,5 +325,14 @@ describe('dispensary counter rail', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Sign out' }));
 
     expect(store.getState().auth.user).toBeNull();
+  });
+
+  it('refreshes tenant lock from the session when the counter is focused', async () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'ACTIVE');
+    fetchMock.mockResolvedValue(sessionUser('SUSPENDED'));
+    window.dispatchEvent(new Event('focus'));
+    await waitFor(() =>
+      expect(screen.getByRole('status')).toHaveTextContent('This pharmacy counter is suspended'),
+    );
   });
 });

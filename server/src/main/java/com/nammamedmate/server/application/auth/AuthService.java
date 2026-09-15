@@ -3,6 +3,7 @@ package com.nammamedmate.server.application.auth;
 import com.nammamedmate.server.application.branch.SessionBranchService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.EmailNormalizer;
+import com.nammamedmate.server.domain.ImpersonationCredentialPolicy;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
@@ -131,6 +132,7 @@ public class AuthService {
 
   @Transactional
   public AuthenticatedUser setPin(AuthPrincipal principal, String pin) {
+    ImpersonationCredentialPolicy.rejectRotateWhileImpersonating(principal.impersonating());
     requireSixDigitPin(pin);
     AppUser user = lockActiveUser(principal);
     if (user.getPinHash() != null) {

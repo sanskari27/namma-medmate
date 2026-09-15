@@ -1,7 +1,7 @@
 import { Check, Star } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
-import { selectSubCurrent, selectSubPending, selectSubPlans, switchPlan } from '../../store';
+import { selectSubCurrent, selectSubHeldPlan, selectSubPending, selectSubPlans, switchPlan } from '../../store';
 import {
   formatRupees,
   isPaidPlan,
@@ -15,6 +15,7 @@ export function PlanRateBoard() {
   const plans = useSelector(selectSubPlans);
   const current = useSelector(selectSubCurrent);
   const pending = useSelector(selectSubPending);
+  const heldPlan = useSelector(selectSubHeldPlan);
 
   return (
     <>
@@ -70,16 +71,18 @@ export function PlanRateBoard() {
                 <button
                   type="button"
                   className={`sb-btn sb-btn-block ${isPaidPlan(plan) ? 'sb-btn-primary' : 'sb-btn-ghost'}`}
-                  disabled={pending !== null}
+                  disabled={pending !== null || heldPlan === plan.planCode}
                   onClick={() => void dispatch(switchPlan(plan.planCode))}
                 >
-                  {pending === plan.planCode
-                    ? isPaidPlan(plan)
-                      ? 'Opening checkout…'
-                      : 'Switching…'
-                    : isPaidPlan(plan)
-                      ? `Upgrade to ${label}`
-                      : `Switch to ${label}`}
+                  {heldPlan === plan.planCode
+                    ? 'Waiting for Cashfree…'
+                    : pending === plan.planCode
+                      ? isPaidPlan(plan)
+                        ? 'Opening checkout…'
+                        : 'Switching…'
+                      : isPaidPlan(plan)
+                        ? `Pay this pharmacy’s plan for ${label}`
+                        : `Switch this pharmacy to ${label}`}
                 </button>
               )}
             </article>

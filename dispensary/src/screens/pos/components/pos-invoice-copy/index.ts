@@ -1,0 +1,1 @@
+export { PosInvoiceCopy } from './PosInvoiceCopy';

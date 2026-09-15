@@ -30,6 +30,26 @@ export const emptyTender = (): TenderDraft => ({
   bankReference: '',
 });
 
+export function tenderForMode(mode: PaymentMode | null, totalPaise: number): TenderDraft {
+  const blank = emptyTender();
+  if (!mode) {
+    return blank;
+  }
+  const totalRupees = (Math.max(0, totalPaise) / 100).toFixed(2);
+  if (mode === 'CASH') {
+    blank.cashRupees = totalRupees;
+  } else if (mode === 'UPI') {
+    blank.upiRupees = totalRupees;
+  } else if (mode === 'CARD') {
+    blank.cardRupees = totalRupees;
+  } else if (mode === 'CREDIT') {
+    blank.creditRupees = totalRupees;
+  } else {
+    blank.bankRupees = totalRupees;
+  }
+  return blank;
+}
+
 const CONTROLLED_SCHEDULES = new Set(['H', 'H1', 'X', 'NDPS']);
 
 export function hasSalesAccess(modules: string[] | undefined): boolean {
@@ -70,6 +90,11 @@ export function statusCopy(
   hint?: string | null,
 ): string | null {
   return posStatusMessage(status, invoiceNumber, hint);
+}
+
+export function appliedOfferHint(invoice: SalesInvoice | null): string | null {
+  const name = invoice?.lines.find((line) => line.offerName)?.offerName;
+  return name ? POS_CONTENT.offer.applied(name) : null;
 }
 
 export function offerStatusHint(status: PageStatus, code?: string | null): string | null {
@@ -180,7 +205,8 @@ export function mapApiStatus(error: { status?: number; code?: string | null }): 
     error.code === 'OVER_FULFILLMENT' ||
     error.code === 'FOREIGN_REFERENCE' ||
     error.code === 'ARCHIVED_REFERENCE' ||
-    error.code === 'PRESCRIBED_REQUIRED'
+    error.code === 'PRESCRIBED_REQUIRED' ||
+    error.code === 'AMBIGUOUS_PRECEDENCE'
   ) {
     return 'validation';
   }
@@ -411,6 +437,9 @@ export function collectStatusHint(status: PageStatus, code?: string | null): str
     if (code === 'KHATA_REQUIRES_CUSTOMER') {
       return POS_CONTENT.collect.khataCustomer;
     }
+    if (code === 'UNLINKED_CUSTOMER') {
+      return POS_CONTENT.safety.needCustomer;
+    }
     if (code === 'INSUFFICIENT_POINTS') {
       return POS_CONTENT.collect.insufficientPoints;
     }
@@ -419,6 +448,9 @@ export function collectStatusHint(status: PageStatus, code?: string | null): str
     }
     if (code === 'LOYALTY_REQUIRES_CUSTOMER') {
       return POS_CONTENT.collect.loyaltyCustomer;
+    }
+    if (code === 'APPROVAL_REQUIRED') {
+      return POS_CONTENT.discountApproval.pending;
     }
     return POS_CONTENT.collect.validation;
   }

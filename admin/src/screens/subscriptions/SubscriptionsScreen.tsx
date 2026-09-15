@@ -3,6 +3,7 @@ import {
   isApiError,
   listCashfreePayments,
   listSubscriptions,
+  reconcileCashfreePayment,
   type AdminCashfreePayment,
   type AdminSubscription,
 } from '@/services/subscriptions';
@@ -31,6 +32,7 @@ export default function SubscriptionsScreen() {
   const [selected, setSelected] = useState<AdminSubscription | null>(null);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [payBusy, setPayBusy] = useState(false);
+  const [reconcilingId, setReconcilingId] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     if (!allowed) {
@@ -121,6 +123,19 @@ export default function SubscriptionsScreen() {
     refreshRef.current?.focus();
   }
 
+  async function onReconcile(id: string) {
+    setReconcilingId(id);
+    try {
+      const next = await reconcileCashfreePayment(id);
+      setPayments((rows) => rows.map((row) => (row.id === id ? next : row)));
+      setPayStatus('success');
+    } catch {
+      setPayStatus('failure');
+    } finally {
+      setReconcilingId(null);
+    }
+  }
+
   const banner = statusCopy(status);
   const showLedger = allowed && status !== 'loading' && status !== 'denied';
 
@@ -149,6 +164,8 @@ export default function SubscriptionsScreen() {
           busy={payBusy}
           refreshRef={refreshRef}
           onRefresh={() => void onRefreshCharges()}
+          reconcilingId={reconcilingId}
+          onReconcile={(id) => void onReconcile(id)}
         />
       ) : null}
 

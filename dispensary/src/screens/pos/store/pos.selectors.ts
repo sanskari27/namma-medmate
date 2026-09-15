@@ -95,6 +95,19 @@ export const selectPosTaxProductName = (state: RootState) =>
   state.pos.draft.find((line) => line.product.id === state.pos.taxProductId)?.product.name ??
   'this medicine';
 
+export const selectPosEvaluation = (state: RootState) => state.pos.evaluation;
+export const selectPosReason = (state: RootState) => state.pos.reason;
+export const selectPosOffers = (state: RootState) => state.pos.offers;
+export const selectPosOffersLoading = (state: RootState) => state.pos.offersLoading;
+export const selectPosCustomerGstin = (state: RootState) => state.pos.customerGstin;
+export const selectPosCreditAvailablePaise = (state: RootState) => state.pos.creditAvailablePaise;
+export const selectPosLoyaltyEntitled = (state: RootState) => state.pos.loyaltyEntitled;
+export const selectPosLoyaltyBalancePoints = (state: RootState) => state.pos.loyaltyBalancePoints;
+export const selectPosLoyaltyLoading = (state: RootState) => state.pos.loyaltyLoading;
+export const selectPosRedeemPoints = (state: RootState) => state.pos.redeemPoints;
+export const selectPosCopyBusy = (state: RootState) => state.pos.copyBusy;
+export const selectPosCopyHint = (state: RootState) => state.pos.copyHint;
+
 export const selectPosCustomerDisplayName = (state: RootState) => {
   if (state.pos.selectedCustomer) {
     return state.pos.selectedCustomer.name;

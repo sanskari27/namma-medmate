@@ -46,6 +46,12 @@ export const POS_CONTENT = {
   unitPackSuffix: ' (pack)',
   unitEach: (baseEach: number, baseUnit: string) => ` · ${baseEach} ${baseUnit} each`,
   ratePerUnit: (price: string, unit: string) => `${price} / ${unit}`,
+  lineMrp: 'MRP ₹',
+  lineSelling: 'Selling ₹',
+  lineDiscountFlat: 'Discount ₹',
+  lineDiscountPercent: 'Discount %',
+  percentDiscountAria: (name: string) => `Use percent discount for ${name}`,
+  flatDiscountAria: (name: string) => `Use rupee discount for ${name}`,
 
   selectCustomer: 'Select customer',
   changeCustomer: 'Change',
@@ -104,6 +110,33 @@ export const POS_CONTENT = {
   paymentMethodAria: 'Payment method',
   charge: (amount: string) => `Charge ${amount} & invoice`,
   hold: 'Send to reception · pay later',
+  khataLeft: (amount: string) => `Khata left ${amount}`,
+  gst: {
+    panelAria: 'GST on this bill',
+    igst: 'IGST',
+    gstin: 'Customer GSTIN',
+    apply: 'Apply GST on this bill',
+    override: 'Tax override',
+    rate: 'GST rate %',
+    reason: 'Override reason',
+    save: 'Save tax override',
+    needReason: 'Tax override needs a reason',
+    close: 'Close tax override',
+  },
+  loyalty: {
+    panelAria: 'Points',
+    loading: 'Loading points…',
+    empty: 'No points on this patient yet.',
+    use: 'Use points',
+    loadFailure: 'Could not load points for this patient. Try again.',
+    balance: (points: number) => `${points} pts`,
+  },
+  copy: {
+    panelAria: 'Bill copy',
+    print: 'Print this bill',
+    send: 'Send bill copy',
+    newSale: 'New sale',
+  },
 
   paymentModes: {
     CASH: 'Cash',
@@ -131,6 +164,11 @@ export const POS_CONTENT = {
   },
 
   offer: {
+    panelAria: 'Schemes on this bill',
+    apply: 'Apply scheme',
+    loading: 'Loading schemes on this bill…',
+    empty: 'No live scheme fits this bill.',
+    applied: (name: string) => `${name} applied on this bill.`,
     ambiguous:
       'Two live schemes share the same priority on a line. Change priority on Schemes, then apply again.',
     validation: 'Save this bill first, then apply a scheme.',
@@ -185,6 +223,14 @@ export const POS_CONTENT = {
   },
 
   safety: {
+    panelAria: 'Medication safety',
+    allergyTitle: 'Allergy warning',
+    compositionTitle: 'Duplicate composition',
+    reviewRequired: 'Review required',
+    reasonLabel: 'Review reason',
+    needReason: 'A review reason is required before continuing.',
+    needCustomer: 'Link a customer before completing a draft with safety warnings.',
+    neverSafe: 'Not checked is never treated as safe.',
     notChecked: 'Not checked',
     allergy: (allergen: string, productName: string) =>
       `Allergy match: ${allergen} on ${productName} — review before completing.`,

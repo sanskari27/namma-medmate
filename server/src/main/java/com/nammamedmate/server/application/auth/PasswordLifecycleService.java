@@ -6,6 +6,7 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.EmailNormalizer;
 import com.nammamedmate.server.domain.EmailTemplate;
+import com.nammamedmate.server.domain.ImpersonationCredentialPolicy;
 import com.nammamedmate.server.domain.PasswordHistory;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.PasswordResetToken;
@@ -90,6 +91,7 @@ public class PasswordLifecycleService {
   @Transactional
   public AuthenticatedUser changePassword(
       AuthPrincipal principal, String currentPassword, String newPassword) {
+    ImpersonationCredentialPolicy.rejectRotateWhileImpersonating(principal.impersonating());
     requireMinimumLength(newPassword);
     AppUser user = lockActiveUser(principal);
     if (!passwordEncoder.matches(currentPassword, user.getPasswordHash())) {

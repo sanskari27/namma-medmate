@@ -15,7 +15,7 @@ import {
   selectPosCustomerQuery,
   selectPosCustomers,
 } from '../../store/pos.selectors';
-import { searchCustomers } from '../../store/pos.thunks';
+import { loadCustomerCredit, loadCustomerLoyalty, searchCustomers } from '../../store/pos.thunks';
 
 type PosCustomerDialogProps = {
   open: boolean;
@@ -38,6 +38,8 @@ export function PosCustomerDialog({ open, onOpenChange }: PosCustomerDialogProps
 
   function pick(customer: Customer) {
     dispatch(selectCustomer(customer));
+    void dispatch(loadCustomerCredit(customer.id));
+    void dispatch(loadCustomerLoyalty(customer.id));
     onOpenChange(false);
   }
 

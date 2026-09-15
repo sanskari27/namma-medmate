@@ -33,8 +33,8 @@ public class KioskConfig {
   @Column(name = "welcome_message", nullable = false, length = 240)
   private String welcomeMessage = "";
 
-  @Column(name = "staff_exit_pin", nullable = false, length = 16)
-  private String staffExitPin = "0000";
+  @Column(name = "staff_exit_pin", nullable = false, length = 100)
+  private String staffExitPin = "";
 
   @Column(name = "idle_reset_seconds", nullable = false)
   private int idleResetSeconds = 60;

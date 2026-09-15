@@ -15,17 +15,25 @@ vi.mock('@/services/auth', async () => {
     listSavedLogins: vi.fn(),
     pinLogin: vi.fn(),
     forgetSavedLogin: vi.fn(),
+    logoutSession: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { forgetSavedLogin, listSavedLogins, loginWithPassword, pinLogin } from '@/services/auth';
+import {
+  forgetSavedLogin,
+  listSavedLogins,
+  loginWithPassword,
+  logoutSession,
+  pinLogin,
+} from '@/services/auth';
 
 const loginMock = vi.mocked(loginWithPassword);
 const listMock = vi.mocked(listSavedLogins);
 const pinMock = vi.mocked(pinLogin);
 const forgetMock = vi.mocked(forgetSavedLogin);
+const logoutMock = vi.mocked(logoutSession);
 
 const sanskar = {
   userId: 'm1',
@@ -67,6 +75,9 @@ describe('admin HQ login', () => {
     listMock.mockReset();
     pinMock.mockReset();
     forgetMock.mockReset();
+    logoutMock.mockReset();
+    logoutMock.mockResolvedValue(undefined);
+    forgetMock.mockResolvedValue(undefined);
     listMock.mockResolvedValue([]);
   });
 
@@ -326,6 +337,26 @@ describe('admin HQ login', () => {
       'HQ credentials were not recognised.',
     );
     expect(screen.queryByText('Tenant pulse')).not.toBeInTheDocument();
+    expect(logoutMock).toHaveBeenCalledTimes(1);
+    expect(forgetMock).toHaveBeenCalledWith('u1');
+  });
+
+  it('denied: pharmacy identities are dropped from this console list', async () => {
+    listMock.mockResolvedValue([
+      sanskar,
+      {
+        userId: 'u1',
+        displayName: 'Owner',
+        role: 'pharmacy_owner',
+        email: 'owner@pharmacy.local',
+      },
+    ]);
+    renderLogin();
+    expect(
+      await screen.findByRole('heading', { name: 'Operators on this console' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Authenticate Sanskar' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Authenticate Owner' })).not.toBeInTheDocument();
   });
 
   it('slider next changes the HQ operation', async () => {

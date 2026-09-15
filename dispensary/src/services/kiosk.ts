@@ -38,6 +38,7 @@ export interface KioskConfig {
   displayName: string;
   welcomeMessage: string;
   staffExitPin: string;
+  staffExitPinSet: boolean;
   idleResetSeconds: number;
   accentTheme: KioskAccentTheme;
   showPrices: boolean;
@@ -66,6 +67,7 @@ export type CreateKioskTicketInput = {
   walkInName?: string;
   pickupRequest?: string;
   paymentMethod?: KioskPaymentMethod;
+  idempotencyKey?: string;
   items?: Array<{
     productId: string;
     name: string;
@@ -115,7 +117,8 @@ function normalizeState(data: Record<string, unknown>): KioskState {
       displayName: config.displayName ?? 'Self Order',
       welcomeMessage:
         config.welcomeMessage ?? 'Tap to order your medicines & wellness products',
-      staffExitPin: config.staffExitPin ?? '0000',
+      staffExitPin: '',
+      staffExitPinSet: Boolean(config.staffExitPinSet),
       idleResetSeconds: config.idleResetSeconds ?? 60,
       accentTheme: (config.accentTheme as KioskAccentTheme) ?? 'green',
       showPrices: config.showPrices ?? true,
@@ -154,7 +157,15 @@ export async function createKioskTicket(input: CreateKioskTicketInput): Promise<
     walkInName: input.walkInName || null,
     pickupRequest: input.pickupRequest || null,
     paymentMethod: input.paymentMethod ?? null,
+    idempotencyKey: input.idempotencyKey ?? null,
     items: input.items ?? [],
+  });
+  return normalizeState(data);
+}
+
+export async function verifyKioskExitPin(staffExitPin: string): Promise<KioskState> {
+  const { data } = await apiClient.post<Record<string, unknown>>(API.KIOSK_EXIT_PIN, {
+    staffExitPin,
   });
   return normalizeState(data);
 }

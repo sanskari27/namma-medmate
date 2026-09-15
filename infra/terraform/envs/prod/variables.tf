@@ -67,3 +67,18 @@ variable "cashfree_return_url" {
   type    = string
   default = "https://pharmacy.nammamedmate.com/subscription"
 }
+
+variable "password_reset_dispensary_url" {
+  type    = string
+  default = "https://pharmacy.nammamedmate.com/reset-password"
+}
+
+variable "password_reset_admin_url" {
+  type    = string
+  default = "https://admin.nammamedmate.com/reset-password"
+}
+
+variable "email_verification_dispensary_url" {
+  type    = string
+  default = "https://pharmacy.nammamedmate.com/verify-email"
+}

@@ -15,17 +15,25 @@ vi.mock('@/services/auth', async () => {
     listSavedLogins: vi.fn(),
     pinLogin: vi.fn(),
     forgetSavedLogin: vi.fn(),
+    logoutSession: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
-import { forgetSavedLogin, listSavedLogins, loginWithPassword, pinLogin } from '@/services/auth';
+import {
+  forgetSavedLogin,
+  listSavedLogins,
+  loginWithPassword,
+  logoutSession,
+  pinLogin,
+} from '@/services/auth';
 
 const loginMock = vi.mocked(loginWithPassword);
 const listMock = vi.mocked(listSavedLogins);
 const pinMock = vi.mocked(pinLogin);
 const forgetMock = vi.mocked(forgetSavedLogin);
+const logoutMock = vi.mocked(logoutSession);
 
 const owner = {
   userId: 'u1',
@@ -67,6 +75,9 @@ describe('dispensary login', () => {
     listMock.mockReset();
     pinMock.mockReset();
     forgetMock.mockReset();
+    logoutMock.mockReset();
+    logoutMock.mockResolvedValue(undefined);
+    forgetMock.mockResolvedValue(undefined);
     listMock.mockResolvedValue([]);
   });
 
@@ -331,6 +342,26 @@ describe('dispensary login', () => {
       'Email or password does not match this counter login',
     );
     expect(screen.queryByText('Counter overview')).not.toBeInTheDocument();
+    expect(logoutMock).toHaveBeenCalledTimes(1);
+    expect(forgetMock).toHaveBeenCalledWith('m1');
+  });
+
+  it('denied: HQ identities are dropped from this till list', async () => {
+    listMock.mockResolvedValue([
+      owner,
+      {
+        userId: 'm1',
+        displayName: 'Master',
+        role: 'admin_super',
+        email: 'ops@hq.local',
+      },
+    ]);
+    renderLogin();
+    expect(
+      await screen.findByRole('heading', { name: 'Who is at this counter?' }),
+    ).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Sign in as Varshmaan' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Sign in as Master' })).not.toBeInTheDocument();
   });
 
   it('slider next changes the feature copy', async () => {
