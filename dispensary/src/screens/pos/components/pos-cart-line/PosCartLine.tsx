@@ -28,6 +28,7 @@ export function PosCartLine({ line }: PosCartLineProps) {
   const unitPaise = rupeesToPaise(line.sellingRupees);
   const baseEach = line.baseQuantity != null ? line.baseQuantity / qty : null;
   const percent = line.discountType === 'PERCENT';
+  const sellable = line.batches.filter((batch) => batch.batchId && !batch.expired);
 
   return (
     <div className="pos-cart-line">
@@ -53,6 +54,11 @@ export function PosCartLine({ line }: PosCartLineProps) {
           <Trash2 size={15} />
         </button>
       </div>
+      {line.nearExpiry ? (
+        <p className="pos-fefo-banner" role="status">
+          {POS_CONTENT.batchNearExpiryBanner}
+        </p>
+      ) : null}
       <div className="pos-cart-line-meta">
         <select
           aria-label={POS_CONTENT.unitAria(line.product.name)}
@@ -81,7 +87,7 @@ export function PosCartLine({ line }: PosCartLineProps) {
         {line.product.requiresBatchTracking ? (
           <select
             aria-label={POS_CONTENT.batchAria(line.product.name, line.unit)}
-            value={line.batchId ?? ''}
+            value={line.batchId ?? sellable[0]?.batchId ?? ''}
             disabled={busy}
             onChange={(event) =>
               dispatch(
@@ -92,15 +98,13 @@ export function PosCartLine({ line }: PosCartLineProps) {
               )
             }
           >
-            <option value="">{POS_CONTENT.batchSelect}</option>
-            {line.batches
-              .filter((batch) => batch.batchId && !batch.expired)
-              .map((batch) => (
-                <option key={batch.batchId!} value={batch.batchId!}>
-                  {batch.batchNumber ?? batch.batchId}
-                  {batch.nearExpiry ? ` · ${POS_CONTENT.batchNearExpiry}` : ''}
-                </option>
-              ))}
+            {sellable.map((batch) => (
+              <option key={batch.batchId!} value={batch.batchId!}>
+                {batch.batchNumber ?? batch.batchId}
+                {batch.suggestedFefo ? ` · ${POS_CONTENT.batchFefo}` : ''}
+                {batch.nearExpiry ? ` · ${POS_CONTENT.batchNearExpiry}` : ''}
+              </option>
+            ))}
           </select>
         ) : null}
         <div className="pos-qty" aria-label={POS_CONTENT.qtyAria(line.product.name, line.unit)}>

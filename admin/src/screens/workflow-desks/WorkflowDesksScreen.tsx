@@ -124,6 +124,8 @@ export default function WorkflowDesksScreen() {
         <h1 className="font-serif text-2xl text-ink">Workflow desks</h1>
         <p className="mt-1 text-sm text-muted">
           Configure platform approval thresholds and who may sign them off.
+          These apply at the till when a pharmacy has no Sign-off rule for the
+          same action.
         </p>
       </header>
 

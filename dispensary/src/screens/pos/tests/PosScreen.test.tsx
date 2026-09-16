@@ -342,7 +342,9 @@ describe('PosScreen', () => {
 
     const batchSelect = await screen.findByLabelText(/Batch for Penicillin V/i);
     expect(batchSelect).toHaveValue('b-early');
-    expect(screen.getByText(/near expiry/i)).toBeInTheDocument();
+    expect(screen.getByText('Near expiry — still sellable.')).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: /FEFO suggested/i })).toBeInTheDocument();
+    expect(screen.queryByRole('option', { name: 'Select batch' })).not.toBeInTheDocument();
 
     await user.selectOptions(batchSelect, 'b-late');
     expect(batchSelect).toHaveValue('b-late');
@@ -363,7 +365,7 @@ describe('PosScreen', () => {
     expect(screen.getByRole('alert')).toHaveTextContent('cashier-only');
   });
 
-  it('validation: Schedule pack needs prescriber and Prescription verified', async () => {
+  it('validation: Schedule pack needs prescriber and Prescription checked', async () => {
     const user = userEvent.setup();
     listCatalogueMock.mockResolvedValue([itemH1]);
     renderPage();

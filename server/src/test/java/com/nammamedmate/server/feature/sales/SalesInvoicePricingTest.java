@@ -154,6 +154,49 @@ class SalesInvoicePricingTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac02_platformRuleAppliesWhenPharmacyHasNoSignOffRule() throws Exception {
+    Fixture fx = seed("price-plat");
+    createPlatformDiscountRule(1000, true);
+    Stocked product = stocked(fx, "DISC-P", "Platform Pack");
+    UUID invoiceId = createDraft(fx, product, "price-p");
+
+    mockMvc
+        .perform(
+            post("/api/v1/sales/invoices/" + invoiceId + "/pricing")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pricingJson(1, product.productId(), "PERCENT", 1500, "NONE", 0, null)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.discountApprovalStatus").value("PENDING"))
+        .andExpect(jsonPath("$.data.discountApprovalRequestId").isNotEmpty());
+
+    mockMvc
+        .perform(
+            post("/api/v1/sales/invoices/" + invoiceId + "/pricing/assert-ready")
+                .cookie(fx.cookie()))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("APPROVAL_REQUIRED"));
+  }
+
+  @Test
+  void ac02_pharmacySignOffRuleWinsOverPlatformRule() throws Exception {
+    Fixture fx = seed("price-win");
+    createPlatformDiscountRule(500, true);
+    createDiscountRule(fx.cookie(), 5000, true);
+    Stocked product = stocked(fx, "DISC-W", "Owner Pack");
+    UUID invoiceId = createDraft(fx, product, "price-w");
+
+    mockMvc
+        .perform(
+            post("/api/v1/sales/invoices/" + invoiceId + "/pricing")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(pricingJson(1, product.productId(), "PERCENT", 1500, "NONE", 0, null)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.discountApprovalStatus").value("NOT_REQUIRED"));
+  }
+
+  @Test
   void ac02_noRuleDoesNotRequireApproval() throws Exception {
     Fixture fx = seed("price-norule");
     Stocked product = stocked(fx, "DISC-3", "Open Pack");
@@ -413,6 +456,12 @@ class SalesInvoicePricingTest extends AbstractIntegrationTest {
             .path("data")
             .path("id")
             .asText());
+  }
+
+  private void createPlatformDiscountRule(int threshold, boolean self) throws Exception {
+    persistUser(null, "ops@price-plat.local", AppUserRole.admin_super);
+    Cookie master = login("ops@price-plat.local");
+    createDiscountRule(master, threshold, self);
   }
 
   private void createDiscountRule(Cookie cookie, int threshold, boolean self) throws Exception {

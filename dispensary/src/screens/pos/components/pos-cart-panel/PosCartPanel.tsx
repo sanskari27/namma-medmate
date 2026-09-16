@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { DoctorReferenceDialog } from '@/components/templates/doctor-reference-dialog';
 import { listDoctors } from '@/services/doctors';
@@ -29,11 +29,13 @@ import {
   selectPosPrescriptionDraft,
   selectPosPrescriptionReference,
   selectPosPrescriptionVerified,
+  selectPosRxFulfillment,
+  selectPosRxFulfillmentLoading,
   selectPosSelectedCustomer,
   selectPosSelectedDoctorId,
   selectPosWalkIn,
 } from '../../store/pos.selectors';
-import { saveInvoice } from '../../store/pos.thunks';
+import { saveInvoice, loadRxFulfillment } from '../../store/pos.thunks';
 import { POS_CONTENT } from '../../PosScreen.content';
 import { isControlledProduct, isPrescriptionProduct } from '../../PosScreen.utils';
 
@@ -53,12 +55,28 @@ export function PosCartPanel() {
   const doctors = useSelector(selectPosDoctors);
   const selectedDoctorId = useSelector(selectPosSelectedDoctorId);
   const canDispense = useSelector(selectPosCanDispense);
+  const rxFulfillment = useSelector(selectPosRxFulfillment);
+  const rxLoading = useSelector(selectPosRxFulfillmentLoading);
   const [customerOpen, setCustomerOpen] = useState(false);
   const [doctorOpen, setDoctorOpen] = useState(false);
 
   const rxLines = draft.filter((line) => isPrescriptionProduct(line.product));
   const controlledDraft = draft.some((line) => isControlledProduct(line.product));
   const rxLocked = busy || (controlledDraft && !canDispense);
+  const remainingQty = rxFulfillment.reduce(
+    (sum, item) => sum + (Number(item.remainingQuantity) || 0),
+    0,
+  );
+
+  useEffect(() => {
+    if (!selectedCustomer || !prescriptionReference.trim()) {
+      return;
+    }
+    const handle = window.setTimeout(() => {
+      void dispatch(loadRxFulfillment());
+    }, 200);
+    return () => window.clearTimeout(handle);
+  }, [dispatch, selectedCustomer, prescriptionReference]);
 
   return (
     <aside className="pos-cart" aria-label={POS_CONTENT.cartAria}>
@@ -122,6 +140,9 @@ export function PosCartPanel() {
           <section className="pos-rx" aria-label={POS_CONTENT.rxAria}>
             <h3>{POS_CONTENT.rxTitle}</h3>
             <p>{POS_CONTENT.rxHelp}</p>
+            {controlledDraft && !canDispense ? (
+              <p>{POS_CONTENT.rxPharmacist}</p>
+            ) : null}
             <label className="pos-rx-check">
               <input
                 type="checkbox"
@@ -164,7 +185,7 @@ export function PosCartPanel() {
             </div>
             {rxLines.map((line) => (
               <label key={line.id}>
-                {POS_CONTENT.rxPrescribed(line.product.name, line.unit)}
+                {POS_CONTENT.rxPrescribed(line.product.name)}
                 <input
                   type="text"
                   inputMode="decimal"
@@ -181,6 +202,15 @@ export function PosCartPanel() {
                 />
               </label>
             ))}
+            {selectedCustomer && prescriptionReference.trim() ? (
+              <p>
+                {rxLoading
+                  ? POS_CONTENT.rxChecking
+                  : rxFulfillment.length === 0
+                    ? POS_CONTENT.rxEmptyFills
+                    : POS_CONTENT.rxRemaining(remainingQty)}
+              </p>
+            ) : null}
             <label>
               {POS_CONTENT.rxDoctor}
               <select

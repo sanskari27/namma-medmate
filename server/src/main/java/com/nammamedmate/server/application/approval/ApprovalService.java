@@ -9,6 +9,7 @@ import com.nammamedmate.server.domain.AccessRole;
 import com.nammamedmate.server.domain.AccessScope;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.ApprovalActionKey;
 import com.nammamedmate.server.domain.ApprovalDecision;
 import com.nammamedmate.server.domain.ApprovalDecisionOutcome;
 import com.nammamedmate.server.domain.ApprovalPolicy;
@@ -220,9 +221,7 @@ public class ApprovalService {
           "Approval requests require a tenant context");
     }
     ApprovalRule rule =
-        approvalRuleRepository
-            .findByTenantIdAndModuleCodeAndActionKeyAndDeletedAtIsNull(
-                actor.tenantId(), command.moduleCode(), command.actionKey())
+        resolveApplicableRule(actor.tenantId(), command.moduleCode(), command.actionKey())
             .orElseThrow(
                 () ->
                     new ApiException(
@@ -418,6 +417,20 @@ public class ApprovalService {
             HttpStatus.UNPROCESSABLE_ENTITY, "ROLE_NOT_FOUND", "Approver role was not found");
       }
     }
+  }
+
+  public Optional<ApprovalRule> resolveApplicableRule(
+      UUID tenantId, ModuleCode moduleCode, ApprovalActionKey actionKey) {
+    if (tenantId != null) {
+      Optional<ApprovalRule> tenantRule =
+          approvalRuleRepository.findByTenantIdAndModuleCodeAndActionKeyAndDeletedAtIsNull(
+              tenantId, moduleCode, actionKey);
+      if (tenantRule.isPresent()) {
+        return tenantRule;
+      }
+    }
+    return approvalRuleRepository.findByScopeAndModuleCodeAndActionKeyAndDeletedAtIsNull(
+        AccessScope.PLATFORM, moduleCode, actionKey);
   }
 
   private ApprovalRule requireRule(Actor actor, UUID ruleId) {

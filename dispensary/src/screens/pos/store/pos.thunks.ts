@@ -23,13 +23,16 @@ import {
   downloadInvoicePdf,
   emailInvoiceCopy,
   getSalesInvoice,
+  getPrescriptionFulfillment,
   holdSalesInvoice,
   listInvoiceOffers,
+  listSalesInvoices,
   openInvoicePdf,
   resumeSalesInvoice,
   updateSalesInvoice,
   type DiscountType,
   type InvoiceOfferItem,
+  type PrescriptionFulfillmentItem,
   type SalesInvoice,
   type SalesInvoiceLine,
 } from '@/services/salesInvoices';
@@ -59,6 +62,7 @@ import {
   previewTender,
   resumeStatusHint,
   rupeesToPaise,
+  rxStatusHint,
   type PageStatus,
 } from '../PosScreen.utils';
 
@@ -75,6 +79,20 @@ function toReject(error: unknown, hintFallback?: string | null): PosReject {
   const status = mapApiStatus(error);
   const hint = collectStatusHint(status, error.code) ?? hintFallback ?? null;
   return { status, hint };
+}
+
+function toDraftReject(error: unknown): PosReject {
+  if (!isApiError(error)) {
+    return { status: 'failure', hint: POS_CONTENT.status.failure };
+  }
+  const status = mapApiStatus(error);
+  if (status === 'conflict') {
+    return { status, hint: POS_CONTENT.status.conflict };
+  }
+  if (status === 'failure') {
+    return { status, hint: POS_CONTENT.status.failure };
+  }
+  return { status, hint: collectStatusHint(status, error.code) ?? POS_CONTENT.status.failure };
 }
 
 function toOfferReject(error: unknown): PosReject {
@@ -293,7 +311,7 @@ async function buildDraftLine(
     sellingRupees: prices.sellingRupees,
     discountRupees: '',
     discountType: 'FLAT',
-    prescribedQuantity: isPrescriptionProduct(product) ? '1' : '',
+    prescribedQuantity: '',
   };
 }
 
@@ -393,6 +411,49 @@ export const loadBootstrap = createAsyncThunk<
     return { catalogue, categories, customers, doctors };
   } catch (error) {
     return rejectWithValue(toReject(error));
+  }
+});
+
+export const loadHeldBills = createAsyncThunk<SalesInvoice[], void, { state: RootState }>(
+  'pos/loadHeldBills',
+  async (_, { getState }) => {
+    if (!getState().pos.allowed) {
+      return [];
+    }
+    try {
+      const result = await listSalesInvoices({ status: 'HELD' });
+      return result.items;
+    } catch {
+      return [];
+    }
+  },
+);
+
+export const loadRxFulfillment = createAsyncThunk<
+  PrescriptionFulfillmentItem[],
+  void,
+  { state: RootState; rejectValue: PosReject }
+>('pos/loadRxFulfillment', async (_, { getState, rejectWithValue }) => {
+  const { prescriptionReference, selectedCustomer } = getState().pos;
+  const reference = prescriptionReference.trim();
+  if (!reference || !selectedCustomer) {
+    return [];
+  }
+  try {
+    const result = await getPrescriptionFulfillment(reference, selectedCustomer.id);
+    return result.items;
+  } catch (error) {
+    if (isApiError(error)) {
+      const status = mapApiStatus(error);
+      return rejectWithValue({
+        status,
+        hint: rxStatusHint(status, error.code) ?? POS_CONTENT.rxCheckFailure,
+      });
+    }
+    return rejectWithValue({
+      status: 'failure',
+      hint: POS_CONTENT.rxCheckFailure,
+    });
   }
 });
 
@@ -694,13 +755,19 @@ export const saveInvoice = createAsyncThunk<
       hint: POS_CONTENT.thunk.controlledNeeds,
     });
   }
+  if (
+    state.draft.some((line) => line.product.requiresBatchTracking && !line.batchId)
+  ) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: POS_CONTENT.thunk.needBatch,
+    });
+  }
   if (prescriptionDraft) {
     const prescribedOk = state.draft
       .filter((line) => isPrescriptionProduct(line.product))
       .every((line) => Number(line.prescribedQuantity) > 0);
-    const hasRxProof =
-      Boolean(state.prescriptionReference.trim()) || Boolean(state.prescriptionAttachmentName);
-    if (!state.prescriptionVerified || !state.selectedDoctorId || !hasRxProof || !prescribedOk) {
+    if (!state.prescriptionVerified || !state.selectedDoctorId || !state.prescriptionReference.trim() || !prescribedOk) {
       return rejectWithValue({
         status: 'validation',
         hint: POS_CONTENT.thunk.rxNeeds,
@@ -715,10 +782,11 @@ export const saveInvoice = createAsyncThunk<
       prescriptionVerified: state.prescriptionVerified,
       lines,
     };
-    const saved = state.invoice
-      ? await updateSalesInvoice(state.invoice.id, {
+    const open = state.invoice && state.invoice.status !== 'COMPLETED' ? state.invoice : null;
+    const saved = open
+      ? await updateSalesInvoice(open.id, {
           ...payload,
-          expectedVersion: state.invoice.version,
+          expectedVersion: open.version,
         })
       : await createSalesInvoice({ ...payload, idempotencyKey: state.createKey });
     const rxFile = peekPendingPrescriptionFile();
@@ -748,7 +816,7 @@ export const saveInvoice = createAsyncThunk<
     );
     return { invoice: withOffers, advanceToPayment, evaluation };
   } catch (error) {
-    return rejectWithValue(toReject(error));
+    return rejectWithValue(toDraftReject(error));
   }
 });
 
@@ -778,7 +846,7 @@ export const collectPayment = createAsyncThunk<
   { state: RootState; rejectValue: PosReject; dispatch: AppDispatch }
 >('pos/collectPayment', async (_, { getState, dispatch, rejectWithValue }) => {
   let state = getState().pos;
-  if (!state.invoice || state.invoice.status === 'COMPLETED') {
+  if (!state.invoice) {
     const saved = await dispatch(saveInvoice());
     if (saveInvoice.rejected.match(saved)) {
       return rejectWithValue(saved.payload ?? { status: 'validation', hint: null });
@@ -791,16 +859,14 @@ export const collectPayment = createAsyncThunk<
       hint: collectStatusHint('validation'),
     });
   }
-  if (state.paymentMode === 'CREDIT' && (state.walkIn || !state.selectedCustomer)) {
+  const creditPaise = previewTender(
+    collectiblePaise(state.invoice.totalPaise, parseRedeemPoints(state.redeemPoints) ?? 0),
+    state.tender,
+  ).parts.find((part) => part.mode === 'CREDIT')?.amountPaise ?? 0;
+  if (creditPaise > 0 && (state.walkIn || !state.selectedCustomer)) {
     return rejectWithValue({
       status: 'validation',
       hint: collectStatusHint('validation', 'KHATA_REQUIRES_CUSTOMER'),
-    });
-  }
-  if (!state.paymentMode) {
-    return rejectWithValue({
-      status: 'validation',
-      hint: POS_CONTENT.thunk.needPaymentMode,
     });
   }
   const warnings = state.evaluation?.warnings ?? [];
@@ -903,7 +969,7 @@ export const collectPayment = createAsyncThunk<
         });
       }
     }
-    return rejectWithValue(toReject(error));
+    return rejectWithValue(toReject(error, POS_CONTENT.collect.failure));
   }
 });
 

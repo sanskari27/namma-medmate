@@ -1,9 +1,9 @@
 import { Menu, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
 import type { ReactNode } from 'react';
-import { Link, useLocation } from 'react-router-dom';
+import { useLocation } from 'react-router-dom';
 import { Button } from '@atoms';
 import { CounterAlertBell } from '../counter-alert-bell';
-import { MODULE_NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
+import { MODULE_NAV_ITEMS } from '@/libs/constants/routes.const';
 import { SHELL } from '@/libs/constants/shell.const';
 
 export function RailCollapseToggle({
@@ -31,6 +31,7 @@ export type ShellHeaderProps = {
   collapsed: boolean;
   onToggleCollapsed: () => void;
   onOpenMobile: () => void;
+  onNewSale: () => void;
   trailing?: ReactNode;
 };
 
@@ -38,6 +39,7 @@ export function ShellHeader({
   collapsed,
   onToggleCollapsed,
   onOpenMobile,
+  onNewSale,
   trailing,
 }: ShellHeaderProps) {
   const { pathname } = useLocation();
@@ -76,8 +78,8 @@ export function ShellHeader({
       </label>
 
       <div className="flex items-center gap-2">
-        <Button asChild size="sm" className="shrink-0">
-          <Link to={ROUTES.SALES}>{SHELL.newSaleLabel}</Link>
+        <Button type="button" size="sm" className="shrink-0" onClick={onNewSale}>
+          {SHELL.newSaleLabel}
         </Button>
         <CounterAlertBell />
         {trailing}

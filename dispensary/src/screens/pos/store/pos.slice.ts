@@ -7,12 +7,20 @@ import type { ProductCategory } from '@/services/productCategories';
 import type { ProductUnit } from '@/services/products';
 import type { SafetyEvaluation } from '@/services/medicationSafety';
 import type { SalesCatalogueItem } from '@/services/salesCatalogue';
-import type { DiscountType, InvoiceOfferItem, PaymentMode, SalesInvoice } from '@/services/salesInvoices';
+import type {
+  DiscountType,
+  InvoiceOfferItem,
+  PaymentMode,
+  PrescriptionFulfillmentItem,
+  SalesInvoice,
+} from '@/services/salesInvoices';
 import type { PosDraftLine } from '../pos.types';
 import { POS_CONTENT } from '../PosScreen.content';
 import {
   emptyTender,
   appliedOfferHint,
+  discountApprovalCopy,
+  tenderFilledCount,
   tenderForMode,
   type PageStatus,
   type TenderDraft,
@@ -29,6 +37,8 @@ import {
   emailCopy,
   holdBill,
   loadBootstrap,
+  loadHeldBills,
+  loadRxFulfillment,
   loadCustomerCredit,
   loadCustomerLoyalty,
   loadInvoiceOffers,
@@ -85,6 +95,10 @@ export type PosState = {
   reason: string;
   offers: InvoiceOfferItem[];
   offersLoading: boolean;
+  held: SalesInvoice[];
+  heldLoading: boolean;
+  rxFulfillment: PrescriptionFulfillmentItem[];
+  rxFulfillmentLoading: boolean;
   createKey: string;
   completeKey: string;
 };
@@ -133,6 +147,10 @@ export const initialPosState: PosState = {
   reason: '',
   offers: [],
   offersLoading: false,
+  held: [],
+  heldLoading: false,
+  rxFulfillment: [],
+  rxFulfillmentLoading: false,
   createKey: crypto.randomUUID(),
   completeKey: crypto.randomUUID(),
 };
@@ -160,6 +178,9 @@ function retender(state: PosState) {
   if (!state.paymentMode || state.invoice?.status === 'COMPLETED') {
     return;
   }
+  if (tenderFilledCount(state.tender) > 1) {
+    return;
+  }
   const totalPaise = state.invoice?.totalPaise ?? draftTotalPaise(state);
   const points = parseRedeemPoints(state.redeemPoints) ?? 0;
   state.tender = tenderForMode(state.paymentMode, collectiblePaise(totalPaise, points));
@@ -181,6 +202,8 @@ function clearBillFields(state: PosState) {
   state.reason = '';
   state.offers = [];
   state.offersLoading = false;
+  state.rxFulfillment = [];
+  state.rxFulfillmentLoading = false;
   state.billType = 'FLAT';
   state.billValue = '';
   state.customerGstin = '';
@@ -378,6 +401,10 @@ const posSlice = createSlice({
     },
     prescriptionReferenceChanged: (state, action: PayloadAction<string>) => {
       state.prescriptionReference = action.payload;
+      if (!action.payload.trim()) {
+        state.rxFulfillment = [];
+        state.rxFulfillmentLoading = false;
+      }
     },
     prescriptionAttachmentChanged: (state, action: PayloadAction<string>) => {
       state.prescriptionAttachmentName = action.payload;
@@ -423,6 +450,12 @@ const posSlice = createSlice({
       state.step = 'payment';
     },
     backToCart: (state) => {
+      if (state.invoice?.status === 'COMPLETED') {
+        clearBillFields(state);
+        state.status = null;
+        state.statusHint = null;
+        return;
+      }
       state.step = 'cart';
     },
     clearBill: (state) => {
@@ -465,6 +498,34 @@ const posSlice = createSlice({
       .addCase(loadBootstrap.rejected, (state, action) => {
         state.status = action.payload?.status ?? 'failure';
         state.statusHint = action.payload?.hint ?? null;
+      })
+      .addCase(loadHeldBills.pending, (state) => {
+        state.heldLoading = true;
+      })
+      .addCase(loadHeldBills.fulfilled, (state, action) => {
+        state.heldLoading = false;
+        state.held = action.payload;
+      })
+      .addCase(loadHeldBills.rejected, (state) => {
+        state.heldLoading = false;
+        state.held = [];
+      })
+      .addCase(loadRxFulfillment.pending, (state) => {
+        state.rxFulfillmentLoading = true;
+      })
+      .addCase(loadRxFulfillment.fulfilled, (state, action) => {
+        state.rxFulfillmentLoading = false;
+        state.rxFulfillment = action.payload;
+        if (state.status === 'validation' && state.statusHint === POS_CONTENT.rxCheckFailure) {
+          state.status = null;
+          state.statusHint = null;
+        }
+      })
+      .addCase(loadRxFulfillment.rejected, (state, action) => {
+        state.rxFulfillmentLoading = false;
+        state.rxFulfillment = [];
+        state.status = action.payload?.status ?? 'failure';
+        state.statusHint = action.payload?.hint ?? POS_CONTENT.rxCheckFailure;
       })
       .addCase(searchCatalogue.fulfilled, (state, action) => {
         state.catalogue = action.payload;
@@ -549,7 +610,12 @@ const posSlice = createSlice({
           state.step = 'payment';
         }
         state.status = 'success';
-        state.statusHint = appliedOfferHint(action.payload.invoice);
+        state.statusHint =
+          discountApprovalCopy(action.payload.invoice.discountApprovalStatus) ??
+          appliedOfferHint(action.payload.invoice);
+        if (action.payload.invoice.discountApprovalStatus === 'PENDING') {
+          state.status = 'validation';
+        }
         retender(state);
       })
       .addCase(saveInvoice.rejected, (state, action) => {
@@ -593,6 +659,10 @@ const posSlice = createSlice({
         state.busy = false;
         state.invoice = action.payload;
         state.status = 'success';
+        state.statusHint = discountApprovalCopy(action.payload.discountApprovalStatus);
+        if (action.payload.discountApprovalStatus === 'PENDING') {
+          state.status = 'validation';
+        }
         retender(state);
       })
       .addCase(applyPricing.rejected, (state, action) => {
@@ -623,6 +693,10 @@ const posSlice = createSlice({
         clearBillFields(state);
         state.status = 'success';
         state.statusHint = POS_CONTENT.thunk.held(action.payload.invoiceNumber);
+        state.held = [
+          action.payload,
+          ...state.held.filter((item) => item.id !== action.payload.id),
+        ];
       })
       .addCase(holdBill.rejected, (state, action) => {
         state.busy = false;
@@ -653,6 +727,7 @@ const posSlice = createSlice({
         state.statusHint = action.payload.statusHint;
         state.createKey = crypto.randomUUID();
         state.completeKey = crypto.randomUUID();
+        state.held = state.held.filter((item) => item.id !== action.payload.invoice.id);
       })
       .addCase(continueInvoice.rejected, (state, action) => {
         state.busy = false;

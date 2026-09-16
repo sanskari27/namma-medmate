@@ -54,7 +54,6 @@ import com.nammamedmate.server.infrastructure.sales.PrescriptionFileStorage;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ApprovalRequestRepository;
-import com.nammamedmate.server.persistence.ApprovalRuleRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.DoctorRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
@@ -110,7 +109,6 @@ public class SalesInvoiceService {
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final ApprovalService approvalService;
-  private final ApprovalRuleRepository approvalRuleRepository;
   private final ApprovalRequestRepository approvalRequestRepository;
   private final AuditService auditService;
   private final CustomerCreditService customerCreditService;
@@ -141,7 +139,6 @@ public class SalesInvoiceService {
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       ApprovalService approvalService,
-      ApprovalRuleRepository approvalRuleRepository,
       ApprovalRequestRepository approvalRequestRepository,
       AuditService auditService,
       CustomerCreditService customerCreditService,
@@ -170,7 +167,6 @@ public class SalesInvoiceService {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.approvalService = approvalService;
-    this.approvalRuleRepository = approvalRuleRepository;
     this.approvalRequestRepository = approvalRequestRepository;
     this.auditService = auditService;
     this.customerCreditService = customerCreditService;
@@ -1591,8 +1587,8 @@ public class SalesInvoiceService {
       AuthPrincipal principal, SalesInvoice invoice, int effectiveBps) {
     cancelPendingDiscountRequest(invoice);
     ApprovalRule rule =
-        approvalRuleRepository
-            .findByTenantIdAndModuleCodeAndActionKeyAndDeletedAtIsNull(
+        approvalService
+            .resolveApplicableRule(
                 invoice.getTenantId(), ModuleCode.SALES, ApprovalActionKey.SALES_DISCOUNT_PERCENT)
             .orElse(null);
     if (rule == null

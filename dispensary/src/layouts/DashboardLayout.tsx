@@ -17,6 +17,7 @@ import { SHELL } from '@/libs/constants/shell.const';
 import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
 import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
 import { fetchSession, logoutSession } from '@/services/auth';
+import { newSale } from '@/screens/pos/store/pos.slice';
 
 export default function DashboardLayout() {
   const dispatch = useDispatch();
@@ -110,6 +111,10 @@ export default function DashboardLayout() {
           collapsed={collapsed}
           onToggleCollapsed={() => setCollapsed((value) => !value)}
           onOpenMobile={() => setMobileOpen(true)}
+          onNewSale={() => {
+            dispatch(newSale());
+            navigate(ROUTES.SALES);
+          }}
           trailing={
             <div className="flex items-center gap-2">
               <Tooltip>

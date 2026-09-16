@@ -8,6 +8,7 @@ import { LAST_ACTIVITY_KEY } from '@/hooks/useIdleLock';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, notificationsReducer } from '@/store';
+import { posReducer } from '@/screens/pos/store/pos.slice';
 
 vi.mock('@/services/auth', async () => {
   const axios = await import('@/services/axios');
@@ -52,7 +53,7 @@ vi.mock('@/services/notifications', async () => {
 
 function renderShell(pinSet: boolean) {
   const store = configureStore({
-    reducer: { auth: authReducer, notifications: notificationsReducer },
+    reducer: { auth: authReducer, notifications: notificationsReducer, pos: posReducer },
     preloadedState: {
       auth: {
         user: {

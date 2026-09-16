@@ -1,7 +1,10 @@
 package com.nammamedmate.server.persistence;
 
+import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.TenantSubscription;
 import jakarta.persistence.LockModeType;
+import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -12,6 +15,9 @@ import org.springframework.data.repository.query.Param;
 public interface TenantSubscriptionRepository extends JpaRepository<TenantSubscription, UUID> {
 
   Optional<TenantSubscription> findByTenantId(UUID tenantId);
+
+  List<TenantSubscription> findByStatusAndExpiresAtLessThanEqual(
+      SubscriptionStatus status, Instant expiresAt);
 
   boolean existsByTenantId(UUID tenantId);
 

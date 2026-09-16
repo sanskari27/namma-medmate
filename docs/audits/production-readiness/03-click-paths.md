@@ -83,10 +83,10 @@ Broken / inconvenient in detail: [`m6.md`](m6.md) click table; cashier Wave 5 jo
 | Pharmacies Suspend | status + reason | **OK**; KYC-pending no transition | `M2-LIFE-004` |
 | Support Enter | impersonation | **D-001 unlogged**; HQ chrome MASTER | `M1-IMPERSON-002` |
 | Licence Rescan | GET /due | **write scan** | `M7-LIC-003` |
-| Subscriptions override | MASTER | **OK**; expiry ≠ tenant lock | `M2-LIFE-001` |
+| Subscriptions override | MASTER | **FIXED**; EXPIRED/CANCELLED locks ACTIVE tenant | `M2-LIFE-001` |
 | Checkout exceptions | display only | **no HQ reconcile** | `M11-CF-008` |
 | WABA Rescan | Graph ping | **does not pull templates** | `M10-WA-007` |
-| Workflow desks Store | platform rule | **never applied to POS** | `M1-WF-001` |
+| Workflow desks Store | platform rule | **FIXED**; POS fallback when no Sign-off rule | `M1-WF-001` |
 
 ---
 

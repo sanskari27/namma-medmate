@@ -128,6 +128,9 @@ describe('WorkflowDesksScreen', () => {
     });
     const user = userEvent.setup();
     renderPage('admin_super');
+    expect(
+      await screen.findByText(/apply at the till when a pharmacy has no Sign-off rule/i),
+    ).toBeInTheDocument();
     expect(await screen.findByText(/No platform workflow rules yet/i)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Store workflow rule/i }));
     expect(await screen.findByText(/Workflow rule stored/i)).toBeInTheDocument();

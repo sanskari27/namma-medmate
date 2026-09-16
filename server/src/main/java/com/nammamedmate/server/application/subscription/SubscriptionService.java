@@ -11,6 +11,8 @@ import com.nammamedmate.server.domain.SubscriptionOverrideEvent;
 import com.nammamedmate.server.domain.SubscriptionStatus;
 import com.nammamedmate.server.domain.SubscriptionUpgradeIntent;
 import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
+import com.nammamedmate.server.domain.TenantStatusTransition;
 import com.nammamedmate.server.domain.TenantSubscription;
 import com.nammamedmate.server.domain.UpgradeIntentStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
@@ -214,6 +216,10 @@ public class SubscriptionService {
       subscription.setCreatedAt(now);
     }
     tenantSubscriptionRepository.save(subscription);
+    if (status == SubscriptionStatus.EXPIRED || status == SubscriptionStatus.CANCELLED) {
+      expireActiveTenant(tenant, now);
+      tenantRepository.save(tenant);
+    }
     return toCurrentView(subscription, tenant.getId());
   }
 
@@ -327,6 +333,17 @@ public class SubscriptionService {
         PlanLimits.maxUsers(plan),
         countUsers(tenant.getId()),
         countBranches(tenant.getId()));
+  }
+
+  static void expireActiveTenant(Tenant tenant, Instant now) {
+    if (tenant == null || tenant.getStatus() != TenantStatus.ACTIVE) {
+      return;
+    }
+    if (!TenantStatusTransition.isAllowed(tenant.getStatus(), TenantStatus.EXPIRED)) {
+      return;
+    }
+    tenant.setStatus(TenantStatus.EXPIRED);
+    tenant.setUpdatedAt(now);
   }
 
   private TenantSubscription newFreeSubscription(UUID tenantId) {

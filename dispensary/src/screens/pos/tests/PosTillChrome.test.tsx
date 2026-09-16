@@ -125,6 +125,7 @@ import {
   downloadInvoicePdf,
   emailInvoiceCopy,
   openInvoicePdf,
+  updateSalesInvoice,
 } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
@@ -141,6 +142,7 @@ const completeInvoiceMock = vi.mocked(completeSalesInvoice);
 const downloadPdfMock = vi.mocked(downloadInvoicePdf);
 const emailCopyMock = vi.mocked(emailInvoiceCopy);
 const openPdfMock = vi.mocked(openInvoicePdf);
+const updateInvoiceMock = vi.mocked(updateSalesInvoice);
 const creditMock = vi.mocked(getCustomerCredit);
 const loyaltyMock = vi.mocked(getCustomerLoyalty);
 
@@ -678,5 +680,20 @@ describe('POS till chrome M6-POS-001', () => {
       expect(emailCopyMock).toHaveBeenCalledWith('inv-1');
     });
     expect(screen.getByText('Bill copy queued for this patient.')).toBeInTheDocument();
+  });
+
+  it('success: Back after Charge starts a new sale and does not PATCH', async () => {
+    const user = userEvent.setup();
+    completeInvoiceMock.mockResolvedValue(draftInvoice({ status: 'COMPLETED', version: 2 }));
+    renderPage();
+    await addPack(user);
+    await walkIn(user);
+    await proceed(user);
+    await user.click(screen.getByRole('button', { name: 'Cash' }));
+    await user.click(screen.getByRole('button', { name: /Charge ₹/ }));
+    await user.click(screen.getByRole('button', { name: '← Back to add items' }));
+    expect(updateInvoiceMock).not.toHaveBeenCalled();
+    expect(screen.getByRole('button', { name: 'Proceed to bill' })).toBeInTheDocument();
+    expect(screen.queryByText('Penicillin V')).toBeInTheDocument();
   });
 });

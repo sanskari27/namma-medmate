@@ -7,6 +7,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 import com.nammamedmate.server.AbstractIntegrationTest;
+import com.nammamedmate.server.application.subscription.SubscriptionExpiryScanner;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchStatus;
@@ -75,6 +76,7 @@ class SubscriptionTest extends AbstractIntegrationTest {
   @Autowired private NotificationEventRepository notificationEventRepository;
   @Autowired private NotificationSourceRepository notificationSourceRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private SubscriptionExpiryScanner subscriptionExpiryScanner;
 
   @BeforeEach
   void wipe() {
@@ -246,6 +248,103 @@ class SubscriptionTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.planCode").value("PRO"))
         .andExpect(jsonPath("$.data.effectiveBranchLimit").value(10));
+  }
+
+  @Test
+  void ac01_masterOverrideExpiredOrCancelledLocksActiveTenant() throws Exception {
+    Tenant expired = persistTenant("ovr-exp", "Expire Chemist", TenantStatus.ACTIVE);
+    persistPlan(expired.getId(), PlanCode.STARTER);
+    persistOwner(expired.getId(), "owner@ovr-exp.local");
+    Tenant cancelled = persistTenant("ovr-can", "Cancel Chemist", TenantStatus.ACTIVE);
+    persistPlan(cancelled.getId(), PlanCode.STARTER);
+    persistOwner(cancelled.getId(), "owner@ovr-can.local");
+    Tenant held = persistTenant("ovr-hold", "Hold Chemist", TenantStatus.SUSPENDED);
+    persistPlan(held.getId(), PlanCode.STARTER);
+    persistUser(null, "ops@ovr-lock.local", AppUserRole.admin_super);
+    Cookie master = login("ops@ovr-lock.local");
+
+    mockMvc
+        .perform(
+            post("/api/v1/admin/subscriptions/" + expired.getId() + "/override")
+                .cookie(master)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(overrideBody("EXPIRED", "plan lapsed")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("EXPIRED"));
+    mockMvc
+        .perform(
+            post("/api/v1/admin/subscriptions/" + cancelled.getId() + "/override")
+                .cookie(master)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(overrideBody("CANCELLED", "contract ended")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("CANCELLED"));
+    mockMvc
+        .perform(
+            post("/api/v1/admin/subscriptions/" + held.getId() + "/override")
+                .cookie(master)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(overrideBody("EXPIRED", "held then lapsed")))
+        .andExpect(status().isOk());
+
+    assertThat(tenantRepository.findById(expired.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.EXPIRED);
+    assertThat(tenantRepository.findById(cancelled.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.EXPIRED);
+    assertThat(tenantRepository.findById(held.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.SUSPENDED);
+
+    Cookie owner = login("owner@ovr-exp.local");
+    mockMvc
+        .perform(get("/api/v1/notifications").cookie(owner))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.message").value("This pharmacy subscription has expired."));
+  }
+
+  @Test
+  void ac01_pastExpiresAtJobLocksActiveTenantNotSuspended() throws Exception {
+    Instant past = Instant.now().minusSeconds(60);
+    Instant future = Instant.now().plusSeconds(86_400);
+
+    Tenant due = persistTenant("job-due", "Due Chemist", TenantStatus.ACTIVE);
+    persistPlan(due.getId(), PlanCode.STARTER);
+    persistOwner(due.getId(), "owner@job-due.local");
+    setExpiresAt(due.getId(), past);
+
+    Tenant held = persistTenant("job-hold", "Held Chemist", TenantStatus.SUSPENDED);
+    persistPlan(held.getId(), PlanCode.STARTER);
+    setExpiresAt(held.getId(), past);
+
+    Tenant later = persistTenant("job-later", "Later Chemist", TenantStatus.ACTIVE);
+    persistPlan(later.getId(), PlanCode.STARTER);
+    persistOwner(later.getId(), "owner@job-later.local");
+    setExpiresAt(later.getId(), future);
+
+    subscriptionExpiryScanner.expireDue();
+
+    assertThat(tenantSubscriptionRepository.findByTenantId(due.getId()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionStatus.EXPIRED);
+    assertThat(tenantRepository.findById(due.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.EXPIRED);
+    assertThat(tenantSubscriptionRepository.findByTenantId(held.getId()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionStatus.EXPIRED);
+    assertThat(tenantRepository.findById(held.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.SUSPENDED);
+    assertThat(tenantSubscriptionRepository.findByTenantId(later.getId()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionStatus.ACTIVE);
+    assertThat(tenantRepository.findById(later.getId()).orElseThrow().getStatus())
+        .isEqualTo(TenantStatus.ACTIVE);
+
+    Cookie owner = login("owner@job-due.local");
+    mockMvc
+        .perform(get("/api/v1/notifications").cookie(owner))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.message").value("This pharmacy subscription has expired."));
+
+    Cookie laterOwner = login("owner@job-later.local");
+    mockMvc.perform(get("/api/v1/notifications").cookie(laterOwner)).andExpect(status().isOk());
   }
 
   @Test
@@ -423,6 +522,26 @@ class SubscriptionTest extends AbstractIntegrationTest {
     return "{\"displayName\":\"Asha\",\"phone\":\"9876543210\",\"email\":\""
         + email
         + "\",\"password\":\"till-pass-1\",\"role\":\"pharmacy_staff\",\"kind\":\"STAFF\"}";
+  }
+
+  private static String overrideBody(String status, String reason) {
+    return """
+        {
+          "planCode":"STARTER",
+          "status":"%s",
+          "expiresAt":null,
+          "branchLimitOverride":null,
+          "reason":"%s"
+        }
+        """
+        .formatted(status, reason);
+  }
+
+  private void setExpiresAt(UUID tenantId, Instant expiresAt) {
+    TenantSubscription subscription =
+        tenantSubscriptionRepository.findByTenantId(tenantId).orElseThrow();
+    subscription.setExpiresAt(expiresAt);
+    tenantSubscriptionRepository.saveAndFlush(subscription);
   }
 
   private static String upgradeBody(String planCode, String idempotencyKey) {

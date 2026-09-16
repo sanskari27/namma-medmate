@@ -2,6 +2,7 @@ import { Banknote, Building2, CreditCard, Smartphone, Wallet } from 'lucide-reac
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import type { PaymentMode } from '@/services/salesInvoices';
+import { PosTenderFields } from '../pos-tender-fields';
 import { POS_CONTENT } from '../../PosScreen.content';
 import { formatPaise } from '../../PosScreen.utils';
 import {
@@ -16,6 +17,7 @@ import {
   selectPosCollected,
   selectPosCreditAvailablePaise,
   selectPosPaymentMode,
+  selectPosTenderPreview,
   selectPosTotals,
   selectPosWalkIn,
   selectPosSelectedCustomer,
@@ -47,9 +49,12 @@ export function PosBillPayment({ offline }: PosBillPaymentProps) {
   const walkIn = useSelector(selectPosWalkIn);
   const customer = useSelector(selectPosSelectedCustomer);
   const creditAvailablePaise = useSelector(selectPosCreditAvailablePaise);
+  const preview = useSelector(selectPosTenderPreview);
 
   const taxable = Math.max(0, totals.subtotalPaise);
   const disabled = busy || collected || offline;
+  const chargeBlocked =
+    disabled || preview.invalid || preview.parts.length === 0 || preview.remainingPaise > 0;
 
   return (
     <section className="pos-panel" aria-label={POS_CONTENT.paymentAria}>
@@ -117,13 +122,14 @@ export function PosBillPayment({ offline }: PosBillPaymentProps) {
           );
         })}
       </div>
-      {paymentMode === 'CREDIT' && creditAvailablePaise != null ? (
+      {creditAvailablePaise != null && customer && !walkIn ? (
         <p className="pos-khata-left">{POS_CONTENT.khataLeft(formatPaise(creditAvailablePaise))}</p>
       ) : null}
+      <PosTenderFields offline={offline} />
       <button
         type="button"
         className="pos-charge"
-        disabled={disabled || !paymentMode}
+        disabled={chargeBlocked}
         onClick={() => void dispatch(collectPayment())}
       >
         {POS_CONTENT.charge(formatPaise(totals.totalPaise))}

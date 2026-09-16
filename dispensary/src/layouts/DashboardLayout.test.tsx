@@ -9,6 +9,7 @@ import DashboardLayout from '@/layouts/DashboardLayout';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES } from '@/libs/constants/routes.const';
 import { authReducer, kioskReducer, notificationsReducer } from '@/store';
 import { initialKioskScreenState } from '@/screens/kiosk/store';
+import { initialPosState, posReducer } from '@/screens/pos/store/pos.slice';
 
 const SESSION_BRANCHES = [
   { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
@@ -97,7 +98,12 @@ function renderDashboard(
 ) {
   fetchMock.mockResolvedValue(sessionUser(tenantStatus));
   const store = configureStore({
-    reducer: { auth: authReducer, notifications: notificationsReducer, kiosk: kioskReducer },
+    reducer: {
+      auth: authReducer,
+      notifications: notificationsReducer,
+      kiosk: kioskReducer,
+      pos: posReducer,
+    },
     preloadedState: {
       auth: {
         user: {
@@ -121,6 +127,10 @@ function renderDashboard(
         totalItems: 0,
       },
       kiosk: initialKioskScreenState,
+      pos: {
+        ...initialPosState,
+        prescriptionReference: 'RX-OPEN',
+      },
     },
   });
 
@@ -334,5 +344,14 @@ describe('dispensary counter rail', () => {
     await waitFor(() =>
       expect(screen.getByRole('status')).toHaveTextContent('This pharmacy counter is suspended'),
     );
+  });
+
+  it('header + New sale clears the till draft and opens Sales', async () => {
+    const user = userEvent.setup();
+    const { store } = renderDashboard(ROUTES.DASHBOARD);
+    expect(store.getState().pos.prescriptionReference).toBe('RX-OPEN');
+    await user.click(screen.getByRole('button', { name: '+ New sale' }));
+    expect(store.getState().pos.prescriptionReference).toBe('');
+    expect(screen.getByText('Sales page')).toBeInTheDocument();
   });
 });

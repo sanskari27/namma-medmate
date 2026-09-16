@@ -50,6 +50,29 @@ export function tenderForMode(mode: PaymentMode | null, totalPaise: number): Ten
   return blank;
 }
 
+export function tenderFilledCount(tender: TenderDraft): number {
+  return [
+    tender.cashRupees,
+    tender.cardRupees,
+    tender.upiRupees,
+    tender.creditRupees,
+    tender.bankRupees,
+  ].filter((value) => value.trim()).length;
+}
+
+export function rxStatusHint(status: PageStatus, code?: string | null): string | null {
+  if (code === 'FOREIGN_REFERENCE') {
+    return POS_CONTENT.rxForeign;
+  }
+  if (code === 'ARCHIVED_REFERENCE') {
+    return POS_CONTENT.rxArchived;
+  }
+  if (status === 'failure') {
+    return POS_CONTENT.rxCheckFailure;
+  }
+  return null;
+}
+
 const CONTROLLED_SCHEDULES = new Set(['H', 'H1', 'X', 'NDPS']);
 
 export function hasSalesAccess(modules: string[] | undefined): boolean {

@@ -6,6 +6,7 @@ import { PosCartPanel } from './components/pos-cart-panel';
 import { PosCategoryChips } from './components/pos-category-chips';
 import { PosConnectivityOverlay } from './components/pos-connectivity-overlay';
 import { PosGstPanel } from './components/pos-gst-panel';
+import { PosHeldStrip } from './components/pos-held-strip';
 import { PosInvoiceCopy } from './components/pos-invoice-copy';
 import { PosLoyaltyPanel } from './components/pos-loyalty-panel';
 import { PosOfferPanel } from './components/pos-offer-panel';
@@ -61,6 +62,7 @@ export default function PosScreen() {
       <PosStepper />
       {step === 'cart' ? (
         <>
+          <PosHeldStrip />
           <PosToolbar />
           <PosCategoryChips />
           <div className="pos-main">

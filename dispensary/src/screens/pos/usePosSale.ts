@@ -21,6 +21,7 @@ import {
 import {
   continueInvoice,
   loadBootstrap,
+  loadHeldBills,
   loadCustomerCredit,
   searchCatalogue,
   searchCustomers,
@@ -66,6 +67,7 @@ export function usePosSale() {
     continueHandled.current = continueId;
     void (async () => {
       await dispatch(loadBootstrap());
+      void dispatch(loadHeldBills());
       const result = await dispatch(continueInvoice(continueId));
       if (continueInvoice.fulfilled.match(result) && result.payload.customer) {
         void dispatch(loadCustomerCredit(result.payload.customer.id));
@@ -120,6 +122,7 @@ export function usePosSale() {
       return;
     }
     void dispatch(loadBootstrap());
+    void dispatch(loadHeldBills());
   }, [dispatch, storeAllowed, user?.activeBranchId, continueId]);
 
   useEffect(() => {

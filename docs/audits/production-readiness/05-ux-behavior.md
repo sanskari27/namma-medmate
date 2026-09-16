@@ -56,13 +56,13 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 | Open evidence | Raw API URL 401 on split hosts | blob fetch |
 | Who reviews | Generic “review” | name HQ VA/MASTER |
 | Enter support from pharmacy row | Must know email; then HQ 403 | Enter as OWNER + keep MASTER chrome |
-| Workflow desks gate tills | Platform rules unused | fallback or relabel |
+| Workflow desks gate tills | Platform rule fallback at POS | FIXED `M1-WF-001` |
 
 ## Plan / subscription
 
 | Convenient | Actual | Decision? |
 |---|---|---|
-| Expired plan locks floor | Subscription EXPIRED, tenant ACTIVE | cascade or job — **owner if auto** |
+| Expired plan locks floor | Override + daily job lock ACTIVE tenant | FIXED `M2-LIFE-001` |
 | Pending payment distinct | Same copy as abandon; second checkout | PENDING copy + reuse key |
 | Free card | “Monthly billing” | copy |
 | Near-expiry register on Free | Starter gate leaked into COMPLIANCE | remove D-005 from compliance |

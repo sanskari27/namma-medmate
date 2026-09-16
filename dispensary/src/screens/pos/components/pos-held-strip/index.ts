@@ -1,0 +1,1 @@
+export { PosHeldStrip } from './PosHeldStrip';

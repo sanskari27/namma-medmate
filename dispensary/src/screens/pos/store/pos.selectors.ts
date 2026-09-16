@@ -1,3 +1,4 @@
+import { createSelector } from '@reduxjs/toolkit';
 import type { RootState } from '@/store';
 import {
   invoiceTotals,
@@ -48,21 +49,24 @@ export const selectPosTaxProductId = (state: RootState) => state.pos.taxProductI
 export const selectPosTaxRate = (state: RootState) => state.pos.taxRate;
 export const selectPosTaxReason = (state: RootState) => state.pos.taxReason;
 
-export const selectPosCartQtyByProductId = (state: RootState) => {
-  const map = new Map<string, number>();
-  for (const line of state.pos.draft) {
-    const qty = Number(line.quantity) || 0;
-    const factor =
-      line.unitFactors[line.unit] ??
-      (line.unit === line.product.baseUnit
-        ? 1
-        : line.unit === line.product.packUnit
-          ? Number(line.product.packSize) || 1
-          : 1);
-    map.set(line.product.id, (map.get(line.product.id) ?? 0) + qty * factor);
-  }
-  return map;
-};
+export const selectPosCartQtyByProductId = createSelector(
+  [(state: RootState) => state.pos.draft],
+  (draft) => {
+    const map = new Map<string, number>();
+    for (const line of draft) {
+      const qty = Number(line.quantity) || 0;
+      const factor =
+        line.unitFactors[line.unit] ??
+        (line.unit === line.product.baseUnit
+          ? 1
+          : line.unit === line.product.packUnit
+            ? Number(line.product.packSize) || 1
+            : 1);
+      map.set(line.product.id, (map.get(line.product.id) ?? 0) + qty * factor);
+    }
+    return map;
+  },
+);
 
 export const selectPosHasCartItems = (state: RootState) => state.pos.draft.length > 0;
 
@@ -107,6 +111,10 @@ export const selectPosLoyaltyLoading = (state: RootState) => state.pos.loyaltyLo
 export const selectPosRedeemPoints = (state: RootState) => state.pos.redeemPoints;
 export const selectPosCopyBusy = (state: RootState) => state.pos.copyBusy;
 export const selectPosCopyHint = (state: RootState) => state.pos.copyHint;
+export const selectPosHeld = (state: RootState) => state.pos.held;
+export const selectPosHeldLoading = (state: RootState) => state.pos.heldLoading;
+export const selectPosRxFulfillment = (state: RootState) => state.pos.rxFulfillment;
+export const selectPosRxFulfillmentLoading = (state: RootState) => state.pos.rxFulfillmentLoading;
 
 export const selectPosCustomerDisplayName = (state: RootState) => {
   if (state.pos.selectedCustomer) {

@@ -20,6 +20,14 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M6-PDF-001 | FIXED | E | dispensary | same | same | Print/Send/New sale after Charge |
 | UX-POS-001 | FIXED | E | dispensary | alias of M6-PDF-001 | same | post-Charge New sale |
 | M6-PAY-002 | FIXED | E | dispensary | same | same | retender after pricing; APPROVAL_REQUIRED copy |
+| M6-PAY-001 | FIXED | Band 2 | dispensary | see Band 2 close-out | see Band 2 close-out | mixed Cash/UPI/Card/Bank/Khata amounts |
+| M6-HOLD-001 | FIXED | Band 2 | dispensary | same | same | held strip + resume on till |
+| UX-POS-005 | FIXED | Band 2 | dispensary | same | same | header + New sale dispatches newSale |
+| UX-POS-006 | FIXED | Band 2 | dispensary | same | same | Back after COMPLETED does not PATCH |
+| M6-RX-001 | FIXED | Band 2 | dispensary | same | same | remaining fill + required Rx reference |
+| M6-TEST-001 | FIXED | Band 2 | dispensary | same | same | POS tests use Proceed/Charge chrome |
+| M4-FEFO-001 | FIXED | Band 2 | dispensary | same | same | FEFO option; near-expiry banner; no empty batch |
+| UX-POS-004 | FIXED | Band 2 | dispensary | alias of M4-FEFO-001 | same | closed with FEFO empty-option drop |
 | M9-DASH-001 | FIXED | F | server + dispensary | see Slice F close-out | see Slice F close-out | default desk, not OWNER |
 | M1-AUTH-001 | FIXED | G | dispensary + admin | see Slice G close-out | see Slice G close-out | wrong-app logout + forget + filter |
 | AUTH-ADM-001 | FIXED | H | admin | see Slice H close-out | see Slice H close-out | idle lock during support |
@@ -27,8 +35,8 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M1-PWD-003 | FIXED | I | server + admin | see Slice I close-out | see Slice I close-out | no password/PIN rotate while acting |
 | M1-IMPERSON-002 | FIXED | J | admin + server | see Slice J close-out | see Slice J close-out | HQ chrome/authz MASTER; pharmacy APIs acting |
 | M1-IMPERSON-001 | WONTFIX | — | — | 09-out-of-scope D-001 | — | residual; do not add audit |
-| M1-WF-001 | BLOCKED | — | server | owner | — | apply POS rules vs relabel HQ desks |
-| M2-LIFE-001 | BLOCKED | — | server | owner (auto-lock?) | — | EXPIRED subscription → tenant lock |
+| M1-WF-001 | FIXED | Band 1 leftover | server + admin | see leftover close-out | see leftover close-out | platform rule fallback at POS |
+| M2-LIFE-001 | FIXED | Band 1 leftover | server | see leftover close-out | see leftover close-out | EXPIRED/CANCELLED + expiry job lock floor |
 | M1-IMPERSON-004 | FIXED | K | server | see Slice K close-out | see Band 1 gates | Enter refused on non-ACTIVE tenant |
 | SEC-NEW-001 | FIXED | K | server | same | same | TERMINATED acting JWT rejected except Exit/logout |
 | M1-BRANCH-001 | FIXED | M | dispensary | see Slice M close-out | same | alias UX-DISP-01 |
@@ -51,8 +59,8 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: Band 1 remainder — FIXED (K, M, P, Q, R). Next picker: Band 2.
-Blocked on user: M1-WF-001, M2-LIFE-001 (owner). M1-IMPERSON-001 WONTFIX (D-001).
+Current slice: Band 1 leftovers — FIXED. Next picker: Band 3.
+Blocked on user: none of these two. M1-IMPERSON-001 WONTFIX (D-001). D-013 still tracker-blocks M1-S09.
 
 ## Band 1 close-out (2026-09-16)
 
@@ -102,7 +110,58 @@ No commit requested.
 
 Browser (localhost:5173 owner): saved-login emails masked (`c***@varshmaan.local`). Collapsed MapPin opens All outlets / Indiranagar / Koramangala / Kiosk. Switch to kiosk remounts dashboard to ₹0 for that outlet. Kiosk config Staff exit PIN is empty (placeholder 4–8 digits; no `0000`).
 
-Out of scope: M1-IMPERSON-001, M1-WF-001, M2-LIFE-001, M1-PIN-004, M1-IMPERSON-003, Band 2+.
+Out of scope: M1-IMPERSON-001, M1-WF-001, M2-LIFE-001, M1-PIN-004, M1-IMPERSON-003, Band 3+.
+
+## Band 2 close-out (2026-09-16)
+
+No commit requested. Dispensary POS remainder after Slice E.
+
+- Mixed tender: Cash/UPI/Card/Bank/Khata amounts + refs; Charge disabled until cover; walk-in Khata disabled; server complete still owns total
+- Held strip on cart with resume; hold parks and returns to cart
+- Header `+ New sale` is a button that dispatches `newSale` and opens Sales
+- Back after COMPLETED clears the till (no PATCH)
+- Rx remaining via `GET` prescriptions; Rx reference required (upload optional)
+- FEFO suggested option; near-expiry banner; no empty batch option
+- POS tests rewritten to Proceed / Charge / Continue as walk-in
+- `selectPosCartQtyByProductId` memoized (new Map every render locked the product grid)
+
+Tests: `cd dispensary && npm run test -- --run src/screens/pos/tests src/layouts/DashboardLayout.test.tsx src/layouts/DashboardLayout.pin.test.tsx` — 107 passed.
+
+Listed gates (dispensary only; no server/admin/compose change):
+
+- `cd dispensary && npm run lint` — HEAD unused-import residuals (account/credit/distributors/offers/purchases). Band 2 POS/layout eslint clean.
+- Slice tests 107 passed (above).
+- `cd dispensary && npm run build` — HEAD `tsc` residuals (inventory/orders/shop-books/credit/account); none in POS Band 2 files.
+
+Browser (localhost:5173 owner, Indiranagar): header `+ New sale` is a button and clears leftover tender/banner. Held strip shows Resume bill INV/…/00385–00382. Colgate batch is `A26-0102 · FEFO suggested` with no empty Select batch. Walk-in Proceed → Take payment with Cash/UPI/Card/Bank/Khata fields; Khata disabled; Cash ₹118 enables Charge ₹118.00 & invoice (not collected). New sale returns to empty cart + held strip.
+
+Out of scope: Band 3+.
+
+## Band 1 leftovers close-out (2026-09-16)
+
+No commit requested. Owner unblocked: apply platform rules at POS; auto-lock on subscription expiry.
+
+### M1-WF-001
+
+- `ApprovalService.resolveApplicableRule` uses pharmacy Sign-off first, then PLATFORM
+- POS `evaluateDiscountApproval` uses that lookup; HQ Workflow desks copy names the till fallback
+- Tests: `SalesInvoicePricingTest` platform-only PENDING + pharmacy-wins NOT_REQUIRED; `WorkflowDesksScreen.test.tsx` 6 passed
+
+### M2-LIFE-001
+
+- MASTER override EXPIRED/CANCELLED sets ACTIVE tenant to EXPIRED (SUSPENDED/TERMINATED unchanged)
+- `SubscriptionExpiryScanner` + UTC `0 5 0 * * *` job expires ACTIVE rows with `expiresAt <= now`
+- Tests: `SubscriptionTest.ac01_masterOverrideExpiredOrCancelledLocksActiveTenant`, `ac01_pastExpiresAtJobLocksActiveTenantNotSuspended`
+
+Slice tests: `TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -Dtest=SubscriptionTest,SalesInvoicePricingTest,ApprovalWorkflowTest,TenantLifecycleTest test` — Tests run: 38, Failures: 0.
+
+Listed gates (server then admin; sequential):
+
+- `cd server && ./mvnw spotless:check` — HEAD residuals (kiosk/inventory/expense/credit/auth). This slice’s Java is clean.
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw test` — Tests run: 934, Failures: 2 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility`, `InventoryGuidanceTest.ac03_expiryThresholdIsConfigurable`.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 190 passed; vite build ok.
+
+Browser (localhost:5174 MASTER): `/workflows` subtitle reads that platform rules apply at the till when a pharmacy has no Sign-off rule. Empty state still “No platform workflow rules yet.” Did not store a live platform discount rule (would gate Varshmaan POS).
 
 ## Slice K contract
 
