@@ -3,15 +3,14 @@ import type { AppDispatch } from '@/store';
 import { Pencil, Plus, Search } from 'lucide-react';
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 import type { PageStatus } from '../../InventoryScreen.utils';
 import {
   loadCatalogue,
   openProductEditor,
   selectCatalogue,
   selectFilteredCatalogueProducts,
-  selectInventorySyncEpoch,
   setCatalogueQuery,
-  setWorkspaceStatus,
 } from '../../store';
 import { InventoryOpsShell } from '../inventory-ops-shell';
 
@@ -24,7 +23,6 @@ export function CatalogueWorkspace({ allowed, onStatusChange }: CatalogueWorkspa
   const dispatch = useDispatch<AppDispatch>();
   const catalogue = useSelector(selectCatalogue);
   const products = useSelector(selectFilteredCatalogueProducts);
-  const syncEpoch = useSelector(selectInventorySyncEpoch);
 
   useEffect(() => {
     if (!allowed) {
@@ -32,12 +30,7 @@ export function CatalogueWorkspace({ allowed, onStatusChange }: CatalogueWorkspa
       return;
     }
     void dispatch(loadCatalogue(undefined));
-  }, [allowed, dispatch, onStatusChange, syncEpoch]);
-
-  useEffect(() => {
-    onStatusChange(catalogue.status);
-    dispatch(setWorkspaceStatus({ status: catalogue.status }));
-  }, [catalogue.status, dispatch, onStatusChange]);
+  }, [allowed, dispatch, onStatusChange]);
 
   return (
     <InventoryOpsShell
@@ -90,7 +83,9 @@ export function CatalogueWorkspace({ allowed, onStatusChange }: CatalogueWorkspa
                 <td colSpan={6} className="px-4 py-10 text-center text-sm text-muted">
                   {catalogue.status === 'loading'
                     ? 'Loading catalogue…'
-                    : 'No products match this search.'}
+                    : !catalogue.query.trim()
+                      ? INVENTORY_CONTENT.noSkus
+                      : 'No products match this search.'}
                 </td>
               </tr>
             ) : (

@@ -17,6 +17,10 @@ import com.nammamedmate.server.domain.StaffRegistrationStatus;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.NotificationDeliveryRepository;
+import com.nammamedmate.server.persistence.NotificationEventRepository;
+import com.nammamedmate.server.persistence.NotificationRepository;
+import com.nammamedmate.server.persistence.NotificationSourceRepository;
 import com.nammamedmate.server.persistence.PasswordHistoryRepository;
 import com.nammamedmate.server.persistence.PasswordResetTokenRepository;
 import com.nammamedmate.server.persistence.SavedLoginRepository;
@@ -50,9 +54,17 @@ class StaffOnboardingTest extends AbstractIntegrationTest {
   @Autowired private TransactionalEmailRepository transactionalEmailRepository;
   @Autowired private SavedLoginRepository savedLoginRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private NotificationEventRepository notificationEventRepository;
+  @Autowired private NotificationDeliveryRepository notificationDeliveryRepository;
+  @Autowired private NotificationRepository notificationRepository;
+  @Autowired private NotificationSourceRepository notificationSourceRepository;
 
   @BeforeEach
   void wipe() {
+    notificationDeliveryRepository.deleteAll();
+    notificationEventRepository.deleteAll();
+    notificationRepository.deleteAll();
+    notificationSourceRepository.deleteAll();
     passwordResetTokenRepository.deleteAll();
     passwordHistoryRepository.deleteAll();
     transactionalEmailRepository.deleteAll();
@@ -122,6 +134,9 @@ class StaffOnboardingTest extends AbstractIntegrationTest {
                 .content(loginJson("clerk@staff.local", STAFF_PASSWORD)))
         .andExpect(status().isForbidden())
         .andExpect(jsonPath("$.code").value("ACCOUNT_CANNOT_SIGN_IN"));
+
+    assertThat(notificationEventRepository.findByEventKey("account-created:" + stored.getId()))
+        .isPresent();
   }
 
   @Test

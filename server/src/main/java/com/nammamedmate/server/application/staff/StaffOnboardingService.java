@@ -1,9 +1,12 @@
 package com.nammamedmate.server.application.staff;
 
+import com.nammamedmate.server.application.notification.NotificationRoutingService;
+import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.EmailNormalizer;
+import com.nammamedmate.server.domain.NotificationTrigger;
 import com.nammamedmate.server.domain.PasswordPolicy;
 import com.nammamedmate.server.domain.StaffLicenseRules;
 import com.nammamedmate.server.domain.StaffRegistration;
@@ -52,6 +55,7 @@ public class StaffOnboardingService {
   private final TenantRepository tenantRepository;
   private final UserSessionRepository userSessionRepository;
   private final SubscriptionService subscriptionService;
+  private final NotificationRoutingService notificationRoutingService;
   private final PasswordEncoder passwordEncoder;
   private final Clock clock;
 
@@ -61,6 +65,7 @@ public class StaffOnboardingService {
       TenantRepository tenantRepository,
       UserSessionRepository userSessionRepository,
       SubscriptionService subscriptionService,
+      NotificationRoutingService notificationRoutingService,
       PasswordEncoder passwordEncoder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
@@ -68,6 +73,7 @@ public class StaffOnboardingService {
     this.tenantRepository = tenantRepository;
     this.userSessionRepository = userSessionRepository;
     this.subscriptionService = subscriptionService;
+    this.notificationRoutingService = notificationRoutingService;
     this.passwordEncoder = passwordEncoder;
     this.clock = clock;
   }
@@ -125,6 +131,18 @@ public class StaffOnboardingService {
     registration.setStatus(StaffRegistrationStatus.PENDING);
     registration.setCreatedAt(now);
     staffRegistrationRepository.saveAndFlush(registration);
+    if (tenantId != null) {
+      notificationRoutingService.route(
+          new RouteCommand(
+              "account-created:" + user.getId(),
+              NotificationTrigger.ACCOUNT_CREATED,
+              tenantId,
+              null,
+              user.getId(),
+              user.getId(),
+              null,
+              null));
+    }
     return toAccount(user, registration);
   }
 

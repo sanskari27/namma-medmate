@@ -6,6 +6,7 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -29,4 +30,32 @@ public interface CustomerCreditLedgerEntryRepository
       """)
   List<CustomerCreditLedgerEntry> findAllByTenantIdAndOccurredAtOnOrBefore(
       @Param("tenantId") UUID tenantId, @Param("cutoff") Instant cutoff);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      """
+      update CustomerCreditLedgerEntry e
+      set e.customerId = :survivorId
+      where e.customerId = :duplicateId
+        and e.tenantId = :tenantId
+      """)
+  int repointCustomerId(
+      @Param("survivorId") UUID survivorId,
+      @Param("duplicateId") UUID duplicateId,
+      @Param("tenantId") UUID tenantId);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      """
+      update CustomerCreditLedgerEntry e
+      set e.accountId = :survivorAccountId
+      where e.accountId = :duplicateAccountId
+        and e.tenantId = :tenantId
+      """)
+  int repointAccountId(
+      @Param("survivorAccountId") UUID survivorAccountId,
+      @Param("duplicateAccountId") UUID duplicateAccountId,
+      @Param("tenantId") UUID tenantId);
 }

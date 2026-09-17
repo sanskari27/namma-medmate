@@ -1,5 +1,6 @@
 import { apiClient, ApiError, isApiError } from '@/services/axios';
 import { API } from '@/libs/constants/api.const';
+import type { OwnerDesk } from '@/services/dashboards';
 
 export { ApiError, isApiError };
 
@@ -17,6 +18,7 @@ export type HomeDashboardView = {
     itemsSoldToday: number;
     duesToCollectPaise: number;
     duesCustomerCount: number;
+    duesStatus?: string | null;
   };
   quickActions: {
     pendingPrescriptions: number;
@@ -45,6 +47,7 @@ export type HomeDashboardView = {
     paymentModes: { mode: string; label: string; salesPaise: number }[];
     topCategories: { categoryId: string; name: string; icon: string | null; salesPaise: number }[];
     trend: { date: string; salesPaise: number; billCount: number }[];
+    status?: string | null;
   };
   attention: {
     id: string;
@@ -80,6 +83,7 @@ export type HomeDashboardView = {
     completedAt: string;
     customerLabel: string;
   }[];
+  owner?: OwnerDesk | null;
 };
 
 export async function fetchHomeDashboard(period: DashboardPeriod = '7D'): Promise<HomeDashboardView> {

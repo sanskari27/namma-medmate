@@ -20,14 +20,16 @@ public record HomeDashboardView(
     List<AttentionItem> attention,
     List<DashboardView.ExpiryItem> expiringSoon,
     List<DashboardView.TopProductItem> topSellers,
-    List<RecentTransaction> recentTransactions) {
+    List<RecentTransaction> recentTransactions,
+    DashboardView.OwnerDesk owner) {
 
   public record HeroMetrics(
       long monthSalesPaise,
       long avgBillTodayPaise,
       long itemsSoldToday,
       long duesToCollectPaise,
-      int duesCustomerCount) {}
+      int duesCustomerCount,
+      String duesStatus) {}
 
   public record QuickActionCounts(
       int pendingPrescriptions, int lowStockCount, int pendingApprovals, int pendingGrn) {}
@@ -52,7 +54,8 @@ public record HomeDashboardView(
       List<ChannelSlice> channelSplit,
       List<PaymentSlice> paymentModes,
       List<CategorySlice> topCategories,
-      List<TrendPoint> trend) {}
+      List<TrendPoint> trend,
+      String status) {}
 
   public record ChannelSlice(String key, String label, long salesPaise, int billCount) {}
 

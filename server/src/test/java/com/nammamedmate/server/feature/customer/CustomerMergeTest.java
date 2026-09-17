@@ -14,11 +14,32 @@ import com.nammamedmate.server.AbstractIntegrationTest;
 import com.nammamedmate.server.domain.AccessRoleKind;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.BranchStatus;
+import com.nammamedmate.server.domain.BranchType;
 import com.nammamedmate.server.domain.Customer;
+import com.nammamedmate.server.domain.CustomerCreditAccount;
+import com.nammamedmate.server.domain.CustomerCreditLedgerEntry;
+import com.nammamedmate.server.domain.CustomerCreditLedgerType;
+import com.nammamedmate.server.domain.CustomerHistoryFact;
+import com.nammamedmate.server.domain.CustomerHistoryFactType;
+import com.nammamedmate.server.domain.CustomerLoyaltyAccount;
+import com.nammamedmate.server.domain.CustomerLoyaltyLedgerEntry;
+import com.nammamedmate.server.domain.CustomerRefillSchedule;
+import com.nammamedmate.server.domain.CustomerTag;
+import com.nammamedmate.server.domain.CustomerTagAssignment;
+import com.nammamedmate.server.domain.DiscountApprovalStatus;
+import com.nammamedmate.server.domain.DiscountType;
+import com.nammamedmate.server.domain.EinvoiceApplicability;
+import com.nammamedmate.server.domain.EinvoiceStatus;
+import com.nammamedmate.server.domain.Location;
+import com.nammamedmate.server.domain.LoyaltyLedgerType;
 import com.nammamedmate.server.domain.NotificationEvent;
 import com.nammamedmate.server.domain.NotificationTrigger;
 import com.nammamedmate.server.domain.PlanCode;
+import com.nammamedmate.server.domain.SalesInvoice;
+import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import com.nammamedmate.server.domain.SubscriptionStatus;
+import com.nammamedmate.server.domain.TaxJurisdiction;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.TenantSubscription;
@@ -27,14 +48,27 @@ import com.nammamedmate.server.persistence.AccessRoleEventRepository;
 import com.nammamedmate.server.persistence.AccessRoleModuleRepository;
 import com.nammamedmate.server.persistence.AccessRoleRepository;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
+import com.nammamedmate.server.persistence.CustomerCreditLedgerEntryRepository;
+import com.nammamedmate.server.persistence.CustomerHistoryFactRepository;
+import com.nammamedmate.server.persistence.CustomerLoyaltyAccountRepository;
+import com.nammamedmate.server.persistence.CustomerLoyaltyLedgerEntryRepository;
+import com.nammamedmate.server.persistence.CustomerRefillScheduleRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
+import com.nammamedmate.server.persistence.CustomerTagAssignmentRepository;
+import com.nammamedmate.server.persistence.CustomerTagRepository;
+import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.NotificationEventRepository;
+import com.nammamedmate.server.persistence.SalesInvoiceRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
 import com.nammamedmate.server.persistence.UserAccessRoleRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -57,6 +91,16 @@ class CustomerMergeTest extends AbstractIntegrationTest {
   @Autowired private TenantSubscriptionRepository tenantSubscriptionRepository;
   @Autowired private CustomerRepository customerRepository;
   @Autowired private NotificationEventRepository notificationEventRepository;
+  @Autowired private LocationRepository locationRepository;
+  @Autowired private SalesInvoiceRepository salesInvoiceRepository;
+  @Autowired private CustomerCreditAccountRepository creditAccountRepository;
+  @Autowired private CustomerCreditLedgerEntryRepository creditLedgerRepository;
+  @Autowired private CustomerLoyaltyAccountRepository loyaltyAccountRepository;
+  @Autowired private CustomerLoyaltyLedgerEntryRepository loyaltyLedgerRepository;
+  @Autowired private CustomerHistoryFactRepository historyFactRepository;
+  @Autowired private CustomerRefillScheduleRepository refillScheduleRepository;
+  @Autowired private CustomerTagRepository customerTagRepository;
+  @Autowired private CustomerTagAssignmentRepository customerTagAssignmentRepository;
   @Autowired private UserAccessRoleRepository userAccessRoleRepository;
   @Autowired private AccessRoleEventRepository accessRoleEventRepository;
   @Autowired private AccessRoleModuleRepository accessRoleModuleRepository;
@@ -65,6 +109,16 @@ class CustomerMergeTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void wipe() {
+    creditLedgerRepository.deleteAll();
+    loyaltyLedgerRepository.deleteAll();
+    historyFactRepository.deleteAll();
+    refillScheduleRepository.deleteAll();
+    customerTagAssignmentRepository.deleteAll();
+    customerTagRepository.deleteAll();
+    creditAccountRepository.deleteAll();
+    loyaltyAccountRepository.deleteAll();
+    salesInvoiceRepository.deleteAll();
+    locationRepository.deleteAll();
     notificationEventRepository.deleteAll();
     customerRepository.deleteAll();
     accessRoleEventRepository.deleteAll();
@@ -193,6 +247,88 @@ class CustomerMergeTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items", hasSize(1)))
         .andExpect(jsonPath("$.data.items[0].id").value(survivor.toString()));
+  }
+
+  @Test
+  void ac02_mergeMovesSalesKhataLoyaltyHistory_M3_CRM_002() throws Exception {
+    Tenant tenant = persistTenant("merge-move", "Merge Move");
+    persistPlan(tenant.getId(), PlanCode.GROWTH);
+    AppUser owner =
+        persistUser(tenant.getId(), "owner@merge-move.local", AppUserRole.pharmacy_owner);
+    Cookie cookie = login("owner@merge-move.local");
+    Location branch = persistBranch(tenant.getId(), "Main", "BR01");
+
+    UUID survivor = createCustomer(cookie, "Ravi", "9002100001");
+    UUID duplicate = createCustomer(cookie, "Ravi Dup", "9002100002");
+
+    SalesInvoice invoice = persistInvoice(tenant.getId(), branch.getId(), owner.getId(), duplicate);
+    long totalPaise = invoice.getTotalPaise();
+    persistCredit(tenant.getId(), duplicate, owner.getId(), invoice.getId(), 5_000L);
+    persistLoyalty(tenant.getId(), duplicate, owner.getId(), 40);
+    persistHistory(tenant.getId(), duplicate, invoice.getId());
+    persistRefill(tenant.getId(), duplicate, "Amlodipine");
+    persistTag(tenant.getId(), duplicate, "Regular");
+
+    mockMvc
+        .perform(
+            post("/api/v1/customers/merge")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mergeJson("PREVIEW", survivor, duplicate, "{}")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.linkedRecords.notificationEvents").value(0))
+        .andExpect(jsonPath("$.data.linkedRecords.salesInvoices").value(1))
+        .andExpect(jsonPath("$.data.linkedRecords.creditEntries").value(1))
+        .andExpect(jsonPath("$.data.linkedRecords.loyaltyEntries").value(1))
+        .andExpect(jsonPath("$.data.linkedRecords.historyFacts").value(1))
+        .andExpect(jsonPath("$.data.linkedRecords.refills").value(1))
+        .andExpect(jsonPath("$.data.linkedRecords.tags").value(1));
+
+    mockMvc
+        .perform(
+            post("/api/v1/customers/merge")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    mergeJson(
+                        "EXECUTE",
+                        survivor,
+                        duplicate,
+                        "{\"name\":\"SURVIVOR\",\"phone\":\"SURVIVOR\"}")))
+        .andExpect(status().isOk());
+
+    SalesInvoice movedInvoice = salesInvoiceRepository.findById(invoice.getId()).orElseThrow();
+    assertThat(movedInvoice.getCustomerId()).isEqualTo(survivor);
+    assertThat(movedInvoice.getTotalPaise()).isEqualTo(totalPaise);
+    assertThat(
+            creditAccountRepository
+                .findByTenantIdAndCustomerId(tenant.getId(), survivor)
+                .orElseThrow()
+                .getBalancePaise())
+        .isEqualTo(5_000L);
+    assertThat(
+            creditLedgerRepository.findAllByTenantIdAndCustomerIdOrderByOccurredAtDesc(
+                tenant.getId(), survivor))
+        .hasSize(1);
+    assertThat(
+            loyaltyAccountRepository
+                .findByTenantIdAndCustomerId(tenant.getId(), survivor)
+                .orElseThrow()
+                .getBalancePoints())
+        .isEqualTo(40L);
+    assertThat(
+            historyFactRepository.findAllByTenantIdAndCustomerIdOrderByOccurredAtDesc(
+                tenant.getId(), survivor))
+        .hasSize(1);
+    assertThat(
+            refillScheduleRepository
+                .findAllByTenantIdAndCustomerIdOrderByNextDueOnAscMedicineNameAsc(
+                    tenant.getId(), survivor))
+        .hasSize(1);
+    assertThat(
+            customerTagAssignmentRepository.findAllByTenantIdAndCustomerId(
+                tenant.getId(), survivor))
+        .hasSize(1);
   }
 
   @Test
@@ -513,5 +649,169 @@ class CustomerMergeTest extends AbstractIntegrationTest {
     user.setUpdatedAt(T0);
     user.setPasswordChangedAt(T0);
     return appUserRepository.save(user);
+  }
+
+  private Location persistBranch(UUID tenantId, String name, String code) {
+    Location branch = new Location();
+    branch.setId(UUID.randomUUID());
+    branch.setTenantId(tenantId);
+    branch.setName(name);
+    branch.setBranchCode(code);
+    branch.setAddressLine("12 MG Road");
+    branch.setCity("Bengaluru");
+    branch.setState("KA");
+    branch.setPincode("560001");
+    branch.setContactPhone("9876543210");
+    branch.setDrugLicenseNumber("DL-" + code);
+    Map<String, Object> hours = new LinkedHashMap<>();
+    Map<String, Object> mon = new LinkedHashMap<>();
+    mon.put("open", "09:00");
+    mon.put("close", "21:00");
+    hours.put("mon", mon);
+    branch.setOperatingHours(hours);
+    branch.setBranchType(BranchType.RETAIL);
+    branch.setStatus(BranchStatus.ACTIVE);
+    branch.setOpeningDate(LocalDate.of(2026, 9, 1));
+    branch.setDefaultBranch(true);
+    branch.setLinkedWarehouse(false);
+    Map<String, Object> pricing = new LinkedHashMap<>();
+    pricing.put("defaultMarkupBps", 0);
+    pricing.put("roundToNearestPaise", 1);
+    branch.setPricingSettings(pricing);
+    Map<String, Object> tax = new LinkedHashMap<>();
+    tax.put("gstMode", "CGST_SGST");
+    tax.put("taxState", "KA");
+    branch.setTaxSettings(tax);
+    branch.setCreatedAt(T0);
+    branch.setUpdatedAt(T0);
+    return locationRepository.saveAndFlush(branch);
+  }
+
+  private SalesInvoice persistInvoice(UUID tenantId, UUID branchId, UUID userId, UUID customerId) {
+    SalesInvoice invoice = new SalesInvoice();
+    invoice.setId(UUID.randomUUID());
+    invoice.setTenantId(tenantId);
+    invoice.setBranchId(branchId);
+    invoice.setInvoiceNumber("INV/2026-27/BR01/" + invoice.getId().toString().substring(0, 5));
+    invoice.setStatus(SalesInvoiceStatus.COMPLETED);
+    invoice.setStaffUserId(userId);
+    invoice.setTerminalId(UUID.randomUUID());
+    invoice.setCustomerId(customerId);
+    invoice.setSubtotalPaise(12_500);
+    invoice.setDiscountPaise(0);
+    invoice.setTaxPaise(0);
+    invoice.setTotalPaise(12_500);
+    invoice.setBillDiscountType(DiscountType.NONE);
+    invoice.setBillDiscountValue(0);
+    invoice.setTaxJurisdiction(TaxJurisdiction.INTRA);
+    invoice.setDiscountApprovalStatus(DiscountApprovalStatus.NOT_REQUIRED);
+    invoice.setEinvoiceApplicability(EinvoiceApplicability.NOT_APPLICABLE);
+    invoice.setEinvoiceStatus(EinvoiceStatus.NOT_SUBMITTED);
+    invoice.setIdempotencyKey("inv-" + invoice.getId());
+    invoice.setVersion(1);
+    invoice.setCreatedAt(T0);
+    invoice.setUpdatedAt(T0);
+    invoice.setCompletedAt(T0);
+    return salesInvoiceRepository.saveAndFlush(invoice);
+  }
+
+  private void persistCredit(
+      UUID tenantId, UUID customerId, UUID userId, UUID invoiceId, long amountPaise) {
+    CustomerCreditAccount account = new CustomerCreditAccount();
+    account.setId(UUID.randomUUID());
+    account.setTenantId(tenantId);
+    account.setCustomerId(customerId);
+    account.setLimitPaise(1_000_000L);
+    account.setBalancePaise(amountPaise);
+    account.setVersion(1);
+    account.setCreatedAt(T0);
+    account.setUpdatedAt(T0);
+    creditAccountRepository.saveAndFlush(account);
+    CustomerCreditLedgerEntry entry = new CustomerCreditLedgerEntry();
+    entry.setId(UUID.randomUUID());
+    entry.setTenantId(tenantId);
+    entry.setCustomerId(customerId);
+    entry.setAccountId(account.getId());
+    entry.setType(CustomerCreditLedgerType.SALE_CHARGE);
+    entry.setAmountPaise(amountPaise);
+    entry.setBalanceAfterPaise(amountPaise);
+    entry.setInvoiceId(invoiceId);
+    entry.setIdempotencyKey("chg-" + entry.getId());
+    entry.setCreatedByUserId(userId);
+    entry.setOccurredAt(T0);
+    entry.setCreatedAt(T0);
+    creditLedgerRepository.saveAndFlush(entry);
+  }
+
+  private void persistLoyalty(UUID tenantId, UUID customerId, UUID userId, long points) {
+    CustomerLoyaltyAccount account = new CustomerLoyaltyAccount();
+    account.setId(UUID.randomUUID());
+    account.setTenantId(tenantId);
+    account.setCustomerId(customerId);
+    account.setBalancePoints(points);
+    account.setVersion(1);
+    account.setCreatedAt(T0);
+    account.setUpdatedAt(T0);
+    loyaltyAccountRepository.saveAndFlush(account);
+    CustomerLoyaltyLedgerEntry entry = new CustomerLoyaltyLedgerEntry();
+    entry.setId(UUID.randomUUID());
+    entry.setTenantId(tenantId);
+    entry.setCustomerId(customerId);
+    entry.setAccountId(account.getId());
+    entry.setType(LoyaltyLedgerType.ADJUSTMENT);
+    entry.setPoints(points);
+    entry.setDeltaPoints(points);
+    entry.setBalanceAfterPoints(points);
+    entry.setTaxablePaise(0);
+    entry.setReason("seed");
+    entry.setIdempotencyKey("loy-" + entry.getId());
+    entry.setCreatedByUserId(userId);
+    entry.setOccurredAt(T0);
+    entry.setCreatedAt(T0);
+    loyaltyLedgerRepository.saveAndFlush(entry);
+  }
+
+  private void persistHistory(UUID tenantId, UUID customerId, UUID invoiceId) {
+    CustomerHistoryFact fact = new CustomerHistoryFact();
+    fact.setId(UUID.randomUUID());
+    fact.setTenantId(tenantId);
+    fact.setCustomerId(customerId);
+    fact.setType(CustomerHistoryFactType.PURCHASE);
+    fact.setSummary("Sale");
+    fact.setInvoiceId(invoiceId);
+    fact.setAmountPaise(12_500L);
+    fact.setOccurredAt(T0);
+    fact.setCreatedAt(T0);
+    historyFactRepository.saveAndFlush(fact);
+  }
+
+  private void persistRefill(UUID tenantId, UUID customerId, String medicine) {
+    CustomerRefillSchedule refill = new CustomerRefillSchedule();
+    refill.setId(UUID.randomUUID());
+    refill.setTenantId(tenantId);
+    refill.setCustomerId(customerId);
+    refill.setMedicineName(medicine);
+    refill.setIntervalDays(30);
+    refill.setNextDueOn(LocalDate.of(2026, 10, 1));
+    refill.setVersion(1);
+    refill.setCreatedAt(T0);
+    refill.setUpdatedAt(T0);
+    refillScheduleRepository.saveAndFlush(refill);
+  }
+
+  private void persistTag(UUID tenantId, UUID customerId, String name) {
+    CustomerTag tag = new CustomerTag();
+    tag.setId(UUID.randomUUID());
+    tag.setTenantId(tenantId);
+    tag.setName(name);
+    tag.setCreatedAt(T0);
+    tag.setUpdatedAt(T0);
+    customerTagRepository.saveAndFlush(tag);
+    CustomerTagAssignment assignment = new CustomerTagAssignment();
+    assignment.setTenantId(tenantId);
+    assignment.setCustomerId(customerId);
+    assignment.setTagId(tag.getId());
+    assignment.setCreatedAt(T0);
+    customerTagAssignmentRepository.saveAndFlush(assignment);
   }
 }

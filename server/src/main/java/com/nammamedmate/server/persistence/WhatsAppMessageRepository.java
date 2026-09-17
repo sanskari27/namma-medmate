@@ -9,6 +9,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -44,4 +45,19 @@ public interface WhatsAppMessageRepository extends JpaRepository<WhatsAppMessage
       UUID tenantId, UUID campaignId);
 
   long countByTenantIdAndCampaignId(UUID tenantId, UUID campaignId);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      """
+      update WhatsAppMessage m
+      set m.customerId = :survivorId
+      where m.customerId = :duplicateId
+        and m.tenantId = :tenantId
+      """)
+  int repointCustomerId(
+      @Param("survivorId") UUID survivorId,
+      @Param("duplicateId") UUID duplicateId,
+      @Param("tenantId") UUID tenantId);
 }

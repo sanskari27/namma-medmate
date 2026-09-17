@@ -132,7 +132,7 @@ export function ControlledStockWorkspace({
 
   return (
     <InventoryOpsShell
-      title="Schedule register"
+      title="Schedule stock book"
       subtitle="H, H1, X, and NDPS movements on this outlet. Export inspector sheets when needed."
     >
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">

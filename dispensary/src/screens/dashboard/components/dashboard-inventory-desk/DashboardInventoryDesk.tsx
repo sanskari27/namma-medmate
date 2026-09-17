@@ -9,6 +9,10 @@ export type DashboardInventoryDeskProps = {
 };
 
 export function DashboardInventoryDesk({ desk }: DashboardInventoryDeskProps) {
+  const restockHref =
+    desk.sources.stock && desk.sources.stock.includes('view=')
+      ? desk.sources.stock
+      : `${ROUTES.INVENTORY}?view=guidance`;
   return (
     <section className="dash-card" aria-label={DESK_LABEL.inventory}>
       <header className="dash-card-head">
@@ -16,7 +20,7 @@ export function DashboardInventoryDesk({ desk }: DashboardInventoryDeskProps) {
           <h2>{DESK_LABEL.inventory}</h2>
           <p>{DESK_BLURB.inventory}</p>
         </div>
-        <Link to={desk.sources.stock || ROUTES.INVENTORY}>{DASHBOARD_CONTENT.openStock}</Link>
+        <Link to={restockHref}>{DASHBOARD_CONTENT.openStock}</Link>
       </header>
       <div className="dash-grid-3 dash-desk-grid">
         <div className="dash-card-pad">
@@ -27,7 +31,7 @@ export function DashboardInventoryDesk({ desk }: DashboardInventoryDeskProps) {
             <ul className="dash-desk-list">
               {desk.lowStock.map((row) => (
                 <li key={row.productId}>
-                  <Link to={desk.sources.stock || ROUTES.INVENTORY}>{row.productName}</Link>
+                  <Link to={restockHref}>{row.productName}</Link>
                   <span>
                     {formatQty(row.onHand)}
                     {row.reorderLevel != null ? ` / ${row.reorderLevel}` : ''}

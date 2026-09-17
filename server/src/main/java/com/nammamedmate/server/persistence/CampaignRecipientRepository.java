@@ -10,5 +10,9 @@ public interface CampaignRecipientRepository
 
   List<CampaignRecipient> findAllByTenantIdAndCampaignId(UUID tenantId, UUID campaignId);
 
+  List<CampaignRecipient> findAllByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
   long countByTenantIdAndCampaignId(UUID tenantId, UUID campaignId);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
 }

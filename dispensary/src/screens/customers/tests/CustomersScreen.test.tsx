@@ -7,12 +7,15 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CustomersScreen from '@/screens/customers/CustomersScreen';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
-import type { Customer } from '@/services/customers';
+import { customersReducer } from '@/screens/customers/store/customers.slice';
+import type { Customer, CustomerDirectoryItem } from '@/services/customers';
 
 vi.mock('@/services/customers', async () => {
   const axios = await import('@/services/axios');
   return {
     listCustomers: vi.fn(),
+    listCustomerDirectory: vi.fn(),
+    listCustomerDirectoryPurchases: vi.fn(),
     getCustomer: vi.fn(),
     createCustomer: vi.fn(),
     updateCustomer: vi.fn(),
@@ -103,8 +106,10 @@ vi.mock('@/services/customerRefills', async () => {
 import {
   createCustomer,
   executeCustomerMerge,
+  getCustomer,
   getCustomerHistory,
-  listCustomers,
+  listCustomerDirectory,
+  listCustomerDirectoryPurchases,
   previewCustomerMerge,
   updateCustomer,
 } from '@/services/customers';
@@ -128,7 +133,9 @@ import {
   updateCustomerRefill,
 } from '@/services/customerRefills';
 
-const listMock = vi.mocked(listCustomers);
+const listMock = vi.mocked(listCustomerDirectory);
+const getCustomerMock = vi.mocked(getCustomer);
+const purchasesMock = vi.mocked(listCustomerDirectoryPurchases);
 const createMock = vi.mocked(createCustomer);
 const updateMock = vi.mocked(updateCustomer);
 const previewMergeMock = vi.mocked(previewCustomerMerge);
@@ -169,9 +176,31 @@ const sample: Customer = {
   updatedAt: '2026-09-04T00:00:00Z',
 };
 
+function toDirectory(customer: Customer): CustomerDirectoryItem {
+  return {
+    id: customer.id,
+    walkInAggregate: false,
+    name: customer.name,
+    phone: customer.phone,
+    email: customer.email,
+    chronicConditions: customer.chronicConditions,
+    orderCount: 0,
+    storeOrders: 0,
+    onlineOrders: 0,
+    unitsSold: 0,
+    lastVisitAt: null,
+    loyaltyPoints: 0,
+    lifetimeValuePaise: 0,
+    creditDuePaise: 0,
+    chronicRx: false,
+    createdAt: customer.createdAt,
+    updatedAt: customer.updatedAt,
+  };
+}
+
 function renderPage(modules: string[] = ['CRM', 'SALES']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, customers: customersReducer },
     preloadedState: {
       auth: {
         user: {
@@ -199,6 +228,8 @@ function renderPage(modules: string[] = ['CRM', 'SALES']) {
 describe('counter customers', () => {
   beforeEach(() => {
     listMock.mockReset();
+    getCustomerMock.mockReset();
+    purchasesMock.mockReset();
     createMock.mockReset();
     updateMock.mockReset();
     previewMergeMock.mockReset();
@@ -222,6 +253,8 @@ describe('counter customers', () => {
     listCustomerTagsMock.mockReset();
     createTagMock.mockReset();
     replaceTagsMock.mockReset();
+    getCustomerMock.mockResolvedValue(sample);
+    purchasesMock.mockResolvedValue([]);
     getFamilyMock.mockResolvedValue(null);
     getFamilyHistoryMock.mockResolvedValue([]);
     getFamilyCreditMock.mockResolvedValue({
@@ -258,22 +291,19 @@ describe('counter customers', () => {
   it('loading: waits for customers', () => {
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading customers for this counter…')).toBeInTheDocument();
+    expect(screen.getByText('Loading customer directory…')).toBeInTheDocument();
   });
 
   it('empty: no customers yet', async () => {
     listMock.mockResolvedValue([]);
     renderPage();
-    expect(await screen.findByRole('heading', { name: 'Customers' })).toBeInTheDocument();
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'No customers yet. Add the first walk-in or regular for this pharmacy.',
-    );
+    expect(await screen.findByText('No customers yet')).toBeInTheDocument();
   });
 
   it('denied: till without CRM', () => {
     renderPage(['SALES']);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'This till login cannot open customer records. Ask the owner to grant the CRM area.',
+      'CRM module is required to open the customer directory.',
     );
     expect(listMock).not.toHaveBeenCalled();
   });
@@ -282,7 +312,7 @@ describe('counter customers', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([]);
     renderPage();
-    await screen.findByRole('heading', { name: 'Customers' });
+    await screen.findByRole('button', { name: 'Add customer' });
     await user.click(screen.getByRole('button', { name: 'Add customer' }));
     const dialog = await screen.findByRole('dialog');
     await user.click(within(dialog).getByRole('button', { name: 'Save customer' }));
@@ -303,7 +333,7 @@ describe('counter customers', () => {
       ),
     );
     renderPage();
-    await screen.findByRole('heading', { name: 'Customers' });
+    await screen.findByRole('button', { name: 'Add customer' });
     await user.click(screen.getByRole('button', { name: 'Add customer' }));
     const dialog = await screen.findByRole('dialog');
     await user.type(within(dialog).getByLabelText('Name'), 'Dup');
@@ -318,33 +348,31 @@ describe('counter customers', () => {
   it('failure: list network error', async () => {
     listMock.mockRejectedValue(new ApiError('Could not reach the server', 0, 'NETWORK'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not reach the server for customers. Try again.',
-    );
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not reach the server');
   });
 
   it('success: create customer then edit fields', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([]);
+    listMock.mockResolvedValueOnce([]).mockResolvedValue([toDirectory(sample)]);
     createMock.mockResolvedValue(sample);
     updateMock.mockResolvedValue({
       ...sample,
       allergies: 'Penicillin, Sulfa',
     });
     renderPage();
-    await screen.findByRole('heading', { name: 'Customers' });
+    await screen.findByRole('button', { name: 'Add customer' });
     await user.click(screen.getByRole('button', { name: 'Add customer' }));
-    const dialog = await screen.findByRole('dialog');
-    await user.type(within(dialog).getByLabelText('Name'), 'Ravi Kumar');
-    await user.type(within(dialog).getByLabelText('Phone'), '9876500001');
-    await user.click(within(dialog).getByRole('button', { name: 'Save customer' }));
+    const createDialog = await screen.findByRole('dialog', { name: /Add customer at this counter/i });
+    await user.type(within(createDialog).getByLabelText('Name'), 'Ravi Kumar');
+    await user.type(within(createDialog).getByLabelText('Phone'), '9876500001');
+    await user.click(within(createDialog).getByRole('button', { name: 'Save customer' }));
 
     await waitFor(() => {
       expect(createMock).toHaveBeenCalled();
     });
-    expect(await screen.findByRole('status')).toHaveTextContent('Customer saved on this floor.');
-    expect(screen.getByRole('button', { name: 'Ravi Kumar' })).toBeInTheDocument();
-
+    expect(await screen.findByText('Customer saved on this floor.')).toBeInTheDocument();
+    await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
+    await user.click(await screen.findByRole('button', { name: 'Edit details' }));
     const allergyField = screen.getByLabelText('Allergies');
     await user.clear(allergyField);
     await user.type(allergyField, 'Penicillin, Sulfa');
@@ -365,7 +393,7 @@ describe('counter customers', () => {
       name: 'Ravi Dup',
       phone: '9876500002',
     };
-    listMock.mockResolvedValue([sample, other]);
+    listMock.mockResolvedValue([toDirectory(sample), toDirectory(other)]);
     previewMergeMock.mockResolvedValue({
       mode: 'PREVIEW',
       survivor: sample,
@@ -388,7 +416,7 @@ describe('counter customers', () => {
     await user.click(screen.getByRole('button', { name: 'Ravi Kumar' }));
     await user.click(screen.getByRole('button', { name: 'Merge duplicate' }));
 
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Merge duplicate profile/i });
     expect(
       within(dialog).getByRole('heading', { name: 'Merge duplicate profile' }),
     ).toBeInTheDocument();
@@ -410,7 +438,7 @@ describe('counter customers', () => {
       allergies: null,
       chronicConditions: null,
     };
-    listMock.mockResolvedValue([sample, child]);
+    listMock.mockResolvedValue([toDirectory(sample), toDirectory(child)]);
     createFamilyMock.mockResolvedValue({
       id: 'f1',
       label: null,
@@ -454,7 +482,7 @@ describe('counter customers', () => {
     expect(await screen.findByText('No family linked yet.')).toBeInTheDocument();
 
     await user.click(screen.getByRole('button', { name: 'Link member' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Link family member/i });
     expect(within(dialog).getByRole('heading', { name: 'Link family member' })).toBeInTheDocument();
     await user.selectOptions(within(dialog).getByLabelText('Dependent to link'), 'c2');
     await user.click(within(dialog).getByRole('button', { name: 'Link member' }));
@@ -486,7 +514,7 @@ describe('counter customers', () => {
       allergies: null,
       chronicConditions: null,
     };
-    listMock.mockResolvedValue([sample, child]);
+    listMock.mockResolvedValue([toDirectory(sample), toDirectory(child)]);
     getFamilyMock.mockResolvedValue({
       id: 'f1',
       label: null,
@@ -541,18 +569,18 @@ describe('counter customers', () => {
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     const familyKhata = await screen.findByLabelText('Family khata');
     expect(within(familyKhata).getByText('Combined dues')).toBeInTheDocument();
-    expect(within(familyKhata).getAllByText('₹90').length).toBeGreaterThanOrEqual(1);
+    expect(within(familyKhata).getAllByText(/₹90/).length).toBeGreaterThanOrEqual(1);
     expect(within(familyKhata).getByText(/Ravi Kumar · Sale charge/)).toBeInTheDocument();
 
     const memberSettle = within(familyKhata).getAllByRole('button', { name: 'Settle' })[1];
     await user.click(memberSettle);
-    const settleDialog = await screen.findByRole('dialog');
+    const settleDialog = await screen.findByRole('dialog', { name: /Settle khata/i });
     expect(within(settleDialog).getByText(/Child Kumar/)).toBeInTheDocument();
   });
 
   it('failure: family khata load error surfaces failure banner', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getFamilyMock.mockResolvedValue({
       id: 'f1',
       label: null,
@@ -569,7 +597,7 @@ describe('counter customers', () => {
 
   it('loading: family khata shows loading status', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getFamilyMock.mockResolvedValue({
       id: 'f1',
       label: null,
@@ -584,7 +612,7 @@ describe('counter customers', () => {
 
   it('empty: purchase history and doctors when none posted', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     expect(
@@ -595,7 +623,7 @@ describe('counter customers', () => {
 
   it('success: shows purchase history facts and top referring doctors', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getHistoryMock.mockResolvedValue([
       {
         id: 'h1',
@@ -651,11 +679,11 @@ describe('counter customers', () => {
 
   it('validation: doctor dialog requires name', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Add doctor reference/i });
     await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
     expect(
       within(dialog).getByText('Name is required for a doctor reference.'),
@@ -665,12 +693,12 @@ describe('counter customers', () => {
 
   it('conflict: duplicate doctor registration', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createDoctorMock.mockRejectedValue(new ApiError('taken', 409, 'REGISTRATION_TAKEN'));
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Add doctor reference/i });
     await user.type(within(dialog).getByLabelText('Name'), 'Dr. Dup');
     await user.type(within(dialog).getByLabelText('Registration'), 'DUP-1');
     await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
@@ -681,7 +709,7 @@ describe('counter customers', () => {
 
   it('success: adds a doctor reference', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createDoctorMock.mockResolvedValue({
       id: 'd2',
       tenantId: 't1',
@@ -708,7 +736,7 @@ describe('counter customers', () => {
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     await user.click(await screen.findByRole('button', { name: 'Add doctor' }));
-    const dialog = await screen.findByRole('dialog');
+    const dialog = await screen.findByRole('dialog', { name: /Add doctor reference/i });
     await user.type(within(dialog).getByLabelText('Name'), 'Dr. Rao');
     await user.type(within(dialog).getByLabelText('Registration'), 'KA-9');
     await user.click(within(dialog).getByRole('button', { name: 'Save doctor' }));
@@ -725,7 +753,7 @@ describe('counter customers', () => {
 
   it('failure: purchase history load error surfaces failure banner', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getHistoryMock.mockRejectedValue(new Error('network'));
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
@@ -736,7 +764,7 @@ describe('counter customers', () => {
 
   it('success: owner sets khata limit and sees available credit', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     updateMock.mockResolvedValue(sample);
     getCreditMock.mockResolvedValue({
       customerId: 'c1',
@@ -774,11 +802,11 @@ describe('counter customers', () => {
       expect(setLimitMock).toHaveBeenCalledWith('c1', 50000, 0);
     });
     expect(within(khata).getByText('Available')).toBeInTheDocument();
-    expect(within(khata).getAllByText('₹500').length).toBeGreaterThanOrEqual(1);
+    expect(within(khata).getAllByText(/₹500/).length).toBeGreaterThanOrEqual(1);
   });
 
   it('empty: due refills strip when none due', async () => {
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     listDueMock.mockResolvedValue([]);
     renderPage();
     expect(await screen.findByLabelText('Due refills')).toHaveTextContent(
@@ -788,7 +816,7 @@ describe('counter customers', () => {
 
   it('success: add refill schedule on customer profile', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createRefillMock.mockResolvedValue({
       id: 'r1',
       customerId: 'c1',
@@ -829,7 +857,7 @@ describe('counter customers', () => {
 
   it('conflict: duplicate refill medicine surfaces conflict', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createRefillMock.mockRejectedValue(
       new ApiError('A refill schedule already exists for this medicine', 409, 'DUPLICATE_REFILL'),
     );
@@ -847,7 +875,7 @@ describe('counter customers', () => {
 
   it('success: create and assign tenant tag', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createTagMock.mockResolvedValue({
       id: 'tag1',
       name: 'diabetic',
@@ -873,7 +901,7 @@ describe('counter customers', () => {
 
   it('validation: blank medicine does not call create refill', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
     await screen.findByLabelText('Refill schedules');
@@ -883,7 +911,7 @@ describe('counter customers', () => {
 
   it('success: customize refill interval and due date', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     listRefillsMock
       .mockResolvedValueOnce([
         {
@@ -938,7 +966,7 @@ describe('counter customers', () => {
   });
 
   it('loading: due refills strip while fetch pending', async () => {
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     listDueMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
     expect(await screen.findByLabelText('Due refills')).toHaveTextContent('Checking due refills…');
@@ -946,7 +974,7 @@ describe('counter customers', () => {
 
   it('loading: refill schedules while customer selected', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     listRefillsMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
@@ -955,7 +983,7 @@ describe('counter customers', () => {
 
   it('failure: refill list error surfaces failure banner', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     listRefillsMock.mockRejectedValue(new Error('network'));
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Ravi Kumar' }));
@@ -966,7 +994,7 @@ describe('counter customers', () => {
 
   it('conflict: duplicate tag name surfaces conflict', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     createTagMock.mockRejectedValue(
       new ApiError('A tag with this name already exists', 409, 'DUPLICATE_TAG'),
     );
@@ -984,7 +1012,7 @@ describe('counter customers', () => {
 
   it('success: selected patient shows running points on the profile', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getLoyaltyMock.mockResolvedValue({
       customerId: 'c1',
       balancePoints: 21,
@@ -1014,7 +1042,7 @@ describe('counter customers', () => {
 
   it('denied: plan without loyalty still shows frozen points copy', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue([toDirectory(sample)]);
     getLoyaltyMock.mockResolvedValue({
       customerId: 'c1',
       balancePoints: 8,

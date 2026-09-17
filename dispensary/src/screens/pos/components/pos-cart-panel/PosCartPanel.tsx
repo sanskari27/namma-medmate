@@ -5,6 +5,7 @@ import { listDoctors } from '@/services/doctors';
 import type { AppDispatch } from '@/store';
 import { PosCartLine } from '../pos-cart-line';
 import { PosCustomerDialog } from '../pos-customer-dialog';
+import { PosDueRefills } from '../pos-due-refills';
 import { PosOfferPanel } from '../pos-offer-panel';
 import { setPendingPrescriptionFile } from '../../pos.prescriptionFile';
 import {
@@ -93,6 +94,7 @@ export function PosCartPanel() {
           </button>
         ) : null}
       </div>
+      <PosDueRefills />
       <div className="pos-cart-body">
         {draft.length === 0 ? (
           <div className="pos-cart-empty" role="status">

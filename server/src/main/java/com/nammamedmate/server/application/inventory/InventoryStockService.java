@@ -999,6 +999,39 @@ public class InventoryStockService {
     return new InventoryAlertsView(low, near);
   }
 
+  @Transactional
+  public int notifyNearExpiry(UUID tenantId, UUID branchId) {
+    int warnDays = expiryWarnDaysForBranch(tenantId, branchId);
+    LocalDate today = today();
+    List<StockBalance> balances =
+        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(tenantId, branchId);
+    Map<UUID, StockBatch> batches = loadBatches(tenantId, balances);
+    int notified = 0;
+    for (StockBalance balance : balances) {
+      if (balance.getBatchId() == null
+          || balance.getQuantity() == null
+          || balance.getQuantity().compareTo(BigDecimal.ZERO) <= 0) {
+        continue;
+      }
+      StockBatch batch = batches.get(balance.getBatchId());
+      if (batch == null || !isNearExpiry(batch.getExpiresOn(), today, warnDays)) {
+        continue;
+      }
+      notificationRoutingService.route(
+          new RouteCommand(
+              "item-expiry:" + tenantId + ":" + branchId + ":" + batch.getId(),
+              NotificationTrigger.ITEM_EXPIRY,
+              tenantId,
+              branchId,
+              batch.getId(),
+              null,
+              null,
+              null));
+      notified++;
+    }
+    return notified;
+  }
+
   @Transactional(readOnly = true)
   public List<InventoryReorderLine> listReorderLinesForBranch(UUID tenantId, UUID branchId) {
     return buildReorderLines(new Context(tenantId, branchId, tenantId));
@@ -1106,7 +1139,7 @@ public class InventoryStockService {
     return expiryWarnDaysForBranch(ctx.tenantId(), ctx.branchId());
   }
 
-  private int expiryWarnDaysForBranch(UUID tenantId, UUID branchId) {
+  public int expiryWarnDaysForBranch(UUID tenantId, UUID branchId) {
     return locationRepository
         .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
         .map(InventoryStockService::readExpiryWarnDays)

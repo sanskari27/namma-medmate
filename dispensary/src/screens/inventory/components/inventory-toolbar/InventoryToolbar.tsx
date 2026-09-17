@@ -1,5 +1,7 @@
 import { Button, Input } from '@atoms';
+import { ROUTES } from '@/libs/constants/routes.const';
 import { FileDown, FileSpreadsheet, MapPin, Plus, Search } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 
 type InventoryToolbarProps = {
@@ -8,7 +10,8 @@ type InventoryToolbarProps = {
   onExcel: () => void;
   onPdf: () => void;
   onRackLocations: () => void;
-  onAddStock: () => void;
+  onAddProduct: () => void;
+  onReceive?: () => void;
 };
 
 export function InventoryToolbar({
@@ -17,7 +20,8 @@ export function InventoryToolbar({
   onExcel,
   onPdf,
   onRackLocations,
-  onAddStock,
+  onAddProduct,
+  onReceive,
 }: InventoryToolbarProps) {
   return (
     <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
@@ -55,9 +59,17 @@ export function InventoryToolbar({
           <MapPin className="size-3.5 text-brand" aria-hidden />
           {INVENTORY_CONTENT.rackLocations}
         </Button>
-        <Button type="button" size="sm" onClick={onAddStock} className="rounded-lg">
+        {onReceive ? (
+          <Button type="button" variant="outline" size="sm" onClick={onReceive} className="rounded-lg">
+            {INVENTORY_CONTENT.receiveStock}
+          </Button>
+        ) : null}
+        <Button type="button" size="sm" onClick={onAddProduct} className="rounded-lg">
           <Plus className="size-3.5" aria-hidden />
-          {INVENTORY_CONTENT.addStock}
+          {INVENTORY_CONTENT.addProduct}
+        </Button>
+        <Button asChild variant="ghost" size="sm" className="rounded-lg">
+          <Link to={ROUTES.PURCHASES}>{INVENTORY_CONTENT.addStock}</Link>
         </Button>
       </div>
     </div>

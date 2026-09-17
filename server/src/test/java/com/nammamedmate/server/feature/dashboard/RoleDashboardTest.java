@@ -112,8 +112,8 @@ class RoleDashboardTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.cashier.todayBillCount").value(1))
         .andExpect(jsonPath("$.data.cashier.holds", hasSize(1)))
         .andExpect(jsonPath("$.data.cashier.holds[0].id").value(heldId.toString()))
-        .andExpect(jsonPath("$.data.cashier.sources.sales").value("/pos"))
-        .andExpect(jsonPath("$.data.cashier.sources.holds").value("/pos"))
+        .andExpect(jsonPath("$.data.cashier.sources.sales").value("/orders"))
+        .andExpect(jsonPath("$.data.cashier.sources.holds").value("/orders"))
         .andExpect(jsonPath("$.data.inventory").doesNotExist())
         .andExpect(jsonPath("$.data.accountant").doesNotExist())
         .andExpect(jsonPath("$.data.owner").doesNotExist());
@@ -170,8 +170,8 @@ class RoleDashboardTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.inventory.pendingTransfers[0].href").value("/inventory"))
         .andExpect(jsonPath("$.data.inventory.pendingGrn", hasSize(1)))
         .andExpect(jsonPath("$.data.inventory.pendingGrn[0].id").value(receiptId.toString()))
-        .andExpect(jsonPath("$.data.inventory.pendingGrn[0].href").value("/purchases"))
-        .andExpect(jsonPath("$.data.inventory.sources.stock").value("/inventory"))
+        .andExpect(jsonPath("$.data.inventory.pendingGrn[0].href").value("/inventory?view=qc"))
+        .andExpect(jsonPath("$.data.inventory.sources.stock").value("/inventory?view=guidance"))
         .andExpect(jsonPath("$.data.cashier").doesNotExist())
         .andExpect(jsonPath("$.data.accountant").doesNotExist());
   }
@@ -233,8 +233,8 @@ class RoleDashboardTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.owner.branches[*].name", hasItem("Main")))
         .andExpect(jsonPath("$.data.owner.branches[*].name", hasItem("Annex")))
         .andExpect(jsonPath("$.data.owner.expenseTotalPaise").value(4_000))
-        .andExpect(jsonPath("$.data.owner.sources.sales").value("/pos"))
-        .andExpect(jsonPath("$.data.owner.sources.stock").value("/inventory"))
+        .andExpect(jsonPath("$.data.owner.sources.sales").value("/orders"))
+        .andExpect(jsonPath("$.data.owner.sources.stock").value("/inventory?view=guidance"))
         .andExpect(jsonPath("$.data.owner.sources.aging").value("/aging"))
         .andExpect(jsonPath("$.data.owner.sources.expenses").value("/expenses"))
         .andExpect(jsonPath("$.data.cashier").doesNotExist());
@@ -303,7 +303,79 @@ class RoleDashboardTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/dashboards/home").cookie(fx.cookie()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.hero.monthSalesPaise").value((int) TOTAL));
+        .andExpect(jsonPath("$.data.hero.monthSalesPaise").value((int) TOTAL))
+        .andExpect(jsonPath("$.data.owner.payables").exists())
+        .andExpect(jsonPath("$.data.owner.transfers").exists())
+        .andExpect(jsonPath("$.data.owner.compliance").exists())
+        .andExpect(jsonPath("$.data.owner.openPurchaseOrders").exists())
+        .andExpect(jsonPath("$.data.owner.approvals").exists());
+  }
+
+  @Test
+  void homeCountsDistinctArCustomers_M9_DASH_003() throws Exception {
+    Fixture fx = seed("dash-dues");
+    Customer first = persistCustomer(fx.tenantId(), "Khata One", "9801000201");
+    Customer second = persistCustomer(fx.tenantId(), "Khata Two", "9801000202");
+    persistCredit(
+        fx,
+        first,
+        12_000L,
+        persistInvoice(fx.tenantId(), fx.branchId(), fx.userId(), first.getId()),
+        Instant.parse("2026-09-01T04:00:00Z"));
+    persistCredit(
+        fx,
+        second,
+        5_000L,
+        persistInvoice(fx.tenantId(), fx.branchId(), fx.userId(), second.getId()),
+        Instant.parse("2026-09-01T04:00:00Z"));
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.hero.duesCustomerCount").value(2))
+        .andExpect(jsonPath("$.data.hero.duesToCollectPaise").value(17_000))
+        .andExpect(jsonPath("$.data.hero.duesStatus").value("OK"));
+  }
+
+  @Test
+  void homeFreePlanOmitsAnalyticsAndAging_M9_DASH_005_006() throws Exception {
+    Fixture fx = seed("dash-free", PlanCode.FREE);
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.analytics.status").value("PLAN_LIMIT"))
+        .andExpect(jsonPath("$.data.analytics.trend", hasSize(0)))
+        .andExpect(jsonPath("$.data.hero.duesStatus").value("PLAN_LIMIT"))
+        .andExpect(jsonPath("$.data.owner.receivables.status").value("PLAN_LIMIT"));
+  }
+
+  @Test
+  void ownerLowStockIncludesZeroOnHand_M9_DASH_007() throws Exception {
+    Fixture fx = seed("dash-zero");
+    UUID categoryId =
+        idOf(
+            mockMvc
+                .perform(
+                    post("/api/v1/product-categories")
+                        .cookie(fx.cookie())
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content("{\"name\":\"Zero cat\"}"))
+                .andExpect(status().isOk())
+                .andReturn());
+    mockMvc
+        .perform(
+            post("/api/v1/products")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(productJson("ZERO-1", "Empty Pack", categoryId, 50)))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/owner").param("scope", "tenant").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.owner.lowStock.data.count").value(1))
+        .andExpect(jsonPath("$.data.owner.lowStock.data.items[0].productName").value("Empty Pack"))
+        .andExpect(jsonPath("$.data.owner.lowStock.data.items[0].onHand").value(0));
   }
 
   @Test
@@ -629,8 +701,12 @@ class RoleDashboardTest extends AbstractIntegrationTest {
   }
 
   private Fixture seed(String tag) throws Exception {
+    return seed(tag, PlanCode.GROWTH);
+  }
+
+  private Fixture seed(String tag, PlanCode plan) throws Exception {
     Tenant tenant = persistTenant(tag, "Dash " + tag);
-    persistPlan(tenant.getId(), PlanCode.GROWTH);
+    persistPlan(tenant.getId(), plan);
     AppUser owner =
         persistUser(tenant.getId(), "owner@" + tag + ".local", AppUserRole.pharmacy_owner);
     Location branch = persistBranch(tenant.getId(), "Main", "BR01", true);

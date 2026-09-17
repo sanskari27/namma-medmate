@@ -1,0 +1,1 @@
+export { CustomerFamilyHistory } from './CustomerFamilyHistory';

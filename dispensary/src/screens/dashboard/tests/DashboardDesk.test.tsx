@@ -215,6 +215,7 @@ function renderPage(user: AuthUser) {
         <Routes>
           <Route path={ROUTES.DASHBOARD} element={<DashboardScreen />} />
           <Route path={ROUTES.SALES} element={<p>Sales route</p>} />
+          <Route path={ROUTES.ORDERS} element={<p>Sales route</p>} />
         </Routes>
       </MemoryRouter>
     </Provider>,

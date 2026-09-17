@@ -47,7 +47,7 @@ Production `Provider`: only `main.tsx`. Nested Providers only in tests.
 ## Branch-switch and impersonation-exit
 
 - **Expanded rail:** `POST /session/branch` + `branchSwitched`. Collapsed MapPin: dead.
-- **OWNER All outlets:** `activeBranchId=null`. Stock looks empty (`OWN-NAV-003`); Transfers `return null` (`OWN-NAV-004`); expense create uses `branches[0]` (`OWN-EXP-001`).
+- **OWNER All outlets:** `activeBranchId=null`. Stock GET `/inventory/overview` sums tenant branches (`OWN-NAV-003`); Transfers ask to pick an outlet (`OWN-NAV-004`); expense create requires outlet pick (`OWN-EXP-001`).
 - **Impersonation exit:** `sessionStarted(restored)`. Key `Outlet` on `userId+tenantId` or navigate `/support`.
 
 ---
@@ -56,7 +56,7 @@ Production `Provider`: only `main.tsx`. Nested Providers only in tests.
 
 | Job | Tenant scoped? | Inbox href | Correct screen? |
 |---|---|---|---|
-| License due | yes (then one TX all tenants) | `/licenses` / `/licence-expiry` | staff 403 on Licences `M7-LIC-001` |
+| License due | yes (then one TX all tenants) | `/account` (staff) / `/licenses` | pharmacist STAFF read-only; OWNER files |
 | Refill due | yes | WhatsApp only | Graph broken |
 | Credit due | yes | `/credit` | every positive balance daily `M10-WA-004` |
 | Rx archive | yes | none | OK |

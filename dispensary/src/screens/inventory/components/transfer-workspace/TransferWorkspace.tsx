@@ -10,12 +10,12 @@ import { isApiError } from '@/services/axios';
 import type { AppDispatch, AssignedBranch } from '@/store';
 import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch } from 'react-redux';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
 import {
   bumpInventorySync,
   refreshInventoryAfterMutation,
-  selectInventorySyncEpoch,
 } from '../../store';
 import { TransferCreateDialog } from '../transfer-create-dialog/TransferCreateDialog';
 import { TransferList } from '../transfer-list/TransferList';
@@ -43,7 +43,6 @@ export function TransferWorkspace({
   prefillProductId = null,
 }: TransferWorkspaceProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const syncEpoch = useSelector(selectInventorySyncEpoch);
   const [outgoing, setOutgoing] = useState<StockTransfer[]>([]);
   const [incoming, setIncoming] = useState<StockTransfer[]>([]);
   const [history, setHistory] = useState<StockTransfer[]>([]);
@@ -84,7 +83,7 @@ export function TransferWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load, syncEpoch]);
+  }, [load]);
 
   const afterMutation = async () => {
     await load();
@@ -110,7 +109,11 @@ export function TransferWorkspace({
   };
 
   if (!activeBranchId) {
-    return null;
+    return (
+      <p className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
+        {INVENTORY_CONTENT.noBranch}
+      </p>
+    );
   }
 
   return (

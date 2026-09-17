@@ -14,18 +14,33 @@ import { apiStatusHint, formValid, mapApiStatus, type PageStatus } from '../Lice
 export type LicensesReject = { status: PageStatus; hint: string | null };
 
 export const loadLicenses = createAsyncThunk<
-  { items: ComplianceLicense[]; branches: Branch[]; staff: StaffAccount[] },
+  { items: ComplianceLicense[]; branches: Branch[]; staff: StaffAccount[]; emptyHint: string | null },
   void,
-  { rejectValue: LicensesReject }
->('licenses/load', async (_, { rejectWithValue }) => {
+  { rejectValue: LicensesReject; state: RootState }
+>('licenses/load', async (_, { rejectWithValue, getState }) => {
   try {
     const [licenses, branches, staff] = await Promise.all([
       listLicenses(),
       listBranches().catch(() => [] as Branch[]),
       listStaff().catch(() => [] as StaffAccount[]),
     ]);
-    return { items: licenses.items, branches, staff };
+    const owner = getState().auth.user?.role === 'pharmacy_owner';
+    return {
+      items: licenses.items,
+      branches,
+      staff,
+      emptyHint:
+        !owner && licenses.items.length === 0
+          ? 'Your staff licence is on file with the owner.'
+          : null,
+    };
   } catch (error) {
+    if (isApiError(error) && (error.status === 403 || error.code === 'FORBIDDEN')) {
+      return rejectWithValue({
+        status: 'denied',
+        hint: 'Your staff licence is on file with the owner.',
+      });
+    }
     if (isApiError(error)) {
       return rejectWithValue({ status: mapApiStatus(error), hint: null });
     }

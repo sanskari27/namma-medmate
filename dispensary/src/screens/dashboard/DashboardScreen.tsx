@@ -9,6 +9,7 @@ import { DashboardLists } from './components/dashboard-lists';
 import { DashboardRecentTransactions } from './components/dashboard-recent-transactions';
 import { DashboardSalesAnalytics } from './components/dashboard-sales-analytics';
 import { DashboardSplitCards } from './components/dashboard-split-cards';
+import { DashboardOwnerWidgets } from './components/dashboard-owner-widgets';
 import { DashboardStatusBanner } from './components/dashboard-status-banner';
 import { useDashboardScreen } from './useDashboardScreen';
 import './DashboardScreen.css';
@@ -39,6 +40,7 @@ export default function DashboardScreen() {
             <>
               <DashboardHero displayName={page.displayName} view={page.view} />
               <DashboardKpiRow view={page.view} />
+              {page.view.owner ? <DashboardOwnerWidgets owner={page.view.owner} /> : null}
               <DashboardSalesAnalytics
                 analytics={page.view.analytics}
                 period={page.period}
@@ -49,7 +51,9 @@ export default function DashboardScreen() {
                 onMetric={page.onMetric}
                 onChartType={page.onChartType}
               />
-              <DashboardSplitCards analytics={page.view.analytics} />
+              {page.view.analytics.status === 'PLAN_LIMIT' ? null : (
+                <DashboardSplitCards analytics={page.view.analytics} />
+              )}
               <DashboardLists view={page.view} />
               <DashboardRecentTransactions items={page.view.recentTransactions} />
               <p className="dash-copyright">{copyrightNotice()}</p>

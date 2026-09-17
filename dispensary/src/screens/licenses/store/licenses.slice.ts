@@ -93,6 +93,7 @@ const licensesSlice = createSlice({
         state.branches = action.payload.branches;
         state.staff = action.payload.staff;
         state.status = action.payload.items.length === 0 ? 'empty' : null;
+        state.statusHint = action.payload.emptyHint;
       })
       .addCase(loadLicenses.rejected, (state, action) => {
         state.status = action.payload?.status ?? 'failure';

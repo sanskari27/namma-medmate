@@ -261,6 +261,7 @@ function renderPage(user: AuthUser = userFor()) {
         <Routes>
           <Route path={ROUTES.DASHBOARD} element={<DashboardScreen />} />
           <Route path={ROUTES.SALES} element={<p>Sales route</p>} />
+          <Route path={ROUTES.ORDERS} element={<p>Sales route</p>} />
           <Route path={ROUTES.PRESCRIPTIONS} element={<p>Rx route</p>} />
           <Route path={ROUTES.INVENTORY} element={<p>Stock route</p>} />
         </Routes>
@@ -358,7 +359,10 @@ describe('DashboardScreen', () => {
       'href',
       ROUTES.PRESCRIPTIONS,
     );
-    expect(screen.getByRole('link', { name: /2 low/i })).toHaveAttribute('href', ROUTES.INVENTORY);
+    expect(screen.getByRole('link', { name: /2 low/i })).toHaveAttribute(
+      'href',
+      `${ROUTES.INVENTORY}?view=guidance`,
+    );
     expect(screen.getByText(DASHBOARD_CONTENT.kpiTodaySales)).toBeInTheDocument();
     expect(screen.getByText('100%')).toBeInTheDocument();
     expect(screen.getByText(/1 new/)).toBeInTheDocument();
@@ -540,5 +544,53 @@ describe('DashboardScreen', () => {
     expect(await screen.findByRole('status')).toHaveTextContent(
       'This desk cannot use that outlet filter.',
     );
+  });
+
+  it('success: owner glance mounts payables and approvals', async () => {
+    fetchMock.mockResolvedValue({
+      ...filled,
+      owner: {
+        todaySalesPaise: 0,
+        todayBillCount: 0,
+        branches: [],
+        payablesTotalPaise: 8000,
+        expenseTotalPaise: 0,
+        lowStockCount: 0,
+        sources: { sales: '/orders', stock: '/inventory?view=guidance', aging: '/aging', expenses: '/expenses' },
+        payables: {
+          key: 'PAYABLES',
+          status: 'OK',
+          asOf: '2026-09-06T06:00:00Z',
+          href: '/aging',
+          data: { totalPaise: 8000, buckets: [] },
+        },
+        approvals: {
+          key: 'APPROVALS',
+          status: 'OK',
+          asOf: '2026-09-06T06:00:00Z',
+          href: '/approvals/pending',
+          data: { count: 2, items: [] },
+        },
+      },
+    });
+    renderPage();
+    const glance = await screen.findByRole('region', { name: DASHBOARD_CONTENT.ownerGlance });
+    expect(within(glance).getByText(DASHBOARD_CONTENT.widgetPayables)).toBeInTheDocument();
+    expect(within(glance).getByText('₹80.00')).toBeInTheDocument();
+    expect(within(glance).getByText('2')).toBeInTheDocument();
+  });
+
+  it('denied: Free aging and charts show the upgrade wall', async () => {
+    fetchMock.mockResolvedValue({
+      ...filled,
+      hero: { ...filled.hero, duesToCollectPaise: 0, duesCustomerCount: 0, duesStatus: 'PLAN_LIMIT' },
+      analytics: { ...filled.analytics, status: 'PLAN_LIMIT', totalSalesPaise: 0, trend: [] },
+    });
+    renderPage();
+    const dues = await screen.findByRole('link', { name: /Dues to collect/i });
+    expect(within(dues).getByText(DASHBOARD_CONTENT.duesPlanLimit)).toBeInTheDocument();
+    expect(dues).toHaveAttribute('href', ROUTES.SUBSCRIPTION);
+    expect(await screen.findByText(DASHBOARD_CONTENT.analyticsPlanLimit)).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: DASHBOARD_CONTENT.upgradePlan })).toBeInTheDocument();
   });
 });

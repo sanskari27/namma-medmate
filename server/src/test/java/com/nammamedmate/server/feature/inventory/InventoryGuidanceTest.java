@@ -1,6 +1,7 @@
 package com.nammamedmate.server.feature.inventory;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -12,6 +13,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nammamedmate.server.AbstractIntegrationTest;
+import com.nammamedmate.server.application.inventory.ItemExpiryScanner;
 import com.nammamedmate.server.domain.AccessRoleKind;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
@@ -31,6 +33,10 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.BranchProductStockLevelRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ManufacturerRepository;
+import com.nammamedmate.server.persistence.NotificationDeliveryRepository;
+import com.nammamedmate.server.persistence.NotificationEventRepository;
+import com.nammamedmate.server.persistence.NotificationRepository;
+import com.nammamedmate.server.persistence.NotificationSourceRepository;
 import com.nammamedmate.server.persistence.ProductCategoryRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
@@ -66,6 +72,11 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
   @Autowired private UserSessionRepository userSessionRepository;
   @Autowired private TenantSubscriptionRepository tenantSubscriptionRepository;
   @Autowired private LocationRepository locationRepository;
+  @Autowired private NotificationEventRepository notificationEventRepository;
+  @Autowired private NotificationDeliveryRepository notificationDeliveryRepository;
+  @Autowired private NotificationRepository notificationRepository;
+  @Autowired private NotificationSourceRepository notificationSourceRepository;
+  @Autowired private ItemExpiryScanner itemExpiryScanner;
   @Autowired private ProductRepository productRepository;
   @Autowired private ProductCategoryRepository productCategoryRepository;
   @Autowired private ManufacturerRepository manufacturerRepository;
@@ -81,6 +92,10 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
 
   @BeforeEach
   void wipe() {
+    notificationDeliveryRepository.deleteAll();
+    notificationEventRepository.deleteAll();
+    notificationRepository.deleteAll();
+    notificationSourceRepository.deleteAll();
     stockMovementRepository.deleteAll();
     stockBalanceRepository.deleteAll();
     stockBatchRepository.deleteAll();
@@ -186,7 +201,8 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
   void ac03_expiryThresholdIsConfigurable() throws Exception {
     Fixture fx = seed("ac03");
     UUID productId = createBatchedProduct(fx.cookie(), "SKU-THR", "Thresh Med", null, null, null);
-    receive(fx.cookie(), productId, "LOT-T", "2026-01-01", "2026-09-20", 1000, "5", "recv-t", 0);
+    String expires = LocalDate.now(java.time.ZoneOffset.UTC).plusDays(16).toString();
+    receive(fx.cookie(), productId, "LOT-T", "2026-01-01", expires, 1000, "5", "recv-t", 0);
 
     mockMvc
         .perform(get("/api/v1/inventory/settings").cookie(fx.cookie()))
@@ -219,6 +235,128 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
         .perform(get("/api/v1/inventory/products/" + productId + "/batches").cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].nearExpiry").value(true));
+  }
+
+  @Test
+  void overviewExpiringUsesBranchWarnDays_M4_EXP_001() throws Exception {
+    Fixture fx = seed("ovw-warn");
+    LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+    UUID farId = createBatchedProduct(fx.cookie(), "SKU-FAR", "Far Med", null, null, null);
+    UUID nearId = createBatchedProduct(fx.cookie(), "SKU-NEAR", "Near Med", null, null, null);
+    receive(
+        fx.cookie(),
+        farId,
+        "LOT-FAR",
+        "2026-01-01",
+        today.plusDays(40).toString(),
+        1000,
+        "5",
+        "recv-far",
+        0);
+    receive(
+        fx.cookie(),
+        nearId,
+        "LOT-NEAR",
+        "2026-01-01",
+        today.plusDays(10).toString(),
+        1000,
+        "5",
+        "recv-near",
+        0);
+
+    mockMvc
+        .perform(
+            put("/api/v1/inventory/settings")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"expiryWarnDays\":30}"))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/inventory/overview").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.summary.expiringCount").value(1))
+        .andExpect(jsonPath("$.data.items[?(@.sku=='SKU-FAR')].nearExpiry").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.sku=='SKU-NEAR')].nearExpiry").value(hasItem(true)));
+  }
+
+  @Test
+  void allOutletsOverviewSumsBranchStock_OWN_NAV_003() throws Exception {
+    Fixture fx = seed("all-ov");
+    Location annex = persistBranch(fx.tenantId(), "Annex", "BR02", false);
+    UUID productId = createBatchedProduct(fx.cookie(), "SKU-ALL", "All Med", null, null, null);
+    receive(
+        fx.cookie(),
+        productId,
+        "LOT-MAIN",
+        "2026-01-01",
+        "2027-06-30",
+        1000,
+        "5",
+        "recv-all-main",
+        0);
+    selectBranch(fx.cookie(), annex.getId());
+    receive(
+        fx.cookie(),
+        productId,
+        "LOT-ANNEX",
+        "2026-01-01",
+        "2027-06-30",
+        1000,
+        "3",
+        "recv-all-annex",
+        0);
+    mockMvc
+        .perform(
+            post("/api/v1/session/branch")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"branchId\":null}"))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(get("/api/v1/inventory/overview").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.summary.totalUnits").value(8));
+  }
+
+  @Test
+  void itemExpiryScannerEmitsEvent_M10_ROUTE_002() throws Exception {
+    Fixture fx = seed("exp-scan");
+    LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
+    UUID productId = createBatchedProduct(fx.cookie(), "SKU-EXP", "Exp Med", null, null, null);
+    receive(
+        fx.cookie(),
+        productId,
+        "LOT-EXP",
+        "2026-01-01",
+        today.plusDays(10).toString(),
+        1000,
+        "5",
+        "recv-exp",
+        0);
+    String batches =
+        mockMvc
+            .perform(
+                get("/api/v1/inventory/products/" + productId + "/batches").cookie(fx.cookie()))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    UUID batchId =
+        UUID.fromString(
+            objectMapper
+                .readTree(batches)
+                .path("data")
+                .path("items")
+                .get(0)
+                .path("batchId")
+                .asText());
+
+    assertThat(itemExpiryScanner.scanTenant(fx.tenantId())).isEqualTo(1);
+    assertThat(
+            notificationEventRepository.findByEventKey(
+                "item-expiry:" + fx.tenantId() + ":" + fx.branchId() + ":" + batchId))
+        .isPresent();
   }
 
   @Test

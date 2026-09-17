@@ -256,7 +256,7 @@ export function GuidanceWorkspace({
               </p>
               <div className="flex flex-wrap items-end gap-2">
                 <div className="space-y-1.5">
-                  <Label htmlFor={`${formId}-warn`}>Days</Label>
+                  <Label htmlFor={`${formId}-warn`}>Expiry warn days</Label>
                   <Input
                     id={`${formId}-warn`}
                     inputMode="numeric"

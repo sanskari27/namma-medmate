@@ -95,7 +95,7 @@ export function DoctorReferenceDialog({
         }
       }}
     >
-      <DialogContent className="max-w-md gap-4 border-line bg-surface p-5">
+      <DialogContent className="z-[120] max-w-md gap-4 border-line bg-surface p-5" overlayClassName="z-[110]">
         <div className="flex items-start gap-3">
           <Stethoscope className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
           <div>

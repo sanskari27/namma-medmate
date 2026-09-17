@@ -73,6 +73,18 @@ export function AdjustmentCreateDialog({
       setStatus('validation');
       return;
     }
+    const newOnHand = nextDirection === 'OUT' ? selected.quantity - qty : selected.quantity + qty;
+    const cost =
+      selected.purchasePricePaise != null
+        ? ` cost ₹${(selected.purchasePricePaise / 100).toFixed(2)}`
+        : '';
+    if (
+      !window.confirm(
+        `Send ${nextDirection} ${qty} of ${selected.productName}${cost}? New on-hand would be ${newOnHand}.`,
+      )
+    ) {
+      return;
+    }
     setBusy(true);
     setStatus('loading');
     try {

@@ -16,14 +16,14 @@ export function DashboardRecentTransactions({ items }: DashboardRecentTransactio
         <div>
           <h3 id="dash-recent">{DASHBOARD_CONTENT.recentTitle}</h3>
         </div>
-        <Link to={ROUTES.SALES}>{DASHBOARD_CONTENT.linkViewAllArrow}</Link>
+        <Link to={ROUTES.ORDERS}>{DASHBOARD_CONTENT.linkViewAllArrow}</Link>
       </div>
       <div className="dash-card-pad">
         {items.length === 0 ? (
           <p className="dash-empty">{DASHBOARD_CONTENT.emptyRecent}</p>
         ) : (
           items.map((row) => (
-            <Link key={row.id} className="dash-row dash-row-link" to={ROUTES.SALES}>
+            <Link key={row.id} className="dash-row dash-row-link" to={`${ROUTES.ORDERS}?invoice=${row.id}`}>
               <span className="em em-green" aria-hidden="true">
                 <FileText size={16} />
               </span>

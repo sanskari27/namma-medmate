@@ -165,10 +165,10 @@ public class HomeDashboardService {
     if (desks.contains(DashboardRole.OWNER) || desks.contains(DashboardRole.ACCOUNTANT)) {
       receivables = receivables(principal, resolved);
     } else {
-      receivables = new ReceivableSnapshot(0L, 0);
+      receivables = new ReceivableSnapshot(0L, 0, DashboardPolicy.OK);
     }
     int pendingPrescriptions = pendingPrescriptions(tenantId, branchIds);
-    int lowStockCount = owner == null ? 0 : owner.lowStockCount();
+    int lowStockCount = okCount(owner == null ? null : owner.lowStock());
     int expiringCount = expiryCount(owner);
     int stockAlerts = lowStockCount + expiringCount;
 
@@ -180,7 +180,8 @@ public class HomeDashboardService {
             avgBillToday,
             itemsSoldToday,
             receivables.totalPaise(),
-            receivables.customerCount());
+            receivables.customerCount(),
+            receivables.status());
 
     HomeDashboardView.QuickActionCounts quickActions =
         new HomeDashboardView.QuickActionCounts(
@@ -204,7 +205,7 @@ public class HomeDashboardService {
             heldCount);
 
     HomeDashboardView.AnalyticsPanel analytics =
-        analyticsPanel(tenantId, period, periodFrom, asOf, periodCompleted);
+        analyticsPanel(principal.tenantId(), period, periodFrom, asOf, periodCompleted);
 
     List<HomeDashboardView.AttentionItem> attention = attentionItems(owner, pendingPrescriptions);
     List<DashboardView.ExpiryItem> expiringSoon = withCategoryIcons(tenantId, expiringItems(owner));
@@ -225,7 +226,8 @@ public class HomeDashboardService {
         attention,
         expiringSoon,
         topSellers,
-        recent);
+        recent,
+        owner);
   }
 
   private ResolvedScope resolveScope(AuthPrincipal principal, AppUser user) {
@@ -275,6 +277,11 @@ public class HomeDashboardService {
       LocalDate from,
       LocalDate toInclusive,
       List<SalesInvoice> invoices) {
+    if (!ReportAccessPolicy.entitled(
+        subscriptionService.resolveReportPlan(tenantId), ReportCapability.ANALYTICS)) {
+      return new HomeDashboardView.AnalyticsPanel(
+          period, 0L, 0, List.of(), List.of(), List.of(), List.of(), DashboardPolicy.PLAN_LIMIT);
+    }
     long totalSales = sumSales(invoices);
     int totalBills = invoices.size();
     List<UUID> invoiceIds = invoices.stream().map(SalesInvoice::getId).toList();
@@ -309,7 +316,14 @@ public class HomeDashboardService {
     List<HomeDashboardView.TrendPoint> trend = trendPoints(from, toInclusive, invoices);
 
     return new HomeDashboardView.AnalyticsPanel(
-        period, totalSales, totalBills, channelSplit, paymentModes, topCategories, trend);
+        period,
+        totalSales,
+        totalBills,
+        channelSplit,
+        paymentModes,
+        topCategories,
+        trend,
+        DashboardPolicy.OK);
   }
 
   private List<HomeDashboardView.TrendPoint> trendPoints(
@@ -443,9 +457,19 @@ public class HomeDashboardService {
     if (owner == null) {
       return items;
     }
+    addFailedAttention(items, owner.lowStock(), "Stock glance unavailable");
+    addFailedAttention(items, owner.expiry(), "Expiry glance unavailable");
+    addFailedAttention(items, owner.approvals(), "Approvals unavailable");
+    addFailedAttention(items, owner.payables(), "Payables unavailable");
+    addFailedAttention(items, owner.transfers(), "Transfers unavailable");
+    addFailedAttention(items, owner.compliance(), "Licences unavailable");
+    addFailedAttention(items, owner.openPurchaseOrders(), "Open purchase orders unavailable");
+    addFailedAttention(items, owner.receivables(), "Dues glance unavailable");
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.LowStockItem>> lowStock =
         owner.lowStock();
-    if (lowStock != null && lowStock.data() != null) {
+    if (lowStock != null
+        && DashboardPolicy.OK.equals(lowStock.status())
+        && lowStock.data() != null) {
       for (DashboardView.LowStockItem row :
           lowStock.data().items().stream().limit(ATTENTION_LIMIT).toList()) {
         items.add(
@@ -463,7 +487,9 @@ public class HomeDashboardService {
     }
     DashboardWidget<DashboardView.CountItemsPayload<DashboardView.WorkItem>> approvals =
         owner.approvals();
-    if (approvals != null && approvals.data() != null) {
+    if (approvals != null
+        && DashboardPolicy.OK.equals(approvals.status())
+        && approvals.data() != null) {
       for (DashboardView.WorkItem row : approvals.data().items()) {
         items.add(
             new HomeDashboardView.AttentionItem(
@@ -479,6 +505,24 @@ public class HomeDashboardService {
       }
     }
     return items;
+  }
+
+  private static void addFailedAttention(
+      List<HomeDashboardView.AttentionItem> items, DashboardWidget<?> widget, String title) {
+    if (widget == null || !DashboardPolicy.FAILED.equals(widget.status())) {
+      return;
+    }
+    if (items.size() >= ATTENTION_LIMIT) {
+      return;
+    }
+    items.add(
+        new HomeDashboardView.AttentionItem(
+            widget.key(),
+            DashboardPolicy.UNAVAILABLE,
+            title,
+            DashboardPolicy.UNAVAILABLE,
+            widget.href(),
+            "Retry"));
   }
 
   private List<DashboardView.ExpiryItem> withCategoryIcons(
@@ -594,43 +638,42 @@ public class HomeDashboardService {
   }
 
   private int approvalCount(DashboardView.OwnerDesk owner) {
-    if (owner == null) {
-      return 0;
-    }
-    DashboardWidget<DashboardView.CountItemsPayload<DashboardView.WorkItem>> approvals =
-        owner.approvals();
-    if (approvals == null || approvals.data() == null) {
-      return 0;
-    }
-    return approvals.data().count();
+    return okCount(owner == null ? null : owner.approvals());
   }
 
   private int expiryCount(DashboardView.OwnerDesk owner) {
-    if (owner == null) {
+    return okCount(owner == null ? null : owner.expiry());
+  }
+
+  private static int okCount(DashboardWidget<?> widget) {
+    if (widget == null || widget.data() == null || !DashboardPolicy.OK.equals(widget.status())) {
       return 0;
     }
-    DashboardWidget<DashboardView.CountItemsPayload<DashboardView.ExpiryItem>> expiry =
-        owner.expiry();
-    if (expiry == null || expiry.data() == null) {
-      return 0;
+    if (widget.data() instanceof DashboardView.CountItemsPayload<?> payload) {
+      return payload.count();
     }
-    return expiry.data().count();
+    return 0;
   }
 
   private ReceivableSnapshot receivables(AuthPrincipal principal, ResolvedScope resolved) {
     if (!ReportAccessPolicy.entitled(
         subscriptionService.resolveReportPlan(principal.tenantId()), ReportCapability.AGING)) {
-      return new ReceivableSnapshot(0L, 0);
+      return new ReceivableSnapshot(0L, 0, DashboardPolicy.PLAN_LIMIT);
     }
     try {
       String branchParam =
           resolved.primaryBranchId() == null ? null : resolved.primaryBranchId().toString();
       AgingView view = agingService.receivables(principal, null, branchParam, resolved.scope());
       int customers =
-          (int) view.buckets().stream().filter(bucket -> bucket.totalPaise() > 0).count();
-      return new ReceivableSnapshot(view.totalPaise(), customers);
+          (int)
+              view.items().stream()
+                  .filter(item -> item.amountPaise() > 0)
+                  .map(AgingView.PartyView::partyId)
+                  .distinct()
+                  .count();
+      return new ReceivableSnapshot(view.totalPaise(), customers, DashboardPolicy.OK);
     } catch (RuntimeException ex) {
-      return new ReceivableSnapshot(0L, 0);
+      return new ReceivableSnapshot(0L, 0, DashboardPolicy.FAILED);
     }
   }
 
@@ -724,7 +767,7 @@ public class HomeDashboardService {
         .orElseThrow(DashboardPolicy::forbidden);
   }
 
-  private record ReceivableSnapshot(long totalPaise, int customerCount) {}
+  private record ReceivableSnapshot(long totalPaise, int customerCount, String status) {}
 
   private record ResolvedScope(
       String scope, UUID primaryBranchId, List<UUID> branchIds, String branchName) {}

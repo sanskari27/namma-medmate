@@ -19,10 +19,10 @@ public final class DashboardPolicy {
   public static final String VALIDATION_ERROR = "VALIDATION_ERROR";
   public static final String SCOPE_BRANCH = "branch";
   public static final String SCOPE_TENANT = "tenant";
-  public static final String SALES_HREF = "/pos";
-  public static final String STOCK_HREF = "/inventory";
+  public static final String SALES_HREF = "/orders";
+  public static final String STOCK_HREF = "/inventory?view=guidance";
   public static final String TRANSFERS_HREF = "/inventory";
-  public static final String GRN_HREF = "/purchases";
+  public static final String GRN_HREF = "/inventory?view=qc";
   public static final String AGING_HREF = "/aging";
   public static final String EXPENSES_HREF = "/expenses";
   public static final String APPROVALS_HREF = "/approvals/pending";

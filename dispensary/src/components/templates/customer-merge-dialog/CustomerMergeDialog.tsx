@@ -161,7 +161,8 @@ export function CustomerMergeDialog({
       }}
     >
       <DialogContent
-        className="max-w-xl max-h-[90vh] overflow-y-auto"
+        className="z-[120] max-w-xl max-h-[90vh] overflow-y-auto"
+        overlayClassName="z-[110]"
         aria-describedby={`${formId}-desc`}
       >
         <DialogTitle className="font-sans text-lg font-semibold text-ink">

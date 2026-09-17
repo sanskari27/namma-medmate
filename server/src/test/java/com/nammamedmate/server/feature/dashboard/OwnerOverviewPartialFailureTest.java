@@ -69,6 +69,18 @@ class OwnerOverviewPartialFailureTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.owner.receivables.status").value(DashboardPolicy.OK));
   }
 
+  @Test
+  void homePropagatesFailedOwnerWidget_M9_DASH_009() throws Exception {
+    Mockito.when(complianceLicenseRepository.findAllByTenantIdOrderByExpiresOnAsc(any()))
+        .thenThrow(new IllegalStateException("licenses down"));
+    Cookie cookie = loginOwner("own-home-fail");
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.owner.compliance.status").value(DashboardPolicy.FAILED))
+        .andExpect(jsonPath("$.data.attention[0].kind").value(DashboardPolicy.UNAVAILABLE));
+  }
+
   private Cookie loginOwner(String tag) throws Exception {
     Tenant tenant = new Tenant();
     tenant.setId(UUID.randomUUID());

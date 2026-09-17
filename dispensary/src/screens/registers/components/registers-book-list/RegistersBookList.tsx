@@ -1,4 +1,5 @@
 import type { ComplianceReportCatalogItem } from '@/services/complianceReports';
+import { planLabel } from '../../RegistersScreen.utils';
 
 export type RegistersBookListProps = {
   books: ComplianceReportCatalogItem[];
@@ -18,7 +19,9 @@ export function RegistersBookList({ books, selectedKey, onSelect }: RegistersBoo
         >
           <b>{book.title}</b>
           <span className="rg-muted rg-mono">{book.key}</span>
-          {book.entitled === false ? <span className="rg-muted">On {book.minPlan ?? 'higher plan'}</span> : null}
+          {book.entitled === false ? (
+            <span className="rg-muted">{planLabel(book.minPlan) ?? 'On higher plan'}</span>
+          ) : null}
         </button>
       ))}
     </div>

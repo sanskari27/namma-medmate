@@ -487,7 +487,7 @@ public class DashboardService {
       String name = names.getOrDefault(branchId, "Outlet");
       for (InventoryReorderLine line :
           inventoryStockService.listReorderLinesForBranch(tenantId, branchId)) {
-        if (line.onHand() == null || line.onHand().signum() <= 0) {
+        if (line.onHand() == null) {
           continue;
         }
         items.add(

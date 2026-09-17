@@ -42,7 +42,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'validation':
       return 'Number, issue date, expiry, and an evidence file are needed before filing.';
     case 'denied':
-      return 'Only the owner can file licences at this counter. Ask the owner if a paper is due.';
+      return 'Your staff licence is on file with the owner.';
     case 'conflict':
       return 'This licence was updated on another till. Reload, then file again.';
     case 'failure':

@@ -70,6 +70,16 @@ export const DASHBOARD_CONTENT = {
   emptyTopSellers: 'No seller data yet.',
   emptyRecent: 'No completed bills yet today.',
   emptyAnalytics: 'No sales in this window yet.',
+  analyticsPlanLimit: 'Week trends need Growth or Pro.',
+  duesPlanLimit: 'Aging needs Growth or Pro.',
+  upgradePlan: 'Open the plan',
+  unavailable: 'Unavailable',
+  ownerGlance: 'Shop desk',
+  widgetPayables: 'Stockist dues',
+  widgetTransfers: 'Transfers',
+  widgetLicences: 'Licences due',
+  widgetOpenPos: 'Open indents',
+  widgetApprovals: 'Waiting sign-off',
   quickActions: [
     {
       to: ROUTES.SALES,
@@ -90,7 +100,7 @@ export const DASHBOARD_CONTENT = {
       tone: 'gold' as const,
     },
     {
-      to: ROUTES.INVENTORY,
+      to: `${ROUTES.INVENTORY}?view=guidance`,
       title: 'Reorder',
       subtitleKey: 'low' as const,
       tone: 'violet' as const,

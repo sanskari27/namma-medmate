@@ -100,7 +100,7 @@ export const NAV_SECTIONS = [
       { label: 'Expenses', path: ROUTES.EXPENSES, hint: 'Track business spend & categories' },
       { label: 'Credit · Khata', path: ROUTES.CREDIT, hint: 'Customer credit, dues & repayments' },
       { label: 'Khata dues', path: ROUTES.AGING, hint: 'Outstanding by age bucket' },
-      { label: 'Shop books', path: ROUTES.BOOKS, hint: 'Sales & GST summary' },
+      { label: 'Shop GST books', path: ROUTES.BOOKS, hint: 'Sales & GST summary' },
       { label: 'CA / Accountant', path: ROUTES.ACCOUNTANT, hint: 'Share reports with your CA' },
     ],
   },

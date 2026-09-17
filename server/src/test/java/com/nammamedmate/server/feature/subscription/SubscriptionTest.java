@@ -143,6 +143,10 @@ class SubscriptionTest extends AbstractIntegrationTest {
             locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(
                 tenant.getId()))
         .hasSize(1);
+    assertThat(
+            notificationEventRepository.findByEventKey(
+                "plan-limit:" + tenant.getId() + ":branches"))
+        .isPresent();
   }
 
   @Test
@@ -345,6 +349,14 @@ class SubscriptionTest extends AbstractIntegrationTest {
 
     Cookie laterOwner = login("owner@job-later.local");
     mockMvc.perform(get("/api/v1/notifications").cookie(laterOwner)).andExpect(status().isOk());
+
+    assertThat(
+            notificationEventRepository.findByEventKey(
+                "subscription-expiry:"
+                    + due.getId()
+                    + ":"
+                    + java.time.LocalDate.now(java.time.ZoneOffset.UTC)))
+        .isPresent();
   }
 
   @Test

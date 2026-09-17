@@ -45,8 +45,8 @@ export function DashboardKpiRow({ view }: DashboardKpiRowProps) {
         role="button"
         tabIndex={0}
         title={DASHBOARD_CONTENT.titleViewSales}
-        onClick={() => navigate(ROUTES.SALES)}
-        onKeyDown={(event) => activateOnKey(event, navigate, ROUTES.SALES)}
+        onClick={() => navigate(ROUTES.ORDERS)}
+        onKeyDown={(event) => activateOnKey(event, navigate, ROUTES.ORDERS)}
       >
         <div className="dash-kpi-top">
           <span className="ic ic-green" aria-hidden="true">
@@ -77,8 +77,8 @@ export function DashboardKpiRow({ view }: DashboardKpiRowProps) {
         role="button"
         tabIndex={0}
         title={DASHBOARD_CONTENT.titleViewOrders}
-        onClick={() => navigate(ROUTES.SALES)}
-        onKeyDown={(event) => activateOnKey(event, navigate, ROUTES.SALES)}
+        onClick={() => navigate(ROUTES.ORDERS)}
+        onKeyDown={(event) => activateOnKey(event, navigate, ROUTES.ORDERS)}
       >
         <div className="dash-kpi-top">
           <span className="ic ic-blue" aria-hidden="true">
@@ -132,8 +132,10 @@ export function DashboardKpiRow({ view }: DashboardKpiRowProps) {
         role="button"
         tabIndex={0}
         title={DASHBOARD_CONTENT.titleOpenInventory}
-        onClick={() => navigate(ROUTES.INVENTORY)}
-        onKeyDown={(event) => activateOnKey(event, navigate, ROUTES.INVENTORY)}
+        onClick={() => navigate(`${ROUTES.INVENTORY}?view=guidance`)}
+        onKeyDown={(event) =>
+          activateOnKey(event, navigate, `${ROUTES.INVENTORY}?view=guidance`)
+        }
       >
         <div className="dash-kpi-top">
           <span className="ic ic-rose" aria-hidden="true">

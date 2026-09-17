@@ -33,7 +33,16 @@ export function CustomersRow({ row }: CustomersRowProps) {
             <UserRound size={16} strokeWidth={1.8} />
           </div>
           <div>
-            <div className="cust-name">{row.name}</div>
+            <button
+              type="button"
+              className="cust-name"
+              onClick={(event) => {
+                event.stopPropagation();
+                open();
+              }}
+            >
+              {row.name}
+            </button>
             <div className="cust-badges">
               {row.creditDuePaise > 0 ? (
                 <span className="cust-due">{CUSTOMERS_CONTENT.due(formatPaise(row.creditDuePaise))}</span>

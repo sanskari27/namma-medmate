@@ -188,6 +188,10 @@ const inventorySlice = createSlice({
       })
       .addCase(loadCatalogue.pending, (state) => {
         state.catalogue.status = 'loading';
+        if (state.view === 'catalogue') {
+          state.status = 'loading';
+          state.statusHint = null;
+        }
       })
       .addCase(loadCatalogue.fulfilled, (state, action) => {
         state.catalogue.products = action.payload.products;

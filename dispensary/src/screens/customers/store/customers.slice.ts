@@ -105,6 +105,14 @@ const customersSlice = createSlice({
     },
     markCustomerAction(state, action: PayloadAction<CustomersActionStatus>) {
       state.actionStatus = action.payload;
+      if (action.payload === 'failure') {
+        state.statusHint = CUSTOMERS_CONTENT.status.failure;
+      } else if (action.payload === 'conflict') {
+        state.statusHint = CUSTOMERS_CONTENT.status.conflict;
+      }
+    },
+    customerCreditReceived(state, action: PayloadAction<CustomerCredit | null>) {
+      state.credit = action.payload;
     },
     clearCustomerAction(state) {
       state.actionStatus = null;
@@ -186,6 +194,7 @@ export const {
   closeEditCustomer,
   markCustomerAction,
   clearCustomerAction,
+  customerCreditReceived,
 } = customersSlice.actions;
 
 export const customersReducer = customersSlice.reducer;

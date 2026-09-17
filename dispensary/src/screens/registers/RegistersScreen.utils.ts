@@ -23,6 +23,16 @@ export function firstEntitledKey(books: Array<{ key: string; entitled?: boolean 
   return books.find((book) => bookEntitled(book))?.key ?? books[0]?.key ?? null;
 }
 
+export function planLabel(minPlan?: string): string | null {
+  if (minPlan === 'STARTER') {
+    return 'On Starter';
+  }
+  if (minPlan === 'GROWTH' || minPlan === 'PRO') {
+    return 'On Growth';
+  }
+  return minPlan ? `On ${minPlan}` : null;
+}
+
 export function hasRegisterAccess(modules: string[] | undefined): boolean {
   return modules?.includes('COMPLIANCE') === true;
 }

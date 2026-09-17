@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import AccountScreen from '@/screens/account/AccountScreen';
+import { accountReducer, initialAccountScreenState } from '@/screens/account/store';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { KycStatus } from '@/services/tenant';
@@ -20,6 +21,27 @@ vi.mock('@/services/tenant', async () => {
     isApiError: axios.isApiError,
   };
 });
+
+vi.mock('@/services/licenses', async () => {
+  const axios = await import('@/services/axios');
+  return {
+    listLicenses: vi.fn(async () => ({ items: [] })),
+    ApiError: axios.ApiError,
+    isApiError: axios.isApiError,
+  };
+});
+
+vi.mock('@/services/staff', () => ({
+  listStaff: vi.fn(async () => []),
+}));
+
+vi.mock('@/services/branches', () => ({
+  listBranches: vi.fn(async () => []),
+}));
+
+vi.mock('@/services/subscriptions', () => ({
+  getCurrentSubscription: vi.fn(async () => null),
+}));
 
 import { getKycStatus, submitKyc } from '@/services/tenant';
 
@@ -40,7 +62,7 @@ const emptyPack: KycStatus = {
 
 function renderPage(role = 'pharmacy_owner', tenantStatus = 'VERIFICATION_REQUIRED') {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, account: accountReducer },
     preloadedState: {
       auth: {
         user: {
@@ -53,6 +75,7 @@ function renderPage(role = 'pharmacy_owner', tenantStatus = 'VERIFICATION_REQUIR
           emailVerified: true,
         },
       },
+      account: initialAccountScreenState,
     },
   });
   return render(
@@ -68,6 +91,19 @@ function pdfFile(name: string) {
   return new File(['%PDF'], name, { type: 'application/pdf' });
 }
 
+async function fillKycForm(user: ReturnType<typeof userEvent.setup>) {
+  await user.type(screen.getByLabelText('Legal pharmacy name'), 'Asha Retail');
+  await user.type(screen.getByLabelText('Drug licence number'), 'KA-1');
+  await user.type(screen.getByLabelText('PAN'), 'ABCDE1234F');
+  await user.type(screen.getByLabelText('Branch address line'), '12 MG Road');
+  await user.type(screen.getByLabelText('City'), 'Bengaluru');
+  await user.type(screen.getByLabelText('State'), 'KA');
+  await user.type(screen.getByLabelText('Pincode'), '560001');
+  await user.type(screen.getByLabelText('Contact phone'), '9876543210');
+  await user.upload(screen.getByLabelText('Drug licence file'), pdfFile('license.pdf'));
+  await user.upload(screen.getByLabelText('PAN file'), pdfFile('pan.pdf'));
+}
+
 describe('pharmacy account KYC', () => {
   beforeEach(() => {
     getMock.mockReset();
@@ -77,16 +113,14 @@ describe('pharmacy account KYC', () => {
   it('loading: waits for KYC status', () => {
     getMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading pharmacy KYC status…')).toBeInTheDocument();
+    expect(screen.getByText('Loading pharmacy account…')).toBeInTheDocument();
   });
 
   it('empty: prompts owner to fill the counter form', async () => {
     getMock.mockResolvedValue(emptyPack);
     renderPage();
-    expect(
-      await screen.findByRole('heading', { name: /pharmacy account \/ kyc/i }),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('No KYC pack yet');
+    expect(await screen.findByRole('heading', { name: 'This pharmacy' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No KYC pack yet');
   });
 
   it('validation: required fields and files before submit', async () => {
@@ -95,14 +129,14 @@ describe('pharmacy account KYC', () => {
     renderPage();
     await screen.findByLabelText('Legal pharmacy name');
     await user.click(screen.getByRole('button', { name: 'Submit KYC pack' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Enter legal name, licence, PAN');
+    expect(screen.getByRole('status')).toHaveTextContent('Enter legal name, licence, PAN');
     expect(submitMock).not.toHaveBeenCalled();
   });
 
   it('denied: staff cannot submit KYC', async () => {
     renderPage('pharmacy_staff');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Only the pharmacy owner can submit KYC',
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Only the pharmacy owner can open this account desk.',
     );
   });
 
@@ -112,25 +146,16 @@ describe('pharmacy account KYC', () => {
     submitMock.mockRejectedValue(new ApiError('busy', 409, 'KYC_CONFLICT'));
     renderPage();
     await screen.findByLabelText('Legal pharmacy name');
-    await user.type(screen.getByLabelText('Legal pharmacy name'), 'Asha Retail');
-    await user.type(screen.getByLabelText('Drug licence number'), 'KA-1');
-    await user.type(screen.getByLabelText('PAN'), 'ABCDE1234F');
-    await user.type(screen.getByLabelText('Branch address line'), '12 MG Road');
-    await user.type(screen.getByLabelText('City'), 'Bengaluru');
-    await user.type(screen.getByLabelText('State'), 'KA');
-    await user.type(screen.getByLabelText('Pincode'), '560001');
-    await user.type(screen.getByLabelText('Contact phone'), '9876543210');
-    await user.upload(screen.getByLabelText('Drug licence file'), pdfFile('license.pdf'));
-    await user.upload(screen.getByLabelText('PAN file'), pdfFile('pan.pdf'));
+    await fillKycForm(user);
     await user.click(screen.getByRole('button', { name: 'Submit KYC pack' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('already waiting');
+    expect(await screen.findByRole('status')).toHaveTextContent('already waiting');
   });
 
   it('failure: network errors surface', async () => {
     getMock.mockRejectedValue(new Error('offline'));
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Could not reach the server for KYC',
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'Could not reach the server for this account',
     );
   });
 
@@ -154,19 +179,10 @@ describe('pharmacy account KYC', () => {
     });
     renderPage();
     await screen.findByLabelText('Legal pharmacy name');
-    await user.type(screen.getByLabelText('Legal pharmacy name'), 'Asha Retail');
-    await user.type(screen.getByLabelText('Drug licence number'), 'KA-1');
-    await user.type(screen.getByLabelText('PAN'), 'ABCDE1234F');
-    await user.type(screen.getByLabelText('Branch address line'), '12 MG Road');
-    await user.type(screen.getByLabelText('City'), 'Bengaluru');
-    await user.type(screen.getByLabelText('State'), 'KA');
-    await user.type(screen.getByLabelText('Pincode'), '560001');
-    await user.type(screen.getByLabelText('Contact phone'), '9876543210');
-    await user.upload(screen.getByLabelText('Drug licence file'), pdfFile('license.pdf'));
-    await user.upload(screen.getByLabelText('PAN file'), pdfFile('pan.pdf'));
+    await fillKycForm(user);
     await user.click(screen.getByRole('button', { name: 'Submit KYC pack' }));
     await waitFor(() => expect(submitMock).toHaveBeenCalled());
-    expect(await screen.findByRole('alert')).toHaveTextContent('KYC pack sent');
+    expect(await screen.findByRole('status')).toHaveTextContent('KYC pack sent');
   });
 
   it('rejected: shows HQ reason and keeps the form for resubmit', async () => {
@@ -177,7 +193,7 @@ describe('pharmacy account KYC', () => {
       submissionId: 'sub-old',
     });
     renderPage();
-    expect(await screen.findByRole('alert')).toHaveTextContent('Licence scan is illegible');
+    expect(await screen.findByRole('status')).toHaveTextContent('Licence scan is illegible');
     expect(screen.getByRole('button', { name: 'Submit KYC pack' })).toBeInTheDocument();
   });
 });

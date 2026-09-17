@@ -6,6 +6,7 @@ import java.util.Collection;
 import java.util.List;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -19,6 +20,21 @@ public interface CustomerHistoryFactRepository extends JpaRepository<CustomerHis
 
   List<CustomerHistoryFact> findAllByTenantIdAndCustomerIdInAndTypeOrderByOccurredAtDesc(
       UUID tenantId, Collection<UUID> customerIds, CustomerHistoryFactType type);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      """
+      update CustomerHistoryFact f
+      set f.customerId = :survivorId
+      where f.customerId = :duplicateId
+        and f.tenantId = :tenantId
+      """)
+  int repointCustomerId(
+      @Param("survivorId") UUID survivorId,
+      @Param("duplicateId") UUID duplicateId,
+      @Param("tenantId") UUID tenantId);
 
   @Query(
       """

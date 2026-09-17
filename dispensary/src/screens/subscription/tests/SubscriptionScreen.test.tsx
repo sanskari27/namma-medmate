@@ -163,6 +163,8 @@ describe('pharmacy plan', () => {
     checkoutMock.mockResolvedValue(checkout);
     renderPage();
     expect(await screen.findByRole('heading', { name: 'Plans' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Free plan' })).toBeInTheDocument();
+    expect(screen.queryByText('Monthly billing')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }));
     await waitFor(() => expect(checkoutMock).toHaveBeenCalled());
     expect(upgradeMock).not.toHaveBeenCalled();
@@ -176,6 +178,7 @@ describe('pharmacy plan', () => {
     renderPage('pharmacy_owner', '/subscription?payment=nmm_abc');
     expect(await screen.findByText('Plan updated for this pharmacy.')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Starter plan' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Starter plan' })).toHaveFocus();
   });
 
   it('empty checkout return: plan stays unchanged', async () => {

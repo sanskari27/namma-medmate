@@ -118,7 +118,7 @@ describe('HQ WABA templates', () => {
     syncMock.mockRejectedValue(new ApiError('stale', 409, 'CONFLICT'));
     renderPage('admin_super');
     await screen.findByText('refill_due');
-    await user.click(screen.getByRole('button', { name: 'Rescan provider' }));
+    await user.click(screen.getByRole('button', { name: 'Ping provider (templates unchanged)' }));
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Provider status moved during this scan. Rescan the WABA.',
     );
@@ -138,11 +138,11 @@ describe('HQ WABA templates', () => {
     syncMock.mockResolvedValue(catalogue);
     renderPage('admin_super');
     await screen.findByText('+91 90000 00000');
-    await user.click(screen.getByRole('button', { name: 'Rescan provider' }));
+    await user.click(screen.getByRole('button', { name: 'Ping provider (templates unchanged)' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Provider scan refreshed. Approved structures are current.',
     );
     expect(screen.getByText('{tenantId}_refill_due')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Rescan provider' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Ping provider (templates unchanged)' })).toHaveFocus();
   });
 });

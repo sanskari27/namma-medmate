@@ -15,6 +15,7 @@ import {
   updateProduct,
   type Product,
   type ProductInput,
+  type ProductUnit,
 } from '@/services/products';
 import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
 import { INVENTORY_CONTENT } from '../InventoryScreen.content';
@@ -111,7 +112,7 @@ export const saveProductEditor = createAsyncThunk<
     productId: string | null;
     input: ProductInput;
     quantityPrecision: number;
-    units: { unit: string; factorToBase: number }[];
+    units: { unit: ProductUnit; factorToBase: number }[];
   },
   { rejectValue: string; dispatch: AppDispatch }
 >('inventory/saveProductEditor', async (arg, { rejectWithValue, dispatch }) => {
@@ -130,6 +131,16 @@ export const saveProductEditor = createAsyncThunk<
     ]);
     return saved;
   } catch (error) {
+    if (isApiError(error) && (error.code === 'SKU_TAKEN' || error.status === 409)) {
+      return rejectWithValue(
+        'That SKU is already on this pharmacy catalogue. Pick another code or edit the existing product.',
+      );
+    }
+    if (isApiError(error) && (error.code === 'PRECISION_LOSS' || error.code === 'INVALID_CONVERSION')) {
+      return rejectWithValue(
+        'Check SKU, pack size, quantity precision (0–4), and conversion factors. Zero, duplicate, or base-unit conversions are rejected.',
+      );
+    }
     return rejectWithValue(isApiError(error) ? error.message : 'Could not save product.');
   }
 });

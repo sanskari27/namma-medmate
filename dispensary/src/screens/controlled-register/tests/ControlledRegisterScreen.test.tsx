@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ControlledRegisterScreen from '@/screens/controlled-register/ControlledRegisterScreen';
+import { controlledRegisterReducer } from '@/screens/controlled-register/store';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { ControlledSaleLine } from '@/services/controlledRegister';
@@ -56,7 +57,7 @@ function renderPage(
   roles: { id: string; name: string; code: string | null; kind: string }[] = [],
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, controlledRegister: controlledRegisterReducer },
     preloadedState: {
       auth: {
         user: {
@@ -125,7 +126,7 @@ describe('NDPS sale book', () => {
     await screen.findByRole('heading', { name: 'NDPS sale book' });
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-10' } });
     fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-01' } });
-    await user.click(screen.getByRole('button', { name: 'Apply filters' }));
+    await user.click(screen.getByRole('button', { name: 'Apply' }));
     expect(screen.getByRole('status')).toHaveTextContent(
       'Choose a period that starts on or before the end date.',
     );
@@ -139,7 +140,7 @@ describe('NDPS sale book', () => {
     renderPage();
     await screen.findByRole('table', { name: 'Schedule sales' });
     expect(screen.getByRole('table', { name: 'Schedule sales' })).toHaveTextContent('Alprazolam');
-    await user.click(screen.getByRole('button', { name: 'Take spreadsheet' }));
+    await user.click(screen.getByRole('button', { name: 'Spreadsheet' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'This sale book changed on another till. Reload, then take the sheet again.',
     );

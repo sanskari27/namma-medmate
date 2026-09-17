@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
@@ -43,4 +44,19 @@ public interface PrescriptionReferenceRepository
       """)
   Optional<PrescriptionReference> lockByIdAndTenantId(
       @Param("id") UUID id, @Param("tenantId") UUID tenantId);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  @Modifying(clearAutomatically = true)
+  @Query(
+      """
+      update PrescriptionReference r
+      set r.customerId = :survivorId
+      where r.customerId = :duplicateId
+        and r.tenantId = :tenantId
+      """)
+  int repointCustomerId(
+      @Param("survivorId") UUID survivorId,
+      @Param("duplicateId") UUID duplicateId,
+      @Param("tenantId") UUID tenantId);
 }

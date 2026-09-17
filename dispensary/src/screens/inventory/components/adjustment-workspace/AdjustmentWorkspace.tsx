@@ -4,15 +4,15 @@ import {
   type StockAdjustment,
 } from '@/services/inventoryAdjustments';
 import { isApiError } from '@/services/axios';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
 import {
   bumpInventorySync,
   refreshInventoryAfterMutation,
-  selectInventorySyncEpoch,
 } from '../../store';
 import { AdjustmentCreateDialog } from '../adjustment-create-dialog/AdjustmentCreateDialog';
 import { AdjustmentList } from '../adjustment-list/AdjustmentList';
@@ -36,7 +36,7 @@ export function AdjustmentWorkspace({
   onStatusChange,
 }: AdjustmentWorkspaceProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const syncEpoch = useSelector(selectInventorySyncEpoch);
+  const canApprove = useSelector((state: RootState) => state.auth.user?.role === 'pharmacy_owner');
   const [pending, setPending] = useState<StockAdjustment[]>([]);
   const [history, setHistory] = useState<StockAdjustment[]>([]);
   const [busyId, setBusyId] = useState<string | null>(null);
@@ -68,7 +68,7 @@ export function AdjustmentWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load, syncEpoch]);
+  }, [load]);
 
   const afterMutation = async () => {
     await load();
@@ -81,6 +81,16 @@ export function AdjustmentWorkspace({
     const row = pending.find((item) => item.id === id);
     if (!row) {
       return;
+    }
+    if (outcome === 'APPROVED') {
+      const nextOnHand = row.direction === 'OUT' ? `remove ${row.quantity}` : `add ${row.quantity}`;
+      if (
+        !window.confirm(
+          `Approve ${row.direction} ${row.quantity} of ${row.productName} (${nextOnHand} from on-hand)?`,
+        )
+      ) {
+        return;
+      }
     }
     setBusyId(id);
     try {
@@ -98,7 +108,11 @@ export function AdjustmentWorkspace({
   };
 
   if (!activeBranchId) {
-    return null;
+    return (
+      <p className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
+        {INVENTORY_CONTENT.noBranch}
+      </p>
+    );
   }
 
   return (
@@ -118,7 +132,7 @@ export function AdjustmentWorkspace({
           emptyLabel="No write-offs waiting on this outlet."
           items={pending}
           busyId={busyId}
-          onApprove={(id) => void runDecide(id, 'APPROVED')}
+          onApprove={canApprove ? (id) => void runDecide(id, 'APPROVED') : undefined}
           onReject={(id) => void runDecide(id, 'REJECTED')}
         />
         <AdjustmentList

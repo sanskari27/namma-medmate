@@ -11,6 +11,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nammamedmate.server.AbstractIntegrationTest;
+import com.nammamedmate.server.application.purchasereturn.SupplierDueScanner;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchStatus;
@@ -29,6 +30,7 @@ import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.GoodsReceiptLineRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.NotificationEventRepository;
 import com.nammamedmate.server.persistence.PurchaseReturnRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
 import com.nammamedmate.server.persistence.StockMovementRepository;
@@ -69,6 +71,8 @@ class PurchaseReturnTest extends AbstractIntegrationTest {
   @Autowired private StockBalanceRepository stockBalanceRepository;
   @Autowired private StockMovementRepository stockMovementRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private SupplierDueScanner supplierDueScanner;
+  @Autowired private NotificationEventRepository notificationEventRepository;
 
   @Test
   void ac01_qcRejectionAutoCreatesReturnAndDebitNote() throws Exception {
@@ -268,6 +272,42 @@ class PurchaseReturnTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.items", hasSize(1)))
         .andExpect(jsonPath("$.data.items[0].supplierId").value(grn.supplierId().toString()))
         .andExpect(jsonPath("$.data.items[0].overdue").value(true));
+  }
+
+  @Test
+  void supplierDueScannerEmitsEvent_M10_ROUTE_002() throws Exception {
+    Fixture growth = seed("pr-due-scan", PlanCode.GROWTH);
+    PendingGrn grn = pendingGrn(growth, "5", 2000, "due-scan");
+    mockMvc
+        .perform(
+            post("/api/v1/goods-receipts/" + grn.receiptId() + "/quality-check")
+                .cookie(growth.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(qcJson(grn.lineId(), "5", "0", "qc-scan")))
+        .andExpect(status().isOk());
+    String body =
+        mockMvc
+            .perform(get("/api/v1/suppliers/dues").cookie(growth.cookie()))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.items", hasSize(1)))
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    String dueOn =
+        objectMapper.readTree(body).path("data").path("items").get(0).path("dueOn").asText();
+
+    assertThat(supplierDueScanner.scanTenant(growth.tenantId())).isEqualTo(1);
+    assertThat(
+            notificationEventRepository.findByEventKey(
+                "sd:"
+                    + growth.tenantId()
+                    + ":"
+                    + growth.branchId()
+                    + ":"
+                    + grn.supplierId()
+                    + ":"
+                    + dueOn))
+        .isPresent();
   }
 
   @Test

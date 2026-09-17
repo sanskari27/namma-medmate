@@ -36,8 +36,22 @@ export function rowKey(row: CustomerDirectoryItem): string {
   return row.walkInAggregate ? WALK_IN_KEY : (row.id ?? '');
 }
 
+export type PageStatus =
+  | 'loading'
+  | 'empty'
+  | 'denied'
+  | 'validation'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
+
 export function hasCrmAccess(modules: string[] | undefined): boolean {
   return modules?.includes('CRM') === true;
+}
+
+export function hasLoyaltyAccess(modules: string[] | undefined): boolean {
+  return modules?.includes('LOYALTY') === true;
 }
 
 export function formatPaise(paise: number): string {

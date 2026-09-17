@@ -1,7 +1,9 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { CustomerCreateDialog, CreditSettleDialog } from '@templates';
 import type { AppDispatch, RootState } from '@/store';
+import { listDueRefills, type DueRefill } from '@/services/customerRefills';
+import { CustomerDueRefillsStrip } from './components/customer-due-refills-strip';
 import { CustomersDetailDialog } from './components/customers-detail-dialog';
 import { CustomersStatusBanner } from './components/customers-status-banner';
 import { CustomersSummary } from './components/customers-summary';
@@ -9,7 +11,7 @@ import { CustomersTable } from './components/customers-table';
 import { CustomersToolbar } from './components/customers-toolbar';
 import { CUSTOMERS_CONTENT } from './CustomersScreen.content';
 import './CustomersScreen.css';
-import { hasCrmAccess } from './CustomersScreen.utils';
+import { hasCrmAccess, rowKey } from './CustomersScreen.utils';
 import {
   selectCreateCustomerOpen,
   selectCustomerCredit,
@@ -21,9 +23,9 @@ import {
   closeCreateCustomer,
   closeSettleCredit,
   markCustomerAction,
+  openCustomerDetail,
 } from './store/customers.slice';
 import { loadCustomerDetail, loadCustomers } from './store/customers.thunks';
-import { rowKey } from './CustomersScreen.utils';
 
 export default function CustomersScreen() {
   const dispatch = useDispatch<AppDispatch>();
@@ -36,11 +38,31 @@ export default function CustomersScreen() {
   const allowed = hasCrmAccess(user?.modules);
   const addRef = useRef<HTMLButtonElement | null>(null);
   const settleRef = useRef<HTMLButtonElement | null>(null);
+  const [dueItems, setDueItems] = useState<DueRefill[]>([]);
+  const [dueLoading, setDueLoading] = useState(true);
 
   useEffect(() => {
     if (!allowed) return;
     void dispatch(loadCustomers());
   }, [dispatch, allowed]);
+
+  useEffect(() => {
+    if (!allowed) return;
+    let dead = false;
+    void listDueRefills()
+      .then((rows) => {
+        if (!dead) setDueItems(rows);
+      })
+      .catch(() => {
+        if (!dead) setDueItems([]);
+      })
+      .finally(() => {
+        if (!dead) setDueLoading(false);
+      });
+    return () => {
+      dead = true;
+    };
+  }, [allowed]);
 
   if (!allowed) {
     return (
@@ -73,6 +95,14 @@ export default function CustomersScreen() {
         <>
           <CustomersSummary />
           <CustomersToolbar />
+          <CustomerDueRefillsStrip
+            items={dueItems}
+            loading={dueLoading}
+            onSelectCustomer={(id) => {
+              dispatch(openCustomerDetail(id));
+              void dispatch(loadCustomerDetail(id));
+            }}
+          />
           <CustomersTable />
         </>
       )}

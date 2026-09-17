@@ -1,7 +1,10 @@
 package com.nammamedmate.server.application.subscription;
 
+import com.nammamedmate.server.application.notification.NotificationRoutingService;
+import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.CashfreeBillingPolicy;
+import com.nammamedmate.server.domain.NotificationTrigger;
 import com.nammamedmate.server.domain.PlanCatalogue;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.PlanLimits;
@@ -49,6 +52,7 @@ public class SubscriptionService {
   private final TenantRepository tenantRepository;
   private final AppUserRepository appUserRepository;
   private final LocationRepository locationRepository;
+  private final NotificationRoutingService notificationRoutingService;
   private final Clock clock;
 
   public SubscriptionService(
@@ -58,6 +62,7 @@ public class SubscriptionService {
       TenantRepository tenantRepository,
       AppUserRepository appUserRepository,
       LocationRepository locationRepository,
+      NotificationRoutingService notificationRoutingService,
       Clock clock) {
     this.tenantSubscriptionRepository = tenantSubscriptionRepository;
     this.upgradeIntentRepository = upgradeIntentRepository;
@@ -65,6 +70,7 @@ public class SubscriptionService {
     this.tenantRepository = tenantRepository;
     this.appUserRepository = appUserRepository;
     this.locationRepository = locationRepository;
+    this.notificationRoutingService = notificationRoutingService;
     this.clock = clock;
   }
 
@@ -278,6 +284,7 @@ public class SubscriptionService {
     Integer override = subscription == null ? null : subscription.getBranchLimitOverride();
     long current = countBranches(tenantId);
     if (!PlanLimits.allowsAnotherBranch(plan, override, current)) {
+      notifyPlanLimit(tenantId, "branches");
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT_CODE, BRANCH_LIMIT_MESSAGE);
     }
@@ -289,8 +296,22 @@ public class SubscriptionService {
     PlanCode plan = subscription == null ? PlanCode.FREE : subscription.getPlanCode();
     long current = countUsers(tenantId);
     if (!PlanLimits.allowsAnotherUser(plan, current)) {
+      notifyPlanLimit(tenantId, "users");
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, PLAN_LIMIT_CODE, USER_LIMIT_MESSAGE);
     }
+  }
+
+  private void notifyPlanLimit(UUID tenantId, String kind) {
+    notificationRoutingService.routeIsolated(
+        new RouteCommand(
+            "plan-limit:" + tenantId + ":" + kind,
+            NotificationTrigger.PLAN_LIMIT,
+            tenantId,
+            null,
+            tenantId,
+            null,
+            null,
+            null));
   }
 
   private void assertUsageFits(UUID tenantId, PlanCode plan, Integer branchLimitOverride) {

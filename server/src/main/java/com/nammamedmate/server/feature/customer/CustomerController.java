@@ -280,7 +280,15 @@ public class CustomerController {
                         field.duplicateValue()))
             .toList(),
         preview.conflicts(),
-        new MergeLinkedRecordsResponse(preview.linkedRecords().notificationEvents()));
+        new MergeLinkedRecordsResponse(
+            preview.linkedRecords().notificationEvents(),
+            preview.linkedRecords().salesInvoices(),
+            preview.linkedRecords().creditEntries(),
+            preview.linkedRecords().loyaltyEntries(),
+            preview.linkedRecords().historyFacts(),
+            preview.linkedRecords().refills(),
+            preview.linkedRecords().tags(),
+            preview.linkedRecords().familyMembers()));
   }
 
   private static MergeMode parseMode(String mode) {
@@ -396,7 +404,15 @@ public class CustomerController {
   public record MergeFieldResponse(
       String field, String status, String survivorValue, String duplicateValue) {}
 
-  public record MergeLinkedRecordsResponse(long notificationEvents) {}
+  public record MergeLinkedRecordsResponse(
+      long notificationEvents,
+      long salesInvoices,
+      long creditEntries,
+      long loyaltyEntries,
+      long historyFacts,
+      long refills,
+      long tags,
+      long familyMembers) {}
 
   private enum MergeMode {
     PREVIEW,

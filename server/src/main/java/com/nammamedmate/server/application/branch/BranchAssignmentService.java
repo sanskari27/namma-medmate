@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.branch;
 
+import com.nammamedmate.server.application.notification.NotificationRoleSync;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchStatus;
@@ -31,6 +32,7 @@ public class BranchAssignmentService {
   private final LocationRepository locationRepository;
   private final UserBranchRepository userBranchRepository;
   private final UserSessionRepository userSessionRepository;
+  private final NotificationRoleSync notificationRoleSync;
   private final Clock clock;
 
   public BranchAssignmentService(
@@ -38,11 +40,13 @@ public class BranchAssignmentService {
       LocationRepository locationRepository,
       UserBranchRepository userBranchRepository,
       UserSessionRepository userSessionRepository,
+      NotificationRoleSync notificationRoleSync,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.locationRepository = locationRepository;
     this.userBranchRepository = userBranchRepository;
     this.userSessionRepository = userSessionRepository;
+    this.notificationRoleSync = notificationRoleSync;
     this.clock = clock;
   }
 
@@ -66,6 +70,7 @@ public class BranchAssignmentService {
       saveAssignment(actor.tenantId(), target.getId(), branch.getId(), now);
     }
     syncSessionActiveBranches(target.getId(), branches.stream().map(Location::getId).toList());
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserBranches(target.getId(), assignedViews(actor.tenantId(), target));
   }
 
@@ -78,6 +83,7 @@ public class BranchAssignmentService {
         actor.tenantId(), target.getId(), branch.getId())) {
       saveAssignment(actor.tenantId(), target.getId(), branch.getId(), Instant.now(clock));
     }
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserBranches(target.getId(), assignedViews(actor.tenantId(), target));
   }
 
@@ -91,6 +97,7 @@ public class BranchAssignmentService {
     List<UUID> remaining =
         assignedViews(actor.tenantId(), target).stream().map(AssignedBranchView::id).toList();
     syncSessionActiveBranches(target.getId(), remaining);
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserBranches(target.getId(), assignedViews(actor.tenantId(), target));
   }
 

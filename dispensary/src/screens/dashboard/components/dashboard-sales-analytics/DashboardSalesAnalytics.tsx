@@ -71,6 +71,20 @@ export function DashboardSalesAnalytics({
 
   const lineData = barData;
 
+  if (analytics.status === 'PLAN_LIMIT') {
+    return (
+      <section className="dash-card" aria-labelledby="dash-sales-analytics">
+        <div className="dash-card-head">
+          <div>
+            <h3 id="dash-sales-analytics">{DASHBOARD_CONTENT.analyticsTitle}</h3>
+            <p>{DASHBOARD_CONTENT.analyticsPlanLimit}</p>
+          </div>
+          <Link to={ROUTES.SUBSCRIPTION}>{DASHBOARD_CONTENT.upgradePlan}</Link>
+        </div>
+      </section>
+    );
+  }
+
   return (
     <section className="dash-card" aria-labelledby="dash-sales-analytics">
       <div className="dash-card-head">

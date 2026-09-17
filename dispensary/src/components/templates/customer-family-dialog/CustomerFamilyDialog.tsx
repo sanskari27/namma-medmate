@@ -114,7 +114,8 @@ export function CustomerFamilyDialog({
       }}
     >
       <DialogContent
-        className="max-w-md max-h-[90vh] overflow-y-auto"
+        className="z-[120] max-w-md max-h-[90vh] overflow-y-auto"
+        overlayClassName="z-[110]"
         aria-describedby={`${formId}-desc`}
       >
         <div className="flex items-start gap-3">

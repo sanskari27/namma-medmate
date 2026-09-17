@@ -7,28 +7,28 @@ import { LicenseListPanel } from './components/license-list-panel';
 import { LicensesHeader } from './components/licenses-header';
 import { LicensesStatusBanner } from './components/licenses-status-banner';
 import { isOwner } from './LicensesScreen.utils';
-import { accessDenied, loadLicenses } from './store';
+import { loadLicenses, selectLicensesItems, selectLicensesStatus } from './store';
 
 export default function LicensesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const owner = isOwner(useSelector((state: RootState) => state.auth.user?.role));
+  const status = useSelector(selectLicensesStatus);
+  const items = useSelector(selectLicensesItems);
 
   useEffect(() => {
-    if (!owner) {
-      dispatch(accessDenied('Only the owner can file licences at this counter. Ask the owner if a paper is due.'));
-      return;
-    }
     void dispatch(loadLicenses());
-  }, [dispatch, owner]);
+  }, [dispatch]);
+
+  const showList = status !== 'denied' && (owner || items.length > 0);
 
   return (
     <div className="lc" aria-label="Licences">
       <LicensesStatusBanner />
       <LicensesHeader denied={!owner} />
-      {owner ? (
+      {showList ? (
         <div className="lc-split">
           <LicenseListPanel />
-          <LicenseFormPanel />
+          {owner ? <LicenseFormPanel /> : null}
         </div>
       ) : null}
     </div>

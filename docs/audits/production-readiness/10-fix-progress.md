@@ -78,11 +78,73 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | OWN-CA-002 | FIXED | Band 3 | dispensary | same | same | GST toggle off when GSTR omitted |
 | M8-TEST-001 | FIXED | Band 3 | dispensary | same | same | expenses/aging/CA tests on live chrome |
 | M7-REG-001 | FIXED | Band 3 | server | same | same | compliance NEAR_EXPIRY ungated |
+| M3-CRM-001 | FIXED | Band 4 | dispensary | see Band 4 close-out | see Band 4 close-out | remount merge/family/refill/tags/loyalty |
+| M3-CRM-002 | FIXED | Band 4 | server | same | same | EXECUTE moves sales/khata/loyalty/history |
+| M3-CREDIT-001 | FIXED | E | dispensary | see Slice E close-out | see Slice E close-out | khata remaining on patient pick |
+| M3-LOY-001 | FIXED | E | dispensary | same | same | Use points + OWNER adjust |
+| M3-REFILL-001 | FIXED | Band 4 | dispensary | see Band 4 close-out | see Band 4 close-out | due strip Customers + till |
+| M3-FAM-001 | FIXED | Band 4 | dispensary | same | same | family visibility + member settle |
+| M3-CRM-003 | FIXED | Band 4 | dispensary | same | same | CRM tests on live chrome |
+| M4-SKU-001 | FIXED | Band 4 | dispensary | same | same | empty catalogue → Add product |
+| M4-RCV-001 | FIXED | Band 4 | dispensary | same | same | Receive stock / batches / movements |
+| M4-EXP-001 | FIXED | Band 4 | server | same | same | expiring filter uses warn days |
+| M4-ADJ-001 | FIXED | Band 4 | dispensary | same | same | confirm before send/approve |
+| M4-TAKE-001 | FIXED | Band 4 | dispensary | same | same | Start count OWNER-only |
+| M4-TEST-001 | FIXED | Band 4 | dispensary | same | same | inventory tests on live floor |
+| M9-DASH-002 | FIXED | Band 4 | dispensary | same | same | owner widgets on live home |
+| M9-DASH-003 | FIXED | Band 4 | server + dispensary | same | same | dues hero = rupees |
+| M9-DASH-004 | FIXED | Band 4 | dispensary | same | same | drills to /orders and invoice |
+| M9-DASH-005 | FIXED | Band 4 | server | same | same | home charts Growth gate |
+| M9-DASH-006 | FIXED | Band 4 | dispensary | same | same | Free aging = PLAN_LIMIT wall |
+| M9-DASH-007 | FIXED | Band 4 | server | same | same | low-stock glance includes 0 on-hand |
+| M9-DASH-009 | FIXED | Band 4 | dispensary | same | same | FAILED sources: unavailable |
+| OWN-NAV-001 | FIXED | Band 4 | dispensary | same | same | Restock href ?view=guidance |
+| OWN-NAV-003 | FIXED | Band 4 | server + dispensary | same | same | all-outlets Stock tenant overview |
+| OWN-NAV-004 | FIXED | Band 4 | dispensary | same | same | all-outlets Transfers require outlet |
+| OWN-SUB-001 | FIXED | Band 4 | dispensary | same | same | FREE card hides Monthly billing |
+| M10-ROUTE-001 | FIXED | Band 4 | server | same | same | write notification_role_assignment |
+| M10-ROUTE-002 | FIXED | Band 4 | server | same | same | five silent matrix producers |
+| M10-WA-007 | FIXED | Band 4 | admin | same | same | Ping provider (templates unchanged) |
+| M7-LIC-001 | FIXED | Band 4 | server + dispensary | same | same | STAFF_LICENSE → /account; pharmacist view |
+| M7-REG-002 | FIXED | Band 4 | dispensary | same | same | Register / NDPS / Schedule / GST books |
+| M7-TEST-001 | FIXED | Band 4 | dispensary | same | same | M7 tests register live Redux |
+| UX-ADM-DASH-001 | FIXED | Band 4 | admin | same | same | HQ KPIs from KYC/pharmacy/subs lists |
+| M11-CF-003 | FIXED | R | dispensary | see Slice R close-out | see Slice R close-out | checkout copy + tests already live |
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: Band 3 — FIXED. Next picker: Band 4.
+Current slice: Band 4 — FIXED. Next picker: Band 5.
 Blocked on user: none. M1-IMPERSON-001 WONTFIX (D-001). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01.
+
+## Band 4 close-out (2026-09-17)
+
+No commit requested. P1 CRM, inventory, home, notifications, nav, HQ pulse.
+
+- Customers: due-refill strip; name opens merge/family/refill/tags/loyalty/khata/doctors. Merge EXECUTE repoints sales, khata, loyalty, history, refill, tags, family.
+- Inventory: Add product; Receive stock; expiring uses warn days; adj confirm; Start count OWNER-only; all-outlets Stock sums tenant on-hand (Receive hidden); Transfers copy asks to pick an outlet.
+- Home: owner widgets; dues hero rupees; Restock `/inventory?view=guidance`; recent sales `/orders`; analytics PLAN_LIMIT wall; FAILED unavailable.
+- Nav: Register book / NDPS sale book / Schedule stock book / Shop GST books. FREE hides Monthly billing. STAFF_LICENSE href `/account`; pharmacist STAFF licence read-only.
+- Notifications: role assign writes `notification_role_assignment`; producers ITEM_EXPIRY, SUPPLIER_DUE, ACCOUNT_CREATED, PLAN_LIMIT, SUBSCRIPTION_EXPIRY.
+- Admin: tenant pulse counts from lists; WABA “Ping provider (templates unchanged)”.
+
+Tests: `TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -Dtest=CustomerMergeTest,CustomerMergeRollbackTest,InventoryGuidanceTest,AccessRoleTest,NotificationRoutingTest,RoleDashboardTest,PurchaseReturnTest,LicenseTest test` — Band 4 classes green (`InventoryGuidanceTest#allOutletsOverviewSumsBranchStock_OWN_NAV_003` passed). Full `./mvnw test` earlier: Tests run: 945, Failures: 1 **not this slice** (`ExpenseTest.ac01_systemCategoriesAndCustomExtensibility` HEAD seed).
+
+`cd dispensary && npm run test -- --run src/screens/customers/tests/CustomersScreen.test.tsx src/screens/customers/tests/CustomersScreen.utils.test.ts src/screens/inventory/tests/InventoryScreen.test.tsx src/screens/inventory/tests/QualityCheckWorkspace.test.tsx src/screens/inventory/tests/PurchaseReturnWorkspace.test.tsx src/screens/dashboard/tests/DashboardScreen.test.tsx src/screens/dashboard/tests/DashboardDesk.test.tsx src/screens/account/tests/AccountScreen.test.tsx src/screens/licenses/tests/LicensesScreen.test.tsx src/screens/subscription/tests/SubscriptionScreen.test.tsx src/layouts/DashboardLayout.test.tsx` — 189+8 account + 76 inventory (Account 8 after live Redux wrap). PurchaseReturnWorkspace 9 passed.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && ./mvnw spotless:check` — HEAD residuals (kiosk/inventory/expense/credit/auth). Band 4 Java applied.
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw test` — Tests run: 945, Failures: 1 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility`.
+- `cd dispensary && npm run lint` — HEAD unused-import residuals (account/credit/distributors/offers). Band 4 files eslint clean.
+- Full dispensary suite 137 failed / 525 passed — HEAD screens missing slice reducers, predates this band. Band 4 CRM/inventory/dashboard/account/licence/nav suites green.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals (account/credit/distributors/inventory.format/offers/orders/shop-books). Band 4 inventory.thunks typed clean.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 193 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Browser (localhost:5173 owner, Indiranagar): Customers Due refills (12); Fam Parent Smoke opens Merge duplicate / Link member / family / refill / tags / points. Inventory Receive stock + Add product; Physical count Start count; nav Register book / NDPS sale book / Shop GST books. All outlets Stock: 110 SKUs / 1,49,487 units, no Receive stock; Transfers: Select an outlet before managing floor stock. Home Restock → `/inventory?view=guidance`; recent invoices → `/orders`; owner widgets Stockist dues / Transfers / Licences due. Licences Add licence + pharmacist paper. HQ: Tenant pulse cards labeled; live pulse failed while session idle-locked (tests wire counts). WABA copy Ping provider (templates unchanged).
+
+Out of scope: Band 5+; D-013/M1-S09; D-006/M12-S01; D-001 audit.
 
 ## Band 3 close-out (2026-09-17)
 

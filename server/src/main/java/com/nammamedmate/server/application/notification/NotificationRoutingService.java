@@ -29,6 +29,7 @@ import java.util.UUID;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -79,6 +80,11 @@ public class NotificationRoutingService {
     }
     List<RoutedDelivery> deliveries = deliver(command, event);
     return new RouteResult(event.getId(), false, List.copyOf(deliveries));
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public RouteResult routeIsolated(RouteCommand command) {
+    return route(command);
   }
 
   private void validate(RouteCommand command) {

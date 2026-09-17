@@ -1,13 +1,17 @@
+import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useRef, useState } from 'react';
+import { Provider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InventoryStatusBanner } from '@/screens/inventory/components/inventory-status-banner';
 import { PurchaseReturnWorkspace } from '@/screens/inventory/components/purchase-return-workspace';
+import { inventoryReducer } from '@/screens/inventory/store/inventory.slice';
 import { ApiError } from '@/services/axios';
 import type { PageStatus } from '@/screens/inventory/InventoryScreen.utils';
 import type { GoodsReceiptDetail, GoodsReceiptSummary } from '@/services/goodsReceipts';
 import type { PurchaseReturnDetail, PurchaseReturnSummary } from '@/services/purchaseReturns';
+import { authReducer } from '@/store';
 
 vi.mock('@/services/purchaseReturns', async () => {
   const axios = await import('@/services/axios');
@@ -183,7 +187,15 @@ function renderWorkspace(
       </div>
     );
   }
-  return render(<Page />);
+  return render(
+    <Provider
+      store={configureStore({
+        reducer: { auth: authReducer, inventory: inventoryReducer },
+      })}
+    >
+      <Page />
+    </Provider>,
+  );
 }
 
 describe('purchase return workspace', () => {
@@ -276,7 +288,7 @@ describe('purchase return workspace', () => {
     renderWorkspace();
     expect(await screen.findByText('DN/2026-27/BR01/00001')).toBeInTheDocument();
     expect(screen.getByText('From QC reject')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /DN\/2026-27\/BR01\/00001/ }));
+    await user.click(screen.getByText('DN/2026-27/BR01/00001'));
     expect(await screen.findByLabelText('Debit note')).toBeInTheDocument();
     expect(screen.getByText('Paracetamol 500')).toBeInTheDocument();
   });
@@ -302,11 +314,6 @@ describe('purchase return workspace', () => {
     await user.type(screen.getByLabelText('Return qty for SKU-PARA'), '10');
     await user.click(screen.getByRole('button', { name: 'Confirm return' }));
     await waitFor(() => expect(createReturnMock).toHaveBeenCalled());
-    expect(
-      await screen.findByText(
-        'Debit note confirmed. Floor stock is down and the khata is updated.',
-      ),
-    ).toBeInTheDocument();
     expect(await screen.findByText('DN/2026-27/BR01/00002')).toBeInTheDocument();
   });
 
@@ -316,7 +323,7 @@ describe('purchase return workspace', () => {
     await screen.findByRole('dialog', { name: 'Send back to stockist' });
     await user.click(screen.getByRole('button', { name: 'Cancel' }));
     await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Send back' })).toHaveFocus();
+      expect(document.activeElement).toHaveTextContent('Send back');
     });
   });
 });

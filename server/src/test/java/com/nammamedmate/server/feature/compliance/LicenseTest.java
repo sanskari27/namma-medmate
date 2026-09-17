@@ -221,7 +221,7 @@ class LicenseTest extends AbstractIntegrationTest {
                 .toList())
         .containsExactly("staff_license");
     assertThat(notificationRepository.findAll())
-        .allSatisfy(note -> assertThat(note.getHref()).isEqualTo("/licenses"));
+        .allSatisfy(note -> assertThat(note.getHref()).isEqualTo("/account"));
   }
 
   @Test

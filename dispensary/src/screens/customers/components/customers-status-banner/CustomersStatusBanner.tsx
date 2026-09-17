@@ -65,7 +65,15 @@ export function CustomersStatusBanner() {
   if (actionStatus === 'failure') {
     return (
       <div className="cust-banner" data-tone="alert" role="alert">
-        {CUSTOMERS_CONTENT.status.failure}
+        {hint ?? CUSTOMERS_CONTENT.status.failure}
+      </div>
+    );
+  }
+
+  if (actionStatus === 'conflict') {
+    return (
+      <div className="cust-banner" data-tone="alert" role="alert">
+        {hint ?? CUSTOMERS_CONTENT.status.conflict}
       </div>
     );
   }

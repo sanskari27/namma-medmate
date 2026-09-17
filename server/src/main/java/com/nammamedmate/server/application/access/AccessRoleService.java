@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.access;
 
+import com.nammamedmate.server.application.notification.NotificationRoleSync;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AccessRole;
 import com.nammamedmate.server.domain.AccessRoleEvent;
@@ -60,6 +61,7 @@ public class AccessRoleService {
   private final AccessRoleEventRepository accessRoleEventRepository;
   private final AccessQueryService accessQueryService;
   private final SubscriptionService subscriptionService;
+  private final NotificationRoleSync notificationRoleSync;
   private final Clock clock;
 
   public AccessRoleService(
@@ -70,6 +72,7 @@ public class AccessRoleService {
       AccessRoleEventRepository accessRoleEventRepository,
       AccessQueryService accessQueryService,
       SubscriptionService subscriptionService,
+      NotificationRoleSync notificationRoleSync,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessRoleRepository = accessRoleRepository;
@@ -78,6 +81,7 @@ public class AccessRoleService {
     this.accessRoleEventRepository = accessRoleEventRepository;
     this.accessQueryService = accessQueryService;
     this.subscriptionService = subscriptionService;
+    this.notificationRoleSync = notificationRoleSync;
     this.clock = clock;
   }
 
@@ -215,6 +219,7 @@ public class AccessRoleService {
           actor.tenantId(),
           Set.of());
     }
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserAccessRoles(target.getId(), accessQueryService.assignedViews(target));
   }
 
@@ -233,6 +238,7 @@ public class AccessRoleService {
           actor.tenantId(),
           Set.of());
     }
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserAccessRoles(target.getId(), accessQueryService.assignedViews(target));
   }
 
@@ -249,6 +255,7 @@ public class AccessRoleService {
         target.getId(),
         actor.tenantId(),
         Set.of());
+    notificationRoleSync.sync(target.getId(), actor.tenantId());
     return new UserAccessRoles(target.getId(), accessQueryService.assignedViews(target));
   }
 

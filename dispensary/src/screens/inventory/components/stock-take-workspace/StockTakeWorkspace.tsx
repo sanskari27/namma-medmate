@@ -8,15 +8,15 @@ import {
   type StockTake,
 } from '@/services/stockTakes';
 import { Button } from '@atoms';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { Plus } from 'lucide-react';
 import { Ref, useCallback, useEffect, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { INVENTORY_CONTENT } from '../../InventoryScreen.content';
 import { mapApiStatus, type PageStatus } from '../../InventoryScreen.utils';
 import {
   bumpInventorySync,
   refreshInventoryAfterMutation,
-  selectInventorySyncEpoch,
 } from '../../store';
 import { InventoryOpsShell, InventoryPrimaryAction } from '../inventory-ops-shell';
 import { StockTakeCountSheet } from '../stock-take-count-sheet/StockTakeCountSheet';
@@ -53,7 +53,7 @@ export function StockTakeWorkspace({
   onStatusChange,
 }: StockTakeWorkspaceProps) {
   const dispatch = useDispatch<AppDispatch>();
-  const syncEpoch = useSelector(selectInventorySyncEpoch);
+  const canStart = useSelector((state: RootState) => state.auth.user?.role === 'pharmacy_owner');
   const [openTake, setOpenTake] = useState<StockTake | null>(null);
   const [history, setHistory] = useState<StockTake[]>([]);
   const [drafts, setDrafts] = useState<Record<string, string>>({});
@@ -88,7 +88,7 @@ export function StockTakeWorkspace({
 
   useEffect(() => {
     void load();
-  }, [load, syncEpoch]);
+  }, [load]);
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
@@ -167,7 +167,11 @@ export function StockTakeWorkspace({
   };
 
   if (!activeBranchId) {
-    return null;
+    return (
+      <p className="rounded-lg border border-line bg-surface px-3 py-2 text-sm text-muted">
+        {INVENTORY_CONTENT.noBranch}
+      </p>
+    );
   }
 
   return (
@@ -175,7 +179,7 @@ export function StockTakeWorkspace({
       title="Physical count"
       subtitle="Owner starts an optional count. Staff count batches, then post variances."
       action={
-        openTake ? null : (
+        openTake || !canStart ? null : (
           <InventoryPrimaryAction ref={startButtonRef} onClick={() => onStartOpenChange(true)}>
             <Plus className="size-3.5" aria-hidden />
             Start count

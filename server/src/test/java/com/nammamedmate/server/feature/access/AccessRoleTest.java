@@ -12,14 +12,29 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nammamedmate.server.AbstractIntegrationTest;
+import com.nammamedmate.server.application.notification.NotificationRoutingService;
+import com.nammamedmate.server.application.notification.RouteCommand;
 import com.nammamedmate.server.domain.AccessRoleKind;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
+import com.nammamedmate.server.domain.BranchStatus;
+import com.nammamedmate.server.domain.BranchType;
+import com.nammamedmate.server.domain.Location;
+import com.nammamedmate.server.domain.Notification;
+import com.nammamedmate.server.domain.NotificationTrigger;
+import com.nammamedmate.server.domain.RoutingRole;
 import com.nammamedmate.server.domain.Tenant;
+import com.nammamedmate.server.domain.TenantStatus;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.persistence.AccessRoleEventRepository;
 import com.nammamedmate.server.persistence.AccessRoleRepository;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.NotificationDeliveryRepository;
+import com.nammamedmate.server.persistence.NotificationEventRepository;
+import com.nammamedmate.server.persistence.NotificationRepository;
+import com.nammamedmate.server.persistence.NotificationRoleAssignmentRepository;
+import com.nammamedmate.server.persistence.NotificationSourceRepository;
 import com.nammamedmate.server.persistence.PasswordHistoryRepository;
 import com.nammamedmate.server.persistence.PasswordResetTokenRepository;
 import com.nammamedmate.server.persistence.SavedLoginRepository;
@@ -27,9 +42,13 @@ import com.nammamedmate.server.persistence.StaffRegistrationRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import com.nammamedmate.server.persistence.TransactionalEmailRepository;
 import com.nammamedmate.server.persistence.UserAccessRoleRepository;
+import com.nammamedmate.server.persistence.UserBranchRepository;
 import com.nammamedmate.server.persistence.UserSessionRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
@@ -56,9 +75,23 @@ class AccessRoleTest extends AbstractIntegrationTest {
   @Autowired private AccessRoleEventRepository accessRoleEventRepository;
   @Autowired private AccessRoleRepository accessRoleRepository;
   @Autowired private PasswordEncoder passwordEncoder;
+  @Autowired private LocationRepository locationRepository;
+  @Autowired private UserBranchRepository userBranchRepository;
+  @Autowired private NotificationRoleAssignmentRepository assignmentRepository;
+  @Autowired private NotificationRoutingService routingService;
+  @Autowired private NotificationRepository notificationRepository;
+  @Autowired private NotificationEventRepository notificationEventRepository;
+  @Autowired private NotificationDeliveryRepository notificationDeliveryRepository;
+  @Autowired private NotificationSourceRepository notificationSourceRepository;
 
   @BeforeEach
   void wipe() {
+    notificationDeliveryRepository.deleteAll();
+    notificationEventRepository.deleteAll();
+    notificationRepository.deleteAll();
+    notificationSourceRepository.deleteAll();
+    assignmentRepository.deleteAll();
+    userBranchRepository.deleteAll();
     passwordResetTokenRepository.deleteAll();
     passwordHistoryRepository.deleteAll();
     transactionalEmailRepository.deleteAll();
@@ -68,6 +101,7 @@ class AccessRoleTest extends AbstractIntegrationTest {
     userAccessRoleRepository.deleteAll();
     accessRoleEventRepository.deleteAll();
     accessRoleRepository.deleteAll(accessRoleRepository.findByKind(AccessRoleKind.CUSTOM));
+    locationRepository.deleteAll();
     appUserRepository.deleteAll();
     tenantRepository.deleteAll();
   }
@@ -383,6 +417,59 @@ class AccessRoleTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void inventoryRoleWritesNotificationAssignment_M10_ROUTE_001() throws Exception {
+    Tenant tenant = persistTenant("route-inv");
+    tenant.setStatus(TenantStatus.ACTIVE);
+    tenantRepository.save(tenant);
+    persistUser(tenant.getId(), "owner@route-inv.local", AppUserRole.pharmacy_owner, null);
+    AppUser staff =
+        persistUser(tenant.getId(), "stock@route-inv.local", AppUserRole.pharmacy_staff, null);
+    Location branch = persistBranch(tenant.getId());
+    Cookie owner = login("owner@route-inv.local");
+    UUID inventory = predefinedId(owner, "inventory");
+
+    mockMvc
+        .perform(
+            post("/api/v1/users/" + staff.getId() + "/roles")
+                .cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleId\":\"" + inventory + "\"}"))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(
+            put("/api/v1/users/" + staff.getId() + "/branches")
+                .cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"branchIds\":[\"" + branch.getId() + "\"]}"))
+        .andExpect(status().isOk());
+
+    assertThat(assignmentRepository.findAllByUserIdAndTenantId(staff.getId(), tenant.getId()))
+        .anyMatch(
+            row ->
+                row.getRoutingRole() == RoutingRole.INVENTORY
+                    && branch.getId().equals(row.getBranchId()));
+
+    routingService.route(
+        new RouteCommand(
+            "item-expiry-role-test",
+            NotificationTrigger.ITEM_EXPIRY,
+            tenant.getId(),
+            branch.getId(),
+            UUID.randomUUID(),
+            null,
+            null,
+            null));
+    assertThat(notificationRepository.findAll().stream().map(Notification::getRecipientUserId))
+        .contains(staff.getId());
+
+    mockMvc
+        .perform(delete("/api/v1/users/" + staff.getId() + "/roles/" + inventory).cookie(owner))
+        .andExpect(status().isOk());
+    assertThat(assignmentRepository.findAllByUserIdAndTenantId(staff.getId(), tenant.getId()))
+        .isEmpty();
+  }
+
+  @Test
   void ac04_roleCatalogExplainsPlanGatedModules() throws Exception {
     Tenant tenant = persistTenant("catalog");
     persistUser(tenant.getId(), "owner@cat.local", AppUserRole.pharmacy_owner, null);
@@ -437,6 +524,43 @@ class AccessRoleTest extends AbstractIntegrationTest {
     tenant.setCreatedAt(now);
     tenant.setUpdatedAt(now);
     return tenantRepository.saveAndFlush(tenant);
+  }
+
+  private Location persistBranch(UUID tenantId) {
+    Instant now = Instant.parse("2026-09-01T00:00:00Z");
+    Location branch = new Location();
+    branch.setId(UUID.randomUUID());
+    branch.setTenantId(tenantId);
+    branch.setName("Main");
+    branch.setBranchCode("BR01");
+    branch.setAddressLine("12 MG Road");
+    branch.setCity("Bengaluru");
+    branch.setState("KA");
+    branch.setPincode("560001");
+    branch.setContactPhone("9876543210");
+    branch.setDrugLicenseNumber("DL-BR01");
+    Map<String, Object> hours = new LinkedHashMap<>();
+    Map<String, Object> mon = new LinkedHashMap<>();
+    mon.put("open", "09:00");
+    mon.put("close", "21:00");
+    hours.put("mon", mon);
+    branch.setOperatingHours(hours);
+    branch.setBranchType(BranchType.RETAIL);
+    branch.setStatus(BranchStatus.ACTIVE);
+    branch.setOpeningDate(LocalDate.of(2026, 9, 1));
+    branch.setDefaultBranch(true);
+    branch.setLinkedWarehouse(false);
+    Map<String, Object> pricing = new LinkedHashMap<>();
+    pricing.put("defaultMarkupBps", 0);
+    pricing.put("roundToNearestPaise", 1);
+    branch.setPricingSettings(pricing);
+    Map<String, Object> tax = new LinkedHashMap<>();
+    tax.put("gstMode", "CGST_SGST");
+    tax.put("taxState", "KA");
+    branch.setTaxSettings(tax);
+    branch.setCreatedAt(now);
+    branch.setUpdatedAt(now);
+    return locationRepository.saveAndFlush(branch);
   }
 
   private AppUser persistUser(UUID tenantId, String email, AppUserRole role, UUID createdBy) {

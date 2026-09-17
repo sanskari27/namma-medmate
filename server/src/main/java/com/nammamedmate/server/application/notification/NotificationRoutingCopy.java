@@ -74,7 +74,7 @@ final class NotificationRoutingCopy {
       case STAFF_LICENSE ->
           new Content(
               "staff_license",
-              "/licenses",
+              "/account",
               null,
               "Staff license expiring",
               "A staff license is nearing expiry. Open licences to renew it.",

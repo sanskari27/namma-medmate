@@ -107,7 +107,9 @@ export function ProductEditorDialog() {
   const onSave = async (event: FormEvent) => {
     event.preventDefault();
     if (!validateForm(form)) {
-      setError('Fill required catalogue fields before saving.');
+      setError(
+        'Check SKU, pack size, quantity precision (0–4), and conversion factors. Zero, duplicate, or base-unit conversions are rejected.',
+      );
       return;
     }
     setBusy(true);

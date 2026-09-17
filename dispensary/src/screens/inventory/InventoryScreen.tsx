@@ -1,5 +1,5 @@
 import type { AppDispatch, RootState } from '@/store';
-import { useCallback, useEffect, useId } from 'react';
+import { useCallback, useEffect, useId, useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { useSearchParams } from 'react-router-dom';
 import { AdjustmentWorkspace } from './components/adjustment-workspace/AdjustmentWorkspace';
@@ -79,8 +79,17 @@ export default function InventoryScreen() {
   }, [dispatch, requestedView]);
 
   const denied = !allowed || status === 'denied';
-  const showBanner = view !== 'floor' && status !== null;
-  const noopRef = { current: null };
+  const showBanner = status !== null && !(view === 'floor' && status === 'empty');
+  const transferButtonRef = useRef<HTMLButtonElement>(null);
+  const adjustButtonRef = useRef<HTMLButtonElement>(null);
+  const startButtonRef = useRef<HTMLButtonElement>(null);
+  const returnButtonRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    if (!allowed) {
+      dispatch(setWorkspaceStatus({ status: 'denied' }));
+    }
+  }, [allowed, dispatch]);
 
   return (
     <div className="flex h-full min-h-0 w-full flex-col gap-4 bg-canvas">
@@ -112,7 +121,7 @@ export default function InventoryScreen() {
           allowed={allowed}
           activeBranchId={activeBranchId}
           branches={branches}
-          transferButtonRef={noopRef}
+          transferButtonRef={transferButtonRef}
           createOpen={transferOpen}
           onCreateOpenChange={(open) => dispatch(setTransferOpen(open))}
           onStatusChange={onStatusChange}
@@ -123,7 +132,7 @@ export default function InventoryScreen() {
         <AdjustmentWorkspace
           allowed={allowed}
           activeBranchId={activeBranchId}
-          adjustButtonRef={noopRef}
+          adjustButtonRef={adjustButtonRef}
           createOpen={adjustOpen}
           onCreateOpenChange={(open) => dispatch(setAdjustOpen(open))}
           onStatusChange={onStatusChange}
@@ -142,7 +151,7 @@ export default function InventoryScreen() {
           activeBranchId={activeBranchId}
           startOpen={stockTakeOpen}
           onStartOpenChange={(open) => dispatch(setStockTakeOpen(open))}
-          startButtonRef={noopRef}
+          startButtonRef={startButtonRef}
           onStatusChange={onStatusChange}
         />
       ) : null}
@@ -168,7 +177,7 @@ export default function InventoryScreen() {
           activeBranchId={activeBranchId}
           createOpen={returnOpen}
           onCreateOpenChange={(open) => dispatch(setReturnOpen(open))}
-          createButtonRef={noopRef}
+          createButtonRef={returnButtonRef}
           onStatusChange={onStatusChange}
         />
       ) : null}

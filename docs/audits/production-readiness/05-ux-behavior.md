@@ -22,11 +22,11 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 
 | Convenient | Actual | Fix |
 |---|---|---|
-| Patient file: family, refill, tags, merge | Directory + repay only | remount existing dialogs |
-| Merge shows what moves | Notifications only on server | repoint ledgers |
-| Due refill on till | No UI; WhatsApp job may spam | restore due strip |
+| Patient file: family, refill, tags, merge | Directory opens CRM ops (merge, family, refill, tags, loyalty, khata) | Band 4 |
+| Merge shows what moves | EXECUTE repoints sales/khata/loyalty/history/refill/tags/family | Band 4 |
+| Due refill on till | Due strip on Customers + till | Band 4 |
 | Rx remaining | Unused API | dispatch fulfillment |
-| NDPS sale vs stock book | Two “NDPS sheet” | rename |
+| NDPS sale vs stock book | Nav: Register book / NDPS sale book / Schedule stock book | Band 4 |
 
 ## Month-end CA (accountant / OWNER)
 
@@ -42,17 +42,17 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 
 | Convenient | Actual | Fix |
 |---|---|---|
-| Home low stock → Guidance | Lands on Stock overview | `?view=guidance` |
-| Draft PO from reorder | CSV only | remount Growth draft |
-| Partial challan | Always 100% new PO | Record delivery outstanding |
-| QC from Purchases pending | Hunt Inventory tab | deep-link QC |
-| Debit note after reject | Flash then hunt Returns tab | keep outcome + open DN |
+| Home low stock → Guidance | Restock / Reorder → `/inventory?view=guidance` | Band 4 |
+| Draft PO from reorder | Draft from this outlet reorder + PLAN_LIMIT | Band 3 |
+| Partial challan | Record delivery outstanding | Band 3 |
+| QC from Purchases pending | deep-link QC | Band 3 |
+| Debit note after reject | keep outcome + open DN | Band 3 |
 
 ## KYC morning (MASTER / VA)
 
 | Convenient | Actual | Fix |
 |---|---|---|
-| Home shows KYC pending | Em-dash KPIs | wire list counts |
+| Home shows KYC pending | Pulse cards from tenant/KYC/subscription lists | Band 4 |
 | Open evidence | Raw API URL 401 on split hosts | blob fetch |
 | Who reviews | Generic “review” | name HQ VA/MASTER |
 | Enter support from pharmacy row | Must know email; then HQ 403 | Enter as OWNER + keep MASTER chrome |
@@ -64,7 +64,7 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 |---|---|---|
 | Expired plan locks floor | Override + daily job lock ACTIVE tenant | FIXED `M2-LIFE-001` |
 | Pending payment distinct | Same copy as abandon; second checkout | PENDING copy + reuse key |
-| Free card | “Monthly billing” | copy |
+| Free card | Hidden “Monthly billing” on FREE | Band 4 |
 | Near-expiry register on Free | Starter gate leaked into COMPLIANCE | remove D-005 from compliance |
 
 ## UX-vs-CONTRACT (do not “fix” by inventing product)

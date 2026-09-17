@@ -4,6 +4,7 @@ import com.nammamedmate.server.application.access.AccessQueryService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.BranchProductStockLevel;
+import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.Manufacturer;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.Product;
@@ -47,14 +48,12 @@ import org.springframework.transaction.annotation.Transactional;
 @Service
 public class InventoryOverviewService {
 
-  private static final String NO_BRANCH_CODE = "NO_ACTIVE_BRANCH";
-  private static final String NO_BRANCH_MESSAGE = "Select an outlet before managing floor stock.";
-  /** Reference inventory KPI: expiring within four months. */
-  private static final int EXPIRING_HORIZON_DAYS = 120;
+  /** Dead-stock window: no STOCK_OUT in 90 days. */
   private static final int DEAD_STOCK_DAYS = 90;
 
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
+  private final InventoryStockService inventoryStockService;
   private final ProductRepository productRepository;
   private final ProductCategoryRepository productCategoryRepository;
   private final ManufacturerRepository manufacturerRepository;
@@ -70,6 +69,7 @@ public class InventoryOverviewService {
   public InventoryOverviewService(
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
+      InventoryStockService inventoryStockService,
       ProductRepository productRepository,
       ProductCategoryRepository productCategoryRepository,
       ManufacturerRepository manufacturerRepository,
@@ -83,6 +83,7 @@ public class InventoryOverviewService {
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
+    this.inventoryStockService = inventoryStockService;
     this.productRepository = productRepository;
     this.productCategoryRepository = productCategoryRepository;
     this.manufacturerRepository = manufacturerRepository;
@@ -100,7 +101,8 @@ public class InventoryOverviewService {
   public InventoryOverviewView overview(AuthPrincipal principal) {
     Context ctx = requireReady(principal);
     LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
-    LocalDate expiringBefore = today.plusDays(EXPIRING_HORIZON_DAYS);
+    int warnDays = expiryWarnDays(ctx);
+    LocalDate expiringBefore = today.plusDays(warnDays);
     Instant deadSince = clock.instant().minusSeconds(DEAD_STOCK_DAYS * 24L * 3600L);
 
     List<Product> products =
@@ -122,8 +124,10 @@ public class InventoryOverviewService {
     }
 
     List<StockBalance> balances =
-        stockBalanceRepository.findAllByTenantIdAndBranchIdOrderByProductIdAsc(
-            ctx.tenantId(), ctx.branchId());
+        ctx.branchIds().isEmpty()
+            ? List.of()
+            : stockBalanceRepository.findAllByTenantIdAndBranchIdIn(
+                ctx.tenantId(), ctx.branchIds());
 
     Set<UUID> batchIds = new HashSet<>();
     for (StockBalance balance : balances) {
@@ -140,14 +144,16 @@ public class InventoryOverviewService {
     }
 
     Map<UUID, BranchProductStockLevel> levels = new HashMap<>();
-    for (BranchProductStockLevel level :
-        branchProductStockLevelRepository.findAllByTenantIdAndBranchId(
-            ctx.tenantId(), ctx.branchId())) {
-      levels.put(level.getProductId(), level);
+    for (UUID branchId : ctx.branchIds()) {
+      for (BranchProductStockLevel level :
+          branchProductStockLevelRepository.findAllByTenantIdAndBranchId(
+              ctx.tenantId(), branchId)) {
+        levels.putIfAbsent(level.getProductId(), level);
+      }
     }
 
-    Map<UUID, long[]> suggestedMrp = suggestedMrp(ctx.tenantId(), ctx.branchId());
-    Set<UUID> soldRecently = productsSoldSince(ctx.tenantId(), ctx.branchId(), deadSince);
+    Map<UUID, long[]> suggestedMrp = suggestedMrp(ctx.tenantId(), ctx.branchIds());
+    Set<UUID> soldRecently = productsSoldSince(ctx.tenantId(), ctx.branchIds(), deadSince);
 
     Map<UUID, Agg> aggs = new HashMap<>();
     for (StockBalance balance : balances) {
@@ -166,8 +172,7 @@ public class InventoryOverviewService {
         if (isExpiring(batch.getExpiresOn(), today, expiringBefore)) {
           agg.nearExpiry = true;
           agg.expiringQty = agg.expiringQty.add(balance.getQuantity());
-          agg.expiringCostPaise +=
-              costPaise(balance.getQuantity(), batch.getPurchasePricePaise());
+          agg.expiringCostPaise += costPaise(balance.getQuantity(), batch.getPurchasePricePaise());
         }
         agg.costValuePaise += costPaise(balance.getQuantity(), batch.getPurchasePricePaise());
       }
@@ -201,14 +206,11 @@ public class InventoryOverviewService {
           !outOfStock
               && threshold != null
               && agg.onHand.compareTo(BigDecimal.valueOf(threshold)) <= 0;
-      boolean unallocated = product.getRackLocation() == null || product.getRackLocation().isBlank();
-      boolean deadStock =
-          !outOfStock && !soldRecently.contains(product.getId());
+      boolean unallocated =
+          product.getRackLocation() == null || product.getRackLocation().isBlank();
+      boolean deadStock = !outOfStock && !soldRecently.contains(product.getId());
       long costValue = agg.costValuePaise;
-      long retail =
-          mrpPaise == null
-              ? 0L
-              : costPaise(agg.onHand, mrpPaise);
+      long retail = mrpPaise == null ? 0L : costPaise(agg.onHand, mrpPaise);
       Long looseUnitPaise =
           looseUnitPaise(mrpPaise, product.getPackSize(), product.isLooseSellingEnabled());
 
@@ -273,9 +275,7 @@ public class InventoryOverviewService {
 
     Integer marginPercent = null;
     if (retailValue > 0 && stockCost >= 0 && retailValue >= stockCost) {
-      marginPercent =
-          (int)
-              Math.round(((retailValue - stockCost) * 100.0) / retailValue);
+      marginPercent = (int) Math.round(((retailValue - stockCost) * 100.0) / retailValue);
     }
 
     InventoryOverviewView.InventoryOverviewSummary summary =
@@ -322,44 +322,49 @@ public class InventoryOverviewService {
             () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Product was not found"));
   }
 
-  private Map<UUID, long[]> suggestedMrp(UUID tenantId, UUID branchId) {
-    List<UUID> completedIds =
-        salesInvoiceRepository
-            .findByTenantIdAndBranchIdAndStatusOrderByCreatedAtDesc(
-                tenantId, branchId, SalesInvoiceStatus.COMPLETED)
-            .stream()
-            .map(invoice -> invoice.getId())
-            .toList();
+  private Map<UUID, long[]> suggestedMrp(UUID tenantId, List<UUID> branchIds) {
     Map<UUID, long[]> prices = new HashMap<>();
-    if (completedIds.isEmpty()) {
-      return prices;
-    }
-    Map<UUID, List<SalesInvoiceLine>> linesByInvoice = new HashMap<>();
-    for (SalesInvoiceLine line :
-        salesInvoiceLineRepository.findAllByTenantIdAndBranchIdAndSalesInvoiceIdIn(
-            tenantId, branchId, completedIds)) {
-      linesByInvoice
-          .computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>())
-          .add(line);
-    }
-    for (UUID invoiceId : completedIds) {
-      List<SalesInvoiceLine> lines = linesByInvoice.get(invoiceId);
-      if (lines == null) {
+    for (UUID branchId : branchIds) {
+      List<UUID> completedIds =
+          salesInvoiceRepository
+              .findByTenantIdAndBranchIdAndStatusOrderByCreatedAtDesc(
+                  tenantId, branchId, SalesInvoiceStatus.COMPLETED)
+              .stream()
+              .map(invoice -> invoice.getId())
+              .toList();
+      if (completedIds.isEmpty()) {
         continue;
       }
-      for (SalesInvoiceLine line : lines) {
-        prices.putIfAbsent(line.getProductId(), new long[] {line.getMrpPaise()});
+      Map<UUID, List<SalesInvoiceLine>> linesByInvoice = new HashMap<>();
+      for (SalesInvoiceLine line :
+          salesInvoiceLineRepository.findAllByTenantIdAndBranchIdAndSalesInvoiceIdIn(
+              tenantId, branchId, completedIds)) {
+        linesByInvoice
+            .computeIfAbsent(line.getSalesInvoiceId(), ignored -> new ArrayList<>())
+            .add(line);
+      }
+      for (UUID invoiceId : completedIds) {
+        List<SalesInvoiceLine> lines = linesByInvoice.get(invoiceId);
+        if (lines == null) {
+          continue;
+        }
+        for (SalesInvoiceLine line : lines) {
+          prices.putIfAbsent(line.getProductId(), new long[] {line.getMrpPaise()});
+        }
       }
     }
     return prices;
   }
 
-  private Set<UUID> productsSoldSince(UUID tenantId, UUID branchId, Instant since) {
+  private Set<UUID> productsSoldSince(UUID tenantId, List<UUID> branchIds, Instant since) {
     Set<UUID> sold = new HashSet<>();
+    if (branchIds.isEmpty()) {
+      return sold;
+    }
     List<StockMovement> movements =
         stockMovementRepository.findByTypesInWindow(
             tenantId,
-            List.of(branchId),
+            branchIds,
             List.of(StockMovementType.STOCK_OUT),
             since,
             clock.instant().plusSeconds(1));
@@ -393,12 +398,13 @@ public class InventoryOverviewService {
   }
 
   private static Long looseUnitPaise(Long mrpPaise, BigDecimal packSize, boolean looseEnabled) {
-    if (!looseEnabled || mrpPaise == null || packSize == null || packSize.compareTo(BigDecimal.ZERO) <= 0) {
+    if (!looseEnabled
+        || mrpPaise == null
+        || packSize == null
+        || packSize.compareTo(BigDecimal.ZERO) <= 0) {
       return null;
     }
-    return BigDecimal.valueOf(mrpPaise)
-        .divide(packSize, 0, RoundingMode.HALF_UP)
-        .longValue();
+    return BigDecimal.valueOf(mrpPaise).divide(packSize, 0, RoundingMode.HALF_UP).longValue();
   }
 
   private static boolean isExpired(LocalDate expiresOn, LocalDate today) {
@@ -412,18 +418,33 @@ public class InventoryOverviewService {
     return !expiresOn.isAfter(before);
   }
 
+  private int expiryWarnDays(Context ctx) {
+    if (ctx.branchIds().isEmpty()) {
+      return 30;
+    }
+    int max = 0;
+    for (UUID branchId : ctx.branchIds()) {
+      max = Math.max(max, inventoryStockService.expiryWarnDaysForBranch(ctx.tenantId(), branchId));
+    }
+    return max;
+  }
+
   private Context requireReady(AuthPrincipal principal) {
     UUID tenantId = requireModuleAccess(principal);
     UUID branchId = principal.activeBranchId();
-    if (branchId == null) {
-      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
+    if (branchId != null) {
+      locationRepository
+          .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
+          .orElseThrow(
+              () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Branch was not found"));
+      return new Context(tenantId, List.of(branchId));
     }
-    // Ensure branch exists for tenant.
-    locationRepository
-        .findByIdAndTenantIdAndDeletedAtIsNull(branchId, tenantId)
-        .orElseThrow(
-            () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Branch was not found"));
-    return new Context(tenantId, branchId);
+    List<UUID> branchIds =
+        locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(tenantId)
+            .stream()
+            .map(Location::getId)
+            .toList();
+    return new Context(tenantId, branchIds);
   }
 
   private UUID requireModuleAccess(AuthPrincipal principal) {
@@ -449,7 +470,7 @@ public class InventoryOverviewService {
     return new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Forbidden");
   }
 
-  private record Context(UUID tenantId, UUID branchId) {}
+  private record Context(UUID tenantId, List<UUID> branchIds) {}
 
   private static final class Agg {
     private BigDecimal onHand = BigDecimal.ZERO;

@@ -31,6 +31,7 @@ import {
   openEditCustomer,
   openSettleCredit,
 } from '../../store/customers.slice';
+import { CustomersCrmOps } from '../customers-crm-ops';
 import { saveCustomerProfile } from '../../store/customers.thunks';
 
 type EditForm = {
@@ -386,6 +387,8 @@ export function CustomersDetailDialog() {
               ) : null}
             </>
           )}
+
+          {!row.walkInAggregate ? <CustomersCrmOps /> : null}
         </div>
 
         <div className="cust-modal-foot">

@@ -320,6 +320,23 @@
   color: var(--cust-ink);
 }
 
+button.cust-name {
+  display: block;
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  font-weight: 700;
+  color: var(--cust-ink);
+  text-align: left;
+  cursor: pointer;
+}
+
+button.cust-name:focus-visible {
+  outline: 2px solid var(--cust-mid);
+  outline-offset: 2px;
+}
+
 .cust-badges {
   display: flex;
   flex-wrap: wrap;

@@ -19,7 +19,7 @@ const VIEW_COPY: Record<InventoryViewMode, { tab: string }> = {
   adjustments: { tab: 'Adjustments' },
   guidance: { tab: 'Guidance' },
   stocktake: { tab: 'Physical count' },
-  controlled: { tab: 'Schedule register' },
+  controlled: { tab: 'Schedule stock book' },
   qc: { tab: 'Quality check' },
   returns: { tab: 'Returns' },
 };

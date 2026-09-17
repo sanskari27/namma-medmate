@@ -8,6 +8,7 @@ export const CUSTOMERS_CONTENT = {
   retry: 'Retry',
   denied: 'CRM module is required to open the customer directory.',
   addCustomer: 'Add customer',
+  mergeDuplicate: 'Merge duplicate',
   sort: {
     spenders: 'Top spenders',
     orders: 'Most orders',
@@ -81,6 +82,8 @@ export const CUSTOMERS_CONTENT = {
     loading: 'Loading customer directory…',
     success: 'Customer saved on this floor.',
     settled: 'Repayment recorded on khata.',
-    failure: 'Could not complete that customer action. Try again.',
+    failure: 'Could not reach the server for customers. Try again.',
+    conflict:
+      'That change conflicts with existing floor data — duplicate phone, refill, or tag. Refresh and try again.',
   },
 } as const;

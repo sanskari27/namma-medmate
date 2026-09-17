@@ -16,6 +16,7 @@ type InventoryStockRowProps = {
   onToggleLoose: (next: boolean) => void;
   onToggleOnline: (next: boolean) => void;
   onEdit: () => void;
+  onOpenBatches: () => void;
 };
 
 export function InventoryStockRow({
@@ -24,6 +25,7 @@ export function InventoryStockRow({
   onToggleLoose,
   onToggleOnline,
   onEdit,
+  onOpenBatches,
 }: InventoryStockRowProps) {
   const schedule = scheduleLabel(row);
   const stockClass = row.lowStock
@@ -62,7 +64,12 @@ export function InventoryStockRow({
         )}
       </td>
       <td className="px-3 py-3 align-middle text-sm">
-        <div className="flex flex-col gap-1">
+        <button
+          type="button"
+          className="flex flex-col gap-1 text-left focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-brand"
+          onClick={onOpenBatches}
+          aria-label={`${row.name} batches`}
+        >
           <span className="tabular-nums text-ink">
             {row.batchCount} batch{row.batchCount === 1 ? '' : 'es'}
           </span>
@@ -76,7 +83,7 @@ export function InventoryStockRow({
               </span>
             ) : null}
           </span>
-        </div>
+        </button>
       </td>
       <td className="px-3 py-3 align-middle">
         <span className={`inline-flex items-center gap-1.5 text-sm tabular-nums ${stockClass}`}>

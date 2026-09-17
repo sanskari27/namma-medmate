@@ -32,7 +32,7 @@ export function WhatsappProviderHeader({
         </div>
         {denied ? null : (
           <Button ref={rescanRef} type="button" disabled={busy} onClick={onRescan}>
-            {busy ? 'Scanning…' : 'Rescan provider'}
+            {busy ? 'Scanning…' : 'Ping provider (templates unchanged)'}
           </Button>
         )}
       </div>

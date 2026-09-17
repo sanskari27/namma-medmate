@@ -9,6 +9,7 @@ type InventoryStockTableProps = {
   onToggleLoose: (productId: string, next: boolean) => void;
   onToggleOnline: (productId: string, next: boolean) => void;
   onEdit: (productId: string) => void;
+  onOpenBatches: (productId: string) => void;
 };
 
 const COLUMNS = [
@@ -32,6 +33,7 @@ export function InventoryStockTable({
   onToggleLoose,
   onToggleOnline,
   onEdit,
+  onOpenBatches,
 }: InventoryStockTableProps) {
   return (
     <div className="min-h-0 flex-1 overflow-auto rounded-xl border border-line/70 bg-surface">
@@ -65,6 +67,7 @@ export function InventoryStockTable({
                 onToggleLoose={(next) => onToggleLoose(row.productId, next)}
                 onToggleOnline={(next) => onToggleOnline(row.productId, next)}
                 onEdit={() => onEdit(row.productId)}
+                onOpenBatches={() => onOpenBatches(row.productId)}
               />
             ))
           )}

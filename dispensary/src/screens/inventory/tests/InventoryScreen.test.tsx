@@ -5,12 +5,13 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import InventoryScreen from '@/screens/inventory/InventoryScreen';
+import { inventoryReducer, initialInventoryState } from '@/screens/inventory/store/inventory.slice';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { Product } from '@/services/products';
 import type { ProductCategory } from '@/services/productCategories';
 import type { Manufacturer } from '@/services/manufacturers';
-import type { StockBalance } from '@/services/inventory';
+import type { InventoryOverview, InventoryOverviewRow, StockBalance } from '@/services/inventory';
 
 vi.mock('@/services/products', async () => {
   const axios = await import('@/services/axios');
@@ -29,6 +30,7 @@ vi.mock('@/services/productCategories', async () => {
   return {
     listProductCategories: vi.fn(),
     createProductCategory: vi.fn(),
+    CATEGORY_ICON_PRESETS: ['pill', 'bottle'],
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -62,6 +64,8 @@ vi.mock('@/services/inventory', async () => {
     listStockBatches: vi.fn(),
     listStockMovements: vi.fn(),
     receiveStock: vi.fn(),
+    getInventoryOverview: vi.fn(),
+    updateInventoryListingFlags: vi.fn(),
     getInventorySettings: vi.fn(),
     updateInventorySettings: vi.fn(),
     getProductStockLevels: vi.fn(),
@@ -146,13 +150,14 @@ vi.mock('@/services/purchaseReturns', async () => {
   };
 });
 
-import { createProduct, listProducts, updateProduct } from '@/services/products';
+import { createProduct, getProduct, listProducts, updateProduct } from '@/services/products';
 import { createProductCategory, listProductCategories } from '@/services/productCategories';
 import { createManufacturer, listManufacturers } from '@/services/manufacturers';
 import { listProductUnits, replaceProductUnits } from '@/services/productUnits';
 import {
   downloadReorderReport,
   getInventoryAlerts,
+  getInventoryOverview,
   getInventorySettings,
   getInventoryValuation,
   getProductStockLevels,
@@ -160,6 +165,7 @@ import {
   listStockBatches,
   listStockMovements,
   receiveStock,
+  updateInventoryListingFlags,
   updateInventorySettings,
   updateProductStockLevels,
 } from '@/services/inventory';
@@ -191,6 +197,7 @@ import { listBranchGoodsReceipts } from '@/services/goodsReceipts';
 import { listPurchaseReturns } from '@/services/purchaseReturns';
 
 const listMock = vi.mocked(listProducts);
+const getProductMock = vi.mocked(getProduct);
 const createMock = vi.mocked(createProduct);
 const updateMock = vi.mocked(updateProduct);
 const listCategoriesMock = vi.mocked(listProductCategories);
@@ -203,6 +210,8 @@ const listBalancesMock = vi.mocked(listStockBalances);
 const listBatchesMock = vi.mocked(listStockBatches);
 const listMovementsMock = vi.mocked(listStockMovements);
 const receiveMock = vi.mocked(receiveStock);
+const getOverviewMock = vi.mocked(getInventoryOverview);
+const updateFlagsMock = vi.mocked(updateInventoryListingFlags);
 const getAlertsMock = vi.mocked(getInventoryAlerts);
 const getSettingsMock = vi.mocked(getInventorySettings);
 const updateSettingsMock = vi.mocked(updateInventorySettings);
@@ -302,6 +311,62 @@ const balance: StockBalance = {
   version: 1,
 };
 
+const overviewRow: InventoryOverviewRow = {
+  productId: 'p1',
+  sku: 'SKU-PARA',
+  name: 'Paracetamol 500',
+  genericName: 'Paracetamol',
+  brandName: 'Crocin',
+  manufacturerName: 'Cipla',
+  categoryId: 'cat1',
+  categoryName: 'Analgesics',
+  categoryIcon: null,
+  scheduleClassification: 'OTC',
+  prescriptionRequired: false,
+  rackLocation: 'A-01',
+  baseUnit: 'Tablet',
+  packUnit: 'strip',
+  packSize: 10,
+  batchCount: 1,
+  earliestExpiry: '2027-06-30',
+  expired: false,
+  nearExpiry: false,
+  onHandQuantity: 10,
+  lowStock: false,
+  outOfStock: false,
+  mrpPaise: 15000,
+  costValuePaise: 125000,
+  retailValuePaise: 150000,
+  looseUnitPaise: null,
+  looseSellingEnabled: false,
+  onlineListed: false,
+  unallocated: false,
+  deadStock: false,
+};
+
+const emptyOverview: InventoryOverview = {
+  summary: {
+    totalSkus: 0,
+    totalUnits: 0,
+    stockValueCostPaise: 0,
+    retailValueMrpPaise: 0,
+    marginPercent: null,
+    lowStockCount: 0,
+    outOfStockCount: 0,
+    expiringCount: 0,
+    expiringValuePaise: 0,
+    deadStockCount: 0,
+    deadStockValuePaise: 0,
+    alertCount: 0,
+  },
+  items: [],
+};
+
+const filledOverview: InventoryOverview = {
+  summary: { ...emptyOverview.summary, totalSkus: 1, totalUnits: 10, alertCount: 0 },
+  items: [overviewRow],
+};
+
 function renderPage(
   modules: string[] = ['INVENTORY', 'SALES'],
   activeBranchId: string | null = 'br1',
@@ -309,7 +374,7 @@ function renderPage(
   roles: { id: string; name: string; code: string | null; kind: string }[] = [],
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, inventory: inventoryReducer },
     preloadedState: {
       auth: {
         user: {
@@ -329,6 +394,7 @@ function renderPage(
           ],
         },
       },
+      inventory: initialInventoryState,
     },
   });
   return render(
@@ -347,6 +413,7 @@ async function openCatalogue(user: ReturnType<typeof userEvent.setup>) {
 describe('floor inventory catalogue', () => {
   beforeEach(() => {
     listMock.mockReset();
+    getProductMock.mockReset();
     createMock.mockReset();
     updateMock.mockReset();
     listCategoriesMock.mockReset();
@@ -359,6 +426,8 @@ describe('floor inventory catalogue', () => {
     listBatchesMock.mockReset();
     listMovementsMock.mockReset();
     receiveMock.mockReset();
+    getOverviewMock.mockReset();
+    updateFlagsMock.mockReset();
     listTransfersMock.mockReset();
     createTransferMock.mockReset();
     confirmTransferMock.mockReset();
@@ -371,6 +440,7 @@ describe('floor inventory catalogue', () => {
     getLevelsMock.mockReset();
     updateLevelsMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listTransfersMock.mockResolvedValue([]);
     listAdjustmentsMock.mockResolvedValue([]);
     getAlertsMock.mockResolvedValue({ lowStock: [], nearExpiry: [] });
@@ -379,6 +449,7 @@ describe('floor inventory catalogue', () => {
     downloadCsvMock.mockResolvedValue(new Blob(['sku,name\n'], { type: 'text/csv' }));
     listCategoriesMock.mockResolvedValue([category]);
     listManufacturersMock.mockResolvedValue([manufacturer]);
+    getProductMock.mockResolvedValue(sample);
     listUnitsMock.mockResolvedValue({
       baseUnit: 'Tablet',
       quantityPrecision: 0,
@@ -404,7 +475,7 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([]);
     renderPage();
     await openCatalogue(user);
-    expect(await screen.findByRole('heading', { name: 'Inventory' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Catalogue' })).toBeInTheDocument();
     expect(screen.getByRole('status')).toHaveTextContent(
       'No products yet. Add the first SKU for this pharmacy catalogue.',
     );
@@ -416,6 +487,7 @@ describe('floor inventory catalogue', () => {
       'This till login cannot open inventory. Ask the owner to grant the Inventory area.',
     );
     expect(listBalancesMock).not.toHaveBeenCalled();
+    expect(getOverviewMock).not.toHaveBeenCalled();
     expect(listMock).not.toHaveBeenCalled();
   });
 
@@ -446,12 +518,14 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([]);
     renderPage();
     await openCatalogue(user);
-    await screen.findByRole('heading', { name: 'Inventory' });
+    await screen.findByRole('heading', { name: 'Catalogue' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
     await user.click(screen.getByRole('button', { name: 'Create product' }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Check SKU, pack size, quantity precision',
-    );
+    expect(
+      screen.getByText(
+        'Check SKU, pack size, quantity precision (0–4), and conversion factors. Zero, duplicate, or base-unit conversions are rejected.',
+      ),
+    ).toBeInTheDocument();
     expect(createMock).not.toHaveBeenCalled();
   });
 
@@ -460,13 +534,15 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([sample]);
     renderPage();
     await openCatalogue(user);
-    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await screen.findByRole('heading', { name: 'Edit product' });
     const factor = screen.getAllByLabelText(/Equals how many Tablet/)[0];
     await user.clear(factor);
     await user.type(factor, '0');
     await user.click(screen.getByRole('button', { name: 'Save product' }));
-    expect(screen.getByRole('status')).toHaveTextContent('conversion factors');
+    expect(
+      screen.getByText(/conversion factors/),
+    ).toBeInTheDocument();
     expect(updateMock).not.toHaveBeenCalled();
     expect(replaceUnitsMock).not.toHaveBeenCalled();
   });
@@ -478,10 +554,10 @@ describe('floor inventory catalogue', () => {
     replaceUnitsMock.mockRejectedValue(new ApiError('precision', 422, 'PRECISION_LOSS'));
     renderPage();
     await openCatalogue(user);
-    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await screen.findByRole('heading', { name: 'Edit product' });
     await user.click(screen.getByRole('button', { name: 'Save product' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('conversion factors');
+    expect(await screen.findByText(/conversion factors/)).toBeInTheDocument();
   });
 
   it('success: save quantity precision 2', async () => {
@@ -495,7 +571,7 @@ describe('floor inventory catalogue', () => {
     });
     renderPage();
     await openCatalogue(user);
-    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await screen.findByRole('heading', { name: 'Edit product' });
     const precision = screen.getByLabelText('Quantity precision');
     await user.clear(precision);
@@ -516,7 +592,7 @@ describe('floor inventory catalogue', () => {
     createMock.mockRejectedValue(new ApiError('taken', 409, 'SKU_TAKEN'));
     renderPage();
     await openCatalogue(user);
-    await screen.findByRole('heading', { name: 'Inventory' });
+    await screen.findByRole('heading', { name: 'Catalogue' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
 
     await user.type(screen.getByLabelText('SKU'), 'SKU-DUP');
@@ -537,7 +613,7 @@ describe('floor inventory catalogue', () => {
     createMock.mockResolvedValue(sample);
     renderPage();
     await openCatalogue(user);
-    await screen.findByRole('heading', { name: 'Inventory' });
+    await screen.findByRole('heading', { name: 'Catalogue' });
     await user.click(screen.getByRole('button', { name: 'Add product' }));
 
     await user.type(screen.getByLabelText('SKU'), 'SKU-PARA');
@@ -582,7 +658,7 @@ describe('floor inventory catalogue', () => {
     });
     renderPage();
     await openCatalogue(user);
-    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     await screen.findByRole('heading', { name: 'Edit product' });
     await user.click(screen.getByRole('button', { name: 'Add unit' }));
     const unitSelects = screen.getAllByLabelText('Unit');
@@ -611,7 +687,7 @@ describe('floor inventory catalogue', () => {
     renderPage();
     await openCatalogue(user);
     expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(screen.getByRole('button', { name: 'Edit' }));
     const nameInput = screen.getByLabelText('Name');
     await user.clear(nameInput);
     await user.type(nameInput, 'Paracetamol 650');
@@ -626,19 +702,16 @@ describe('floor inventory catalogue', () => {
     expect(await screen.findByText('Product saved on this floor catalogue.')).toBeInTheDocument();
   });
 
-  it('search: queries list with q', async () => {
+  it('search: filters catalogue locally', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([sample]);
     renderPage();
     await openCatalogue(user);
     await screen.findByText('Paracetamol 500');
-    const search = screen.getByPlaceholderText('Name, SKU, or barcode');
+    const search = screen.getByPlaceholderText('Search by name, SKU, or barcode…');
     await user.clear(search);
-    await user.type(search, 'Para');
-    await user.click(screen.getByRole('button', { name: 'Search' }));
-    await waitFor(() => {
-      expect(listMock).toHaveBeenLastCalledWith('Para');
-    });
+    await user.type(search, 'zzz');
+    expect(screen.getByText('No products match this search.')).toBeInTheDocument();
   });
 
   it('select: opens edit form for row', async () => {
@@ -646,19 +719,18 @@ describe('floor inventory catalogue', () => {
     listMock.mockResolvedValue([sample]);
     renderPage();
     await openCatalogue(user);
-    await user.click(await screen.findByRole('button', { name: /Paracetamol 500/ }));
+    await user.click(await screen.findByRole('button', { name: 'Edit' }));
     expect(screen.getByRole('heading', { name: 'Edit product' })).toBeInTheDocument();
     expect(screen.getByLabelText('SKU')).toHaveValue('SKU-PARA');
     expect(screen.getByLabelText('Barcode')).toHaveValue('8901000000001');
   });
 
-  it('discontinued badge stays on list', async () => {
+  it('discontinued products stay on the catalogue list', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([{ ...sample, isDiscontinued: true }]);
     renderPage();
     await openCatalogue(user);
-    const row = await screen.findByRole('button', { name: /Paracetamol 500/ });
-    expect(within(row).getByText('Discontinued')).toBeInTheDocument();
+    expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
   });
 });
 
@@ -668,31 +740,42 @@ describe('floor stock', () => {
     listBatchesMock.mockReset();
     listMovementsMock.mockReset();
     receiveMock.mockReset();
+    getOverviewMock.mockReset();
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
     listBatchesMock.mockResolvedValue([]);
     listMovementsMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
   });
 
-  it('loading: waits for balances', () => {
-    listBalancesMock.mockReturnValue(new Promise(() => undefined));
+  it('loading: waits for balances', async () => {
+    getOverviewMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading floor stock for this outlet…')).toBeInTheDocument();
+    expect(
+      (await screen.findAllByText('Loading floor stock for this outlet…')).length,
+    ).toBeGreaterThan(0);
   });
 
   it('empty: no stock yet', async () => {
-    listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     renderPage();
-    expect(
-      await screen.findByText(
-        'No stock on this outlet yet. Receive the first batch to open a line.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No products on this outlet catalogue yet.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Receive stock' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add product' })).toBeInTheDocument();
+  });
+
+  it('all-outlets: tenant overview without Receive stock', async () => {
+    getOverviewMock.mockResolvedValue(filledOverview);
+    renderPage(['INVENTORY', 'SALES'], null);
+    expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
+    expect(getOverviewMock).toHaveBeenCalled();
+    expect(screen.queryByRole('button', { name: 'Receive stock' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add product' })).toBeInTheDocument();
   });
 
   it('success: lists stock and shows batch detail with movements', async () => {
     const user = userEvent.setup();
-    listBalancesMock.mockResolvedValue([balance]);
+    getOverviewMock.mockResolvedValue(filledOverview);
     listBatchesMock.mockResolvedValue([
       {
         batchId: 'batch1',
@@ -719,14 +802,15 @@ describe('floor stock', () => {
       },
     ]);
     renderPage();
-    expect(await screen.findByRole('button', { name: /LOT-AA/ })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /Paracetamol 500/ }));
+    expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Paracetamol 500 batches/ }));
+    expect(await screen.findByText('LOT-AA')).toBeInTheDocument();
     expect(await screen.findByText('Purchase ₹125.00')).toBeInTheDocument();
     expect(screen.getByLabelText('Stock movements')).toHaveTextContent('In 10');
   });
 
   it('failure: balances API error', async () => {
-    listBalancesMock.mockRejectedValue(new ApiError('down', 500, 'SERVER_ERROR'));
+    getOverviewMock.mockRejectedValue(new ApiError('down', 500, 'SERVER_ERROR'));
     renderPage();
     expect(
       await screen.findByText(
@@ -737,11 +821,11 @@ describe('floor stock', () => {
 
   it('conflict: receive dialog surfaces BATCH_IDENTITY_CONFLICT', async () => {
     const user = userEvent.setup();
-    listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     receiveMock.mockRejectedValue(new ApiError('conflict', 409, 'BATCH_IDENTITY_CONFLICT'));
     renderPage();
-    await screen.findByText('No stock on this outlet yet. Receive the first batch to open a line.');
+    await screen.findByText('No products on this outlet catalogue yet.');
     await user.click(screen.getByRole('button', { name: 'Receive stock' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Product'), 'p1');
@@ -757,7 +841,7 @@ describe('floor stock', () => {
 
   it('validation: receive without quantity', async () => {
     const user = userEvent.setup();
-    listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Receive stock' }));
@@ -770,9 +854,22 @@ describe('floor stock', () => {
 
   it('success: receive stock closes dialog and reloads', async () => {
     const user = userEvent.setup();
-    listBalancesMock.mockResolvedValueOnce([]).mockResolvedValueOnce([balance]);
+    getOverviewMock.mockResolvedValueOnce(emptyOverview).mockResolvedValueOnce(filledOverview);
     listMock.mockResolvedValue([sample]);
     receiveMock.mockResolvedValue(balance);
+    listBatchesMock.mockResolvedValue([
+      {
+        batchId: 'batch1',
+        productId: 'p1',
+        batchNumber: 'LOT-AA',
+        manufacturedOn: '2026-01-15',
+        expiresOn: '2027-06-30',
+        purchasePricePaise: 12500,
+        quantity: 10,
+        version: 1,
+        balanceId: 'bal1',
+      },
+    ]);
     renderPage();
     await user.click(await screen.findByRole('button', { name: 'Receive stock' }));
     const dialog = await screen.findByRole('dialog');
@@ -794,7 +891,9 @@ describe('floor stock', () => {
       );
     });
     expect(await screen.findByText('Stock received on this outlet.')).toBeInTheDocument();
-    expect(await screen.findByRole('button', { name: /LOT-AA/ })).toBeInTheDocument();
+    expect(await screen.findByText('Paracetamol 500')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Paracetamol 500 batches/ }));
+    expect(await screen.findByText('LOT-AA')).toBeInTheDocument();
   });
 });
 
@@ -829,6 +928,7 @@ describe('outlet transfers', () => {
     dispatchTransferMock.mockReset();
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listTransfersMock.mockResolvedValue([]);
     listAdjustmentsMock.mockResolvedValue([]);
     listMock.mockResolvedValue([sample]);
@@ -1041,6 +1141,7 @@ describe('inventory guidance', () => {
     createTransferMock.mockReset();
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listTransfersMock.mockResolvedValue([]);
     listAdjustmentsMock.mockResolvedValue([]);
     listMock.mockResolvedValue([sample]);
@@ -1057,6 +1158,11 @@ describe('inventory guidance', () => {
 
   async function openGuidance(user: ReturnType<typeof userEvent.setup>) {
     await user.click(screen.getByRole('tab', { name: 'Guidance' }));
+  }
+
+  async function openGuidanceSettings(user: ReturnType<typeof userEvent.setup>) {
+    await openGuidance(user);
+    await user.click(await screen.findByRole('tab', { name: 'Thresholds & levels' }));
   }
 
   it('shows loading then empty guidance', async () => {
@@ -1081,7 +1187,7 @@ describe('inventory guidance', () => {
   it('validates expiry warn days', async () => {
     const user = userEvent.setup();
     renderPage();
-    await openGuidance(user);
+    await openGuidanceSettings(user);
     const input = await screen.findByLabelText(/Expiry warn days/i);
     await user.clear(input);
     await user.type(input, '-1');
@@ -1132,10 +1238,12 @@ describe('inventory guidance', () => {
     });
     renderPage();
     await openGuidance(user);
-    expect(await screen.findByText('Available at Warehouse (40)')).toBeInTheDocument();
-    expect(screen.getByText(/Near expiry — still sellable/i)).toBeInTheDocument();
+    expect(await screen.findByText('Warehouse (40)')).toBeInTheDocument();
+    await user.click(screen.getByRole('tab', { name: /Near expiry/ }));
+    expect(screen.getByText(/Near expiry — sellable/i)).toBeInTheDocument();
     expect(screen.getByText(/₹200\.00/)).toBeInTheDocument();
 
+    await user.click(await screen.findByRole('tab', { name: 'Thresholds & levels' }));
     await user.click(screen.getByRole('button', { name: 'Save threshold' }));
     await waitFor(() => expect(updateSettingsMock).toHaveBeenCalledWith(30));
     expect(await screen.findByText(/Guidance updated for this outlet/i)).toBeInTheDocument();
@@ -1143,7 +1251,7 @@ describe('inventory guidance', () => {
     const createObjectURL = vi.fn(() => 'blob:reorder');
     const revokeObjectURL = vi.fn();
     vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL });
-    await user.click(screen.getByRole('button', { name: 'Download reorder CSV' }));
+    await user.click(screen.getByRole('button', { name: 'Reorder CSV' }));
     await waitFor(() => expect(downloadCsvMock).toHaveBeenCalled());
   });
 
@@ -1186,7 +1294,7 @@ describe('inventory guidance', () => {
     const user = userEvent.setup();
     updateSettingsMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await openGuidance(user);
+    await openGuidanceSettings(user);
     await user.click(await screen.findByRole('button', { name: 'Save threshold' }));
     expect(await screen.findByText(/Guidance data changed elsewhere/i)).toBeInTheDocument();
   });
@@ -1194,7 +1302,7 @@ describe('inventory guidance', () => {
   it('saves this outlet reorder independently of catalogue defaults', async () => {
     const user = userEvent.setup();
     renderPage();
-    await openGuidance(user);
+    await openGuidanceSettings(user);
     await user.selectOptions(await screen.findByLabelText('Product'), 'p1');
     await waitFor(() => expect(getLevelsMock).toHaveBeenCalledWith('p1'));
     const reorder = await screen.findByLabelText('Outlet reorder');
@@ -1240,8 +1348,10 @@ describe('inventory adjustments', () => {
     decideAdjustmentMock.mockReset();
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listAdjustmentsMock.mockResolvedValue([]);
     listMock.mockResolvedValue([sample]);
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   async function openAdjustments(user: ReturnType<typeof userEvent.setup>) {
@@ -1415,6 +1525,16 @@ describe('inventory adjustments', () => {
       expect(screen.getByRole('button', { name: 'Record write-off' })).toHaveFocus();
     });
   });
+
+  it('hides Approve write-off for staff', async () => {
+    const user = userEvent.setup();
+    listAdjustmentsMock.mockImplementation(async (scope) => (scope === 'pending' ? [pending] : []));
+    renderPage(['INVENTORY'], 'br1', 'pharmacy_staff');
+    await openAdjustments(user);
+    expect(await screen.findByText(/Paracetamol 500/)).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Approve write-off' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Reject' })).toBeInTheDocument();
+  });
 });
 
 describe('inventory physical count', () => {
@@ -1458,6 +1578,7 @@ describe('inventory physical count', () => {
     listBalancesMock.mockReset();
     listMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     listStockTakesMock.mockResolvedValue([]);
   });
@@ -1633,12 +1754,13 @@ describe('schedule register', () => {
     listControlledStockMock.mockReset();
     downloadControlledExportMock.mockReset();
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     listControlledStockMock.mockResolvedValue([]);
   });
 
   async function openRegister(user: ReturnType<typeof userEvent.setup>) {
-    await user.click(screen.getByRole('tab', { name: 'Schedule register' }));
+    await user.click(screen.getByRole('tab', { name: 'Schedule stock book' }));
   }
 
   it('loading: waits for schedule register', async () => {
@@ -1688,7 +1810,7 @@ describe('schedule register', () => {
     renderPage();
     await openRegister(user);
     await screen.findByText('Alprazolam');
-    await user.click(screen.getByRole('button', { name: 'Download general CSV' }));
+    await user.click(screen.getByRole('button', { name: 'General CSV' }));
     expect(
       await screen.findByText('Register export scope changed. Stay on this outlet and try again.'),
     ).toBeInTheDocument();
@@ -1717,7 +1839,7 @@ describe('schedule register', () => {
     await openRegister(user);
     expect(await screen.findByText('Alprazolam')).toBeInTheDocument();
     expect(screen.getByText('STOCK_IN')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Download NDPS sheet' }));
+    await user.click(screen.getByRole('button', { name: 'NDPS sheet' }));
     await waitFor(() => expect(downloadControlledExportMock).toHaveBeenCalledWith('ndps', {}));
     expect(
       await screen.findByText('Schedule register exported for this outlet.'),
@@ -1730,13 +1852,14 @@ describe('quality check tab', () => {
   it('offers a Quality check tab on the floor inventory screen', async () => {
     listGoodsReceiptsMock.mockResolvedValue([]);
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     renderPage();
     const user = userEvent.setup({ delay: null });
     await user.click(screen.getByRole('tab', { name: 'Quality check' }));
     expect(
-      await screen.findByText('No deliveries waiting for a pharmacist check.'),
-    ).toBeInTheDocument();
+      (await screen.findAllByText('No deliveries waiting for a pharmacist check.')).length,
+    ).toBeGreaterThan(0);
   });
 });
 
@@ -1744,15 +1867,18 @@ describe('returns tab', () => {
   it('offers a Returns tab and Send back on the floor inventory screen', async () => {
     listPurchaseReturnsMock.mockResolvedValue([]);
     listBalancesMock.mockResolvedValue([]);
+    getOverviewMock.mockResolvedValue(emptyOverview);
     listMock.mockResolvedValue([sample]);
     renderPage();
     const user = userEvent.setup({ delay: null });
     await user.click(screen.getByRole('tab', { name: 'Returns' }));
     expect(
-      await screen.findByText(
-        'No debit notes yet. Send a pack back, or reject qty at Quality check.',
-      ),
-    ).toBeInTheDocument();
+      (
+        await screen.findAllByText(
+          'No debit notes yet. Send a pack back, or reject qty at Quality check.',
+        )
+      ).length,
+    ).toBeGreaterThan(0);
     expect(screen.getByRole('button', { name: 'Send back' })).toBeInTheDocument();
     expect(screen.getByText('Send back to stockist')).toBeInTheDocument();
   });

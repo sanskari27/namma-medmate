@@ -57,13 +57,13 @@ export function DashboardHero({ displayName, view }: DashboardHeroProps) {
             <b>{hero.itemsSoldToday}</b>
           </span>
           <Link
-            className={`dash-hero-mini-dues${hero.duesToCollectPaise > 0 ? ' warn' : ''}`}
-            to={ROUTES.AGING}
+            className={`dash-hero-mini-dues${hero.duesStatus === 'PLAN_LIMIT' || hero.duesToCollectPaise > 0 ? ' warn' : ''}`}
+            to={hero.duesStatus === 'PLAN_LIMIT' ? ROUTES.SUBSCRIPTION : ROUTES.AGING}
           >
             <small>{DASHBOARD_CONTENT.metricDuesToCollect}</small>
             <b>
-              {hero.duesCustomerCount > 0
-                ? hero.duesCustomerCount
+              {hero.duesStatus === 'PLAN_LIMIT'
+                ? DASHBOARD_CONTENT.duesPlanLimit
                 : formatPaise(hero.duesToCollectPaise)}
             </b>
           </Link>

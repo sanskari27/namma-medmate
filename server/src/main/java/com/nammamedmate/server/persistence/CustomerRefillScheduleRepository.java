@@ -40,4 +40,6 @@ public interface CustomerRefillScheduleRepository
 
   List<CustomerRefillSchedule> findAllByTenantIdAndNextDueOnLessThanEqualOrderByNextDueOnAsc(
       UUID tenantId, LocalDate asOf);
+
+  long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
 }

@@ -32,7 +32,12 @@ export function DashboardAttentionPanel({ items }: DashboardAttentionPanelProps)
                   <div className="t">{row.title}</div>
                   <div className="s">{row.detail}</div>
                 </div>
-                <Link to={row.href} className="dash-chipbtn">
+                <Link
+                  to={
+                    row.href === ROUTES.INVENTORY ? `${ROUTES.INVENTORY}?view=guidance` : row.href
+                  }
+                  className="dash-chipbtn"
+                >
                   {row.actionLabel}
                 </Link>
               </div>
