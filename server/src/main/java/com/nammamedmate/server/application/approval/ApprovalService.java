@@ -361,7 +361,8 @@ public class ApprovalService {
         command.outcome().name(),
         "{\"requestId\":\"" + request.getId() + "\",\"actorUserId\":\"" + actor.userId() + "\"}");
     for (ApprovalDecisionListener listener : decisionListeners) {
-      listener.onDecided(request.getId(), command.outcome(), actor.userId(), now);
+      listener.onDecided(
+          request.getId(), command.outcome(), actor.userId(), now, request.getTenantId());
     }
     return new ApprovalRequestView(
         request.getId(),

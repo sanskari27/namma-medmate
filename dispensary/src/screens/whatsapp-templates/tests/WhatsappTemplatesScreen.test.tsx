@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsappTemplatesScreen from '@/screens/whatsapp-templates/WhatsappTemplatesScreen';
+import { whatsappTemplatesReducer } from '@/screens/whatsapp-templates/store/whatsappTemplates.slice';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { WhatsAppTemplate } from '@/services/whatsappTemplates';
@@ -39,7 +40,7 @@ const refill: WhatsAppTemplate = {
 
 function renderPage(role = 'pharmacy_owner') {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, whatsappTemplates: whatsappTemplatesReducer },
     preloadedState: {
       auth: {
         user: {
@@ -102,6 +103,34 @@ describe('pharmacy WhatsApp slots', () => {
       'Only the owner can set WhatsApp slots at this counter. Ask the owner if a message needs a shop name.',
     );
     expect(listMock).not.toHaveBeenCalled();
+  });
+
+  it('catalogue-only slots are labelled as not sent', async () => {
+    listMock.mockResolvedValue({
+      provider: {
+        displayNumber: '+91 90000 00000',
+        phoneNumberId: 'phone-1',
+        health: 'NOT_CONFIGURED',
+        syncedAt: null,
+      },
+      templates: [
+        refill,
+        {
+          uniqueName: 'birthday',
+          namespaceName: 't1_birthday',
+          body: 'Happy birthday {{customer_name}} from {{pharmacy_name}}.',
+          tenantSlots: ['pharmacy_name'],
+          runtimeSlots: ['customer_name'],
+          status: 'APPROVED',
+          variables: {},
+          preview: 'Happy birthday {{customer_name}} from {{pharmacy_name}}.',
+          version: 0,
+        },
+      ],
+    });
+    renderPage();
+    expect(await screen.findByText('Birthday')).toBeInTheDocument();
+    expect(screen.getByText('Catalogue only — this slot is not sent yet')).toBeInTheDocument();
   });
 
   it('validation: pharmacy name before save', async () => {

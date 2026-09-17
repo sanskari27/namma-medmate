@@ -26,9 +26,13 @@ public class SalesInvoiceDiscountApplier implements ApprovalDecisionListener {
   @Override
   @Transactional
   public void onDecided(
-      UUID requestId, ApprovalDecisionOutcome outcome, UUID actorUserId, Instant decidedAt) {
+      UUID requestId,
+      ApprovalDecisionOutcome outcome,
+      UUID actorUserId,
+      Instant decidedAt,
+      UUID tenantId) {
     Optional<SalesInvoice> locked =
-        salesInvoiceRepository.lockByDiscountApprovalRequestId(requestId);
+        salesInvoiceRepository.lockByDiscountApprovalRequestIdAndTenantId(requestId, tenantId);
     if (locked.isEmpty()) {
       return;
     }

@@ -18,6 +18,7 @@ describe('HqSignOffsScreen', () => {
   beforeEach(() => {
     listPending.mockReset();
     decide.mockReset();
+    vi.spyOn(window, 'confirm').mockReturnValue(true);
   });
 
   it('shows loading then empty queue', async () => {

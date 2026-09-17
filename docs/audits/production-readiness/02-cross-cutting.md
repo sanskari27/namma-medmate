@@ -115,6 +115,8 @@ Idle lock **implementation** matches D-015 on both SPAs. Copy and HQ gating do n
 - Suggested tests: `AuthImpersonationTest_masterMustChangeStillBlocksWhileImpersonating`
 - Out of scope?: no
 
+**Status:** FIXED 2026-09-18 — `PasswordChangeRequiredFilter` uses `principal.hqUserId()`. `AuthImpersonationTest` sets must-change after Enter, then pharmacy APIs 422.
+
 ---
 
 ## Tenancy and isolation
@@ -161,6 +163,8 @@ Tenant lock for non-ACTIVE statuses (KYC, SUSPENDED, EXPIRED, TERMINATED) is imp
 - User impact: Low on modern browsers.
 - Fix: Document residual risk; optional double-submit later.
 
+**Status:** WONTFIX 2026-09-18 — SameSite Lax + CORS allowlist is the Phase 1 residual. No CSRF token.
+
 ---
 
 ## Axios and session recovery
@@ -174,6 +178,8 @@ Both SPAs: 401 (except `INVALID_CREDENTIALS` / `INVALID_PIN`) clears storage and
 - Evidence: `auth.slice.ts` `readStoredUser()`; no boot `/me`.
 - User impact: Brief shell flash with a dead cookie.
 - Fix (optional): `GET /api/v1/auth/me` on `ProtectedRoute` mount.
+
+**Status:** FIXED 2026-09-18 — both `ProtectedRoute`s hydrate `/auth/me`; auth persist is `{ userId }` only (`PII-003`).
 
 ---
 
@@ -263,6 +269,8 @@ Money paise and UTC persist are solid. Residual time issues:
 - Evidence: Scanners `LocalDate.ofInstant(..., UTC)`; `NammaMedmateServerApplication` sets JVM default IST.
 - Fix: Asia/Kolkata for scanner `LocalDate`; prefer UTC JVM default with explicit IST display.
 
+**Status:** FIXED 2026-09-18 — refill/licence scanners, `LicenseService.today()`, WhatsApp enqueue days use `DashboardPolicy.IST`.
+
 ### [JOB-001] Due scanners wrap all tenants in one `@Transactional`
 - Severity: P2
 - Type: PROD-OPS
@@ -277,9 +285,13 @@ Money paise and UTC persist are solid. Residual time issues:
 - Evidence: V57–V64 present and sequential (new files, not rewritten early migrations).
 - Fix: Docs/tracker note head = V64 (process only; this audit does not edit the tracker).
 
+**Status:** FIXED 2026-09-18 — `docs/architecture/README.md` records live Flyway head = V64. Tracker not edited.
+
 ### [CROSS-001] Unhandled 500s may leave the ApiResponse envelope
 - Severity: P3
 - Fix: `@ExceptionHandler(Exception.class)` → 500 `INTERNAL_ERROR`.
+
+**Status:** FIXED 2026-09-18 — `GlobalExceptionHandler.handleUnknown` returns 500 `INTERNAL_ERROR`. `NoResourceFoundException` 404; `HttpRequestMethodNotSupportedException` 405.
 
 ---
 
@@ -300,6 +312,8 @@ Money paise and UTC persist are solid. Residual time issues:
 - Type: STATE-FLOW
 - Contrast: Cashfree uses `lockByProviderOrderId`.
 - Fix: `lockByProviderMessageId` before transition.
+
+**Status:** FIXED 2026-09-18 — `TransactionalEmailRepository.lockByProviderMessageId`; `ResendWebhookService.apply` uses it.
 
 ### [SEC-001] / [IMPERSON-001] Silent MASTER impersonation (D-001 residual)
 - Severity: P1
@@ -338,10 +352,14 @@ Money paise and UTC persist are solid. Residual time issues:
 - Evidence: `ShellHeader.tsx` `readOnly` search.
 - Fix: Remove until a search story exists.
 
+**Status:** FIXED 2026-09-18 — header search already removed (P2 POS chrome). `ShellHeader` has no read-only search.
+
 ### [UX-DISP-03] Missing rail icons; [DRIFT-DISP-01] empty leftover screen folders
 - Severity: P3
 - Empty dirs: `crm`, `employees`, `help`, `invoice-settings`, `online-store`, `racks`, `reorder`, `reports`, `sales-register`, `settings`; `staff-password/tests` empty.
 - Fix: Delete empty folders; map remaining nav icons.
+
+**Status:** FIXED 2026-09-18 — Returns `Undo2`, NDPS `ShieldAlert`, Outlets `Store`. Empty leftover screen dirs already gone.
 
 ### [UX-ADM-002] Full MASTER nav shown to every HQ role
 - Severity: P2
@@ -403,7 +421,7 @@ Money paise and UTC persist are solid. Residual time issues:
 - Evidence: `HealthService` hardcoded `UP`. Compose probes `/actuator/health` (better).
 - Fix: Document actuator as readiness; or split liveness/readiness.
 
-Other ops P2/P3: ElastiCache without transit encryption (lower while unused), tfstate bucket missing explicit public-access block, `HOST_NGINX.md` still says `dispensary.` vs live `pharmacy.`, Cashfree env example vs TF default, unused `PUBLIC_BASE_URL`.
+Other ops P2/P3: ElastiCache transit encryption `preferred` (P2), tfstate public-access block (P2), `HOST_NGINX.md` `pharmacy.` (P2). Cashfree env example vs TF and unused `PUBLIC_BASE_URL` are P3 **FIXED**.
 
 ---
 

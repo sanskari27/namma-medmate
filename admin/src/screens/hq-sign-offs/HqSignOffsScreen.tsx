@@ -50,6 +50,13 @@ export default function HqSignOffsScreen() {
   }, [load]);
 
   async function onDecide(request: SignOffRequest, outcome: 'APPROVED' | 'REJECTED') {
+    const confirmed =
+      outcome === 'APPROVED'
+        ? window.confirm('Approve this HQ request? The original action will continue.')
+        : window.confirm('Reject this HQ request? The pharmacy will need to retry.');
+    if (!confirmed) {
+      return;
+    }
     setRowError(null);
     setBanner(null);
     try {

@@ -2,6 +2,7 @@ package com.nammamedmate.server.application.subscription;
 
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.CashfreeBillingPolicy;
 import com.nammamedmate.server.domain.PlanCode;
@@ -110,7 +111,8 @@ public class CashfreeBillingService {
     try {
       order =
           cashfreePgAdapter.createOrder(
-              new CashfreeCreateOrderRequest(orderId, tenantId, plan, amountPaise, returnUrl));
+              new CashfreeCreateOrderRequest(
+                  orderId, tenantId, plan, amountPaise, returnUrl, ownerPhone(principal.userId())));
     } catch (RuntimeException ex) {
       throw CashfreeBillingPolicy.providerUnavailable();
     }
@@ -456,6 +458,25 @@ public class CashfreeBillingService {
       throw CashfreeBillingPolicy.forbidden();
     }
     return principal.tenantId();
+  }
+
+  private String ownerPhone(UUID userId) {
+    return appUserRepository
+        .findById(userId)
+        .map(AppUser::getPhone)
+        .map(CashfreeBillingService::tenDigitPhone)
+        .orElse("9999999999");
+  }
+
+  private static String tenDigitPhone(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return "9999999999";
+    }
+    String digits = raw.replaceAll("\\D", "");
+    if (digits.length() == 12 && digits.startsWith("91")) {
+      digits = digits.substring(2);
+    }
+    return digits.length() == 10 ? digits : "9999999999";
   }
 
   private void requireMaster(AuthPrincipal principal) {

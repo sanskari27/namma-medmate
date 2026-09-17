@@ -8,6 +8,7 @@ import com.nammamedmate.server.domain.ComplianceDocType;
 import com.nammamedmate.server.domain.ComplianceLicense;
 import com.nammamedmate.server.domain.ComplianceLicenseEvidence;
 import com.nammamedmate.server.domain.ComplianceLicenseScope;
+import com.nammamedmate.server.domain.DashboardPolicy;
 import com.nammamedmate.server.domain.LicensePolicy;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.Tenant;
@@ -22,7 +23,6 @@ import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Set;
 import java.util.UUID;
@@ -347,7 +347,7 @@ public class LicenseService {
   }
 
   private LocalDate today() {
-    return LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+    return LocalDate.ofInstant(clock.instant(), DashboardPolicy.IST);
   }
 
   private static UUID parseUuid(String value) {

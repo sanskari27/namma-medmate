@@ -97,7 +97,7 @@ public class CashfreePgAdapter {
           body.put("order_currency", "INR");
           Map<String, Object> customer = new LinkedHashMap<>();
           customer.put("customer_id", request.tenantId().toString());
-          customer.put("customer_phone", "9999999999");
+          customer.put("customer_phone", request.customerPhone());
           body.put("customer_details", customer);
           Map<String, Object> meta = new LinkedHashMap<>();
           meta.put("return_url", request.returnUrl() + "?payment={order_id}");

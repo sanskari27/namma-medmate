@@ -116,7 +116,7 @@ public class QualityCheckService {
         poLineIds.isEmpty()
             ? Map.of()
             : purchaseOrderLineRepository
-                .findAllByTenantIdAndIdIn(ctx.tenantId(), poLineIds)
+                .findAllByTenantIdAndBranchIdAndIdIn(ctx.tenantId(), ctx.branchId(), poLineIds)
                 .stream()
                 .collect(Collectors.toMap(PurchaseOrderLine::getId, line -> line));
     return new QualityCheckListResult(

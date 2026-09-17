@@ -1,7 +1,6 @@
 package com.nammamedmate.server.feature.finance;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
@@ -91,16 +90,13 @@ class CaPackRollbackTest extends AbstractIntegrationTest {
             .count();
 
     String today = LocalDate.now(IST).toString();
-    assertThatThrownBy(
-            () ->
-                mockMvc
-                    .perform(
-                        get("/api/v1/finance/ca-pack/export")
-                            .param("from", today)
-                            .param("to", today)
-                            .cookie(cookie))
-                    .andReturn())
-        .hasRootCauseMessage("pdf exploded");
+    mockMvc
+        .perform(
+            get("/api/v1/finance/ca-pack/export")
+                .param("from", today)
+                .param("to", today)
+                .cookie(cookie))
+        .andExpect(status().isInternalServerError());
 
     assertThat(salesInvoiceRepository.count()).isEqualTo(invoices);
     assertThat(stockBalanceRepository.findAll().get(0).getQuantity()).isEqualByComparingTo(qty);

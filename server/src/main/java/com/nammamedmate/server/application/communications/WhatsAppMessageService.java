@@ -10,6 +10,7 @@ import com.nammamedmate.server.domain.CampaignRecipient;
 import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.CustomerCreditAccount;
 import com.nammamedmate.server.domain.CustomerRefillSchedule;
+import com.nammamedmate.server.domain.DashboardPolicy;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.WhatsAppApprovedStructure;
 import com.nammamedmate.server.domain.WhatsAppMessage;
@@ -31,7 +32,6 @@ import com.nammamedmate.server.persistence.WhatsAppTenantTemplateRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -181,7 +181,7 @@ public class WhatsAppMessageService {
     if (customer == null) {
       return List.of();
     }
-    LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+    LocalDate today = LocalDate.ofInstant(clock.instant(), DashboardPolicy.IST);
     Map<String, String> runtime =
         Map.of("customer_name", customer.getName(), "medicine_name", schedule.getMedicineName());
     WhatsAppMessage row =
@@ -205,7 +205,7 @@ public class WhatsAppMessageService {
     if (customer == null) {
       return List.of();
     }
-    LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+    LocalDate today = LocalDate.ofInstant(clock.instant(), DashboardPolicy.IST);
     Map<String, String> runtime = Map.of("customer_name", customer.getName());
     WhatsAppMessage row =
         persist(

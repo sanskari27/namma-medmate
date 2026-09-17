@@ -7,5 +7,9 @@ import java.util.UUID;
 public interface ApprovalDecisionListener {
 
   void onDecided(
-      UUID requestId, ApprovalDecisionOutcome outcome, UUID actorUserId, Instant decidedAt);
+      UUID requestId,
+      ApprovalDecisionOutcome outcome,
+      UUID actorUserId,
+      Instant decidedAt,
+      UUID tenantId);
 }

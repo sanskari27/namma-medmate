@@ -38,6 +38,7 @@ The existing ArchUnit test enforces layer access. Controllers call application
 services, never repositories. Application writes own transaction boundaries.
 Repositories encode tenant and branch scope. HTTP DTOs are records and responses
 use `ApiResponse<T>`. New schema always uses the next immutable Flyway migration.
+Live schema head is **V64** (V1–V64 sequential; never edit an applied file).
 
 ## Security and isolation
 

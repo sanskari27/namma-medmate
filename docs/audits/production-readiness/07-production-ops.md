@@ -45,8 +45,8 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 | `TF-REDIS-CRYPTO` | P2 | ElastiCache no transit encryption |
 | `TF-S3-STATE` | P2 | No explicit public-access block |
 | `COMPOSE-DOC-DRIFT` | P2 | HOST_NGINX.md `dispensary.` vs live `pharmacy.` |
-| `COMPOSE-CASHFREE-ENV` | P3 | example sandbox vs TF production |
-| `OPS-PUBLIC-BASE` | P3 | unused `PUBLIC_BASE_URL` |
+| `COMPOSE-CASHFREE-ENV` | P3 | example sandbox vs TF production — `CASHFREE_ENV=production` in `.env.prod.example` (`FIXED`, alias of M11-CF-005) |
+| `OPS-PUBLIC-BASE` | P3 | unused `PUBLIC_BASE_URL` removed from SSM seed + `.env.prod.example` (`FIXED`) |
 
 ---
 

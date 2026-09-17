@@ -110,6 +110,7 @@ describe('CaPackScreen', () => {
     URL.createObjectURL = vi.fn(() => 'blob:ca-pack');
     URL.revokeObjectURL = vi.fn();
     localStorage.clear();
+    sessionStorage.clear();
   });
 
   it('loading: waits for the CA pack', () => {
@@ -159,7 +160,7 @@ describe('CaPackScreen', () => {
       'namma-ca-advisors',
       JSON.stringify([{ id: 'g1', kind: 'CA', name: 'Global CA', firm: '', email: '', phone: '' }]),
     );
-    localStorage.setItem(
+    sessionStorage.setItem(
       'namma-ca-advisors:t1',
       JSON.stringify([{ id: 'a1', kind: 'CA', name: 'Mehta CA', firm: '', email: '', phone: '' }]),
     );
@@ -167,7 +168,7 @@ describe('CaPackScreen', () => {
     expect(await screen.findByText('Mehta CA')).toBeInTheDocument();
     expect(screen.queryByText('Global CA')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Remove' }));
-    expect(localStorage.getItem('namma-ca-advisors:t1')).toBe('[]');
+    expect(sessionStorage.getItem('namma-ca-advisors:t1')).toBe('[]');
     expect(localStorage.getItem('namma-ca-advisors')).toContain('Global CA');
   });
 

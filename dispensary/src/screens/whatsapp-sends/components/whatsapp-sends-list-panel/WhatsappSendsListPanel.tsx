@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { kindLabel, outcomeLabel, type KindFilter } from '../../WhatsappSendsScreen.utils';
+import { kindLabel, outcomeLabel, formatIstDateTime, type KindFilter } from '../../WhatsappSendsScreen.utils';
 import {
   kindChanged,
   selectWhatsappSendsItems,
@@ -53,6 +53,7 @@ export function WhatsappSendsListPanel() {
             >
               <b>{kindLabel(item.kind)}</b>
               <span className="wh-muted">{outcomeLabel(item.status)}</span>
+              <span className="wh-muted">{formatIstDateTime(item.createdAt)}</span>
             </button>
           ))}
         </div>

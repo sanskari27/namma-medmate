@@ -45,7 +45,7 @@ public class PasswordChangeRequiredFilter extends OncePerRequestFilter {
       filterChain.doFilter(request, response);
       return;
     }
-    AppUser user = appUserRepository.findById(principal.userId()).orElse(null);
+    AppUser user = appUserRepository.findById(principal.hqUserId()).orElse(null);
     Instant now = Instant.now(clock);
     if (user != null
         && user.getDeletedAt() == null

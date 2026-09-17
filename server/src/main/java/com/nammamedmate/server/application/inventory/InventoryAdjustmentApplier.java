@@ -57,8 +57,13 @@ public class InventoryAdjustmentApplier implements ApprovalDecisionListener {
   @Override
   @Transactional
   public void onDecided(
-      UUID requestId, ApprovalDecisionOutcome outcome, UUID actorUserId, Instant decidedAt) {
-    Optional<StockAdjustment> locked = stockAdjustmentRepository.lockByApprovalRequestId(requestId);
+      UUID requestId,
+      ApprovalDecisionOutcome outcome,
+      UUID actorUserId,
+      Instant decidedAt,
+      UUID tenantId) {
+    Optional<StockAdjustment> locked =
+        stockAdjustmentRepository.lockByApprovalRequestIdAndTenantId(requestId, tenantId);
     if (locked.isEmpty()) {
       return;
     }

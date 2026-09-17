@@ -25,7 +25,7 @@ public class ResendWebhookService {
   public EmailDeliveryStatus apply(String type, String providerMessageId) {
     TransactionalEmail row =
         emailRepository
-            .findByProviderMessageId(providerMessageId)
+            .lockByProviderMessageId(providerMessageId)
             .orElseThrow(
                 () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Email not found"));
     if (row.getStatus() != EmailDeliveryStatus.QUEUED) {

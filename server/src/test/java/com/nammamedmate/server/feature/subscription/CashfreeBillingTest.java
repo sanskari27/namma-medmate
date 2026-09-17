@@ -119,6 +119,10 @@ class CashfreeBillingTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.data.amountPaise").value(69900))
             .andExpect(jsonPath("$.data.status").value("PENDING"))
             .andReturn();
+    org.mockito.ArgumentCaptor<CashfreeCreateOrderRequest> order =
+        org.mockito.ArgumentCaptor.forClass(CashfreeCreateOrderRequest.class);
+    verify(cashfreePgAdapter).createOrder(order.capture());
+    assertThat(order.getValue().customerPhone()).isEqualTo("9999999999");
     JsonNode data = objectMapper.readTree(result.getResponse().getContentAsString()).get("data");
     assertThat(
             paymentRepository

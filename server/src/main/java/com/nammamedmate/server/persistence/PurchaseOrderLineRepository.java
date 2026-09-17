@@ -15,6 +15,9 @@ public interface PurchaseOrderLineRepository extends JpaRepository<PurchaseOrder
 
   List<PurchaseOrderLine> findAllByTenantIdAndIdIn(UUID tenantId, Collection<UUID> ids);
 
+  List<PurchaseOrderLine> findAllByTenantIdAndBranchIdAndIdIn(
+      UUID tenantId, UUID branchId, Collection<UUID> ids);
+
   void deleteByPurchaseOrderIdAndTenantIdAndBranchId(
       UUID purchaseOrderId, UUID tenantId, UUID branchId);
 

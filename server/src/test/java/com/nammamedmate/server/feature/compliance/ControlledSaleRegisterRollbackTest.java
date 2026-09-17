@@ -90,17 +90,13 @@ class ControlledSaleRegisterRollbackTest extends AbstractIntegrationTest {
                 .andReturn());
     BigDecimal stockBefore = stockBalanceRepository.findAll().get(0).getQuantity();
 
-    try {
-      mockMvc.perform(
-          post("/api/v1/sales/invoices/" + invoiceId + "/complete")
-              .cookie(cookie)
-              .contentType(MediaType.APPLICATION_JSON)
-              .content(completeJson("roll-pay")));
-      org.junit.jupiter.api.Assertions.fail("complete should fail when the sale book cannot write");
-    } catch (Exception ex) {
-      assertThat(ex).hasRootCauseInstanceOf(IllegalStateException.class);
-      assertThat(ex).hasRootCauseMessage("register exploded");
-    }
+    mockMvc
+        .perform(
+            post("/api/v1/sales/invoices/" + invoiceId + "/complete")
+                .cookie(cookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(completeJson("roll-pay")))
+        .andExpect(status().isInternalServerError());
 
     SalesInvoice invoice = salesInvoiceRepository.findById(invoiceId).orElseThrow();
     assertThat(invoice.getStatus()).isEqualTo(SalesInvoiceStatus.DRAFT);

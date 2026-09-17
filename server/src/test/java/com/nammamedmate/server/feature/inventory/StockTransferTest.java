@@ -423,6 +423,82 @@ class StockTransferTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void concurrentPullDispatchDoesNotOversell_M2_XFER_001() throws Exception {
+    Fixture fx = seed("pull-race");
+    UUID productId = createBatchedProduct(fx.cookie(), "SKU-PRACE", "Pull Race");
+    UUID batchId = receiveAt(fx.cookie(), productId, "LOT-PRACE", "5", "prace-recv");
+    AppUser owner =
+        appUserRepository.findAll().stream()
+            .filter(u -> u.getTenantId().equals(fx.tenantId()))
+            .findFirst()
+            .orElseThrow();
+    AuthPrincipal destination =
+        new AuthPrincipal(
+                owner.getId(), fx.tenantId(), UUID.randomUUID(), AppUserRole.pharmacy_owner)
+            .withActiveBranchId(fx.branchB());
+    AuthPrincipal sender =
+        new AuthPrincipal(
+                owner.getId(), fx.tenantId(), UUID.randomUUID(), AppUserRole.pharmacy_owner)
+            .withActiveBranchId(fx.branchA());
+
+    UUID first =
+        stockTransferService
+            .create(
+                destination,
+                new CreateStockTransferCommand(
+                    "PULL",
+                    fx.branchA(),
+                    List.of(
+                        new CreateStockTransferCommand.Line(
+                            productId, batchId, new BigDecimal("5"))),
+                    "pull-race-a"))
+            .id();
+    UUID second =
+        stockTransferService
+            .create(
+                destination,
+                new CreateStockTransferCommand(
+                    "PULL",
+                    fx.branchA(),
+                    List.of(
+                        new CreateStockTransferCommand.Line(
+                            productId, batchId, new BigDecimal("5"))),
+                    "pull-race-b"))
+            .id();
+
+    int workers = 2;
+    ExecutorService pool = Executors.newFixedThreadPool(workers);
+    CountDownLatch start = new CountDownLatch(1);
+    List<Future<String>> results = new ArrayList<>();
+    try {
+      for (UUID transferId : List.of(first, second)) {
+        results.add(
+            pool.submit(
+                () -> {
+                  start.await();
+                  try {
+                    stockTransferService.dispatch(sender, transferId);
+                    return "OK";
+                  } catch (ApiException ex) {
+                    return ex.getCode();
+                  }
+                }));
+      }
+      start.countDown();
+      List<String> outcomes = new ArrayList<>();
+      for (Future<String> result : results) {
+        outcomes.add(result.get(20, TimeUnit.SECONDS));
+      }
+      assertThat(outcomes.stream().filter("OK"::equals).count()).isEqualTo(1);
+      assertThat(outcomes.stream().filter("INSUFFICIENT_STOCK"::equals).count()).isEqualTo(1);
+    } finally {
+      pool.shutdownNow();
+    }
+
+    assertThat(qtyAt(fx.tenantId(), fx.branchA(), productId, batchId)).isEqualByComparingTo("0");
+  }
+
+  @Test
   void pushAndConfirmWriteAuditEvents() throws Exception {
     Fixture fx = seed("audit");
     UUID productId = createBatchedProduct(fx.cookie(), "SKU-AUD", "Audit Med");

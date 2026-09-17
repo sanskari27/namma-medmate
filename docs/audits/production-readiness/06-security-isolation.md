@@ -46,15 +46,15 @@ Sampled list/get paths include `tenant_id`. No P0 cashier-A-reads-B IDOR found.
 | `STATE-POS-001` | Cart kept across outlet switch |
 | `OWN-EXP-001` | All-outlets expense → `branches[0]` |
 | `M5-REO-002` | Reorder price fallback this branch (`FIXED`) |
-| `M5-QC-003` | QC GST join missing `branch_id` |
-| `TENANT-NEW-001` | Approval listeners lock by request id only (defense in depth) |
+| `M5-QC-003` | QC GST join missing `branch_id` (`FIXED` 2026-09-18) |
+| `TENANT-NEW-001` | Approval listeners lock by request id only (defense in depth) (`FIXED` 2026-09-18) |
 
 ---
 
 ## Webhooks / secrets
 
 - HMAC compare is constant-time. **No skew window** (`SEC-002`).
-- Resend apply no `FOR UPDATE` (`IDEMP-001`).
+- Resend apply locks by provider message id (`IDEMP-001` FIXED).
 - `.env` gitignored; TF JWT random. WhatsApp keys in SSM seed (`SECRET-SSM-WHATSAPP` FIXED).
 - Prod email URLs HTTPS (`OPS-EMAIL-URL` FIXED). Existing SSM may still need one-time `update-prod-env.sh set`.
 - `M11-MAIL-003` unescaped invoice/onboarding HTML.
@@ -66,14 +66,14 @@ Sampled list/get paths include `tenant_id`. No P0 cashier-A-reads-B IDOR found.
 
 - Cookie: httpOnly, Lax, host-only. Secure in prod overlay (`SEC-003` FIXED 2026-09-17 — prod fail-fast).
 - CORS allowlist + credentials; no `*`.
-- CSRF off (`SEC-004`).
+- CSRF off (`SEC-004`). Cookie is httpOnly + SameSite Lax with a CORS allowlist and credentials. Residual cross-site POST risk is accepted for Phase 1; do not add a CSRF token without a product story.
 - Nginx: no CSP / frame-ancestors / HSTS (`SEC-NEW-005`).
 
 ---
 
 ## PII / DPDP
 
-- `PII-001` saved-login emails; `PII-002` CA advisors in localStorage; `PII-003` auth blob in localStorage.
+- `PII-001` saved-login emails; `PII-002` CA advisors in sessionStorage (`FIXED`); `PII-003` auth persist `{userId}` (`FIXED`).
 - **Do not** implement M1-S09 while D-013 is open.
 
 ---

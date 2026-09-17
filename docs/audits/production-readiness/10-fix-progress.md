@@ -1,6 +1,6 @@
 # Audit fix progress
 
-Updated: 2026-09-17
+Updated: 2026-09-18
 Policy: restore story chrome; no tracker edits; no out-of-scope.
 
 | ID | Status | Slice | Apps | Tests | Gates | Notes |
@@ -190,11 +190,39 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M10-INBOX-003 | FIXED | P2 Notifications | server | same | same | sourceRecordId + typed hrefs |
 | M10-ROUTE-005 | FIXED | P2 Notifications | server | same | same | low-stock rising-edge; restock retires key |
 | M10-WA-004 | FIXED | P2 Notifications | server | same | same | credit-due once while balance > 0 |
+| SEC-004 | WONTFIX | P3 | server | 09-out-of-scope residual | — | SameSite Lax + CORS; no CSRF token |
+| SEC-005 | FIXED | P3 | server | AuthImpersonationTest | see P3 close-out | alias M1-PWD-002; hqUserId must-change |
+| M1-PWD-002 | FIXED | P3 | server | alias of SEC-005 | same | closed with canonical |
+| AXIOS-DISP-01 | FIXED | P3 | dispensary + admin | DashboardLayout + pin | same | /auth/me hydrate; persist {userId} |
+| STATE-ADM-001 | FIXED | P3 | admin | alias of AXIOS-DISP-01 | same | closed with canonical |
+| FLYWAY-001 | FIXED | P3 | docs | architecture README | same | live head V64; tracker not edited |
+| CROSS-001 | FIXED | P3 | server | GlobalExceptionHandlerTest | same | 500 envelope; 404/405 stay typed |
+| TIME-001 | FIXED | P3 | server | LicenseTest + RefillDueScannerTest | same | aliases JOB-002 / M10-TIME-001 scanners IST |
+| UX-DISP-03 | FIXED | P3 | dispensary | DashboardLayout.test | same | Returns/NDPS/Outlets icons |
+| DRIFT-DISP-01 | FIXED | P3 | dispensary | same | same | empty leftover screen dirs already gone |
+| M1-APPR-001 | FIXED | P3 | dispensary + admin | WaitingSignOff + HqSignOffs | same | window.confirm before decide |
+| M1-APPR-002 | FIXED | P3 | server | AuditPurgeJob | same | UTC 00:30 scheduled purge |
+| M1-SAVED-001 | WONTFIX | P3 | docs | 09-out-of-scope D-015 | — | no silent story rewrite |
+| M2-XFER-001 | FIXED | P3 | server | StockTransferTest concurrent pull | same | concurrent pull-dispatch does not oversell |
+| M2-KIOSK-005 | WONTFIX | P3 | docs | 09-out-of-scope | — | no silent story rewrite |
+| UX-CRM-001 | WONTFIX | P3 | dispensary | 09-out-of-scope owner | — | explicit walk-in each bill |
+| M4-DEAD-001 | FIXED | P3 | dispensary | InventoryScreen.test | same | unused floor list components deleted |
+| M5-QC-003 | FIXED | P3 | server | QualityCheckTest | same | PO lines tenant+branch id in |
+| M10-WA-005 | FIXED | P3 | dispensary | WhatsappSendsScreen.test | same | IST timestamps on sends |
+| M10-WA-006 | FIXED | P3 | dispensary | WhatsappTemplatesScreen.test | same | catalogue-only copy |
+| IDEMP-001 | FIXED | P3 | server | ResendWebhookTest | same | alias M11-MAIL-002; FOR UPDATE |
+| M11-MAIL-002 | FIXED | P3 | server | alias of IDEMP-001 | same | closed with canonical |
+| M11-CF-007 | FIXED | P3 | server | CashfreeBillingTest + adapter | same | OWNER phone; fallback 9999999999 |
+| COMPOSE-CASHFREE-ENV | FIXED | P3 | infra | alias of M11-CF-005 | same | CASHFREE_ENV=production example |
+| OPS-PUBLIC-BASE | FIXED | P3 | infra | SSM + env example | same | unused PUBLIC_BASE_URL removed |
+| PII-002 | FIXED | P3 | dispensary | CaPackScreen.test | same | CA advisors sessionStorage |
+| PII-003 | FIXED | P3 | dispensary + admin | auth.slice persist | same | persist {userId} only |
+| TENANT-NEW-001 | FIXED | P3 | server | approval appliers | same | lock by request id + tenant |
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: remaining P2 compact groups — FIXED. Next picker: P3.
-Blocked on user: SEC-NEW-006 (cookie-only needs owner). M1-IMPERSON-001 WONTFIX (D-001). M4-COMP-001 WONTFIX (unstructured TEXT / D-011). UX-POS-002 WONTFIX (Proceed disabled until customer/walk-in). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01 and OPS-STORAGE file-backup policy.
+Current slice: P3 — FIXED.
+Blocked on user: SEC-NEW-006 (cookie-only needs owner). M1-IMPERSON-001 WONTFIX (D-001). M4-COMP-001 WONTFIX (unstructured TEXT / D-011). UX-POS-002 WONTFIX (Proceed disabled until customer/walk-in). SEC-004 / M1-SAVED-001 / M2-KIOSK-005 / UX-CRM-001 WONTFIX (P3). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01 and OPS-STORAGE file-backup policy.
 
 ## P2 remainder close-out (2026-09-18)
 
@@ -222,6 +250,36 @@ Listed gates (server then SPA, sequential):
 - `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
 
 Out of scope: P3; D-013/M1-S09; D-006/M12-S01; D-001 audit; Redis still in Compose (sessions Postgres); kiosk NDPS filter is client-only.
+
+## P3 close-out (2026-09-18)
+
+No commit requested. Compact P3 from `08-fix-backlog.md` plus `TIME-001` (P3 in `02-cross-cutting.md`).
+
+- Password-change gate uses `principal.hqUserId()`. Catch-all 500 stays in `ApiResponse`; missing routes 404; wrong method 405.
+- Resend apply `lockByProviderMessageId`. QC GST join loads PO lines by tenant+branch. Approval appliers lock by request id **and** tenant. Audit purge cron `0 30 0 * * *` UTC.
+- Cashfree `customer_phone` from OWNER `app_user.phone` (10-digit / 91-prefix), else `9999999999`.
+- Refill/licence scanners, licence `today()`, WhatsApp enqueue days use `DashboardPolicy.IST`.
+- Both SPAs hydrate `GET /auth/me` then persist `{ userId }` only. CA advisors `sessionStorage`.
+- Sign-off Approve / Send back / Reject `window.confirm`. Rail icons for Returns, NDPS register, Outlets.
+- WhatsApp sends IST timestamps; birthday/tone slots “Catalogue only — this slot is not sent yet”. Customer last visit IST.
+- Unused floor list components deleted. Empty leftover screen dirs were already gone. Flyway head V64 in architecture README. Unused `PUBLIC_BASE_URL` already removed.
+- WONTFIX: CSRF token (`SEC-004`); story-file drift (`M1-SAVED-001`, `M2-KIOSK-005`); last-patient sticky (`UX-CRM-001`). M6 leftover: thermal already absent; unused POS `walkInName` left in slice (entangled with till).
+
+Delta tests: server `GlobalExceptionHandlerTest,ControlledSaleRegisterTest,ControlledSaleRegisterRollbackTest,CaPackRollbackTest,ExpenseApprovalTest,PrescriptionReferenceTest,AuthImpersonationTest,CashfreeBillingTest,StockTransferTest,QualityCheckTest,ResendWebhookTest,LicenseTest,RefillDueScannerTest,CashfreePgAdapterTest` — Tests run: 77, Failures: 0. Dispensary WaitingSignOff / WhatsApp sends / templates / CA pack / Customers / DashboardLayout (+ pin) — 7 files, 82 passed. Admin listed suite 200 passed.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` — spotless clean. Tests run: 980, Failures: 1 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility` HEAD seed (same residual as P2).
+- `cd dispensary && npm run lint` — HEAD unused-import residuals (account/credit/distributors/offers).
+- `cd dispensary && npm run test -- --run` — 90 failed / 600 passed — HEAD screens missing slice reducers (branches/offers/returns/credit/staff/…). P3 delta files green.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals (account/credit/distributors/inventory.replaceAll/orders/shop-books).
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 200 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Out of scope: D-013/M1-S09; D-006/M12-S01; D-001 audit; Redis still in Compose (sessions Postgres).
+
+Browser (OWNER `varshmaan.sonkar@gmail.com`): `/whatsapp-templates` birthday + refill_due_warm “Catalogue only — this slot is not sent yet”; `/whatsapp-sends` IST “17 Sept 2026, 06:00 am”; `/approvals/pending` Approve confirm “Approve this till request? The original action will continue.” (cancelled); `/customers` Last visit “15 Sept 2026, 09:47 pm”; rail Sale returns uses Undo icon. Hydrate copy “Checking this counter session…” on route change.
 
 ## P2 Integrations / jobs/ops close-out (2026-09-18)
 

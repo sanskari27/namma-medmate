@@ -1,1 +1,0 @@
-export { InventoryListRow } from './InventoryListRow';

@@ -28,43 +28,38 @@ interface AuthState {
   user: AuthUser | null;
 }
 
-function readStoredUser(): AuthUser | null {
-  const raw = localStorage.getItem(AUTH_STORAGE_KEY);
-  if (!raw) {
-    return null;
-  }
-  try {
-    return JSON.parse(raw) as AuthUser;
-  } catch {
+function persistSessionHint(userId: string | null) {
+  if (!userId) {
     localStorage.removeItem(AUTH_STORAGE_KEY);
-    return null;
+    return;
   }
+  localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify({ userId }));
 }
 
 const authSlice = createSlice({
   name: 'auth',
-  initialState: { user: readStoredUser() } as AuthState,
+  initialState: { user: null } as AuthState,
   reducers: {
     sessionStarted: (state, action: PayloadAction<AuthUser>) => {
       state.user = action.payload;
-      localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(action.payload));
+      persistSessionHint(action.payload.userId);
       sessionStorage.removeItem(LAST_ACTIVITY_KEY);
     },
     pinEnrolled: (state) => {
       if (state.user) {
         state.user.pinSet = true;
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
+        persistSessionHint(state.user.userId);
       }
     },
     passwordChanged: (state) => {
       if (state.user) {
         state.user.mustChangePassword = false;
-        localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(state.user));
+        persistSessionHint(state.user.userId);
       }
     },
     logout: (state) => {
       state.user = null;
-      localStorage.removeItem(AUTH_STORAGE_KEY);
+      persistSessionHint(null);
       sessionStorage.removeItem(LAST_ACTIVITY_KEY);
     },
   },

@@ -75,6 +75,10 @@ export function apiStatusHint(code: string | null): string | null {
   return null;
 }
 
+export function catalogueOnly(uniqueName: string): boolean {
+  return uniqueName === 'birthday' || uniqueName === 'refill_due_warm';
+}
+
 export function templateLabel(uniqueName: string): string {
   switch (uniqueName) {
     case 'refill_due':

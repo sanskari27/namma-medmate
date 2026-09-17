@@ -222,7 +222,9 @@ Full text in epic files. Unique IDs (aliases already merged):
 
 ## P3 (last)
 
-`SEC-004` CSRF, `SEC-005`/`M1-PWD-002`, `AXIOS-DISP-01`, `FLYWAY-001`, `CROSS-001`, `UX-DISP-03`/`DRIFT-DISP-01`, `M1-APPR-001`, `M1-APPR-002`, `M1-SAVED-001` (doc), `M2-XFER-001`, `M2-KIOSK-005` (doc), `UX-CRM-001` (walk-in default — owner), `M4-DEAD-001`, `M5-QC-003`, `M6` leftover P3, `M10-WA-005`, `M10-WA-006`, `IDEMP-001`, `M11-MAIL-002`, `M11-CF-007`, `COMPOSE-CASHFREE-ENV`, `OPS-PUBLIC-BASE`, `PII-002`, `PII-003`, `TENANT-NEW-001`.
+**Status 2026-09-18:** compact P3 closed (see `10-fix-progress.md` P3 close-out). Also `TIME-001` from `02-cross-cutting.md`.
+
+`SEC-004` CSRF (**WONTFIX** residual), `SEC-005`/`M1-PWD-002` (**FIXED**), `AXIOS-DISP-01` (**FIXED**), `FLYWAY-001` (**FIXED**), `CROSS-001` (**FIXED**), `UX-DISP-03`/`DRIFT-DISP-01` (**FIXED**), `M1-APPR-001` (**FIXED**), `M1-APPR-002` (**FIXED**), `M1-SAVED-001` (doc **WONTFIX**), `M2-XFER-001` (**FIXED**), `M2-KIOSK-005` (doc **WONTFIX**), `UX-CRM-001` (walk-in default — owner **WONTFIX**), `M4-DEAD-001` (**FIXED**), `M5-QC-003` (**FIXED**), `M6` leftover P3 (thermal absent; unused `walkInName` left), `M10-WA-005` (**FIXED**), `M10-WA-006` (**FIXED**), `IDEMP-001` (**FIXED**), `M11-MAIL-002` (**FIXED**), `M11-CF-007` (**FIXED**), `COMPOSE-CASHFREE-ENV` (**FIXED**), `OPS-PUBLIC-BASE` (**FIXED**), `PII-002` (**FIXED**), `PII-003` (**FIXED**), `TENANT-NEW-001` (**FIXED**).
 
 ---
 

@@ -1,13 +1,13 @@
 package com.nammamedmate.server.application.communications;
 
 import com.nammamedmate.server.domain.CustomerRefillSchedule;
+import com.nammamedmate.server.domain.DashboardPolicy;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.WhatsAppMessage;
 import com.nammamedmate.server.persistence.CustomerRefillScheduleRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
 import java.time.Clock;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -52,7 +52,7 @@ public class RefillDueScanner {
 
   @Transactional(propagation = Propagation.REQUIRES_NEW)
   public List<WhatsAppMessage> scanTenant(UUID tenantId) {
-    LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+    LocalDate today = LocalDate.ofInstant(clock.instant(), DashboardPolicy.IST);
     List<WhatsAppMessage> out = new ArrayList<>();
     List<CustomerRefillSchedule> due =
         refillRepository.findAllByTenantIdAndNextDueOnLessThanEqualOrderByNextDueOnAsc(

@@ -4,9 +4,9 @@ import type { AppDispatch } from '@/store';
 import type { CustomerDirectoryItem } from '@/services/customers';
 import { CUSTOMERS_CONTENT } from '../../CustomersScreen.content';
 import {
+  formatIstDateTime,
   formatPaise,
   formatPhone,
-  relativeTime,
   rowKey,
 } from '../../CustomersScreen.utils';
 import { openCustomerDetail } from '../../store/customers.slice';
@@ -68,7 +68,7 @@ export function CustomersRow({ row }: CustomersRowProps) {
         </div>
       </td>
       <td className="num">{row.unitsSold}</td>
-      <td>{relativeTime(row.lastVisitAt)}</td>
+      <td>{formatIstDateTime(row.lastVisitAt)}</td>
       <td>
         <span className="cust-pts">{CUSTOMERS_CONTENT.pts(row.loyaltyPoints)}</span>
       </td>

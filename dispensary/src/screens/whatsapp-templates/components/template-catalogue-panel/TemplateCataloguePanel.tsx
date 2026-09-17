@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import { templateLabel } from '../../WhatsappTemplatesScreen.utils';
+import { catalogueOnly, templateLabel } from '../../WhatsappTemplatesScreen.utils';
 import { selectWhatsappSelectedName, selectWhatsappTemplates, templateSelected } from '../../store';
 
 export function TemplateCataloguePanel() {
@@ -20,6 +20,9 @@ export function TemplateCataloguePanel() {
         >
           <b>{templateLabel(row.uniqueName)}</b>
           <span className="ws-muted ws-mono">{row.namespaceName}</span>
+          {catalogueOnly(row.uniqueName) ? (
+            <span className="ws-muted">Catalogue only — this slot is not sent yet</span>
+          ) : null}
         </button>
       ))}
     </div>

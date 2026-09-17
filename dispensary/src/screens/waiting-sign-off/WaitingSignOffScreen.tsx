@@ -76,14 +76,32 @@ export default function WaitingSignOffScreen() {
                         <button
                           type="button"
                           className="wt-btn wt-btn-primary wt-btn-sm"
-                          onClick={() => void dispatch(decideSignOff({ request, outcome: 'APPROVED' }))}
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                'Approve this till request? The original action will continue.',
+                              )
+                            ) {
+                              return;
+                            }
+                            void dispatch(decideSignOff({ request, outcome: 'APPROVED' }));
+                          }}
                         >
                           Approve
                         </button>
                         <button
                           type="button"
                           className="wt-btn wt-btn-ghost wt-btn-sm"
-                          onClick={() => void dispatch(decideSignOff({ request, outcome: 'REJECTED' }))}
+                          onClick={() => {
+                            if (
+                              !window.confirm(
+                                'Send this till request back? The cashier will need to retry.',
+                              )
+                            ) {
+                              return;
+                            }
+                            void dispatch(decideSignOff({ request, outcome: 'REJECTED' }));
+                          }}
                         >
                           Send back
                         </button>

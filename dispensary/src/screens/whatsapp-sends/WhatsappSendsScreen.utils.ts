@@ -62,6 +62,25 @@ export function outcomeLabel(status: WhatsAppMessageStatus): string {
   return 'Failed';
 }
 
+export function formatIstDateTime(iso: string | null | undefined): string {
+  if (!iso) {
+    return '—';
+  }
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return '—';
+  }
+  return new Intl.DateTimeFormat('en-IN', {
+    timeZone: 'Asia/Kolkata',
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+  }).format(date);
+}
+
 export function mapApiStatus(error: { status: number; code: string | null }): PageStatus {
   if (error.status === 403 || error.code === 'FORBIDDEN') {
     return 'denied';

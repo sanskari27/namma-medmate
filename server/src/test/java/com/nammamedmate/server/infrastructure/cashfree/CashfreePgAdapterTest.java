@@ -102,6 +102,7 @@ class CashfreePgAdapterTest {
               assertThat(request.getHeaders().get("x-secret-id")).isNull();
               String payload = ((MockClientHttpRequest) request).getBodyAsString();
               assertThat(payload).contains("\"order_amount\":699.00");
+              assertThat(payload).contains("\"customer_phone\":\"9876543210\"");
               assertThat(payload).doesNotContain("/pg/subscriptions");
             })
         .andRespond(
@@ -113,7 +114,12 @@ class CashfreePgAdapterTest {
     CashfreeOrderResult result =
         adapter.createOrder(
             new CashfreeCreateOrderRequest(
-                "nmm_2", UUID.randomUUID(), PlanCode.STARTER, 69900, "http://localhost:5173"));
+                "nmm_2",
+                UUID.randomUUID(),
+                PlanCode.STARTER,
+                69900,
+                "http://localhost:5173",
+                "9876543210"));
     assertThat(result.paymentSessionId()).isEqualTo("sess_1");
     assertThat(result.checkoutUrl()).contains("sess_1");
     server.verify();

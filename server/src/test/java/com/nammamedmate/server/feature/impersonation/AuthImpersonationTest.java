@@ -415,6 +415,23 @@ class AuthImpersonationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac_s08_masterMustChangeStillBlocksWhileImpersonating_SEC_005() throws Exception {
+    Tenant tenant = persistTenant("must-change-hq");
+    AppUser master =
+        persistUser(null, "master@must.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    persistUser(
+        tenant.getId(), "owner@must.local", AppUserRole.pharmacy_owner, UserAccountStatus.ACTIVE);
+    Cookie support = startImpersonation(login("master@must.local"), "owner@must.local");
+    master.setMustChangePassword(true);
+    appUserRepository.saveAndFlush(master);
+
+    mockMvc
+        .perform(get("/api/v1/admin/tenants").cookie(support))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("PASSWORD_CHANGE_REQUIRED"));
+  }
+
+  @Test
   void ac_s08_impersonatingPasswordChangeIsForbidden_M1_PWD_003() throws Exception {
     Tenant tenant = persistTenant("pwd-block");
     persistUser(null, "master@pwd.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);

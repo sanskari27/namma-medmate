@@ -34,6 +34,11 @@ public interface StockAdjustmentRepository extends JpaRepository<StockAdjustment
       @Param("id") UUID id, @Param("tenantId") UUID tenantId, @Param("branchId") UUID branchId);
 
   @Lock(LockModeType.PESSIMISTIC_WRITE)
-  @Query("select a from StockAdjustment a where a.approvalRequestId = :requestId")
-  Optional<StockAdjustment> lockByApprovalRequestId(@Param("requestId") UUID requestId);
+  @Query(
+      """
+      select a from StockAdjustment a
+      where a.approvalRequestId = :requestId and a.tenantId = :tenantId
+      """)
+  Optional<StockAdjustment> lockByApprovalRequestIdAndTenantId(
+      @Param("requestId") UUID requestId, @Param("tenantId") UUID tenantId);
 }

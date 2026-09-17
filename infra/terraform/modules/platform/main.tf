@@ -360,7 +360,6 @@ resource "aws_ssm_parameter" "compose_env" {
     "REDIS_PORT=6379",
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
-    "PUBLIC_BASE_URL=https://api.nammamedmate.com",
     "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com",
     "STORAGE_ROOT=/app/files",
     "VITE_API_BASE_URL=https://api.nammamedmate.com",

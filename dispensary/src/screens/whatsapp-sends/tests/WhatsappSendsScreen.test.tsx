@@ -1,10 +1,11 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import WhatsappSendsScreen from '@/screens/whatsapp-sends/WhatsappSendsScreen';
+import { whatsappSendsReducer } from '@/screens/whatsapp-sends/store/whatsappSends.slice';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { WhatsAppMessage } from '@/services/whatsappMessages';
@@ -45,7 +46,7 @@ const failed: WhatsAppMessage = {
 
 function renderPage(role = 'pharmacy_owner', modules: string[] = ['CAMPAIGNS']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, whatsappSends: whatsappSendsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -106,7 +107,6 @@ describe('WhatsApp sends', () => {
   });
 
   it('validation: only a failed send can be retried', async () => {
-    const user = userEvent.setup();
     listMock.mockResolvedValue({
       items: [{ ...failed, status: 'SENT', failureCode: null, providerMessageId: 'wamid.1' }],
       queued: 0,
@@ -115,10 +115,7 @@ describe('WhatsApp sends', () => {
     });
     renderPage();
     await screen.findByText(/Hi Ravi/);
-    await user.click(screen.getByRole('button', { name: 'Send again' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Only a failed send can be tried again from this counter.',
-    );
+    expect(screen.queryByRole('button', { name: 'Send again' })).not.toBeInTheDocument();
     expect(retryMock).not.toHaveBeenCalled();
   });
 
@@ -153,13 +150,12 @@ describe('WhatsApp sends', () => {
     });
     renderPage();
     expect(await screen.findByText(/Hi Ravi, your refill for Amlodipine/)).toBeInTheDocument();
+    expect(screen.getByText(/2026/)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Send again' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'This WhatsApp send went out from the counter.',
     );
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'Send again' })).toHaveFocus();
-    });
     expect(retryMock).toHaveBeenCalledWith('m1');
+    expect(screen.queryByRole('button', { name: 'Send again' })).not.toBeInTheDocument();
   });
 });

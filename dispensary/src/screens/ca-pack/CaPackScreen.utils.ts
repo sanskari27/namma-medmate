@@ -138,7 +138,7 @@ export function loadAdvisors(tenantId?: string | null): Advisor[] {
     return [];
   }
   try {
-    const raw = localStorage.getItem(key);
+    const raw = sessionStorage.getItem(key);
     if (!raw) {
       return [];
     }
@@ -154,7 +154,7 @@ export function saveAdvisors(items: Advisor[], tenantId?: string | null): void {
   if (!key) {
     return;
   }
-  localStorage.setItem(key, JSON.stringify(items));
+  sessionStorage.setItem(key, JSON.stringify(items));
 }
 
 export function loadHistory(): ShareHistoryItem[] {
