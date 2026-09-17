@@ -7,6 +7,9 @@ import static org.springframework.test.web.client.match.MockRestRequestMatchers.
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 import com.nammamedmate.server.domain.PlanCode;
+import java.time.Clock;
+import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.UUID;
 import java.util.concurrent.atomic.AtomicInteger;
 import org.junit.jupiter.api.Test;
@@ -53,6 +56,7 @@ class CashfreePgAdapterTest {
     String secret = "hook-secret";
     String timestamp = "1710000000";
     String body = "{\"type\":\"PAYMENT_SUCCESS_WEBHOOK\"}";
+    Clock clock = Clock.fixed(Instant.ofEpochSecond(1_710_000_000L), ZoneOffset.UTC);
     javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
     mac.init(
         new javax.crypto.spec.SecretKeySpec(
@@ -61,9 +65,26 @@ class CashfreePgAdapterTest {
         java.util.Base64.getEncoder()
             .encodeToString(
                 mac.doFinal((timestamp + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
-    assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, signature)).isTrue();
-    assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, "nope")).isFalse();
-    assertThat(CashfreeWebhookSignature.valid("", timestamp, body, signature)).isFalse();
+    assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, signature, clock)).isTrue();
+    assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, "nope", clock)).isFalse();
+    assertThat(CashfreeWebhookSignature.valid("", timestamp, body, signature, clock)).isFalse();
+  }
+
+  @Test
+  void webhookSignatureRejectsStaleTimestamp() throws Exception {
+    String secret = "hook-secret";
+    String timestamp = "1709999699";
+    String body = "{\"type\":\"PAYMENT_SUCCESS_WEBHOOK\"}";
+    Clock clock = Clock.fixed(Instant.ofEpochSecond(1_710_000_000L), ZoneOffset.UTC);
+    javax.crypto.Mac mac = javax.crypto.Mac.getInstance("HmacSHA256");
+    mac.init(
+        new javax.crypto.spec.SecretKeySpec(
+            secret.getBytes(java.nio.charset.StandardCharsets.UTF_8), "HmacSHA256"));
+    String signature =
+        java.util.Base64.getEncoder()
+            .encodeToString(
+                mac.doFinal((timestamp + body).getBytes(java.nio.charset.StandardCharsets.UTF_8)));
+    assertThat(CashfreeWebhookSignature.valid(secret, timestamp, body, signature, clock)).isFalse();
   }
 
   @Test

@@ -1,5 +1,5 @@
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { CA_PACK_CONTENT } from '../../CaPackScreen.content';
 import { saveAdvisors } from '../../CaPackScreen.utils';
 import {
@@ -16,6 +16,7 @@ export function CaPackAdvisorDialog() {
   const open = useSelector(selectCaPackFormOpen);
   const form = useSelector(selectCaPackForm);
   const advisors = useSelector(selectCaPackAdvisors);
+  const tenantId = useSelector((state: RootState) => state.auth.user?.tenantId);
   if (!open || !form) {
     return null;
   }
@@ -27,7 +28,7 @@ export function CaPackAdvisorDialog() {
     const next = form.id
       ? advisors.map((row) => (row.id === form.id ? form : row))
       : [...advisors, { ...form, id: crypto.randomUUID() }];
-    saveAdvisors(next);
+    saveAdvisors(next, tenantId);
     dispatch(advisorsSaved(next));
     dispatch(closeAdvisorForm());
   }

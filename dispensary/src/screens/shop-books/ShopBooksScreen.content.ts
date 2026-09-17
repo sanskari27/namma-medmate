@@ -17,7 +17,6 @@ export const FILTER_CHIPS = [
   { id: 'party', label: 'Party' },
   { id: 'category', label: 'Category' },
   { id: 'payment', label: 'Payment Collection' },
-  { id: 'item', label: 'Item' },
   { id: 'invoice', label: 'Invoice Details' },
   { id: 'summary', label: 'Summary' },
 ] as const;

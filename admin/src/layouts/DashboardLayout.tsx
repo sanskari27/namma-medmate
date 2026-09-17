@@ -30,7 +30,7 @@ import { useIdleLock } from '@/hooks/useIdleLock';
 import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
 import { exitImpersonation } from '@/services/impersonation';
-import { NAV_ITEMS, ROUTES } from '@/libs/constants/routes.const';
+import { NAV_ITEMS, ROUTES, visibleHqNav } from '@/libs/constants/routes.const';
 import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
 
 const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
@@ -59,6 +59,10 @@ export default function DashboardLayout() {
     Boolean(s.auth.user?.mustChangePassword),
   );
   const support = useSelector((s: RootState) => s.auth.user?.impersonation);
+  const role = useSelector((s: RootState) => s.auth.user?.role);
+  const modules = useSelector((s: RootState) => s.auth.user?.modules);
+  const userId = useSelector((s: RootState) => s.auth.user?.userId);
+  const hqNav = visibleHqNav(role, modules);
   const rotateOwnPassword = Boolean(mustChangePassword && !support);
   const [exiting, setExiting] = useState(false);
   const { locked, abandoned, clearLock } = useIdleLock(pinSet && !rotateOwnPassword);
@@ -80,12 +84,13 @@ export default function DashboardLayout() {
     try {
       const restored = await exitImpersonation();
       dispatch(sessionStarted(restored));
+      navigate(ROUTES.SUPPORT);
     } catch {
       /* keep banner; operator can retry */
     } finally {
       setExiting(false);
     }
-  }, [dispatch]);
+  }, [dispatch, navigate]);
 
   useEffect(() => {
     if (!abandoned) {
@@ -108,7 +113,7 @@ export default function DashboardLayout() {
           <p className="font-mono text-[11px] text-muted">Platform ops</p>
         </div>
         <nav className="flex flex-1 flex-col gap-0.5 p-2" aria-label="Platform modules">
-          {NAV_ITEMS.map((item) => {
+          {hqNav.map((item) => {
             const Icon = NAV_ICONS[item.path];
             return (
               <NavLink
@@ -150,7 +155,7 @@ export default function DashboardLayout() {
           <HqSupportBanner session={support} busy={exiting} onExit={() => void leaveSupport()} />
         ) : null}
         <main id="main" className="flex-1 p-6">
-          <Outlet />
+          <Outlet key={`${userId ?? 'hq'}-${support?.tenantId ?? 'home'}`} />
         </main>
       </div>
       {rotateOwnPassword ? (

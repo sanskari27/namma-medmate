@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 
 public interface StockBatchRepository extends JpaRepository<StockBatch, UUID> {
 
@@ -21,7 +23,24 @@ public interface StockBatchRepository extends JpaRepository<StockBatch, UUID> {
 
   List<StockBatch> findAllByTenantIdAndBatchNumber(UUID tenantId, String batchNumber);
 
-  Optional<StockBatch>
-      findFirstByTenantIdAndProductIdAndPurchasePricePaiseGreaterThanOrderByCreatedAtDesc(
-          UUID tenantId, UUID productId, long purchasePricePaise);
+  @Query(
+      """
+      select b from StockBatch b
+      where b.tenantId = :tenantId
+        and b.productId = :productId
+        and b.purchasePricePaise > :minPrice
+        and exists (
+          select 1 from StockBalance s
+          where s.tenantId = b.tenantId
+            and s.branchId = :branchId
+            and s.productId = b.productId
+            and s.batchId = b.id
+        )
+      order by b.createdAt desc
+      """)
+  List<StockBatch> findPricedBatchesAtBranchOrderByCreatedAtDesc(
+      @Param("tenantId") UUID tenantId,
+      @Param("branchId") UUID branchId,
+      @Param("productId") UUID productId,
+      @Param("minPrice") long minPrice);
 }

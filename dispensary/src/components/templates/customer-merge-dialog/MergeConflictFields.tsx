@@ -1,4 +1,8 @@
-import type { CustomerMergePreview, MergeSide } from '@/services/customers';
+import type {
+  CustomerMergeLinkedRecords,
+  CustomerMergePreview,
+  MergeSide,
+} from '@/services/customers';
 
 const FIELD_LABELS: Record<string, string> = {
   name: 'Name',
@@ -19,6 +23,35 @@ function displayValue(value: string | null | undefined): string {
   return value;
 }
 
+function linkedRecordsCopy(records: CustomerMergeLinkedRecords): string {
+  const parts = [
+    records.salesInvoices
+      ? `${records.salesInvoices} sale${records.salesInvoices === 1 ? '' : 's'}`
+      : null,
+    records.creditEntries
+      ? `${records.creditEntries} khata line${records.creditEntries === 1 ? '' : 's'}`
+      : null,
+    records.loyaltyEntries
+      ? `${records.loyaltyEntries} loyalty line${records.loyaltyEntries === 1 ? '' : 's'}`
+      : null,
+    records.historyFacts
+      ? `${records.historyFacts} history fact${records.historyFacts === 1 ? '' : 's'}`
+      : null,
+    records.refills ? `${records.refills} refill${records.refills === 1 ? '' : 's'}` : null,
+    records.tags ? `${records.tags} tag${records.tags === 1 ? '' : 's'}` : null,
+    records.familyMembers
+      ? `${records.familyMembers} family member${records.familyMembers === 1 ? '' : 's'}`
+      : null,
+    records.notificationEvents
+      ? `${records.notificationEvents} notification${records.notificationEvents === 1 ? '' : 's'}`
+      : null,
+  ].filter((part): part is string => Boolean(part));
+  if (parts.length === 0) {
+    return 'No sales, khata, loyalty, Rx history, or family links move. The duplicate profile is still deactivated.';
+  }
+  return `This merge moves ${parts.join(', ')} onto the survivor. The duplicate is deactivated.`;
+}
+
 export type MergeConflictFieldsProps = {
   formId: string;
   preview: CustomerMergePreview;
@@ -34,14 +67,7 @@ export function MergeConflictFields({
 }: MergeConflictFieldsProps) {
   return (
     <div className="grid gap-3">
-      <p className="text-sm text-muted">
-        Linked records moving:{' '}
-        <span className="font-mono tabular-nums text-ink">
-          {preview.linkedRecords.notificationEvents}
-        </span>{' '}
-        notification event
-        {preview.linkedRecords.notificationEvents === 1 ? '' : 's'}
-      </p>
+      <p className="text-sm text-muted">{linkedRecordsCopy(preview.linkedRecords)}</p>
 
       {preview.conflicts.length === 0 ? (
         <p className="text-sm text-muted">

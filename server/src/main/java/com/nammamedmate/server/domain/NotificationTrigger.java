@@ -23,7 +23,7 @@ public enum NotificationTrigger {
       List.of(
           spec(RoutingRole.NEW_USER, DeliveryChannel.CREDENTIAL),
           spec(RoutingRole.NEW_USER, DeliveryChannel.IN_APP))),
-  KYC(false, specs(RoutingRole.OWNER)),
+  KYC(false, specs(RoutingRole.OWNER, RoutingRole.MASTER)),
   PLAN_LIMIT(false, specs(RoutingRole.OWNER)),
   SUBSCRIPTION_EXPIRY(false, specs(RoutingRole.OWNER, RoutingRole.MASTER));
 

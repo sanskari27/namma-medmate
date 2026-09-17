@@ -1,4 +1,4 @@
-import { Menu, PanelLeftClose, PanelLeftOpen, Search } from 'lucide-react';
+import { Menu, PanelLeftClose, PanelLeftOpen } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useLocation } from 'react-router-dom';
 import { Button } from '@atoms';
@@ -66,18 +66,7 @@ export function ShellHeader({
         </div>
       </div>
 
-      <label className="ml-auto hidden min-w-[12rem] max-w-md flex-1 items-center gap-2 rounded-lg border border-line bg-canvas px-3 py-2 md:flex">
-        <Search className="size-4 shrink-0 text-brand" aria-hidden />
-        <input
-          type="search"
-          readOnly
-          placeholder={SHELL.searchPlaceholder}
-          className="w-full border-0 bg-transparent text-sm text-ink outline-none placeholder:text-muted"
-          aria-label={SHELL.searchPlaceholder}
-        />
-      </label>
-
-      <div className="flex items-center gap-2">
+      <div className="ml-auto flex items-center gap-2">
         <Button type="button" size="sm" className="shrink-0" onClick={onNewSale}>
           {SHELL.newSaleLabel}
         </Button>

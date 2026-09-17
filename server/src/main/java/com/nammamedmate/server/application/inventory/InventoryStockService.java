@@ -20,6 +20,7 @@ import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.BranchProductStockLevelRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
+import com.nammamedmate.server.persistence.NotificationEventRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.StockBalanceRepository;
 import com.nammamedmate.server.persistence.StockBatchRepository;
@@ -60,6 +61,7 @@ public class InventoryStockService {
   private final LocationRepository locationRepository;
   private final BranchProductStockLevelRepository branchProductStockLevelRepository;
   private final NotificationRoutingService notificationRoutingService;
+  private final NotificationEventRepository notificationEventRepository;
   private final ControlledStockRecorder controlledStockRecorder;
   private final Clock clock;
 
@@ -73,6 +75,7 @@ public class InventoryStockService {
       LocationRepository locationRepository,
       BranchProductStockLevelRepository branchProductStockLevelRepository,
       NotificationRoutingService notificationRoutingService,
+      NotificationEventRepository notificationEventRepository,
       ControlledStockRecorder controlledStockRecorder,
       Clock clock) {
     this.appUserRepository = appUserRepository;
@@ -84,6 +87,7 @@ public class InventoryStockService {
     this.locationRepository = locationRepository;
     this.branchProductStockLevelRepository = branchProductStockLevelRepository;
     this.notificationRoutingService = notificationRoutingService;
+    this.notificationEventRepository = notificationEventRepository;
     this.controlledStockRecorder = controlledStockRecorder;
     this.clock = clock;
   }
@@ -284,6 +288,7 @@ public class InventoryStockService {
             now);
     stockMovementRepository.saveAndFlush(movement);
     controlledStockRecorder.record(movement);
+    clearLowStockEventIfRecovered(ctx, product);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -399,7 +404,7 @@ public class InventoryStockService {
             now);
     stockMovementRepository.saveAndFlush(movement);
     controlledStockRecorder.record(movement);
-    maybeNotifyLowStock(ctx, product);
+    maybeNotifyLowStock(ctx, product, qty);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -483,7 +488,7 @@ public class InventoryStockService {
             now);
     stockMovementRepository.saveAndFlush(movement);
     controlledStockRecorder.record(movement);
-    maybeNotifyLowStock(ctx, product);
+    maybeNotifyLowStock(ctx, product, qty);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -545,6 +550,7 @@ public class InventoryStockService {
             now);
     stockMovementRepository.saveAndFlush(movement);
     controlledStockRecorder.record(movement);
+    clearLowStockEventIfRecovered(ctx, product);
     return loadBalanceView(ctx, balance.getId());
   }
 
@@ -1073,21 +1079,16 @@ public class InventoryStockService {
     return lines;
   }
 
-  private void maybeNotifyLowStock(Context ctx, Product product) {
+  private void maybeNotifyLowStock(Context ctx, Product product, BigDecimal outboundQty) {
     BranchStockLevelView levels = effectiveLevels(ctx, product);
-    BigDecimal onHand =
-        stockBalanceRepository
-            .findAllByTenantIdAndBranchIdAndProductId(
-                ctx.tenantId(), ctx.branchId(), product.getId())
-            .stream()
-            .map(StockBalance::getQuantity)
-            .reduce(BigDecimal.ZERO, BigDecimal::add);
-    if (!isLowStock(onHand, levels)) {
+    BigDecimal after = onHandQuantity(ctx, product.getId());
+    BigDecimal before = after.add(outboundQty);
+    if (isLowStock(before, levels) || !isLowStock(after, levels)) {
       return;
     }
     notificationRoutingService.route(
         new RouteCommand(
-            "low-stock:" + ctx.tenantId() + ":" + ctx.branchId() + ":" + product.getId(),
+            lowStockEventKey(ctx, product.getId()),
             NotificationTrigger.LOW_STOCK,
             ctx.tenantId(),
             ctx.branchId(),
@@ -1095,6 +1096,32 @@ public class InventoryStockService {
             null,
             null,
             null));
+  }
+
+  private void clearLowStockEventIfRecovered(Context ctx, Product product) {
+    BranchStockLevelView levels = effectiveLevels(ctx, product);
+    if (isLowStock(onHandQuantity(ctx, product.getId()), levels)) {
+      return;
+    }
+    notificationEventRepository
+        .findByEventKey(lowStockEventKey(ctx, product.getId()))
+        .ifPresent(
+            event -> {
+              event.setEventKey("cleared:" + event.getId());
+              notificationEventRepository.save(event);
+            });
+  }
+
+  private BigDecimal onHandQuantity(Context ctx, UUID productId) {
+    return stockBalanceRepository
+        .findAllByTenantIdAndBranchIdAndProductId(ctx.tenantId(), ctx.branchId(), productId)
+        .stream()
+        .map(StockBalance::getQuantity)
+        .reduce(BigDecimal.ZERO, BigDecimal::add);
+  }
+
+  private static String lowStockEventKey(Context ctx, UUID productId) {
+    return "low-stock:" + ctx.tenantId() + ":" + ctx.branchId() + ":" + productId;
   }
 
   private BranchStockLevelView effectiveLevels(Context ctx, Product product) {

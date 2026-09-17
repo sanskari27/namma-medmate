@@ -236,6 +236,27 @@ class BranchAssignmentTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac03_plantedForeignBranchIsIgnoredOnScopedApis_M1_BRANCH_003() throws Exception {
+    Tenant tenant = persistTenant("plant", "Plant Chemist");
+    Tenant other = persistTenant("other-plant", "Other Plant");
+    persistUser(tenant.getId(), "owner@plant.local", AppUserRole.pharmacy_owner);
+    Location foreign = persistBranch(other.getId(), "Foreign", "BR01", true);
+    Cookie owner = login("owner@plant.local");
+    var session =
+        userSessionRepository.findAll().stream()
+            .filter(row -> row.getRevokedAt() == null)
+            .findFirst()
+            .orElseThrow();
+    session.setActiveBranchId(foreign.getId());
+    userSessionRepository.saveAndFlush(session);
+
+    mockMvc
+        .perform(get("/api/v1/sales/catalogue").cookie(owner))
+        .andExpect(status().isUnprocessableEntity())
+        .andExpect(jsonPath("$.code").value("NO_ACTIVE_BRANCH"));
+  }
+
+  @Test
   void ac04_ownerConsolidatedAndPerBranchSwitch() throws Exception {
     Tenant tenant = persistTenant("owner-view", "Owner View");
     persistUser(tenant.getId(), "owner@view.local", AppUserRole.pharmacy_owner);

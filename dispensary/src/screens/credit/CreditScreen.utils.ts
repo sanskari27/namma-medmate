@@ -8,7 +8,7 @@ import { CREDIT_CONTENT } from './CreditScreen.content';
 export type CreditPageStatus = 'idle' | 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
 export type CreditTab = 'outstanding' | 'payments';
 export type CreditSort = 'amount' | 'oldest';
-export type CreditAgingFilter = 'D0_30' | 'D31_60' | 'D60_PLUS' | null;
+export type CreditAgingFilter = 'D0_30' | 'D31_60' | 'D61_90' | 'D90_PLUS' | null;
 
 export function hasCrmAccess(modules: string[] | undefined): boolean {
   return Boolean(modules?.includes('CRM'));
@@ -69,7 +69,8 @@ export function modeLabel(mode: string | null | undefined): string {
 export function agingBucketKey(ageDays: number): Exclude<CreditAgingFilter, null> {
   if (ageDays <= 30) return 'D0_30';
   if (ageDays <= 60) return 'D31_60';
-  return 'D60_PLUS';
+  if (ageDays <= 90) return 'D61_90';
+  return 'D90_PLUS';
 }
 
 export function filterOutstanding(

@@ -1,11 +1,11 @@
 import { Button } from '@atoms';
-import type { CampaignTagOption } from '@/services/campaigns';
+import type { CampaignTagOption, CampaignTemplateOption } from '@/services/campaigns';
 import type { FormState } from '../../CampaignsScreen.utils';
 
 export type CampaignsFormPanelProps = {
   form: FormState;
   tags: CampaignTagOption[];
-  templateName: string | null;
+  templates: CampaignTemplateOption[];
   creating: boolean;
   canPreview: boolean;
   canReady: boolean;
@@ -22,7 +22,7 @@ export type CampaignsFormPanelProps = {
 export function CampaignsFormPanel({
   form,
   tags,
-  templateName,
+  templates,
   creating,
   canPreview,
   canReady,
@@ -65,11 +65,24 @@ export function CampaignsFormPanel({
           ))
         )}
       </fieldset>
-      <p className="text-sm text-muted">
-        {templateName
-          ? `Approved shop update slot: ${templateName}.`
-          : 'No approved shop update slot yet.'}
-      </p>
+      <label className="block text-sm text-ink">
+        Approved shop update slot
+        <select
+          className="mt-1 w-full border border-line bg-canvas px-2 py-1.5 text-sm"
+          value={form.templateUniqueName}
+          onChange={(event) => onChange({ templateUniqueName: event.target.value })}
+          disabled={templates.length === 0}
+        >
+          <option value="">
+            {templates.length === 0 ? 'No approved shop update slot yet' : 'Select a slot…'}
+          </option>
+          {templates.map((template) => (
+            <option key={template.uniqueName} value={template.uniqueName}>
+              {template.uniqueName}
+            </option>
+          ))}
+        </select>
+      </label>
       <div className="flex flex-wrap gap-2">
         <Button type="button" disabled={busy} onClick={onSave}>
           Save draft

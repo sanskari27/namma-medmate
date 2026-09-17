@@ -407,7 +407,16 @@ describe('counter customers', () => {
         },
       ],
       conflicts: ['phone'],
-      linkedRecords: { notificationEvents: 0 },
+      linkedRecords: {
+        notificationEvents: 0,
+        salesInvoices: 0,
+        creditEntries: 0,
+        loyaltyEntries: 0,
+        historyFacts: 0,
+        refills: 0,
+        tags: 0,
+        familyMembers: 0,
+      },
     });
     executeMergeMock.mockResolvedValue(sample);
 

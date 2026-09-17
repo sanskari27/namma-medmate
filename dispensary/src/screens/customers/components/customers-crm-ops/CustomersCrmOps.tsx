@@ -79,6 +79,7 @@ function asCustomer(row: CustomerDirectoryItem, profile: Customer | null): Custo
     chronicConditions: row.chronicConditions,
     createdAt: row.createdAt ?? '',
     updatedAt: row.updatedAt ?? '',
+    familyId: row.familyId ?? null,
   };
 }
 

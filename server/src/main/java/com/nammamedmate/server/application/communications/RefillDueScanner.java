@@ -11,7 +11,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -21,28 +23,34 @@ public class RefillDueScanner {
   private final CustomerRefillScheduleRepository refillRepository;
   private final WhatsAppMessageService whatsAppMessageService;
   private final Clock clock;
+  private final RefillDueScanner self;
 
   public RefillDueScanner(
       TenantRepository tenantRepository,
       CustomerRefillScheduleRepository refillRepository,
       WhatsAppMessageService whatsAppMessageService,
-      Clock clock) {
+      Clock clock,
+      @Lazy RefillDueScanner self) {
     this.tenantRepository = tenantRepository;
     this.refillRepository = refillRepository;
     this.whatsAppMessageService = whatsAppMessageService;
     this.clock = clock;
+    this.self = self;
   }
 
-  @Transactional
   public List<WhatsAppMessage> scanAll() {
     List<WhatsAppMessage> out = new ArrayList<>();
     for (Tenant tenant : tenantRepository.findAllByDeletedAtIsNullOrderByNameAsc()) {
-      out.addAll(scanTenant(tenant.getId()));
+      try {
+        out.addAll(self.scanTenant(tenant.getId()));
+      } catch (RuntimeException ignored) {
+        // one tenant must not roll back the rest
+      }
     }
     return out;
   }
 
-  @Transactional
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public List<WhatsAppMessage> scanTenant(UUID tenantId) {
     LocalDate today = LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
     List<WhatsAppMessage> out = new ArrayList<>();

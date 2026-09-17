@@ -45,11 +45,17 @@ const subscriptionSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(loadSubscription.pending, (state) => {
+        if (state.status === 'success') {
+          return;
+        }
         state.status = 'loading';
       })
       .addCase(loadSubscription.fulfilled, (state, action) => {
         state.current = action.payload.current;
         state.plans = action.payload.plans;
+        if (state.status === 'success') {
+          return;
+        }
         state.status = action.payload.current ? null : 'empty';
       })
       .addCase(loadSubscription.rejected, (state, action) => {

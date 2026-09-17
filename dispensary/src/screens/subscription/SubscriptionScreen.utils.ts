@@ -169,7 +169,7 @@ export function planTagline(code: string): string {
     case 'GROWTH':
       return 'Most popular';
     case 'PRO':
-      return 'Hospital, kiosk & more';
+      return 'Kiosk & more';
     default:
       return 'Pharmacy plan';
   }
@@ -177,31 +177,25 @@ export function planTagline(code: string): string {
 
 export function planFeatures(plan: PlanOffer): string[] {
   const items: string[] = [];
-  if (plan.entitledModules.includes('SALES')) {
+  if (plan.maxUsers == null) {
+    items.push('Unlimited users');
+  } else {
+    items.push(`Up to ${plan.maxUsers} users`);
+  }
+  if (plan.maxBranches == null) {
+    items.push('Unlimited outlets');
+  } else {
+    items.push(`Up to ${plan.maxBranches} outlet${plan.maxBranches === 1 ? '' : 's'}`);
+  }
+  if (plan.planCode === 'FREE') {
     items.push('Billing / POS & GST invoices');
+    return items;
   }
-  if (plan.entitledModules.includes('INVENTORY')) {
-    items.push('Inventory, batches & expiry');
-  }
-  if (plan.entitledModules.includes('PROCUREMENT')) {
-    items.push('Purchases & goods-inward');
-  }
-  if (plan.entitledModules.includes('CRM')) {
-    items.push('Prescriptions & customers');
-  }
-  if (plan.entitledModules.includes('FINANCE')) {
-    items.push('Credit / Khata ledger');
-  }
-  if (plan.entitledModules.includes('REPORTING')) {
-    items.push('Reports, CRM & CA sharing');
+  if (plan.entitledModules.includes('LOYALTY')) {
+    items.push('Loyalty points');
   }
   if (plan.entitledModules.includes('KIOSK')) {
     items.push('Self-order kiosk');
-  }
-  if (plan.maxUsers == null) {
-    items.push('Unlimited users & branches');
-  } else {
-    items.push(`Up to ${plan.maxUsers} users`);
   }
   return items.slice(0, 5);
 }

@@ -88,7 +88,28 @@ public class NotificationInboxService {
       notificationRepository.save(notification);
     }
     return new NotificationOpenResult(
-        source.getHref(), notification.getSourceType(), notification.getSourceId());
+        typedHref(source, notification),
+        notification.getSourceType(),
+        notification.getSourceId(),
+        source.getSourceRecordId());
+  }
+
+  @Transactional
+  public void revokeAccessForUser(UUID userId) {
+    if (userId == null) {
+      return;
+    }
+    Instant now = Instant.now(clock);
+    for (Notification notification : notificationRepository.findByRecipientUserId(userId)) {
+      notificationSourceRepository
+          .findById(notification.getSourceId())
+          .filter(source -> source.getAccessRevokedAt() == null)
+          .ifPresent(
+              source -> {
+                source.setAccessRevokedAt(now);
+                notificationSourceRepository.save(source);
+              });
+    }
   }
 
   private Notification lockOwned(AuthPrincipal principal, UUID notificationId) {
@@ -96,6 +117,22 @@ public class NotificationInboxService {
         .lockOwned(notificationId, principal.userId(), principal.tenantId())
         .orElseThrow(
             () -> new ApiException(HttpStatus.NOT_FOUND, NOT_FOUND_CODE, NOT_FOUND_MESSAGE));
+  }
+
+  private static String typedHref(NotificationSource source, Notification notification) {
+    UUID recordId = source.getSourceRecordId();
+    String href = source.getHref();
+    if (recordId == null || href == null || href.isBlank()) {
+      return href;
+    }
+    if (href.contains("?")) {
+      return href;
+    }
+    return switch (notification.getSourceType()) {
+      case "approval" -> href + "?id=" + recordId;
+      case "credit_due" -> href + "?customer=" + recordId;
+      default -> href;
+    };
   }
 
   private NotificationSource loadSource(Notification notification) {

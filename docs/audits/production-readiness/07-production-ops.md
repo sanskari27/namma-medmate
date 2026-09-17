@@ -26,7 +26,7 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 | Cookies | `secure-cookie=false` | `true` |
 | Email URLs | localhost defaults | **not seeded** — P0 |
 | Cashfree return | — | **is** seeded pharmacy `/subscription` |
-| WhatsApp | compose env | **not** in TF SSM seed |
+| WhatsApp | compose env | TF SSM seed includes `META_WHATSAPP_*` (existing blobs need one-time set) |
 | Files | — | `./files` bind mount, no backup story |
 
 ---
@@ -36,9 +36,9 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 | ID | Sev | Note |
 |---|---|---|
 | `OPS-EMAIL-URL` | P0 | Reset/verify URLs HTTPS in prod (`FIXED`) |
-| `SECRET-SSM-WHATSAPP` | P1 | Meta keys manual |
-| `TF-SNAPSHOT` | P1 | `skip_final_snapshot` default true |
-| `TF-SSH-EXAMPLE` | P1 | Example SSH `0.0.0.0/0` |
+| `SECRET-SSM-WHATSAPP` | P1 | Meta keys in SSM seed (`FIXED`) |
+| `TF-SNAPSHOT` | P1 | `skip_final_snapshot` default false + deletion protection (`FIXED`) |
+| `TF-SSH-EXAMPLE` | P1 | Example SSH `/32` (`FIXED`) |
 | `OPS-STORAGE` | P1 | KYC/licence files on EC2 disk; policy under D-006 |
 | `COMPOSE-REDIS-UNUSED` | P2 | Extra failure domain |
 | `HEALTH-SHALLOW` | P2 | `/api/v1/health` always UP |
@@ -69,4 +69,4 @@ Flyway runs on boot. Head = **V64**. Tracker narrative often stops at V56 — pr
 - Resend: env `RESEND_*`; webhook Svix HMAC.
 - Cashfree: SSM; return URL seeded; `.env.prod.example` still says sandbox.
 - Password-reset / verify-email: SSM seed + `application-prod.properties` HTTPS (`OPS-EMAIL-URL` FIXED).
-- WhatsApp: skip-if-blank; Graph unique name + components (`M10-WA-001`/`002` FIXED). SSM keys still P1 (`SECRET-SSM-WHATSAPP`).
+- WhatsApp: skip-if-blank; Graph unique name + components (`M10-WA-001`/`002` FIXED). SSM keys seeded (`SECRET-SSM-WHATSAPP` / `M10-WA-003` FIXED). Existing blobs need one-time `set`.

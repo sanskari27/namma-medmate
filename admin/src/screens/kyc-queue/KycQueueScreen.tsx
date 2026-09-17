@@ -3,11 +3,11 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle } from '@molecule
 import { ApiError, isApiError } from '@/services/axios';
 import {
   approveKycPack,
-  kycDocumentUrl,
   listKycQueue,
   rejectKycPack,
   type KycPack,
 } from '@/services/kyc';
+import { KycEvidenceList } from './components/kyc-evidence-list';
 import type { RootState } from '@/store';
 import { Ban, BadgeCheck, FileSearch, Unplug } from 'lucide-react';
 import { FormEvent, useCallback, useEffect, useId, useRef, useState } from 'react';
@@ -219,27 +219,7 @@ export default function KycQueueScreen() {
                     </dd>
                   </div>
                 </dl>
-                <ul className="space-y-2">
-                  {selected.documents.map((doc) => (
-                    <li
-                      key={doc.id}
-                      className="flex items-center justify-between gap-2 border border-line px-3 py-2"
-                    >
-                      <div>
-                        <p className="text-sm text-ink">{doc.docType}</p>
-                        <p className="font-mono text-[11px] text-muted">{doc.originalFilename}</p>
-                      </div>
-                      <a
-                        className="text-sm text-brand underline"
-                        href={kycDocumentUrl(selected.id, doc.id)}
-                        target="_blank"
-                        rel="noreferrer"
-                      >
-                        Open evidence
-                      </a>
-                    </li>
-                  ))}
-                </ul>
+                <KycEvidenceList packId={selected.id} documents={selected.documents} />
                 <div className="flex flex-wrap gap-2">
                   <Button type="button" onClick={() => setDecision('approve')}>
                     Approve dossier

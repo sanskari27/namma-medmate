@@ -110,11 +110,193 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M7-TEST-001 | FIXED | Band 4 | dispensary | same | same | M7 tests register live Redux |
 | UX-ADM-DASH-001 | FIXED | Band 4 | admin | same | same | HQ KPIs from KYC/pharmacy/subs lists |
 | M11-CF-003 | FIXED | R | dispensary | see Slice R close-out | see Slice R close-out | checkout copy + tests already live |
+| M10-WA-003 | FIXED | Band 5 | infra | see Band 5 close-out | see Band 5 close-out | alias SECRET-SSM-WHATSAPP |
+| SECRET-SSM-WHATSAPP | FIXED | Band 5 | infra | alias of M10-WA-003 | same | closed with canonical |
+| TF-SNAPSHOT | FIXED | Band 5 | infra | same | same | skip_final_snapshot false + deletion_protection |
+| TF-SSH-EXAMPLE | FIXED | Band 5 | infra | same | same | example SSH /32, not world-open |
+| OPS-STORAGE | BLOCKED | Band 5 | infra | 09-out-of-scope D-006 | — | file backup policy waits on NFR |
+| M5-REO-002 | FIXED | Band 5 | server | same | same | last purchase price this branch |
+| M2-KYC-002 | FIXED | Band 5 | admin | same | same | evidence Open via blob + cookie |
+| SEC-NEW-006 | WONTFIX | Band 5 | server | owner | — | keep cookie + Bearer; owner if cookie-only |
+| SEC-NEW-007 | FIXED | Band 5 | server + dispensary | same | same | GET status read-only; POST reconcile |
+| PIN-DISP-02 | FIXED | P2 Auth | dispensary + admin | alias of M1-PIN-003 | same | 4h abandon |
+| M1-PIN-003 | FIXED | P2 Auth | dispensary + admin | see P2 Auth close-out | see P2 Auth close-out | 4h abandon after lock |
+| M1-PIN-004 | FIXED | P2 Auth | server | same | same | PIN unlock keeps act_* |
+| M1-BRANCH-003 | FIXED | P2 Auth | server | same | same | JWT filter re-checks assignment |
+| M1-IMPERSON-003 | FIXED | P2 Auth | admin | same | same | exit remounts Support |
+| TENANT-001 | FIXED | P2 Auth | server | same | same | deleted/missing tenant locked |
+| SEC-003 | FIXED | P2 Auth | server | same | same | prod fail-fast insecure cookie |
+| M2-REG-002 | FIXED | P2 Auth | server + dispensary | same | same | used verify → Sign in |
+| M2-KYC-001 | FIXED | P2 Auth | server + dispensary | same | same | HQ copy + KYC notify |
+| M2-LIFE-003 | FIXED | P2 Auth | dispensary | same | same | lock nav + redirect /account |
+| M2-PLAN-001 | FIXED | P2 Auth | dispensary | same | same | Pro/Free copy, no hospital |
+| M2-LIFE-004 | FIXED | P2 Auth | server + admin | same | same | KYC-pending Suspend/Terminate |
+| UX-ADM-002 | FIXED | P2 Auth | admin | same | same | VA rail MASTER-filtered |
+| SEC-002 | FIXED | P2 Integrations | server | see P2 Integrations/ops close-out | delta | alias M11-CF-001; HMAC + 5min skew |
+| M11-CF-001 | FIXED | P2 Integrations | server | alias of SEC-002 | same | closed with canonical |
+| M11-CF-004 | FIXED | P2 Integrations | dispensary | same | same | payment return keeps success banner |
+| M11-CF-005 | FIXED | P2 Integrations | infra | same | same | CASHFREE_ENV=production in .env.prod.example |
+| M11-MAIL-003 | FIXED | P2 Integrations | server | same | same | ONBOARDING/INVOICE_COPY HTML escaped |
+| M11-CF-006 | FIXED | P2 Integrations | dispensary | same | same | PlanStatusBanner alert vs status |
+| JOB-001 | FIXED | P2 Jobs/ops | server | same | same | per-tenant REQUIRES_NEW |
+| COMPOSE-REDIS-UNUSED | FIXED | P2 Jobs/ops | compose | comment | — | Redis unused by sessions; keep service |
+| HEALTH-SHALLOW | FIXED | P2 Jobs/ops | server | same | same | /health pings DataSource |
+| TF-REDIS-CRYPTO | FIXED | P2 Jobs/ops | infra | terraform | — | replication group + transit encryption preferred |
+| TF-S3-STATE | FIXED | P2 Jobs/ops | infra | terraform | — | tfstate public access block |
+| COMPOSE-DOC-DRIFT | FIXED | P2 Jobs/ops | docs | — | — | HOST_NGINX pharmacy. host |
+| UX-vs-CONTRACT-01 | FIXED | P2 Jobs/ops | dispensary | same | same | Orders = counter/kiosk; hide Online |
+| UX-POS-002 | WONTFIX | P2 POS/UX | dispensary | existing Proceed-disabled | — | by design: Proceed needs customer/walk-in |
+| UX-POS-003 | FIXED | P2 POS/UX | dispensary | see P2 remainder close-out | see P2 remainder close-out | search form Enter + restore focus |
+| M6-NET-001 | FIXED | P2 POS/UX | dispensary | same | same | health ping while online; focus on UP |
+| M6-PAY-003 | FIXED | P2 POS/UX | dispensary | same | same | PATCH DRAFT before Charge/Hold |
+| UX-DISP-04 | FIXED | P2 POS/UX | dispensary | same | same | dead header search removed |
+| UX-CRM-002 | FIXED | P2 CRM | dispensary + server | same | same | merge preview linked-record copy |
+| UX-CRM-003 | FIXED | P2 CRM | dispensary + server | same | same | family picker hides other households |
+| UX-CRM-005 | FIXED | P2 CRM | dispensary | same | same | POS 409 phone fills search |
+| M3-HIST-001 | FIXED | P2 CRM | dispensary | same | same | named-customer purchases use /history |
+| M3-CREDIT-002 | FIXED | P2 CRM | server + dispensary | same | same | aging buckets = /aging D61_90 D90_PLUS |
+| M3-CAMP-001 | FIXED | P2 CRM | dispensary | same | same | campaign save uses chosen template slot |
+| M4-CTRL-001 | FIXED | P2 Inventory | dispensary | same | same | schedule export ≠ NDPS sale sheet |
+| M4-ONLINE-001 | FIXED | P2 Inventory | dispensary | same | same | hide Online listing (D-008) |
+| M4-UOM-001 | FIXED | P2 Inventory | dispensary | same | same | convert fail does not packSize-fallback |
+| M4-MONEY-001 | FIXED | P2 Inventory | dispensary | same | same | floor MRP two rupee decimals |
+| M4-COMP-001 | WONTFIX | P2 Inventory | — | D-011 TEXT | — | unstructured composition; not a missing column |
+| M5-PO-004 | FIXED | P2 Procurement | server | same | same | ISSUED qty until first GRN; GRN → PO_HAS_RECEIPTS |
+| M5-GRN-003 | FIXED | P2 Procurement | server + dispensary | same | same | invoice date not stuffed into ETA |
+| M5-QC-002 | FIXED | P2 Procurement | server | same | same | OWNER QC intentional (pharmacist or owner) |
+| M5-RET-002 | FIXED | P2 Procurement | dispensary | same | same | Sale returns vs Stockist debit notes |
+| M5-KHATA-003 | FIXED | P2 Procurement | dispensary | same | same | confirm pay vs outstanding |
+| M5-KHATA-004 | FIXED | P2 Procurement | dispensary | same | same | stockist ledger lines on pay dialog |
+| M5-SUP-001 | FIXED | P2 Procurement | dispensary | same | same | PAN, credit limit, bank on master |
+| M8-AGE-002 | FIXED | P2 Finance | dispensary | same | same | Excel/CSV FIFO bucket columns |
+| M8-CA-002 | FIXED | P2 Finance | dispensary | same | same | advisors keyed by tenantId |
+| M8-CA-003 | FIXED | P2 Finance | dispensary | same | same | in-page All outlets vs this outlet |
+| M8-BOOK-002 | FIXED | P2 Finance | dispensary | same | same | party/payment chips tagged; drop item |
+| M8-BOOK-003 | FIXED | P2 Finance | server | already stored GSTIN | — | gstr1 uses invoice customerGstin |
+| M8-EXP-004 | FIXED | P2 Finance | server | same | same | GST inclusive HALF_UP |
+| M9-DASH-010 | FIXED | P2 Reports | server + dispensary | same | same | IST as-of from generatedAt |
+| M9-DASH-011 | FIXED | P2 Reports | server + dispensary | same | same | drop Online home channel (D-008) |
+| M9-DASH-012 | FIXED | P2 Reports | dispensary | same | same | pending GRN/approvals on New purchase |
+| M9-TREND-001 | FIXED | P2 Reports | dispensary | same | same | denied copy = Reporting |
+| M9-CUST-001 | FIXED | P2 Reports | dispensary | same | same | export CSV; preview formatPaise |
+| M9-TEST-001 | FIXED | P2 Reports | server | same | same | home KPI assembly test |
+| M7-NDPS-001 | FIXED | P2 Compliance | dispensary | same | same | kiosk catalogue drops controlled SKUs |
+| M7-LIC-002 | FIXED | P2 Compliance | admin | same | same | Isolate = display-only filter copy |
+| M7-LIC-003 | FIXED | P2 Compliance | server | same | same | GET /due read-only; scan job writes |
+| M10-INBOX-001 | FIXED | P2 Notifications | dispensary + admin | same | same | unreadCount decrement, not page recount |
+| M10-ROUTE-003 | FIXED | P2 Notifications | server | same | same | approval staffHref /approvals/pending |
+| M10-ROUTE-004 | FIXED | P2 Notifications | server + admin | same | same | MASTER hrefs + HQ whitelist |
+| M10-INBOX-002 | FIXED | P2 Notifications | server | same | same | role/module strip revokes sources |
+| M10-INBOX-003 | FIXED | P2 Notifications | server | same | same | sourceRecordId + typed hrefs |
+| M10-ROUTE-005 | FIXED | P2 Notifications | server | same | same | low-stock rising-edge; restock retires key |
+| M10-WA-004 | FIXED | P2 Notifications | server | same | same | credit-due once while balance > 0 |
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: Band 4 — FIXED. Next picker: Band 5.
-Blocked on user: none. M1-IMPERSON-001 WONTFIX (D-001). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01.
+Current slice: remaining P2 compact groups — FIXED. Next picker: P3.
+Blocked on user: SEC-NEW-006 (cookie-only needs owner). M1-IMPERSON-001 WONTFIX (D-001). M4-COMP-001 WONTFIX (unstructured TEXT / D-011). UX-POS-002 WONTFIX (Proceed disabled until customer/walk-in). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01 and OPS-STORAGE file-backup policy.
+
+## P2 remainder close-out (2026-09-18)
+
+No commit requested. All remaining compact P2 groups after Auth + Integrations/ops.
+
+- POS: search Enter + restore focus; health ping while online; PATCH DRAFT before Charge/Hold; dead header search removed. Proceed still needs customer/walk-in (`UX-POS-002` by design).
+- CRM: merge linked-record copy; family picker; POS 409 phone fills search; named-customer `/history`; aging keys `D61_90`/`D90_PLUS`; campaign template slot.
+- Inventory: Schedule stock sheet ≠ NDPS sale book; hide Online listing; convert fail does not packSize-fallback; floor MRP two decimals. `M4-COMP-001` WONTFIX (unstructured TEXT / D-011).
+- Procurement: ISSUED qty correction until first GRN; receipts → 409 `PO_HAS_RECEIPTS`; invoice date not stuffed into ETA; OWNER QC intentional; Sale returns vs Stockist debit notes; pay confirm + ledger; PAN/credit/bank on supplier.
+- Finance/reports: FIFO CSV buckets; tenant-keyed CA advisors + All outlets; book chips tagged; GSTR-1 uses stored GSTIN; GST HALF_UP; IST as-of; no Online home channel; GRN/approval counts; Reporting denied copy; CSV not Excel.
+- Compliance: kiosk drops controlled SKUs; HQ licence isolate is display-only; `GET /due` read-only.
+- Notifications: unread decrement; approval `/approvals/pending`; MASTER href whitelist; role strip revokes sources; `sourceRecordId`; low-stock rising-edge; credit-due once while positive.
+- Integrations/ops: recorded in the close-out below.
+
+Delta tests: CRM 66; inventory+POS convert 87; PO/GRN 17 after ISSUED-qty restore; notifications 74; admin licence+inbox 22; finance aging/CA/dashboard/expense/home KPI.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` — spotless applied (18 files). Tests run: 975, Failures: 1 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility` HEAD seed. GoodsReceipt over-receipt qty correction green after ISSUED-without-GRN PATCH.
+- `cd dispensary && npm run lint` — HEAD unused-import residuals (account/credit/distributors/offers).
+- `cd dispensary && npm run test -- --run` — 115 failed / 573 passed — HEAD screens missing slice reducers (branches/offers/returns/credit/staff/…). P2 POS/inventory/CRM/distributors delta suites green.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals (account/credit/distributors/inventory.replaceAll/orders/shop-books).
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 200 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Out of scope: P3; D-013/M1-S09; D-006/M12-S01; D-001 audit; Redis still in Compose (sessions Postgres); kiosk NDPS filter is client-only.
+
+## P2 Integrations / jobs/ops close-out (2026-09-18)
+
+No commit requested.
+
+- Cashfree/Resend HMAC still constant-time; timestamps older than 5 minutes are rejected (`Clock` injected).
+- Subscription `?payment=` skips the parallel catalogue load; fulfilled load does not clear `success`. Failure banners use `role="alert"`.
+- Scanners `scanAll` is not one platform TX; each tenant is `REQUIRES_NEW` via a lazy self-proxy.
+- `/api/v1/health` pings the DataSource; envelope unchanged. Redis stays in Compose (sessions are Postgres).
+- ElastiCache is a single-node replication group with transit encryption `preferred` (cluster API cannot TLS Redis). Tfstate bucket blocks public access. Nginx doc host is `pharmacy.`.
+- Orders nav is counter/kiosk history; Online filter hidden (D-008 Phase 2).
+
+Delta tests: server unit + `TESTCONTAINERS_RYUK_DISABLED=true` `CashfreeBillingTest,ResendWebhookTest`; dispensary `SubscriptionScreen.test.tsx` + `OrdersScreen.utils.test.ts`.
+
+## Band 5 close-out (2026-09-17)
+
+No commit requested. Remaining P1 ops / isolation / security.
+
+- SSM seed + `.env.prod.example` + tfvars include `META_WHATSAPP_*`. Existing blobs still `ignore_changes` — one-time `update-prod-env.sh set`.
+- Prod RDS: `skip_final_snapshot` default false, `deletion_protection = true`, final snapshot identifier when not skipping. SSH example is `203.0.113.10/32`, not world-open.
+- Reorder last price fallback is batches on-hand at this `branch_id`, not tenant-wide. Annex with no local purchase stays unmapped.
+- HQ KYC “Open evidence” fetches the file with axios `withCredentials` and opens a blob URL (button, not a raw API href).
+- OWNER Cashfree GET is status only; POST `/api/v1/subscriptions/payments/cashfree/reconcile?orderId=` applies provider PAID. Dispensary return poll uses POST.
+- `OPS-STORAGE` file-backup policy remains BLOCKED on D-006. `SEC-NEW-006` WONTFIX: cookie + Bearer stay until owner asks cookie-only.
+
+Tests: `TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -Dtest=ProdOpsSeedTest,ReorderToDraftTest,CashfreeBillingTest test` — Tests run: 18, Failures: 0, BUILD SUCCESS. `CashfreeBillingRollbackTest` included in full suite (2 passed).
+
+`cd admin && npm run test -- --run src/screens/kyc-queue/tests/KycQueueScreen.test.tsx src/screens/subscriptions/tests/SubscriptionsScreen.test.tsx` — 10 + 16 passed. `cd dispensary && npm run test -- --run src/screens/subscription/tests/SubscriptionScreen.test.tsx` — 11 passed.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && ./mvnw spotless:check` — HEAD residuals (kiosk/inventory/expense/credit/auth). Band 5 Java Spotless-clean.
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw test` — Tests run: 951, Failures: 1 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility` HEAD seed.
+- `cd dispensary && npm run lint` — HEAD unused-import residuals. Band 5 `subscriptions.ts` eslint clean.
+- Full dispensary suite 120 failed / 542 passed — HEAD screens missing slice reducers, predates this band. Subscription 11 green.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals. Band 5 file typed clean.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 194 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Browser (localhost:5174 MASTER): KYC queue Malleshwaram Drugs — Open evidence is a button (not a raw API link). Demo file missing locally → “Could not open evidence. Try again.” Session cookie fetch ran (Opening… then failure copy). Terraform/SSM not live-applied.
+
+Out of scope: P2+; D-013/M1-S09; D-006/M12-S01 file-backup policy; D-001 audit; cookie-only auth without owner.
+
+## P2 Auth / layout close-out (2026-09-17)
+
+No commit requested. First P2 compact group (auth, cookies, KYC lock chrome).
+
+- PIN idle: 4h after lock → login + abandoned (both SPAs). Unlock while impersonating keeps `act_*` on the new JWT.
+- JWT filter nulls session branch when `canAccessBranch` is false; planted foreign `activeBranchId` → 422 `NO_ACTIVE_BRANCH`.
+- Soft-deleted / missing tenant → 403 `TENANT_LOCKED` (allowlist `/me` unchanged). Prod profile fail-fast if `secure-cookie=false`.
+- Used verify link → 409 `EMAIL_ALREADY_VERIFIED` + Sign in. OWNER KYC copy names HQ; submit notifies OWNER+MASTER (`KYC pack waiting`).
+- Non-ACTIVE floor: rail = Account (Subscription after KYC); other paths redirect `/account`. Free card is POS/GST only; Pro tagline `Kiosk & more`.
+- KYC-pending tenants: Suspend/Terminate (not Active/Expired). VA rail: Dashboard / KYC / Staff approvals. Exit support remounts `/support`.
+
+Tests: `TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -Dtest=AuthServiceTest,AuthImpersonationTest,TenantStatusTransitionTest,TenantLifecycleTest,TenantRegistrationTest,BranchAssignmentTest,NotificationRoutingMatrixTest,NotificationRoutingTest,TenantKycTest,ProdSecureCookieGuardTest test` — Tests run: 120 then 29 after assertion fix, Failures: 0, BUILD SUCCESS.
+
+`cd dispensary && npm run test -- --run src/layouts/DashboardLayout.pin.test.tsx src/layouts/DashboardLayout.test.tsx src/screens/verify-email/tests/VerifyEmailScreen.test.tsx src/screens/account/tests/AccountScreen.test.tsx src/screens/subscription/tests/SubscriptionScreen.utils.test.ts` — 38 passed.
+
+`cd admin && npm run test -- --run src/layouts/DashboardLayout.pin.test.tsx src/layouts/DashboardLayout.impersonation.test.tsx src/screens/pharmacies/tests/PharmaciesScreen.test.tsx` — 22 passed.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && ./mvnw spotless:check` — HEAD residuals (kiosk/inventory/expense/credit/auth). P2 Auth Java Spotless-clean (`TenantStatusTransitionTest`, `SecurityConfig`).
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw test` — Tests run: 958, Failures: 1 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility` HEAD seed.
+- `cd dispensary && npm run lint` — HEAD unused-import residuals. P2 Auth files eslint clean.
+- Full dispensary suite 120 failed / 547 passed — HEAD screens missing slice reducers, predates this band. Auth/layout 38 green.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals. `routes.const.ts` typed clean after `Set<string>` lock paths.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 198 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Browser: VA (`verify.agent@nammamedmate.local`) rail Dashboard / KYC / Staff approvals only. MASTER Pharmacies: Pending Chemist Jayanagar + other Verification required rows show Suspend + Terminate. OWNER `/subscription`: Free `Core billing — free forever` + Billing/POS & GST only; Pro `Kiosk & more` (no Hospital). PIN unlock on MASTER resumed. 4h abandon, verify-link replay, and KYC-lock redirect not live-clicked (tests cover).
+
+Out of scope: remaining P2 compact (POS/UX, CRM, inventory, procurement, finance, compliance, notifications, integrations, jobs); P3; D-013/M1-S09; D-006/M12-S01; D-001 audit.
 
 ## Band 4 close-out (2026-09-17)
 

@@ -151,7 +151,7 @@ describe('pharmacy plan', () => {
     currentMock.mockRejectedValue(new ApiError('down', 500, 'DOWN'));
     catalogueMock.mockRejectedValue(new ApiError('down', 500, 'DOWN'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Could not reach the server for this pharmacy’s plan. Try again.',
     );
   });
@@ -172,13 +172,18 @@ describe('pharmacy plan', () => {
   });
 
   it('success: returning from checkout shows the paid plan', async () => {
-    currentMock.mockResolvedValueOnce(free).mockResolvedValueOnce(starter);
+    currentMock.mockResolvedValue(starter);
     catalogueMock.mockResolvedValue(plans);
     paymentMock.mockResolvedValue({ ...checkout, status: 'SUCCESS' });
     renderPage('pharmacy_owner', '/subscription?payment=nmm_abc');
     expect(await screen.findByText('Plan updated for this pharmacy.')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Starter plan' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Starter plan' })).toHaveFocus();
+    expect(screen.getByRole('status')).toHaveTextContent('Plan updated for this pharmacy.');
+    await waitFor(() => {
+      expect(screen.getByRole('status')).toHaveTextContent('Plan updated for this pharmacy.');
+      expect(screen.getByRole('heading', { name: 'Starter plan' })).toBeInTheDocument();
+    });
   });
 
   it('empty checkout return: plan stays unchanged', async () => {
@@ -209,7 +214,7 @@ describe('pharmacy plan', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Plans' });
     await user.click(screen.getByRole('button', { name: 'Switch this pharmacy to Free' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'This pharmacy already uses more outlets or till logins than that plan allows',
     );
   });
@@ -241,7 +246,7 @@ describe('pharmacy plan', () => {
     renderPage();
     await screen.findByRole('heading', { name: 'Plans' });
     await user.click(screen.getByRole('button', { name: 'Pay this pharmacy’s plan for Starter' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Checkout is not available right now. Try again in a few minutes.',
     );
   });

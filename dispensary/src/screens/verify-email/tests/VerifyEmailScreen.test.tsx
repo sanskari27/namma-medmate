@@ -63,6 +63,15 @@ describe('dispensary pharmacy email verification', () => {
     );
   });
 
+  it('conflict: replayed verify link points to sign in', async () => {
+    verifyMock.mockRejectedValue(new ApiError('Verified', 409, 'EMAIL_ALREADY_VERIFIED'));
+    renderVerify('/verify-email?token=used-again');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This pharmacy email was already verified',
+    );
+    expect(screen.getByRole('link', { name: 'Sign in at this counter' })).toBeInTheDocument();
+  });
+
   it('conflict: already verified points to sign in', async () => {
     verifyMock.mockRejectedValue(new ApiError('Conflict', 409, 'EMAIL_TAKEN'));
     renderVerify('/verify-email?token=used');

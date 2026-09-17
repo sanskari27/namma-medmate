@@ -229,7 +229,7 @@ export function ControlledStockWorkspace({
             onClick={() => void onExport('ndps')}
           >
             <Download className="size-3.5" aria-hidden />
-            NDPS sheet
+            Schedule stock sheet
           </Button>
         </div>
       </div>

@@ -338,8 +338,10 @@ public class ReorderToDraftService {
       return recent.get(0).getUnitRatePaise();
     }
     return stockBatchRepository
-        .findFirstByTenantIdAndProductIdAndPurchasePricePaiseGreaterThanOrderByCreatedAtDesc(
-            ctx.tenantId(), productId, 0L)
+        .findPricedBatchesAtBranchOrderByCreatedAtDesc(
+            ctx.tenantId(), ctx.branchId(), productId, 0L)
+        .stream()
+        .findFirst()
         .map(StockBatch::getPurchasePricePaise)
         .orElse(null);
   }

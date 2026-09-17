@@ -19,7 +19,7 @@ export function PlanStatusBanner() {
         ? 'ok'
         : undefined;
   return (
-    <p className="sb-alert" data-tone={tone} role="status">
+    <p className="sb-alert" data-tone={tone} role={tone === 'alert' ? 'alert' : 'status'}>
       <AlertCircle size={15} aria-hidden />
       <span>{text}</span>
     </p>

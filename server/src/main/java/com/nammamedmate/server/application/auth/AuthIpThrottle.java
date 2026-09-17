@@ -24,8 +24,7 @@ public class AuthIpThrottle {
   private final int limit;
   private final Duration window;
 
-  public AuthIpThrottle(
-      Clock clock, @Value("${app.auth.ip-throttle-limit:20}") int limit) {
+  public AuthIpThrottle(Clock clock, @Value("${app.auth.ip-throttle-limit:20}") int limit) {
     this.clock = clock;
     this.limit = Math.max(1, limit);
     this.window = Duration.ofMinutes(1);

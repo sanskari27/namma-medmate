@@ -30,7 +30,7 @@ export default function CampaignsScreen() {
               <CampaignsFormPanel
                 form={page.form}
                 tags={page.tags}
-                templateName={page.templates[0]?.uniqueName ?? null}
+                templates={page.templates}
                 creating={page.creating}
                 canPreview={Boolean(page.selected && page.selected.status === 'DRAFT')}
                 canReady={Boolean(

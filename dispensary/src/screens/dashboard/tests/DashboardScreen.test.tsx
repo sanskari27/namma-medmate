@@ -80,9 +80,7 @@ const filled: HomeDashboardView = {
     totalSalesPaise: 50000,
     totalBillCount: 5,
     channelSplit: [
-      { key: 'ONLINE', label: 'Online', salesPaise: 20000, billCount: 2 },
-      { key: 'COUNTER', label: 'Counter', salesPaise: 25000, billCount: 2 },
-      { key: 'OTHER', label: 'Other', salesPaise: 5000, billCount: 1 },
+      { key: 'COUNTER', label: 'Counter', salesPaise: 50000, billCount: 5 },
     ],
     paymentModes: [
       { mode: 'CASH', label: 'Cash', salesPaise: 10000 },
@@ -352,9 +350,20 @@ describe('DashboardScreen', () => {
     ).toBeInTheDocument();
     expect(screen.getByText(/Good (morning|afternoon|evening), Floor/)).toBeInTheDocument();
     expect(screen.getByText(DASHBOARD_CONTENT.storeOpen)).toBeInTheDocument();
+    expect(screen.getByText(/As of/)).toBeInTheDocument();
+    expect(screen.getByText(/11:30/)).toBeInTheDocument();
+    expect(screen.queryByText('Online')).not.toBeInTheDocument();
     expect(screen.getByText('Main')).toBeInTheDocument();
     expect(screen.getByText(DASHBOARD_CONTENT.kpiOrdersToday)).toBeInTheDocument();
     expect(screen.getByRole('link', { name: /New sale/i })).toHaveAttribute('href', ROUTES.SALES);
+    expect(screen.getByRole('link', { name: /1 waiting QC/i })).toHaveAttribute(
+      'href',
+      ROUTES.PURCHASES,
+    );
+    expect(screen.getByRole('link', { name: /1 sign-off/i })).toHaveAttribute(
+      'href',
+      ROUTES.PURCHASES,
+    );
     expect(screen.getByRole('link', { name: /4 pending/i })).toHaveAttribute(
       'href',
       ROUTES.PRESCRIPTIONS,
@@ -364,7 +373,7 @@ describe('DashboardScreen', () => {
       `${ROUTES.INVENTORY}?view=guidance`,
     );
     expect(screen.getByText(DASHBOARD_CONTENT.kpiTodaySales)).toBeInTheDocument();
-    expect(screen.getByText('100%')).toBeInTheDocument();
+    expect(screen.getAllByText('100%').length).toBeGreaterThan(0);
     expect(screen.getByText(/1 new/)).toBeInTheDocument();
     expect(screen.getByText(DASHBOARD_CONTENT.kpiToVerify)).toBeInTheDocument();
     expect(screen.getByText(DASHBOARD_CONTENT.kpiAction)).toBeInTheDocument();
@@ -474,10 +483,7 @@ describe('DashboardScreen', () => {
       hero: { ...filled.hero, duesCustomerCount: 0, duesToCollectPaise: 4500 },
       analytics: {
         ...filled.analytics,
-        channelSplit: [
-          { key: 'ONLINE', label: 'Online', salesPaise: 0, billCount: 0 },
-          { key: 'COUNTER', label: 'Counter', salesPaise: 30000, billCount: 3 },
-        ],
+        channelSplit: [{ key: 'COUNTER', label: 'Counter', salesPaise: 30000, billCount: 3 }],
       },
     });
     renderPage(userFor({ displayName: '' }));

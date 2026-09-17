@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import TrendsScreen from '@/screens/trends/TrendsScreen';
+import { trendsReducer } from '@/screens/trends/store/trends.slice';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
@@ -87,7 +88,7 @@ function renderPage(
   activeBranchId: string | null = 'b1',
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, trends: trendsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -122,7 +123,7 @@ describe('TrendsScreen', () => {
   it('loading: reserved compare-weeks status while the window loads', () => {
     getMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByRole('status')).toHaveTextContent('Loading this week vs last week…');
+    expect(screen.getByText('Loading this week vs last week…')).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Compare weeks' })).toBeInTheDocument();
   });
 
@@ -146,15 +147,13 @@ describe('TrendsScreen', () => {
       ),
     );
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Use matching week or month windows of 366 days or less.',
-    );
+    expect(await screen.findByText('Use matching week or month windows of 366 days or less.')).toBeInTheDocument();
   });
 
   it('denied: till staff without reporting cannot open compare weeks', () => {
     renderPage('pharmacy_staff', ['SALES']);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Till staff cannot open compare weeks. Ask the owner for Accounts access.',
+      'Till staff cannot open compare weeks. Ask the owner for reporting access.',
     );
     expect(getMock).not.toHaveBeenCalled();
   });
@@ -182,17 +181,17 @@ describe('TrendsScreen', () => {
   it('conflict: another till changed this window', async () => {
     getMock.mockRejectedValue(new ApiError('Stale', 409, 'STALE_STATE'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'This window changed on another till. Reload, then compare again.',
-    );
+    expect(
+      await screen.findByText('This window changed on another till. Reload, then compare again.'),
+    ).toBeInTheDocument();
   });
 
   it('failure: connection copy when analytics cannot load', async () => {
     getMock.mockRejectedValue(new ApiError('Could not reach the server', 0, 'NETWORK'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not load compare weeks. Check the connection and try again.',
-    );
+    expect(
+      await screen.findByText('Could not load compare weeks. Check the connection and try again.'),
+    ).toBeInTheDocument();
   });
 
   it('success: this week vs last week, charts, no forecast, restores show-window focus', async () => {

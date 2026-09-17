@@ -1,5 +1,6 @@
 package com.nammamedmate.server.application.access;
 
+import com.nammamedmate.server.application.notification.NotificationInboxService;
 import com.nammamedmate.server.application.notification.NotificationRoleSync;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AccessRole;
@@ -62,6 +63,7 @@ public class AccessRoleService {
   private final AccessQueryService accessQueryService;
   private final SubscriptionService subscriptionService;
   private final NotificationRoleSync notificationRoleSync;
+  private final NotificationInboxService notificationInboxService;
   private final Clock clock;
 
   public AccessRoleService(
@@ -73,6 +75,7 @@ public class AccessRoleService {
       AccessQueryService accessQueryService,
       SubscriptionService subscriptionService,
       NotificationRoleSync notificationRoleSync,
+      NotificationInboxService notificationInboxService,
       Clock clock) {
     this.appUserRepository = appUserRepository;
     this.accessRoleRepository = accessRoleRepository;
@@ -82,6 +85,7 @@ public class AccessRoleService {
     this.accessQueryService = accessQueryService;
     this.subscriptionService = subscriptionService;
     this.notificationRoleSync = notificationRoleSync;
+    this.notificationInboxService = notificationInboxService;
     this.clock = clock;
   }
 
@@ -145,6 +149,10 @@ public class AccessRoleService {
     }
     Set<ModuleCode> requested = requested(modules);
     validateGrant(actor, requested);
+    Set<ModuleCode> previous =
+        accessRoleModuleRepository.findByRoleId(role.getId()).stream()
+            .map(AccessRoleModule::getModuleCode)
+            .collect(java.util.stream.Collectors.toCollection(LinkedHashSet::new));
     String nextName = requireName(name);
     if (customNameTaken(actor, nextName, role.getId())) {
       throw new ApiException(HttpStatus.CONFLICT, NAME_TAKEN_CODE, NAME_TAKEN_MESSAGE);
@@ -163,6 +171,9 @@ public class AccessRoleService {
         null,
         actor.tenantId(),
         requested);
+    if (!requested.containsAll(previous)) {
+      revokeAssignees(role.getId());
+    }
     return AccessQueryService.toView(role, names(requested));
   }
 
@@ -171,6 +182,10 @@ public class AccessRoleService {
     Actor actor = actor(principal);
     AccessRole role = mutableCustom(actor, roleId);
     Instant now = Instant.now(clock);
+    List<UUID> assigneeIds =
+        userAccessRoleRepository.findByRoleId(role.getId()).stream()
+            .map(UserAccessRole::getUserId)
+            .toList();
     userAccessRoleRepository.deleteByRoleId(role.getId());
     role.setDeletedAt(now);
     role.setUpdatedAt(now);
@@ -181,6 +196,10 @@ public class AccessRoleService {
         null,
         actor.tenantId(),
         Set.of());
+    for (UUID assigneeId : assigneeIds) {
+      notificationRoleSync.sync(assigneeId, actor.tenantId());
+      notificationInboxService.revokeAccessForUser(assigneeId);
+    }
     List<String> modules =
         accessQueryService
             .modulesByRole(List.of(role.getId()))
@@ -201,6 +220,11 @@ public class AccessRoleService {
     Actor actor = actor(principal);
     AppUser target = visibleUser(actor, userId, true);
     List<UUID> requested = roleIds == null ? List.of() : roleIds;
+    List<UUID> previous =
+        (actor.scope() == AccessScope.TENANT
+                ? userAccessRoleRepository.findByUserIdAndTenantId(target.getId(), actor.tenantId())
+                : userAccessRoleRepository.findByUserIdAndTenantIdIsNull(target.getId()))
+            .stream().map(UserAccessRole::getRoleId).toList();
     List<AccessRole> roles = loadAssignable(actor, requested);
     if (actor.scope() == AccessScope.TENANT) {
       userAccessRoleRepository.deleteByUserIdAndTenantId(target.getId(), actor.tenantId());
@@ -220,6 +244,9 @@ public class AccessRoleService {
           Set.of());
     }
     notificationRoleSync.sync(target.getId(), actor.tenantId());
+    if (previous.stream().anyMatch(id -> !requested.contains(id))) {
+      notificationInboxService.revokeAccessForUser(target.getId());
+    }
     return new UserAccessRoles(target.getId(), accessQueryService.assignedViews(target));
   }
 
@@ -256,7 +283,14 @@ public class AccessRoleService {
         actor.tenantId(),
         Set.of());
     notificationRoleSync.sync(target.getId(), actor.tenantId());
+    notificationInboxService.revokeAccessForUser(target.getId());
     return new UserAccessRoles(target.getId(), accessQueryService.assignedViews(target));
+  }
+
+  private void revokeAssignees(UUID roleId) {
+    for (UserAccessRole assignment : userAccessRoleRepository.findByRoleId(roleId)) {
+      notificationInboxService.revokeAccessForUser(assignment.getUserId());
+    }
   }
 
   private Actor actor(AuthPrincipal principal) {

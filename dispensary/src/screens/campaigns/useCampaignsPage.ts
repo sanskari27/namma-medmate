@@ -85,7 +85,10 @@ export function useCampaignsPage() {
   function startCreate() {
     setCreating(true);
     setSelectedId(null);
-    setForm(emptyForm());
+    setForm({
+      ...emptyForm(),
+      templateUniqueName: templates[0]?.uniqueName ?? '',
+    });
     setStatus(null);
     setStatusHint(null);
   }
@@ -97,7 +100,11 @@ export function useCampaignsPage() {
     }
     setCreating(false);
     setSelectedId(id);
-    setForm({ name: row.name, tagIds: [...row.tagIds] });
+    setForm({
+      name: row.name,
+      tagIds: [...row.tagIds],
+      templateUniqueName: row.templateUniqueName,
+    });
     setStatus(null);
     setStatusHint(null);
   }
@@ -109,17 +116,21 @@ export function useCampaignsPage() {
     });
     setCreating(false);
     setSelectedId(saved.id);
-    setForm({ name: saved.name, tagIds: [...saved.tagIds] });
+    setForm({
+      name: saved.name,
+      tagIds: [...saved.tagIds],
+      templateUniqueName: saved.templateUniqueName,
+    });
     setStatus('success');
     setStatusHint(successHint);
     addRef.current?.focus();
   }
 
   async function onSave() {
-    if (!formValid(form) || templates[0] == null) {
+    if (!formValid(form)) {
       setStatus('validation');
       setStatusHint(
-        templates[0] == null
+        templates.length === 0
           ? 'Ask the owner to fill WhatsApp slots before this broadcast can go out.'
           : null,
       );
@@ -130,7 +141,7 @@ export function useCampaignsPage() {
       const saved = await createCampaign({
         name: form.name.trim(),
         tagIds: form.tagIds,
-        templateUniqueName: templates[0].uniqueName,
+        templateUniqueName: form.templateUniqueName,
       });
       applySaved(saved, 'Broadcast saved as a draft at this counter.');
     } catch (error) {

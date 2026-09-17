@@ -48,6 +48,32 @@ describe('distributors helpers', () => {
     expect(input.paymentTerms).toBe('CREDIT');
     expect(input.creditPeriodDays).toBe(30);
     expect(input.supplierCode.startsWith('SUP-')).toBe(true);
+    expect(input.pan).toBeUndefined();
+    expect(input.bankName).toBeUndefined();
+    expect(input.creditLimitPaise).toBeUndefined();
+  });
+
+  it('maps pan, bank and credit limit into supplier input', () => {
+    const input = toSupplierInput(
+      {
+        ...emptyDialogForm(),
+        legalName: 'Acme Distributors',
+        phone: '9876500001',
+        addressLine1: '12 MG Road',
+        city: 'Bengaluru',
+        state: 'KA',
+        pincode: '560001',
+        gstin: '29ABCDE1234F1Z5',
+        pan: 'ABCDE1234F',
+        bankName: 'HDFC Bank',
+        creditLimitRupees: '50000',
+      },
+      true,
+    );
+    expect(input.gstin).toBe('29ABCDE1234F1Z5');
+    expect(input.pan).toBe('ABCDE1234F');
+    expect(input.bankName).toBe('HDFC Bank');
+    expect(input.creditLimitPaise).toBe(5000000);
   });
 
   it('labels payment terms like the directory', () => {

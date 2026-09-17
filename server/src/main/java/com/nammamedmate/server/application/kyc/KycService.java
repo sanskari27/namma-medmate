@@ -222,6 +222,8 @@ public class KycService {
     }
     kycDocumentRepository.saveAll(docs);
 
+    notifyDecision(tenantId, submissionId, "submitted");
+
     return new KycOwnerStatus(
         tenantId,
         tenant.getStatus().name(),

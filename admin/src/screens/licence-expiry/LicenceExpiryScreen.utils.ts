@@ -15,7 +15,7 @@ export function statusCopy(status: PageStatus): { icon: typeof Ban; text: string
     case 'empty':
       return { icon: FileWarning, text: 'No tenant papers due in the next 30 days.' };
     case 'validation':
-      return { icon: FileWarning, text: 'Enter a tenant name before isolating the due list.' };
+      return { icon: FileWarning, text: 'Enter a tenant name before filtering this list.' };
     case 'denied':
       return { icon: Ban, text: 'Only MASTER can monitor licence expiry across tenants.' };
     case 'conflict':

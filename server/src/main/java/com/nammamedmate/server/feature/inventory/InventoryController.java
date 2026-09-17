@@ -58,9 +58,9 @@ public class InventoryController {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     InventoryOverviewView view = inventoryOverviewService.overview(principal);
     return ApiResponse.ok(
-        new OverviewResponse(toSummaryResponse(view.summary()), view.items().stream()
-            .map(InventoryController::toOverviewRowResponse)
-            .toList()));
+        new OverviewResponse(
+            toSummaryResponse(view.summary()),
+            view.items().stream().map(InventoryController::toOverviewRowResponse).toList()));
   }
 
   @PatchMapping("/products/{productId}/listing-flags")
@@ -335,7 +335,8 @@ public class InventoryController {
         row.deadStock());
   }
 
-  public record OverviewResponse(OverviewSummaryResponse summary, List<OverviewRowResponse> items) {}
+  public record OverviewResponse(
+      OverviewSummaryResponse summary, List<OverviewRowResponse> items) {}
 
   public record OverviewSummaryResponse(
       int totalSkus,

@@ -1,5 +1,7 @@
 package com.nammamedmate.server.infrastructure.security;
 
+import com.nammamedmate.server.application.branch.BranchAssignmentService;
+import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.domain.UserSession;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -13,6 +15,7 @@ import java.io.IOException;
 import java.time.Clock;
 import java.time.Instant;
 import java.util.List;
+import java.util.UUID;
 import org.springframework.http.HttpHeaders;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
@@ -26,6 +29,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
   private final AuthCookieService authCookieService;
   private final UserSessionRepository userSessionRepository;
   private final AppUserRepository appUserRepository;
+  private final BranchAssignmentService branchAssignmentService;
   private final Clock clock;
 
   public JwtAuthenticationFilter(
@@ -33,11 +37,13 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
       AuthCookieService authCookieService,
       UserSessionRepository userSessionRepository,
       AppUserRepository appUserRepository,
+      BranchAssignmentService branchAssignmentService,
       Clock clock) {
     this.jwtService = jwtService;
     this.authCookieService = authCookieService;
     this.userSessionRepository = userSessionRepository;
     this.appUserRepository = appUserRepository;
+    this.branchAssignmentService = branchAssignmentService;
     this.clock = clock;
   }
 
@@ -61,7 +67,14 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         boolean actingEnded =
             principal.impersonating() && !isSupportEscape(request) && !actingUserActive(principal);
         if (sessionLive && !actingEnded) {
-          AuthPrincipal withBranch = principal.withActiveBranchId(session.getActiveBranchId());
+          UUID branchId = session.getActiveBranchId();
+          if (branchId != null) {
+            AppUser actor = appUserRepository.findById(principal.userId()).orElse(null);
+            if (actor == null || !branchAssignmentService.canAccessBranch(actor, branchId)) {
+              branchId = null;
+            }
+          }
+          AuthPrincipal withBranch = principal.withActiveBranchId(branchId);
           UsernamePasswordAuthenticationToken authentication =
               new UsernamePasswordAuthenticationToken(
                   withBranch,

@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import type { SalesCatalogueItem } from '@/services/salesCatalogue';
 import { POS_CONTENT } from '../../PosScreen.content';
-import { formatPaise } from '../../PosScreen.utils';
+import { formatPaise, restorePosSearchFocus } from '../../PosScreen.utils';
 import {
   selectPosBusy,
   selectPosCartQtyByProductId,
@@ -59,7 +59,9 @@ export function PosProductCard({ item }: { item: SalesCatalogueItem }) {
         type="button"
         className="pos-card-main"
         disabled={busy}
-        onClick={() => void dispatch(addProduct({ item, mode: 'pack' }))}
+        onClick={() =>
+          void dispatch(addProduct({ item, mode: 'pack' })).finally(restorePosSearchFocus)
+        }
         aria-label={POS_CONTENT.addPackAria(item.name)}
       >
         <span className="pos-card-badge" data-kind={badge.kind}>
@@ -89,7 +91,9 @@ export function PosProductCard({ item }: { item: SalesCatalogueItem }) {
           type="button"
           className="pos-card-loose"
           disabled={busy}
-          onClick={() => void dispatch(addProduct({ item, mode: 'loose' }))}
+          onClick={() =>
+            void dispatch(addProduct({ item, mode: 'loose' })).finally(restorePosSearchFocus)
+          }
           aria-label={POS_CONTENT.addLooseAria(item.name, item.baseUnit)}
         >
           {POS_CONTENT.looseLabel(loosePrice, item.baseUnit)}

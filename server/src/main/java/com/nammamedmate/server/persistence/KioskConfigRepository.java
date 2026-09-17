@@ -5,7 +5,8 @@ import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
 
-public interface KioskConfigRepository extends JpaRepository<KioskConfig, KioskConfig.KioskConfigId> {
+public interface KioskConfigRepository
+    extends JpaRepository<KioskConfig, KioskConfig.KioskConfigId> {
 
   Optional<KioskConfig> findByTenantIdAndBranchId(UUID tenantId, UUID branchId);
 }

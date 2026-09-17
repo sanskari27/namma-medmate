@@ -13,6 +13,7 @@ import {
   openHqInboxItem,
   type HqInboxItem,
 } from '@/services/inbox';
+import { ROUTES } from '@/libs/constants/routes.const';
 import { inboxPageLoaded, inboxRowFiled, unreadLoaded, type RootState } from '@/store';
 
 type DeskStatus =
@@ -23,10 +24,17 @@ type DeskStatus =
   | 'denied'
   | 'conflict'
   | 'failure'
+  | 'unsupported'
   | 'success'
   | 'deleted';
 
+const HQ_HREFS = new Set<string>(Object.values(ROUTES));
 const PAGE_SIZE = 6;
+
+function hqHrefAllowed(href: string): boolean {
+  const path = href.split('?')[0];
+  return HQ_HREFS.has(path);
+}
 
 function formatHqDate(iso: string): string {
   return new Intl.DateTimeFormat('en-IN', {
@@ -80,6 +88,11 @@ function deskCopy(status: DeskStatus): { icon: typeof AlertTriangle; text: strin
       };
     case 'failure':
       return { icon: WifiOff, text: 'HQ cannot reach the API. Retry from this session.' };
+    case 'unsupported':
+      return {
+        icon: AlertTriangle,
+        text: 'This signal is not an HQ desk. Stay on this session.',
+      };
     default:
       return null;
   }
@@ -152,6 +165,10 @@ export function HqInboxBell() {
   const onOpenFile = async (row: HqInboxItem) => {
     try {
       const target = await openHqInboxItem(row.id);
+      if (!hqHrefAllowed(target.href)) {
+        setStatus('unsupported');
+        return;
+      }
       dispatch(inboxRowFiled({ ...row, read: true }));
       setOpen(false);
       navigate(target.href);

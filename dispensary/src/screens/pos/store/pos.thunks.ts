@@ -288,13 +288,8 @@ async function buildDraftLine(
       batches = [];
     }
   }
-  let baseQuantity: number | null = null;
-  try {
-    const converted = await convertProductUnit(product.id, { quantity: 1, fromUnit: unit });
-    baseQuantity = converted.baseQuantity;
-  } catch {
-    baseQuantity = factorFor(unitFactors, unit, item);
-  }
+  const converted = await convertProductUnit(product.id, { quantity: 1, fromUnit: unit });
+  const baseQuantity = converted.baseQuantity;
   const prices = priceForUnit(item, unit, unitFactors);
   return {
     id: crypto.randomUUID(),
@@ -651,8 +646,8 @@ export const changeLineUnit = createAsyncThunk<
       fromUnit: unit,
     });
     baseQuantity = converted.baseQuantity;
-  } catch {
-    baseQuantity = factorFor(line.unitFactors, unit, item) * (Number(line.quantity) || 1);
+  } catch (error) {
+    return rejectWithValue(toReject(error, POS_CONTENT.thunk.convertFailed));
   }
   return {
     lineId,
@@ -840,6 +835,23 @@ export const applyPricing = createAsyncThunk<
   }
 });
 
+async function patchOpenInvoice(state: RootState['pos']): Promise<SalesInvoice | null> {
+  const open = state.invoice && state.invoice.status !== 'COMPLETED' ? state.invoice : null;
+  const lines = linePayload(state.draft);
+  if (!open || !lines) {
+    return open;
+  }
+  const patched = await updateSalesInvoice(open.id, {
+    customerId: state.selectedCustomer?.id ?? null,
+    doctorId: state.selectedDoctorId || null,
+    prescriptionReference: state.prescriptionReference.trim() || null,
+    prescriptionVerified: state.prescriptionVerified,
+    lines,
+    expectedVersion: open.version,
+  });
+  return patched ?? open;
+}
+
 export const collectPayment = createAsyncThunk<
   SalesInvoice,
   void,
@@ -852,6 +864,15 @@ export const collectPayment = createAsyncThunk<
       return rejectWithValue(saved.payload ?? { status: 'validation', hint: null });
     }
     state = getState().pos;
+  } else if (state.invoice.status !== 'COMPLETED') {
+    try {
+      const patched = await patchOpenInvoice(state);
+      if (patched) {
+        state = { ...state, invoice: patched };
+      }
+    } catch (error) {
+      return rejectWithValue(toDraftReject(error));
+    }
   }
   if (!state.invoice || state.invoice.status === 'COMPLETED') {
     return rejectWithValue({
@@ -987,6 +1008,19 @@ export const holdBill = createAsyncThunk<
       );
     }
     state = getState().pos;
+  } else {
+    try {
+      const patched = await patchOpenInvoice(state);
+      if (patched) {
+        state = { ...state, invoice: patched };
+      }
+    } catch (error) {
+      const next = isApiError(error) ? mapApiStatus(error) : 'failure';
+      return rejectWithValue({
+        status: next,
+        hint: holdStatusHint(next) ?? holdStatusHint('failure'),
+      });
+    }
   }
   if (!state.invoice || state.invoice.status === 'COMPLETED') {
     return rejectWithValue({

@@ -71,8 +71,9 @@ class NotificationRoutingMatrixTest {
   }
 
   @Test
-  void ac01_kycAndPlanLimitTargetOwnerOnly() {
-    assertThat(roles(NotificationTrigger.KYC)).containsExactly(RoutingRole.OWNER);
+  void ac01_kycTargetsOwnerAndMaster_M2_KYC_001() {
+    assertThat(roles(NotificationTrigger.KYC))
+        .containsExactly(RoutingRole.OWNER, RoutingRole.MASTER);
     assertThat(roles(NotificationTrigger.PLAN_LIMIT)).containsExactly(RoutingRole.OWNER);
   }
 

@@ -12,7 +12,7 @@ import { Button, Tooltip, TooltipContent, TooltipTrigger } from '@atoms';
 import { Dialog, DialogDescription, DialogTitle, DrawerContent } from '@molecules';
 import { useIdleLock } from '@/hooks/useIdleLock';
 import { useMediaQuery } from '@/hooks/useMediaQuery';
-import { ROUTES } from '@/libs/constants/routes.const';
+import { ROUTES, floorNavAllowed } from '@/libs/constants/routes.const';
 import { SHELL } from '@/libs/constants/shell.const';
 import { SESSION_END_REASON_KEY } from '@/libs/constants/session.const';
 import { logout, passwordChanged, pinEnrolled, sessionStarted, type RootState } from '@/store';
@@ -73,6 +73,16 @@ export default function DashboardLayout() {
       navigate(ROUTES.KIOSK, { replace: true });
     }
   }, [kioskCustomerMode, location.pathname, navigate]);
+
+  useEffect(() => {
+    if (!tenantStatus || tenantStatus === 'ACTIVE') {
+      return;
+    }
+    if (floorNavAllowed(tenantStatus, location.pathname)) {
+      return;
+    }
+    navigate(ROUTES.ACCOUNT, { replace: true });
+  }, [tenantStatus, location.pathname, navigate]);
 
   useEffect(() => {
     if (!abandoned) {

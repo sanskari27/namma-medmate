@@ -280,6 +280,7 @@ export const POS_CONTENT = {
     rxNeeds: 'Rx packs need Prescription checked, doctor, Rx reference, and prescribed qty.',
     needBatch: 'Pick a batch for every tracked pack before saving.',
     needPaymentMode: 'Pick a payment method before charging.',
+    convertFailed: 'Could not convert that pack unit. Keep this line and retry.',
     collected: (invoiceNumber: string) => `Bill ${invoiceNumber} collected at this counter.`,
     held: (invoiceNumber: string) => `Bill ${invoiceNumber} sent to reception — pay later.`,
   },

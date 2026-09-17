@@ -47,12 +47,12 @@ final class NotificationRoutingCopy {
       case APPROVAL_REQUESTED ->
           new Content(
               "approval",
-              "/inventory",
-              null,
+              "/approvals/pending",
+              "/sign-offs",
               "Approval requested",
               "A counter action is waiting on your approval.",
-              null,
-              null);
+              "Approval requested",
+              "A pharmacy action is waiting on HQ sign-off.");
       case SUPPLIER_DUE ->
           new Content(
               "supplier_due",
@@ -93,20 +93,20 @@ final class NotificationRoutingCopy {
           new Content(
               "account_created",
               "/account",
-              null,
+              "/operators",
               "New user account",
               "A sign-in was created. Check account to set up this till.",
-              null,
-              null);
+              "New pharmacy account",
+              "A pharmacy sign-in was created. Open operators if HQ needs the file.");
       case KYC ->
           new Content(
               "kyc",
               "/account",
-              null,
+              "/kyc",
               "KYC decision",
               "KYC for this pharmacy was decided. Open account to review.",
-              null,
-              null);
+              "KYC pack waiting",
+              "A pharmacy filed KYC. Open the tenant KYC queue.");
       case PLAN_LIMIT ->
           new Content(
               "plan_limit",

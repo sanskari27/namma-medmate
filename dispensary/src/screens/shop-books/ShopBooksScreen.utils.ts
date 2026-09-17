@@ -39,7 +39,7 @@ export const REPORT_META: Record<string, ReportMeta> = {
   GSTR1: {
     group: 'gst',
     favourite: true,
-    tags: ['invoice'],
+    tags: ['invoice', 'party'],
     catalogTitle: 'GSTR-1 (Sales)',
     hint: 'Outward supplies for the CA',
   },
@@ -58,7 +58,7 @@ export const REPORT_META: Record<string, ReportMeta> = {
   },
   DAY_BOOK: {
     group: 'transaction',
-    tags: ['summary'],
+    tags: ['summary', 'payment'],
     catalogTitle: 'Daybook',
     hint: 'Net sales vs purchases per day',
   },
@@ -70,7 +70,7 @@ export const REPORT_META: Record<string, ReportMeta> = {
   },
   PURCHASE_SUMMARY: {
     group: 'transaction',
-    tags: ['summary'],
+    tags: ['summary', 'party'],
     catalogTitle: 'Purchase Summary',
     hint: 'Stockist buys in this period',
   },

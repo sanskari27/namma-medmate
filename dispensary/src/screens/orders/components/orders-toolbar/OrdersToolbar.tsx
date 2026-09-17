@@ -1,8 +1,8 @@
-import { Search, Store, Globe, Zap, Wallet } from 'lucide-react';
+import { Search, Store, Zap, Wallet } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import { ORDERS_CONTENT } from '../../OrdersScreen.content';
-import type { OrdersFilter } from '../../OrdersScreen.utils';
+import { ORDER_FILTER_TABS, type OrdersFilter } from '../../OrdersScreen.utils';
 import { setOrdersFilter, setOrdersQuery } from '../../store/orders.slice';
 import {
   selectOrdersFilter,
@@ -10,17 +10,11 @@ import {
   selectOrdersQuery,
 } from '../../store/orders.selectors';
 
-const FILTERS: {
-  id: OrdersFilter;
-  label: string;
-  icon?: typeof Globe;
-}[] = [
-  { id: 'all', label: ORDERS_CONTENT.filters.all },
-  { id: 'online', label: ORDERS_CONTENT.filters.online, icon: Globe },
-  { id: 'counter', label: ORDERS_CONTENT.filters.counter, icon: Store },
-  { id: 'needsAction', label: ORDERS_CONTENT.filters.needsAction, icon: Zap },
-  { id: 'unpaid', label: ORDERS_CONTENT.filters.unpaid, icon: Wallet },
-];
+const FILTER_ICONS: Partial<Record<OrdersFilter, typeof Store>> = {
+  counter: Store,
+  needsAction: Zap,
+  unpaid: Wallet,
+};
 
 export function OrdersToolbar() {
   const dispatch = useDispatch<AppDispatch>();
@@ -31,19 +25,19 @@ export function OrdersToolbar() {
   return (
     <div className="orders-toolbar">
       <div className="orders-seg" role="tablist" aria-label="Order filters">
-        {FILTERS.map((item) => {
-          const Icon = item.icon;
+        {ORDER_FILTER_TABS.map((id) => {
+          const Icon = FILTER_ICONS[id];
           return (
             <button
-              key={item.id}
+              key={id}
               type="button"
               role="tab"
-              aria-selected={filter === item.id}
-              data-on={filter === item.id}
-              onClick={() => dispatch(setOrdersFilter(item.id))}
+              aria-selected={filter === id}
+              data-on={filter === id}
+              onClick={() => dispatch(setOrdersFilter(id))}
             >
               {Icon ? <Icon size={13} strokeWidth={1.8} aria-hidden /> : null}
-              {item.label} ({counts[item.id]})
+              {ORDERS_CONTENT.filters[id]} ({counts[id]})
             </button>
           );
         })}

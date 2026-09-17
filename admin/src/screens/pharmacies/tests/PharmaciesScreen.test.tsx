@@ -29,6 +29,15 @@ const active: AdminTenant = {
   allowedTransitions: ['SUSPENDED', 'EXPIRED', 'TERMINATED'],
 };
 
+const pending: AdminTenant = {
+  id: 't2',
+  name: 'Pending Chemist',
+  slug: 'pending',
+  status: 'VERIFICATION_REQUIRED',
+  updatedAt: '2026-09-03T00:00:00Z',
+  allowedTransitions: ['SUSPENDED', 'TERMINATED'],
+};
+
 const support: ImpersonationState = {
   originalUserId: 'm1',
   originalDisplayName: 'Sanskar',
@@ -194,6 +203,14 @@ describe('pharmacies lifecycle', () => {
     expect(screen.getByText('BR01')).toBeInTheDocument();
     expect(screen.getByText('DL-1')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Save outlet' })).not.toBeInTheDocument();
+  });
+
+  it('success: KYC-pending pharmacies can be suspended or terminated', async () => {
+    listMock.mockResolvedValue([pending]);
+    renderPage('admin_super');
+    expect(await screen.findByText('Pending Chemist')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Suspend' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Terminate' })).toBeInTheDocument();
   });
 
   it('empty: tenant outlet file with no branches', async () => {

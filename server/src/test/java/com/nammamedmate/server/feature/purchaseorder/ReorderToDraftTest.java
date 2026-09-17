@@ -88,6 +88,32 @@ class ReorderToDraftTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac_reo002_lastPurchasePriceIsThisBranch() throws Exception {
+    Fixture fx = seed("r-price", PlanCode.GROWTH);
+    UUID categoryId = createCategory(fx.cookie(), "Tablets");
+    UUID productId =
+        createLowProduct(fx.cookie(), "PARA-PR", "Paracetamol price", categoryId, "recv-rpr");
+    createSupplier(fx.cookie(), "SUP-PR", categoryId);
+
+    Location annex = persistBranch(fx.tenantId(), "Annex", "BR-PR", false);
+    selectBranch(fx.cookie(), annex.getId());
+    mockMvc
+        .perform(
+            post("/api/v1/inventory/receipts")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"productId\":\"%s\",\"batchNumber\":\"LOT-ANNEX\",\"manufacturedOn\":\"2026-01-01\",\"expiresOn\":\"2027-06-30\",\"purchasePricePaise\":9999,\"quantity\":50,\"idempotencyKey\":\"recv-annex\",\"expectedVersion\":0}"
+                        .formatted(productId)))
+        .andExpect(status().isOk());
+
+    selectBranch(fx.cookie(), fx.branchId());
+    JsonNode preview = preview(fx.cookie());
+    assertThat(preview.path("drafts").get(0).path("lines").get(0).path("unitRatePaise").asLong())
+        .isEqualTo(1000);
+  }
+
+  @Test
   void ac02_linesSplitIntoOneDraftPerSupplier() throws Exception {
     Fixture fx = seed("r2", PlanCode.GROWTH);
     UUID catA = createCategory(fx.cookie(), "Fever");
@@ -321,11 +347,8 @@ class ReorderToDraftTest extends AbstractIntegrationTest {
         .andExpect(status().isNotFound())
         .andExpect(jsonPath("$.code").value("NOT_FOUND"));
     JsonNode annexPreview = preview(fx.cookie());
-    assertThat(annexPreview.path("drafts")).isNotEmpty();
-    for (JsonNode draft : annexPreview.path("drafts")) {
-      assertThat(draft.path("id").isNull()).isTrue();
-      assertThat(draft.path("branchId").asText()).isEqualTo(annex.getId().toString());
-    }
+    assertThat(annexPreview.path("drafts")).isEmpty();
+    assertThat(annexPreview.path("unmapped")).isNotEmpty();
     mockMvc
         .perform(
             post("/api/v1/purchase-orders/from-reorder")

@@ -117,4 +117,19 @@ describe('dispensary idle PIN lock', () => {
     expect(screen.getByText('Counter overview')).toBeInTheDocument();
     expect(store.getState().auth.user).not.toBeNull();
   });
+
+  it('abandoned: four hours after lock returns to sign-in with abandoned reason', async () => {
+    vi.useFakeTimers();
+    const { store } = renderShell(true);
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(screen.getByRole('dialog', { name: 'Counter locked' })).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(4 * 60 * 60 * 1000);
+    });
+    expect(screen.getByText('Pharmacy sign in')).toBeInTheDocument();
+    expect(store.getState().auth.user).toBeNull();
+    expect(sessionStorage.getItem('nmm.dispensary.sessionEndReason')).toBe('abandoned');
+  });
 });

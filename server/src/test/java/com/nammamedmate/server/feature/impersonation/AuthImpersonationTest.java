@@ -472,6 +472,43 @@ class AuthImpersonationTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac_s08_pinUnlockKeepsActingIdentity_M1_PIN_004() throws Exception {
+    Tenant tenant = persistTenant("pin-act");
+    persistUser(null, "master@act.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);
+    persistUser(
+        tenant.getId(), "owner@act.local", AppUserRole.pharmacy_owner, UserAccountStatus.ACTIVE);
+    Cookie master = login("master@act.local");
+    mockMvc
+        .perform(
+            post("/api/v1/auth/pin")
+                .cookie(master)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"pin\":\"123456\"}"))
+        .andExpect(status().isOk());
+    Cookie support = startImpersonation(master, "owner@act.local");
+
+    Cookie unlocked =
+        mockMvc
+            .perform(
+                post("/api/v1/auth/pin/unlock")
+                    .cookie(support)
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content("{\"pin\":\"123456\"}"))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getCookie("nmm_access");
+    assertThat(unlocked).isNotNull();
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").cookie(unlocked))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.role").value("pharmacy_owner"))
+        .andExpect(jsonPath("$.data.impersonation.originalUserId").exists())
+        .andExpect(jsonPath("$.data.impersonation.effectiveRole").value("pharmacy_owner"));
+  }
+
+  @Test
   void d001_startAndExitDoNotWriteAuditEvents() throws Exception {
     Tenant tenant = persistTenant("no-audit");
     persistUser(null, "master@audit.local", AppUserRole.admin_super, UserAccountStatus.ACTIVE);

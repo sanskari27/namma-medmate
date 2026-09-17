@@ -1,8 +1,9 @@
 aws_region            = "ap-south-1"
-admin_ssh_cidr        = ["0.0.0.0/0"]
+# Your public IP as a single host. Prefer AWS SSM Session Manager over SSH.
+admin_ssh_cidr        = ["203.0.113.10/32"]
 ec2_instance_type     = "t3.medium"
 db_instance_class     = "db.t4g.small"
-skip_final_snapshot   = true
+skip_final_snapshot   = false
 resend_api_key        = ""
 resend_webhook_secret = ""
 resend_from           = "Namma MedMate <noreply@nammamedmate.com>"
@@ -14,3 +15,7 @@ cashfree_return_url   = "https://pharmacy.nammamedmate.com/subscription"
 password_reset_dispensary_url = "https://pharmacy.nammamedmate.com/reset-password"
 password_reset_admin_url = "https://admin.nammamedmate.com/reset-password"
 email_verification_dispensary_url = "https://pharmacy.nammamedmate.com/verify-email"
+meta_whatsapp_token               = ""
+meta_whatsapp_phone_number_id     = ""
+meta_whatsapp_waba_id             = ""
+meta_whatsapp_display_number      = ""

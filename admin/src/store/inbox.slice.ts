@@ -36,8 +36,11 @@ const inboxSlice = createSlice({
       state.unread = action.payload;
     },
     inboxRowFiled: (state, action: PayloadAction<HqInboxItem>) => {
+      const wasUnread = state.rows.some((row) => row.id === action.payload.id && !row.read);
       state.rows = state.rows.map((row) => (row.id === action.payload.id ? action.payload : row));
-      state.unread = state.rows.filter((row) => !row.read).length;
+      if (wasUnread && action.payload.read) {
+        state.unread = Math.max(0, state.unread - 1);
+      }
     },
   },
   extraReducers: (builder) => {

@@ -2,7 +2,6 @@ import {
   AlertTriangle,
   Check,
   ClipboardList,
-  Globe,
   IndianRupee,
   Package,
   Store,
@@ -62,9 +61,6 @@ export function DashboardKpiRow({ view }: DashboardKpiRowProps) {
         <div className="lbl">{DASHBOARD_CONTENT.kpiTodaySales}</div>
         <div className="val">{formatPaise(kpis.todaySalesPaise)}</div>
         <div className="split">
-          <span className="dt">
-            <Globe size={11} aria-hidden="true" /> {formatPaise(kpis.todayOnlineSalesPaise)}
-          </span>
           <span className="dt">
             <Store size={11} aria-hidden="true" /> {formatPaise(kpis.todayCounterSalesPaise)}
           </span>

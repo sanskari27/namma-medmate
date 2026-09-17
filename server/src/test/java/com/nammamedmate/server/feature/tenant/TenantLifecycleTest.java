@@ -88,6 +88,26 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     assertThat(tenantRepository.findById(verification.getId()).orElseThrow().getStatus())
         .isEqualTo(TenantStatus.VERIFICATION_REQUIRED);
 
+    mockMvc
+        .perform(
+            post("/api/v1/admin/tenants/" + verification.getId() + "/status")
+                .cookie(masterCookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(statusBody("TERMINATED", "VERIFICATION_REQUIRED", "Abandoned pack")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("TERMINATED"));
+
+    Tenant pendingSuspend =
+        persistTenant("pending-hold", "Pending Hold", TenantStatus.VERIFICATION_REQUIRED);
+    mockMvc
+        .perform(
+            post("/api/v1/admin/tenants/" + pendingSuspend.getId() + "/status")
+                .cookie(masterCookie)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(statusBody("SUSPENDED", "VERIFICATION_REQUIRED", "Hold KYC")))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("SUSPENDED"));
+
     Tenant terminated = persistTenant("gone-chemist", "Gone Chemist", TenantStatus.TERMINATED);
     mockMvc
         .perform(
@@ -210,6 +230,29 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
         .andExpect(jsonPath("$.message").value("This pharmacy has been terminated."));
     assertThat(tenantRepository.findById(tenant.getId()).orElseThrow().getDeletedAt()).isNull();
+  }
+
+  @Test
+  void ac03_softDeletedTenantIsLocked_TENANT_001() throws Exception {
+    Tenant tenant = persistTenant("gone-row", "Gone Row", TenantStatus.ACTIVE);
+    persistOwner(tenant.getId(), "owner@gone.local");
+    Cookie ownerCookie = login("owner@gone.local");
+
+    mockMvc.perform(get("/api/v1/notifications").cookie(ownerCookie)).andExpect(status().isOk());
+
+    tenant.setDeletedAt(Instant.parse("2026-09-17T00:00:00Z"));
+    tenantRepository.saveAndFlush(tenant);
+
+    mockMvc
+        .perform(get("/api/v1/notifications").cookie(ownerCookie))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.message").value("This pharmacy has been terminated."));
+
+    mockMvc
+        .perform(get("/api/v1/auth/me").cookie(ownerCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.displayName").value("Test owner@gone.local"));
   }
 
   @Test

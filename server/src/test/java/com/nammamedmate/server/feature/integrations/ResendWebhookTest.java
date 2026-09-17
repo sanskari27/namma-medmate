@@ -196,7 +196,7 @@ class ResendWebhookTest extends AbstractIntegrationTest {
 
   private HttpHeaders signedHeaders(String body) throws Exception {
     String svixId = "msg_1";
-    String timestamp = "1710000000";
+    String timestamp = String.valueOf(Instant.now().getEpochSecond());
     String toSign = svixId + "." + timestamp + "." + body;
     Mac mac = Mac.getInstance("HmacSHA256");
     mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));

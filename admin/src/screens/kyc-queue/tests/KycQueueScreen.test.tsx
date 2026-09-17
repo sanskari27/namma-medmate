@@ -13,15 +13,15 @@ vi.mock('@/services/kyc', () => ({
   getKycPack: vi.fn(),
   approveKycPack: vi.fn(),
   rejectKycPack: vi.fn(),
-  kycDocumentUrl: (packId: string, documentId: string) =>
-    `http://localhost:8080/api/v1/admin/kyc/${packId}/documents/${documentId}`,
+  fetchKycDocument: vi.fn(),
 }));
 
-import { approveKycPack, listKycQueue, rejectKycPack } from '@/services/kyc';
+import { approveKycPack, fetchKycDocument, listKycQueue, rejectKycPack } from '@/services/kyc';
 
 const listMock = vi.mocked(listKycQueue);
 const approveMock = vi.mocked(approveKycPack);
 const rejectMock = vi.mocked(rejectKycPack);
+const fetchDocMock = vi.mocked(fetchKycDocument);
 
 const pending: KycPack = {
   id: 'pack-1',
@@ -81,6 +81,7 @@ describe('tenant KYC queue', () => {
     listMock.mockReset();
     approveMock.mockReset();
     rejectMock.mockReset();
+    fetchDocMock.mockReset();
   });
 
   it('loading: waits for dossiers', () => {
@@ -139,10 +140,7 @@ describe('tenant KYC queue', () => {
     approveMock.mockResolvedValue({ ...pending, status: 'APPROVED' });
     renderPage('admin_verification', ['TENANT_KYC']);
     await user.click(await screen.findByRole('button', { name: /Varshmaan Pharmacy/i }));
-    expect(screen.getByRole('link', { name: 'Open evidence' })).toHaveAttribute(
-      'href',
-      'http://localhost:8080/api/v1/admin/kyc/pack-1/documents/doc-1',
-    );
+    expect(screen.getByRole('button', { name: 'Open evidence' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Approve dossier' }));
     await user.click(screen.getByRole('button', { name: 'Confirm approve' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Decision filed');
@@ -164,5 +162,32 @@ describe('tenant KYC queue', () => {
     await user.click(screen.getByRole('button', { name: 'Confirm reject' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Decision filed');
     expect(rejectMock).toHaveBeenCalledWith('pack-1', 'Blurry licence');
+  });
+
+  it('success: Open evidence fetches the file with the session cookie', async () => {
+    const user = userEvent.setup();
+    const open = vi.fn();
+    const createObjectURL = vi.fn(() => 'blob:kyc-evidence');
+    vi.stubGlobal('open', open);
+    vi.stubGlobal('URL', { ...URL, createObjectURL, revokeObjectURL: vi.fn() });
+    listMock.mockResolvedValue([pending]);
+    fetchDocMock.mockResolvedValue(new Blob(['licence'], { type: 'application/pdf' }));
+    renderPage('admin_super');
+    await user.click(await screen.findByRole('button', { name: /Varshmaan Pharmacy/i }));
+    await user.click(screen.getByRole('button', { name: 'Open evidence' }));
+    expect(fetchDocMock).toHaveBeenCalledWith('pack-1', 'doc-1');
+    expect(createObjectURL).toHaveBeenCalled();
+    expect(open).toHaveBeenCalledWith('blob:kyc-evidence', '_blank', 'noopener,noreferrer');
+    vi.unstubAllGlobals();
+  });
+
+  it('failure: evidence fetch errors surface', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([pending]);
+    fetchDocMock.mockRejectedValue(new ApiError('denied', 401, 'UNAUTHORIZED'));
+    renderPage('admin_super');
+    await user.click(await screen.findByRole('button', { name: /Varshmaan Pharmacy/i }));
+    await user.click(screen.getByRole('button', { name: 'Open evidence' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not open evidence');
   });
 });

@@ -53,7 +53,10 @@ export async function rejectKycPack(id: string, reason: string): Promise<KycPack
   return data;
 }
 
-export function kycDocumentUrl(packId: string, documentId: string): string {
-  const base = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/$/, '');
-  return `${base}${API.ADMIN_KYC}/${packId}/documents/${documentId}`;
+export async function fetchKycDocument(packId: string, documentId: string): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(
+    `${API.ADMIN_KYC}/${packId}/documents/${documentId}`,
+    { responseType: 'blob' },
+  );
+  return data;
 }

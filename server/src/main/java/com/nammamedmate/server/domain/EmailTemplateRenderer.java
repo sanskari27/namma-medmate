@@ -19,11 +19,19 @@ public final class EmailTemplateRenderer {
       case ONBOARDING ->
           new RenderedEmail(
               "Verify your Namma MedMate email",
-              "<p>Verify your email: " + variables.get("verifyUrl") + "</p>");
+              "<p>"
+                  + escape(brand)
+                  + "</p><p>Verify your email: "
+                  + escape(variables.get("verifyUrl"))
+                  + "</p>");
       case INVOICE_COPY ->
           new RenderedEmail(
               "Your invoice from " + brand,
-              "<p>Invoice " + variables.get("invoiceNumber") + "</p>");
+              "<p>"
+                  + escape(brand)
+                  + "</p><p>Invoice "
+                  + escape(variables.get("invoiceNumber"))
+                  + "</p>");
     };
   }
 

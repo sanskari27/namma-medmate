@@ -1,12 +1,12 @@
 package com.nammamedmate.server.feature.tenant;
 
+import com.nammamedmate.server.application.auth.AuthIpThrottle;
 import com.nammamedmate.server.application.kyc.KycDocumentView;
 import com.nammamedmate.server.application.kyc.KycOwnerStatus;
 import com.nammamedmate.server.application.kyc.KycService;
 import com.nammamedmate.server.application.tenant.TenantRegistrationResult;
 import com.nammamedmate.server.application.tenant.TenantRegistrationService;
 import com.nammamedmate.server.application.tenant.TenantVerifyResult;
-import com.nammamedmate.server.application.auth.AuthIpThrottle;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.servlet.http.HttpServletRequest;

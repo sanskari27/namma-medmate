@@ -293,6 +293,36 @@ class CashfreeBillingTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac_secNew007_getDoesNotReconcile_postDoes() throws Exception {
+    Fixture fx = seed("cf-get");
+    Checkout checkout = startCheckout(fx.cookie(), "STARTER");
+    when(cashfreePgAdapter.fetchOrder(checkout.orderId()))
+        .thenReturn(
+            Optional.of(
+                new com.nammamedmate.server.infrastructure.cashfree.CashfreeOrderStatus(
+                    checkout.orderId(), "PAID", new java.math.BigDecimal("699.00"))));
+
+    mockMvc
+        .perform(get(CHECKOUT + "/" + checkout.id()).cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("PENDING"));
+    mockMvc
+        .perform(get(CHECKOUT).param("orderId", checkout.orderId()).cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("PENDING"));
+    assertThat(paymentRepository.findById(checkout.id()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionPaymentStatus.PENDING);
+
+    mockMvc
+        .perform(
+            post(CHECKOUT + "/reconcile").param("orderId", checkout.orderId()).cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("SUCCESS"));
+    assertThat(paymentRepository.findById(checkout.id()).orElseThrow().getStatus())
+        .isEqualTo(SubscriptionPaymentStatus.SUCCESS);
+  }
+
+  @Test
   void ac_cf008_masterReconcileFetchesProviderStatus() throws Exception {
     Fixture fx = seed("cf-recon");
     persistUser(null, "ops@cf-recon.local", AppUserRole.admin_super);
@@ -359,7 +389,7 @@ class CashfreeBillingTest extends AbstractIntegrationTest {
   }
 
   private HttpHeaders signed(String body) throws Exception {
-    String timestamp = "1710000000";
+    String timestamp = String.valueOf(java.time.Instant.now().getEpochSecond());
     Mac mac = Mac.getInstance("HmacSHA256");
     mac.init(new SecretKeySpec(webhookSecret.getBytes(StandardCharsets.UTF_8), "HmacSHA256"));
     String signature =

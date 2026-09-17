@@ -7,8 +7,9 @@ import {
   DASHBOARD_CONTENT,
   lowCountLabel,
   pendingCountLabel,
+  purchaseQueueLabel,
 } from '../../DashboardScreen.content';
-import { formatDay, formatPaise, greetingForHour } from '../../DashboardScreen.utils';
+import { formatAsOf, formatPaise, greetingForHour } from '../../DashboardScreen.utils';
 
 const QUICK_ICONS: Record<(typeof DASHBOARD_CONTENT.quickActions)[number]['tone'], LucideIcon> = {
   green: ShoppingCart,
@@ -34,7 +35,9 @@ export function DashboardHero({ displayName, view }: DashboardHeroProps) {
           {greetingForHour(hour)}, {firstName}
         </div>
         <div className="dash-hero-sub">
-          <span>{formatDay(view.asOf)}</span>
+          <span>
+            {DASHBOARD_CONTENT.asOf} {formatAsOf(view.generatedAt)}
+          </span>
           <span className="dash-dotpill on">
             <i aria-hidden="true" />
             {DASHBOARD_CONTENT.storeOpen}
@@ -77,7 +80,9 @@ export function DashboardHero({ displayName, view }: DashboardHeroProps) {
               ? action.subtitle
               : action.subtitleKey === 'pending'
                 ? pendingCountLabel(quickActions.pendingPrescriptions)
-                : lowCountLabel(quickActions.lowStockCount);
+                : action.subtitleKey === 'purchaseQueue'
+                  ? purchaseQueueLabel(quickActions.pendingGrn, quickActions.pendingApprovals)
+                  : lowCountLabel(quickActions.lowStockCount);
           return (
             <Link key={action.to} className={`dash-qa-tile ${action.tone}`} to={action.to}>
               <span className="ic" aria-hidden="true">

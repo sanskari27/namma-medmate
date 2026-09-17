@@ -118,10 +118,12 @@ export const createPurchaseEntry = createAsyncThunk<
 
   const key = reuseIdempotencyKey(BILL_IDEMPOTENCY_KEY);
   try {
+    const supplier = getState().purchases.suppliers.find((row) => row.id === draft.supplierId);
     const result = await receivePurchaseBill({
       supplierId: draft.supplierId,
-      expectedDeliveryDate: draft.invoiceDate || null,
-      paymentTerms: 'CREDIT',
+      expectedDeliveryDate: null,
+      invoiceDate: draft.invoiceDate || null,
+      paymentTerms: supplier?.paymentTerms ?? 'CREDIT',
       notes: `Invoice ${draft.invoiceNo.trim()}`,
       receiptReference: draft.invoiceNo.trim(),
       idempotencyKey: key,

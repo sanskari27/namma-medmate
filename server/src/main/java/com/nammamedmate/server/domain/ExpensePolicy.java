@@ -1,6 +1,8 @@
 package com.nammamedmate.server.domain;
 
 import com.nammamedmate.server.shared.exception.ApiException;
+import java.math.BigDecimal;
+import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -189,7 +191,10 @@ public final class ExpensePolicy {
     if (gstPercent <= 0) {
       return 0L;
     }
-    return amountPaise * gstPercent / (100L + gstPercent);
+    return BigDecimal.valueOf(amountPaise)
+        .multiply(BigDecimal.valueOf(gstPercent))
+        .divide(BigDecimal.valueOf(100L + gstPercent), 0, RoundingMode.HALF_UP)
+        .longValueExact();
   }
 
   public static String formatExpenseNo(long sequence) {

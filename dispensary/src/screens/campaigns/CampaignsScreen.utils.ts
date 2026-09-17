@@ -6,11 +6,13 @@ export type PageStatus =
 export type FormState = {
   name: string;
   tagIds: string[];
+  templateUniqueName: string;
 };
 
 export const emptyForm = (): FormState => ({
   name: '',
   tagIds: [],
+  templateUniqueName: '',
 });
 
 export { hasCampaignAccess } from '@/libs/campaignAccess';
@@ -26,7 +28,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'empty':
       return 'No tag broadcasts yet. Pick a saved tag and count this list.';
     case 'validation':
-      return 'Name and at least one patient tag are needed before saving this broadcast.';
+      return 'Name, a patient tag, and an approved shop update slot are needed before saving this broadcast.';
     case 'denied':
       return 'This till cannot prepare broadcasts. Ask the owner to grant Campaigns.';
     case 'conflict':
@@ -96,5 +98,5 @@ export function apiStatusHint(code: string | null): string | null {
 }
 
 export function formValid(form: FormState): boolean {
-  return Boolean(form.name.trim()) && form.tagIds.length > 0;
+  return Boolean(form.name.trim()) && form.tagIds.length > 0 && Boolean(form.templateUniqueName);
 }

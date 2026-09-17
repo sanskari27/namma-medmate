@@ -13,6 +13,7 @@ vi.mock('@/services/customers', async () => {
   const axios = await import('@/services/axios');
   return {
     listCustomers: vi.fn(),
+    createCustomer: vi.fn(),
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
@@ -105,7 +106,8 @@ vi.mock('@/services/salesInvoices', async () => {
   };
 });
 
-import { listCustomers } from '@/services/customers';
+import { ApiError } from '@/services/axios';
+import { createCustomer, listCustomers } from '@/services/customers';
 import { listDoctors } from '@/services/doctors';
 import { listStockBatches } from '@/services/inventory';
 import { evaluateMedicationSafety } from '@/services/medicationSafety';
@@ -114,6 +116,7 @@ import { listSalesCatalogue } from '@/services/salesCatalogue';
 import { applyInvoicePricing, createSalesInvoice } from '@/services/salesInvoices';
 
 const listCustomersMock = vi.mocked(listCustomers);
+const createCustomerMock = vi.mocked(createCustomer);
 const listCatalogueMock = vi.mocked(listSalesCatalogue);
 const evaluateMock = vi.mocked(evaluateMedicationSafety);
 const listUnitsMock = vi.mocked(listProductUnits);
@@ -223,6 +226,7 @@ function renderPage(
 describe('PosScreen', () => {
   beforeEach(() => {
     listCustomersMock.mockReset();
+    createCustomerMock.mockReset();
     listCatalogueMock.mockReset();
     evaluateMock.mockReset();
     listUnitsMock.mockReset();
@@ -288,6 +292,33 @@ describe('PosScreen', () => {
     await screen.findByText('Penicillin V');
     await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
     expect(screen.getByRole('button', { name: 'Proceed to bill' })).toBeDisabled();
+  });
+
+  it('success: duplicate-phone Search this phone fills till customer search', async () => {
+    const user = userEvent.setup();
+    createCustomerMock.mockRejectedValue(new ApiError('taken', 409, 'PHONE_TAKEN'));
+    renderPage();
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: 'Select customer' }));
+    await user.click(screen.getByRole('button', { name: 'Create customer' }));
+    await user.type(screen.getByLabelText('Name'), 'Dup');
+    await user.type(screen.getByLabelText('Phone'), '9876500001');
+    await user.click(screen.getByRole('button', { name: 'Save customer' }));
+    expect(await screen.findByPlaceholderText('Name or phone')).toHaveValue('9876500001');
+  });
+
+  it('success: search Enter adds the first match and restores search focus after pack tap', async () => {
+    const user = userEvent.setup();
+    renderPage();
+    const search = await screen.findByLabelText('Search medicine, salt, or brand');
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
+    expect(await screen.findByText(/10 Tablet each/)).toBeInTheDocument();
+    expect(search).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Clear' }));
+    await user.type(search, 'Penicillin{Enter}');
+    expect(await screen.findByText(/10 Tablet each/)).toBeInTheDocument();
+    expect(search).toHaveFocus();
   });
 
   it('success: draft line shows converted base quantity', async () => {

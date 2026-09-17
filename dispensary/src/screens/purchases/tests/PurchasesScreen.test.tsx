@@ -88,6 +88,7 @@ const supplier = {
   id: 's1',
   legalName: 'Acme Pharma',
   status: 'ACTIVE',
+  paymentTerms: 'COD',
 } as Supplier;
 
 const product = {
@@ -260,8 +261,14 @@ describe('PurchasesScreen', () => {
     expect(receiveBill.mock.calls[0][0]).toMatchObject({
       supplierId: 's1',
       receiptReference: 'BPD/1',
+      paymentTerms: 'COD',
+      expectedDeliveryDate: null,
+      invoiceDate: expect.stringMatching(/^\d{4}-\d{2}-\d{2}$/),
       lines: [{ productId: 'p1', quantity: 10, freeQuantity: 2, unitRatePaise: 10000 }],
     });
+    expect(receiveBill.mock.calls[0][0].expectedDeliveryDate).not.toBe(
+      receiveBill.mock.calls[0][0].invoiceDate,
+    );
     expect(createPo).not.toHaveBeenCalled();
     expect(await screen.findByText('Open pharmacist check')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Open pharmacist check' })).toHaveAttribute(

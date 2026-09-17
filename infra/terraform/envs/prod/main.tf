@@ -39,4 +39,8 @@ module "platform" {
   password_reset_dispensary_url = var.password_reset_dispensary_url
   password_reset_admin_url = var.password_reset_admin_url
   email_verification_dispensary_url = var.email_verification_dispensary_url
+  meta_whatsapp_token               = var.meta_whatsapp_token
+  meta_whatsapp_phone_number_id     = var.meta_whatsapp_phone_number_id
+  meta_whatsapp_waba_id             = var.meta_whatsapp_waba_id
+  meta_whatsapp_display_number      = var.meta_whatsapp_display_number
 }

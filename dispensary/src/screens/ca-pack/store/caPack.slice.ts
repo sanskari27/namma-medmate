@@ -2,7 +2,6 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 import type { CaPack } from '@/services/caPack';
 import {
   defaultEnabled,
-  loadAdvisors,
   loadHistory,
   periodOptions,
   type Advisor,
@@ -41,7 +40,7 @@ export const initialCaPackScreenState: CaPackScreenState = {
   scope: 'session',
   enabled: defaultEnabled(),
   advisorId: '',
-  advisors: loadAdvisors(),
+  advisors: [] as Advisor[],
   history: loadHistory(),
   formOpen: false,
   form: null,

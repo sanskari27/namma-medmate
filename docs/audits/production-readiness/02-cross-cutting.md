@@ -85,7 +85,7 @@ Idle lock **implementation** matches D-015 on both SPAs. Copy and HQ gating do n
 - Suggested tests: impersonation + pinSet + 5 min → lock still shown.
 - Out of scope?: no (document in DECISIONS only if product explicitly waives HQ lock during support)
 
-**Status:** FIXED 2026-09-15 — `useIdleLock(pinSet && !mustChangePassword)`; `HqSessionLock` mounts during support. `DashboardLayout.pin.test.tsx` support+5min lock. Browser: Enter Varshmaan → idle → lock overlay → Resume PIN keeps support banner. `M1-PIN-004` (unlock JWT drops `act_*`) remains open.
+**Status:** FIXED 2026-09-15 — `useIdleLock(pinSet && !mustChangePassword)`; `HqSessionLock` mounts during support. `DashboardLayout.pin.test.tsx` support+5min lock. Browser: Enter Varshmaan → idle → lock overlay → Resume PIN keeps support banner. `M1-PIN-004` FIXED 2026-09-17 — unlock JWT keeps `act_*`.
 
 ### [PIN-DISP-02] Four-hour abandon path untested
 - Severity: P2
@@ -99,6 +99,8 @@ Idle lock **implementation** matches D-015 on both SPAs. Copy and HQ gating do n
 - Fix: Fake timers 4h after lock; assert login + reason.
 - Suggested tests: `DashboardLayout.pin.test` abandon case (both SPAs).
 - Out of scope?: no
+
+**Status:** FIXED 2026-09-17 — alias of `M1-PIN-003`. Both SPAs fake 4h after lock → login + abandoned.
 
 ### [SEC-005] Password-change gate uses acting user during impersonation
 - Severity: P3
@@ -134,6 +136,8 @@ Idle lock **implementation** matches D-015 on both SPAs. Copy and HQ gating do n
 
 Tenant lock for non-ACTIVE statuses (KYC, SUSPENDED, EXPIRED, TERMINATED) is implemented and tested.
 
+**Status:** FIXED 2026-09-17 — missing/`deletedAt` tenant is 403 `TENANT_LOCKED`. `TenantLifecycleTest.ac03_softDeletedTenantIsLocked_TENANT_001`.
+
 ---
 
 ## Cookies, CORS, CSRF
@@ -146,6 +150,8 @@ Tenant lock for non-ACTIVE statuses (KYC, SUSPENDED, EXPIRED, TERMINATED) is imp
 - Actual: Wrong profile ships non-Secure `nmm_access`.
 - Fix: Fail-fast in non-local profiles if `secure-cookie=false`, or default true and opt out only in `local`/`test`.
 - Suggested tests: `AuthCookieServiceProdSecureTest`
+
+**Status:** FIXED 2026-09-17 — `ProdSecureCookieGuard` `@Profile("prod")` fails fast if `app.security.secure-cookie=false`. Local/test stay false.
 
 ### [SEC-004] CSRF disabled; SameSite Lax mitigates
 - Severity: P3
@@ -345,6 +351,8 @@ Money paise and UTC persist are solid. Residual time issues:
 - Evidence: `NAV_ITEMS` unconditional; screens deny after navigation.
 - Fix: Filter rail by `role`/`modules` (server still authoritative).
 
+**Status:** FIXED 2026-09-17 — `visibleHqNav`. VA: Dashboard / KYC / Staff approvals. Browser: `verify.agent@nammamedmate.local` rail matches.
+
 ---
 
 ## Production ops (spine; details continue in `07-production-ops.md`)
@@ -367,21 +375,17 @@ Money paise and UTC persist are solid. Residual time issues:
 - Severity: P1
 - Type: DRIFT
 - Apps: infra
-- Evidence: Local compose injects `META_WHATSAPP_*`; TF SSM join omits them. Adapter skip-if-blank.
-- User impact: Silent no-send in prod if ops forgets the manual step.
-- Fix: Add keys to prod env workflow / SSM seed docs.
+- **Status:** FIXED 2026-09-17 — alias of `M10-WA-003`. SSM seed + tfvars + `.env.prod.example` include `META_WHATSAPP_*`. Existing blobs need one-time `set`.
 
 ### [TF-SNAPSHOT] `skip_final_snapshot` defaults true
 - Severity: P1
 - Type: PROD-OPS
-- Evidence: `envs/prod/variables.tf` default `true`; no `deletion_protection`.
-- Fix: Default `false`; enable deletion protection. Overlaps D-006 policy but the default is unsafe *today*.
+- **Status:** FIXED 2026-09-17 — default `false`; `deletion_protection = true`; final snapshot identifier when not skipping.
 
 ### [TF-SSH-EXAMPLE] Example SSH CIDR is world-open
 - Severity: P1
 - Type: SECURITY
-- Evidence: `terraform.tfvars.example` `admin_ssh_cidr = ["0.0.0.0/0"]`.
-- Fix: Example `/32`; prefer SSM-only and drop port 22.
+- **Status:** FIXED 2026-09-17 — example `203.0.113.10/32`; README prefers SSM. Port 22 remains for a named `/32`.
 
 ### [OPS-STORAGE] App files on EC2 bind mount without backup story
 - Severity: P1 (data) — policy under D-006

@@ -1,5 +1,5 @@
 import { configureStore } from '@reduxjs/toolkit';
-import { render, screen, waitFor } from '@testing-library/react';
+import { render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -58,7 +58,10 @@ const support = {
   tenantName: 'varshmaan-rx',
 };
 
-function renderShell(withSupport: boolean, extra: { mustChangePassword?: boolean } = {}) {
+function renderShell(
+  withSupport: boolean,
+  extra: { mustChangePassword?: boolean; role?: string; modules?: string[]; path?: string } = {},
+) {
   const store = configureStore({
     reducer: { auth: authReducer, inbox: inboxReducer },
     preloadedState: {
@@ -66,11 +69,12 @@ function renderShell(withSupport: boolean, extra: { mustChangePassword?: boolean
         user: {
           userId: 'm1',
           displayName: 'Sanskar',
-          role: 'admin_super',
+          role: extra.role ?? 'admin_super',
           tenantId: null,
           pinSet: true,
           impersonation: withSupport ? support : null,
           mustChangePassword: Boolean(extra.mustChangePassword),
+          modules: extra.modules,
         },
       },
       inbox: {
@@ -89,10 +93,14 @@ function renderShell(withSupport: boolean, extra: { mustChangePassword?: boolean
     ...render(
       <Provider store={store}>
         <TooltipProvider>
-          <MemoryRouter initialEntries={[ROUTES.DASHBOARD]}>
+          <MemoryRouter initialEntries={[extra.path ?? ROUTES.DASHBOARD]}>
             <Routes>
               <Route element={<DashboardLayout />}>
                 <Route path={ROUTES.DASHBOARD} element={<div>Tenant pulse</div>} />
+                <Route path={ROUTES.PHARMACIES} element={<div>Pharmacies desk</div>} />
+                <Route path={ROUTES.SUPPORT} element={<div>Support desk</div>} />
+                <Route path={ROUTES.KYC} element={<div>KYC desk</div>} />
+                <Route path={ROUTES.STAFF_VERIFICATIONS} element={<div>Staff desk</div>} />
               </Route>
             </Routes>
           </MemoryRouter>
@@ -136,6 +144,33 @@ describe('HQ support banner', () => {
       expect(store.getState().auth.user?.role).toBe('admin_super');
       expect(store.getState().auth.user?.impersonation).toBeNull();
     });
+  });
+
+  it('success: exit support remounts onto the support desk', async () => {
+    const user = userEvent.setup();
+    exitImpersonation.mockResolvedValue({
+      userId: 'm1',
+      displayName: 'Sanskar',
+      role: 'admin_super',
+      tenantId: null,
+      pinSet: true,
+      impersonation: null,
+    });
+    renderShell(true, { path: ROUTES.PHARMACIES });
+    expect(screen.getByText('Pharmacies desk')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Exit support session' }));
+    expect(await screen.findByText('Support desk')).toBeInTheDocument();
+  });
+
+  it('denied: verification agent does not see MASTER-only rail items', () => {
+    renderShell(false, { role: 'admin_verification', modules: ['TENANT_KYC'] });
+    const nav = screen.getByRole('navigation', { name: 'Platform modules' });
+    expect(within(nav).getByRole('link', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'KYC' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Staff approvals' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Pharmacies' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Support' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Operators' })).not.toBeInTheDocument();
   });
 
   it('denied: support session does not show the target password rotate overlay', () => {

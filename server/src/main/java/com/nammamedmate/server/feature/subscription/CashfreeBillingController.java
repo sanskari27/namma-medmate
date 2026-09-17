@@ -15,6 +15,7 @@ import jakarta.validation.Valid;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
 import java.math.BigDecimal;
+import java.time.Clock;
 import java.time.Instant;
 import java.util.UUID;
 import org.springframework.beans.factory.annotation.Value;
@@ -27,6 +28,7 @@ import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestHeader;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -36,14 +38,17 @@ public class CashfreeBillingController {
   private final CashfreeBillingService cashfreeBillingService;
   private final ObjectMapper objectMapper;
   private final String webhookSecret;
+  private final Clock clock;
 
   public CashfreeBillingController(
       CashfreeBillingService cashfreeBillingService,
       ObjectMapper objectMapper,
-      @Value("${app.cashfree.webhook-secret:}") String webhookSecret) {
+      @Value("${app.cashfree.webhook-secret:}") String webhookSecret,
+      Clock clock) {
     this.cashfreeBillingService = cashfreeBillingService;
     this.objectMapper = objectMapper;
     this.webhookSecret = webhookSecret;
+    this.clock = clock;
   }
 
   @PostMapping
@@ -60,13 +65,26 @@ public class CashfreeBillingController {
   public ApiResponse<CashfreePaymentResponse> status(
       Authentication authentication, @PathVariable UUID id) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
-    return ApiResponse.ok(toResponse(cashfreeBillingService.reconcile(principal, id)));
+    return ApiResponse.ok(toResponse(cashfreeBillingService.status(principal, id)));
   }
 
   @GetMapping
   public ApiResponse<CashfreePaymentResponse> statusByOrder(
-      Authentication authentication,
-      @org.springframework.web.bind.annotation.RequestParam String orderId) {
+      Authentication authentication, @RequestParam String orderId) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toResponse(cashfreeBillingService.statusByOrder(principal, orderId)));
+  }
+
+  @PostMapping("/{id}/reconcile")
+  public ApiResponse<CashfreePaymentResponse> reconcile(
+      Authentication authentication, @PathVariable UUID id) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(toResponse(cashfreeBillingService.reconcile(principal, id)));
+  }
+
+  @PostMapping("/reconcile")
+  public ApiResponse<CashfreePaymentResponse> reconcileByOrder(
+      Authentication authentication, @RequestParam String orderId) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toResponse(cashfreeBillingService.reconcileByOrder(principal, orderId)));
   }
@@ -76,7 +94,7 @@ public class CashfreeBillingController {
       @RequestHeader(value = "x-webhook-timestamp", required = false) String timestamp,
       @RequestHeader(value = "x-webhook-signature", required = false) String signature,
       @RequestBody String body) {
-    if (!CashfreeWebhookSignature.valid(webhookSecret, timestamp, body, signature)) {
+    if (!CashfreeWebhookSignature.valid(webhookSecret, timestamp, body, signature, clock)) {
       throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
     }
     JsonNode json;

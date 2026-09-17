@@ -41,7 +41,16 @@ export function CustomerFamilyDialog({
     if (primary) {
       taken.add(primary.id);
     }
-    return candidates.filter((row) => !taken.has(row.id));
+    const currentFamilyId = existingFamily?.id ?? primary?.familyId ?? null;
+    return candidates.filter((row) => {
+      if (taken.has(row.id)) {
+        return false;
+      }
+      if (row.familyId && row.familyId !== currentFamilyId) {
+        return false;
+      }
+      return true;
+    });
   }, [candidates, existingFamily, primary]);
 
   function restoreFocus() {

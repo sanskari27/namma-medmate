@@ -5,6 +5,9 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CustomReportsScreen from '@/screens/custom-reports/CustomReportsScreen';
+import { CUSTOM_REPORTS_CONTENT } from '@/screens/custom-reports/CustomReportsScreen.content';
+import { formatPaise, previewCell } from '@/screens/custom-reports/CustomReportsScreen.utils';
+import { customReportsReducer } from '@/screens/custom-reports/store/customReports.slice';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
@@ -63,8 +66,8 @@ const preview: CustomReportPreview = {
   to: '2026-09-06',
   scope: 'branch',
   branchId: 'b1',
-  columns: ['invoiceNumber', 'productName'],
-  items: [{ invoiceNumber: 'INV-1', productName: 'Top Pack' }],
+  columns: ['invoiceNumber', 'productName', 'sellingPaise'],
+  items: [{ invoiceNumber: 'INV-1', productName: 'Top Pack', sellingPaise: '11200' }],
   rowCount: 1,
   truncated: false,
   generatedAt: '2026-09-06T02:00:00Z',
@@ -76,7 +79,7 @@ function renderPage(
   activeBranchId: string | null = 'b1',
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, customReports: customReportsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -223,5 +226,52 @@ describe('CustomReportsScreen', () => {
     expect(
       await screen.findByText('That column is not on this report. Pick from the list.'),
     ).toBeInTheDocument();
+  });
+
+  it('exports CSV and formats money columns in preview', async () => {
+    expect(CUSTOM_REPORTS_CONTENT.exportSheet).toBe('CSV');
+    expect(CUSTOM_REPORTS_CONTENT.exportSheet).not.toBe('Excel');
+    expect(previewCell('sellingPaise', '11200', 'MONEY')).toBe(formatPaise(11200));
+    expect(previewCell('invoiceNumber', 'INV-1', 'TEXT')).toBe('INV-1');
+
+    const user = userEvent.setup();
+    catalogMock.mockResolvedValue(catalog);
+    previewMock.mockResolvedValue(preview);
+    downloadMock.mockResolvedValue(new Blob(['invoiceNumber,sellingPaise'], { type: 'text/csv' }));
+    const store = configureStore({
+      reducer: { auth: authReducer, customReports: customReportsReducer },
+      preloadedState: {
+        auth: {
+          user: {
+            userId: 'user-1',
+            displayName: 'Varshmaan',
+            role: 'pharmacy_owner',
+            tenantId: 't1',
+            pinSet: true,
+            tenantStatus: 'ACTIVE',
+            emailVerified: true,
+            modules: ['REPORTING'],
+            branches: [{ id: 'b1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' }],
+            activeBranchId: 'b1',
+          },
+        },
+      },
+    });
+    render(
+      <Provider store={store}>
+        <MemoryRouter>
+          <CustomReportsScreen />
+        </MemoryRouter>
+      </Provider>,
+    );
+    await user.click((await screen.findAllByRole('button', { name: /Till bills/ }))[0]);
+    const table = await screen.findByRole('table', { name: 'Report preview' });
+    expect(table).toHaveTextContent('₹112');
+    expect(table).not.toHaveTextContent('11200');
+    expect(screen.getByRole('button', { name: 'CSV' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Excel' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'CSV' }));
+    await waitFor(() => expect(downloadMock).toHaveBeenCalled());
+    expect(downloadMock.mock.calls[0][1]).toBe('csv');
   });
 });

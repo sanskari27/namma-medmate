@@ -44,6 +44,17 @@ const duplicate: Customer = {
   allergies: 'Dust',
 };
 
+const emptyLinked = {
+  notificationEvents: 0,
+  salesInvoices: 0,
+  creditEntries: 0,
+  loyaltyEntries: 0,
+  historyFacts: 0,
+  refills: 0,
+  tags: 0,
+  familyMembers: 0,
+};
+
 describe('CustomerMergeDialog', () => {
   beforeEach(() => {
     previewMock.mockReset();
@@ -87,7 +98,13 @@ describe('CustomerMergeDialog', () => {
         },
       ],
       conflicts: ['name', 'phone'],
-      linkedRecords: { notificationEvents: 1 },
+      linkedRecords: {
+        ...emptyLinked,
+        notificationEvents: 1,
+        salesInvoices: 2,
+        creditEntries: 1,
+        historyFacts: 1,
+      },
     });
     executeMock.mockResolvedValue({ ...survivor, name: 'Ravi Kumar' });
 
@@ -106,7 +123,7 @@ describe('CustomerMergeDialog', () => {
     await waitFor(() => {
       expect(previewMock).toHaveBeenCalledWith('c1', 'c2');
     });
-    expect(await screen.findByText(/notification event/)).toBeInTheDocument();
+    expect(await screen.findByText(/This merge moves 2 sales, 1 khata line, 1 history fact, 1 notification/)).toBeInTheDocument();
 
     await user.click(screen.getAllByRole('radio', { name: /Use duplicate/i })[0]!);
     await user.click(screen.getByRole('button', { name: 'Confirm merge' }));
@@ -167,7 +184,7 @@ describe('CustomerMergeDialog', () => {
       duplicate,
       fields: [],
       conflicts: [],
-      linkedRecords: { notificationEvents: 0 },
+      linkedRecords: emptyLinked,
     });
     executeMock.mockRejectedValue(new ApiError('down', 500, 'SERVER_ERROR'));
 

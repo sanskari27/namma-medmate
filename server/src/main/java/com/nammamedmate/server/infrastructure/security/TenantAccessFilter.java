@@ -49,7 +49,11 @@ public class TenantAccessFilter extends OncePerRequestFilter {
     }
     Tenant tenant = tenantRepository.findById(principal.tenantId()).orElse(null);
     if (tenant == null || tenant.getDeletedAt() != null) {
-      filterChain.doFilter(request, response);
+      if (isSessionAllowlisted(request)) {
+        filterChain.doFilter(request, response);
+        return;
+      }
+      writeLocked(response, TERMINATED_LOCKED_MESSAGE);
       return;
     }
     TenantStatus status = tenant.getStatus();

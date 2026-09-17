@@ -45,6 +45,25 @@ export function filenameFor(dataset: string, format: 'csv' | 'pdf'): string {
   return `${dataset.toLowerCase()}-report.${format}`;
 }
 
+export function formatPaise(paise: number): string {
+  return new Intl.NumberFormat('en-IN', {
+    style: 'currency',
+    currency: 'INR',
+    minimumFractionDigits: 0,
+    maximumFractionDigits: 2,
+  }).format(paise / 100);
+}
+
+export function previewCell(column: string, value: string | undefined, kind?: string): string {
+  if (value == null || value === '') {
+    return '';
+  }
+  if ((kind === 'MONEY' || column.endsWith('Paise')) && /^-?\d+$/.test(value)) {
+    return formatPaise(Number(value));
+  }
+  return value;
+}
+
 export function statusCopy(status: PageStatus, hint?: string | null): string | null {
   if (hint) {
     return hint;

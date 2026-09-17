@@ -7,7 +7,6 @@ type InventoryStockTableProps = {
   flagBusyId: string | null;
   emptyMessage: string;
   onToggleLoose: (productId: string, next: boolean) => void;
-  onToggleOnline: (productId: string, next: boolean) => void;
   onEdit: (productId: string) => void;
   onOpenBatches: (productId: string) => void;
 };
@@ -22,7 +21,6 @@ const COLUMNS = [
   INVENTORY_CONTENT.columns.mrp,
   INVENTORY_CONTENT.columns.value,
   INVENTORY_CONTENT.columns.loose,
-  INVENTORY_CONTENT.columns.online,
   '',
 ] as const;
 
@@ -31,7 +29,6 @@ export function InventoryStockTable({
   flagBusyId,
   emptyMessage,
   onToggleLoose,
-  onToggleOnline,
   onEdit,
   onOpenBatches,
 }: InventoryStockTableProps) {
@@ -65,7 +62,6 @@ export function InventoryStockTable({
                 row={row}
                 busy={flagBusyId === row.productId}
                 onToggleLoose={(next) => onToggleLoose(row.productId, next)}
-                onToggleOnline={(next) => onToggleOnline(row.productId, next)}
                 onEdit={() => onEdit(row.productId)}
                 onOpenBatches={() => onOpenBatches(row.productId)}
               />

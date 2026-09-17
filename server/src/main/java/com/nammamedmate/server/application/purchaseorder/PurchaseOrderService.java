@@ -144,6 +144,8 @@ public class PurchaseOrderService {
             .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
             .orElseThrow(PurchaseOrderService::notFound);
     PurchaseOrderPolicy.assertVersion(order.getVersion(), command.expectedVersion());
+    PurchaseOrderPolicy.assertNoReceipts(
+        !goodsReceiptService.list(principal, order.getId()).receipts().isEmpty());
     PurchaseOrderPolicy.assertEditable(order.getStatus());
     PurchaseOrderPolicy.assertSameSupplier(order.getSupplierId(), command.supplierId());
     Supplier supplier = requireSupplier(order.getSupplierId(), ctx.tenantId());
@@ -197,6 +199,11 @@ public class PurchaseOrderService {
   private ReceiveBillView insertBill(
       AuthPrincipal principal, Context ctx, ReceiveBillCommand command, String key) {
     List<CreatePurchaseOrderCommand.Line> poLines = expandBillLines(command.lines());
+    String notes = command.notes();
+    if (command.invoiceDate() != null) {
+      String dated = "dated " + command.invoiceDate();
+      notes = notes == null || notes.isBlank() ? dated : notes + " " + dated;
+    }
     PurchaseOrderView created =
         insert(
             principal,
@@ -205,7 +212,7 @@ public class PurchaseOrderService {
                 command.supplierId(),
                 command.expectedDeliveryDate(),
                 command.paymentTerms(),
-                command.notes(),
+                notes,
                 key,
                 poLines),
             key);

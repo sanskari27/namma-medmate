@@ -214,7 +214,8 @@ public class CustomerController {
         0L,
         0L,
         0L,
-        view.chronicConditions() != null && !view.chronicConditions().isBlank());
+        view.chronicConditions() != null && !view.chronicConditions().isBlank(),
+        null);
   }
 
   private CustomerResponse toListResponse(CustomerDirectoryView view) {
@@ -241,7 +242,8 @@ public class CustomerController {
         view.loyaltyPoints(),
         view.lifetimeValuePaise(),
         view.creditDuePaise(),
-        view.chronicRx());
+        view.chronicRx(),
+        view.familyId());
   }
 
   private DirectoryItemResponse toDirectoryResponse(CustomerDirectoryView view) {
@@ -262,7 +264,8 @@ public class CustomerController {
         view.creditDuePaise(),
         view.chronicRx(),
         view.createdAt(),
-        view.updatedAt());
+        view.updatedAt(),
+        view.familyId());
   }
 
   private MergePreviewResponse toMergePreviewResponse(CustomerMergePreview preview) {
@@ -327,7 +330,8 @@ public class CustomerController {
       long creditDuePaise,
       boolean chronicRx,
       Instant createdAt,
-      Instant updatedAt) {}
+      Instant updatedAt,
+      UUID familyId) {}
 
   public record DirectoryPurchaseResponse(
       UUID invoiceId,
@@ -374,7 +378,8 @@ public class CustomerController {
       long loyaltyPoints,
       long lifetimeValuePaise,
       long creditDuePaise,
-      boolean chronicRx) {}
+      boolean chronicRx,
+      UUID familyId) {}
 
   public record UpsertCustomerRequest(
       @NotBlank @Size(max = 200) String name,

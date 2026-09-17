@@ -39,8 +39,14 @@ export type PeriodOption = {
   to: string;
 };
 
-const ADVISORS_KEY = 'namma-ca-advisors';
 const HISTORY_KEY = 'namma-ca-share-history';
+
+export function advisorsKey(tenantId: string | null | undefined): string | null {
+  if (!tenantId) {
+    return null;
+  }
+  return `namma-ca-advisors:${tenantId}`;
+}
 
 export { hasFinanceAccess } from '@/libs/financeAccess';
 
@@ -126,9 +132,13 @@ export function emptyAdvisor(kind: AdvisorKind): Advisor {
   };
 }
 
-export function loadAdvisors(): Advisor[] {
+export function loadAdvisors(tenantId?: string | null): Advisor[] {
+  const key = advisorsKey(tenantId);
+  if (!key) {
+    return [];
+  }
   try {
-    const raw = localStorage.getItem(ADVISORS_KEY);
+    const raw = localStorage.getItem(key);
     if (!raw) {
       return [];
     }
@@ -139,8 +149,12 @@ export function loadAdvisors(): Advisor[] {
   }
 }
 
-export function saveAdvisors(items: Advisor[]): void {
-  localStorage.setItem(ADVISORS_KEY, JSON.stringify(items));
+export function saveAdvisors(items: Advisor[], tenantId?: string | null): void {
+  const key = advisorsKey(tenantId);
+  if (!key) {
+    return;
+  }
+  localStorage.setItem(key, JSON.stringify(items));
 }
 
 export function loadHistory(): ShareHistoryItem[] {

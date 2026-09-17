@@ -16,6 +16,7 @@ public final class QualityCheckPolicy {
 
   private QualityCheckPolicy() {}
 
+  // OWNER QC is intentional: pharmacy_owner may accept a delivery onto the floor.
   public static void requirePharmacist(AppUserRole role, boolean pharmacistAssigned) {
     if (role == AppUserRole.pharmacy_owner || pharmacistAssigned) {
       return;

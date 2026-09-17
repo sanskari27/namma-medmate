@@ -33,4 +33,16 @@ class HealthControllerTest {
         .andExpect(jsonPath("$.data.status").value("UP"))
         .andExpect(jsonPath("$.data.service").value("namma-medmate-server"));
   }
+
+  @Test
+  void healthReturnsDownEnvelopeWhenDatabaseFails() throws Exception {
+    when(healthService.getHealth()).thenReturn(new HealthStatus("DOWN", "namma-medmate-server"));
+
+    mockMvc
+        .perform(get("/api/v1/health"))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.success").value(true))
+        .andExpect(jsonPath("$.data.status").value("DOWN"))
+        .andExpect(jsonPath("$.data.service").value("namma-medmate-server"));
+  }
 }

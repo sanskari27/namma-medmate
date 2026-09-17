@@ -64,6 +64,9 @@ export const DISTRIBUTORS_CONTENT = {
     email: 'Email',
     gstin: 'GSTIN',
     gstinPlaceholder: '29ABCDE1234F1Z5',
+    pan: 'PAN',
+    creditLimit: 'Credit limit (₹)',
+    bank: 'Bank',
     drugLicense: 'Drug licence no.',
     drugLicensePlaceholder: 'KA-W-…',
     address: 'Address',
@@ -83,6 +86,10 @@ export const DISTRIBUTORS_CONTENT = {
   payment: {
     title: 'Record payment',
     body: 'Partial or full settlement against this stockist khata.',
+    outstanding: 'Outstanding',
+    ledger: 'Khata lines',
+    confirm: (amount: string, outstanding: string) =>
+      `Post ${amount} against outstanding ${outstanding}?`,
     amount: 'Amount (₹)',
     mode: 'Mode',
     reference: 'Reference',

@@ -216,7 +216,7 @@ export function statusCopy(status: PageStatus): string | null {
       return 'Could not reach the server for this account. Try again from this counter.';
     case 'success':
     case 'submitted':
-      return 'KYC pack sent. Floor stays locked until review finishes.';
+      return 'KYC pack sent. HQ verification (MASTER or agent) files this. Floor stays locked until review finishes.';
     case 'rejected':
       return 'This pack was rejected. Fix the noted issue and resubmit from this counter.';
     case 'approved':

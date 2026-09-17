@@ -2,6 +2,7 @@ import { Search } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import { POS_CONTENT } from '../../PosScreen.content';
+import { restorePosSearchFocus } from '../../PosScreen.utils';
 import {
   barcodeQueryChanged,
   productQueryChanged,
@@ -9,14 +10,16 @@ import {
 import {
   selectPosBarcodeQuery,
   selectPosBusy,
+  selectPosCatalogue,
   selectPosProductQuery,
 } from '../../store/pos.selectors';
-import { scanBarcode } from '../../store/pos.thunks';
+import { addProduct, scanBarcode } from '../../store/pos.thunks';
 
 export function PosToolbar() {
   const dispatch = useDispatch<AppDispatch>();
   const barcodeQuery = useSelector(selectPosBarcodeQuery);
   const productQuery = useSelector(selectPosProductQuery);
+  const catalogue = useSelector(selectPosCatalogue);
   const busy = useSelector(selectPosBusy);
 
   return (
@@ -40,7 +43,17 @@ export function PosToolbar() {
           {POS_CONTENT.addBarcode}
         </button>
       </form>
-      <div className="pos-search-row">
+      <form
+        className="pos-search-row"
+        onSubmit={(event) => {
+          event.preventDefault();
+          const first = catalogue[0];
+          if (!first || busy) {
+            return;
+          }
+          void dispatch(addProduct({ item: first, mode: 'pack' })).finally(restorePosSearchFocus);
+        }}
+      >
         <Search size={16} aria-hidden="true" className="pos-search-icon" />
         <input
           id="pos-product-search"
@@ -50,7 +63,7 @@ export function PosToolbar() {
           disabled={busy}
           aria-label={POS_CONTENT.searchAria}
         />
-      </div>
+      </form>
     </div>
   );
 }

@@ -1,6 +1,7 @@
 package com.nammamedmate.server.infrastructure.security;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
+import com.nammamedmate.server.application.branch.BranchAssignmentService;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.TenantRepository;
@@ -40,9 +41,15 @@ public class SecurityConfig {
       AuthCookieService authCookieService,
       UserSessionRepository userSessionRepository,
       AppUserRepository appUserRepository,
+      BranchAssignmentService branchAssignmentService,
       Clock clock) {
     return new JwtAuthenticationFilter(
-        jwtService, authCookieService, userSessionRepository, appUserRepository, clock);
+        jwtService,
+        authCookieService,
+        userSessionRepository,
+        appUserRepository,
+        branchAssignmentService,
+        clock);
   }
 
   @Bean
@@ -173,7 +180,8 @@ public class SecurityConfig {
   }
 
   private static boolean isHqMaster(Authentication authentication) {
-    if (authentication == null || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
+    if (authentication == null
+        || !(authentication.getPrincipal() instanceof AuthPrincipal principal)) {
       return false;
     }
     return principal.hqRole() == AppUserRole.admin_super;

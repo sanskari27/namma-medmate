@@ -145,6 +145,7 @@ function renderDashboard(
                 <Route path={ROUTES.DASHBOARD} element={<div>Counter overview</div>} />
                 <Route path={ROUTES.SALES} element={<div>Sales page</div>} />
                 <Route path={ROUTES.ACCOUNT} element={<div>Account page</div>} />
+                <Route path={ROUTES.SUBSCRIPTION} element={<div>Subscription page</div>} />
                 <Route path={ROUTES.DISTRIBUTORS} element={<div>Distributors page</div>} />
                 <Route path={ROUTES.LOGIN} element={<div>Pharmacy sign in</div>} />
               </Route>
@@ -350,8 +351,26 @@ describe('dispensary counter rail', () => {
     const user = userEvent.setup();
     const { store } = renderDashboard(ROUTES.DASHBOARD);
     expect(store.getState().pos.prescriptionReference).toBe('RX-OPEN');
+    expect(screen.queryByRole('searchbox')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: '+ New sale' }));
     expect(store.getState().pos.prescriptionReference).toBe('');
     expect(screen.getByText('Sales page')).toBeInTheDocument();
+  });
+
+  it('KYC lock hides floor modules and opens Account', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'VERIFICATION_REQUIRED');
+    const nav = screen.getByRole('navigation', { name: 'On this floor' });
+    expect(within(nav).getByRole('link', { name: 'Account' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Sales' })).not.toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Dashboard' })).not.toBeInTheDocument();
+    expect(screen.getByText('Account page')).toBeInTheDocument();
+  });
+
+  it('expired lock keeps Account and Subscription only', () => {
+    renderDashboard(ROUTES.DASHBOARD, 'Chemist', 'EXPIRED');
+    const nav = screen.getByRole('navigation', { name: 'On this floor' });
+    expect(within(nav).getByRole('link', { name: 'Account' })).toBeInTheDocument();
+    expect(within(nav).getByRole('link', { name: 'Subscription' })).toBeInTheDocument();
+    expect(within(nav).queryByRole('link', { name: 'Sales' })).not.toBeInTheDocument();
   });
 });

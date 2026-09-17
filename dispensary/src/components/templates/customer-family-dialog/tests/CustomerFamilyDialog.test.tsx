@@ -225,6 +225,23 @@ describe('CustomerFamilyDialog', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent('Could not update');
   });
 
+  it('hides patients already in another household', () => {
+    const taken: Customer = { ...dependent, id: 'c3', name: 'Other house', familyId: 'f-other' };
+    render(
+      <CustomerFamilyDialog
+        open
+        primary={primary}
+        candidates={[primary, dependent, taken]}
+        existingFamily={null}
+        onOpenChange={vi.fn()}
+        onLinked={vi.fn()}
+      />,
+    );
+    const select = screen.getByLabelText('Dependent to link');
+    expect(select).toHaveTextContent('Child');
+    expect(select).not.toHaveTextContent('Other house');
+  });
+
   it('success: adds to an existing family', async () => {
     const user = userEvent.setup();
     addMock.mockResolvedValue({

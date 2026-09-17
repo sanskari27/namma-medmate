@@ -5,6 +5,7 @@ import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
 import com.nammamedmate.server.domain.CustomerCreditAccount;
+import com.nammamedmate.server.domain.CustomerFamilyMember;
 import com.nammamedmate.server.domain.CustomerLoyaltyAccount;
 import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.PaymentMode;
@@ -15,6 +16,7 @@ import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
+import com.nammamedmate.server.persistence.CustomerFamilyMemberRepository;
 import com.nammamedmate.server.persistence.CustomerLoyaltyAccountRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.SalesInvoiceLineRepository;
@@ -46,6 +48,7 @@ public class CustomerDirectoryService {
   private final SalesInvoicePaymentRepository salesInvoicePaymentRepository;
   private final CustomerCreditAccountRepository creditAccountRepository;
   private final CustomerLoyaltyAccountRepository loyaltyAccountRepository;
+  private final CustomerFamilyMemberRepository familyMemberRepository;
 
   public CustomerDirectoryService(
       CustomerRepository customerRepository,
@@ -55,7 +58,8 @@ public class CustomerDirectoryService {
       SalesInvoiceLineRepository salesInvoiceLineRepository,
       SalesInvoicePaymentRepository salesInvoicePaymentRepository,
       CustomerCreditAccountRepository creditAccountRepository,
-      CustomerLoyaltyAccountRepository loyaltyAccountRepository) {
+      CustomerLoyaltyAccountRepository loyaltyAccountRepository,
+      CustomerFamilyMemberRepository familyMemberRepository) {
     this.customerRepository = customerRepository;
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
@@ -64,6 +68,7 @@ public class CustomerDirectoryService {
     this.salesInvoicePaymentRepository = salesInvoicePaymentRepository;
     this.creditAccountRepository = creditAccountRepository;
     this.loyaltyAccountRepository = loyaltyAccountRepository;
+    this.familyMemberRepository = familyMemberRepository;
   }
 
   @Transactional(readOnly = true)
@@ -79,6 +84,7 @@ public class CustomerDirectoryService {
     Map<UUID, Long> units = loadUnits(tenantId);
     Map<UUID, Long> creditDue = loadCreditDue(tenantId, customers);
     Map<UUID, Long> loyalty = loadLoyalty(tenantId, customers);
+    Map<UUID, UUID> familyByCustomer = loadFamilyIds(tenantId, customers);
 
     List<CustomerDirectoryView> items = new ArrayList<>();
     SaleAgg walkIn = sales.get(null);
@@ -104,7 +110,8 @@ public class CustomerDirectoryService {
               0L,
               false,
               walkIn.lastVisitAt(),
-              walkIn.lastVisitAt()));
+              walkIn.lastVisitAt(),
+              null));
     }
 
     for (Customer customer : customers) {
@@ -131,7 +138,8 @@ public class CustomerDirectoryService {
               due,
               chronic,
               customer.getCreatedAt(),
-              customer.getUpdatedAt()));
+              customer.getUpdatedAt(),
+              familyByCustomer.get(customer.getId())));
     }
     return items;
   }
@@ -252,6 +260,19 @@ public class CustomerDirectoryService {
     for (CustomerLoyaltyAccount account :
         loyaltyAccountRepository.findAllByTenantIdAndCustomerIdIn(tenantId, ids)) {
       map.put(account.getCustomerId(), account.getBalancePoints());
+    }
+    return map;
+  }
+
+  private Map<UUID, UUID> loadFamilyIds(UUID tenantId, List<Customer> customers) {
+    if (customers.isEmpty()) {
+      return Map.of();
+    }
+    List<UUID> ids = customers.stream().map(Customer::getId).toList();
+    Map<UUID, UUID> map = new HashMap<>();
+    for (CustomerFamilyMember member :
+        familyMemberRepository.findAllByTenantIdAndCustomerIdIn(tenantId, ids)) {
+      map.put(member.getCustomerId(), member.getFamilyId());
     }
     return map;
   }

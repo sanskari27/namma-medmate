@@ -2,17 +2,28 @@ package com.nammamedmate.server.infrastructure.email;
 
 import java.nio.charset.StandardCharsets;
 import java.security.MessageDigest;
+import java.time.Clock;
 import java.util.Base64;
 import javax.crypto.Mac;
 import javax.crypto.spec.SecretKeySpec;
 
 public final class ResendWebhookSignature {
 
+  static final long MAX_SKEW_SECONDS = 300;
+
   private ResendWebhookSignature() {}
 
   public static boolean valid(
-      String secret, String svixId, String timestamp, String body, String header) {
-    if (blank(secret) || blank(svixId) || blank(timestamp) || body == null || blank(header)) {
+      String secret, String svixId, String timestamp, String body, String header, Clock clock) {
+    if (blank(secret)
+        || blank(svixId)
+        || blank(timestamp)
+        || body == null
+        || blank(header)
+        || clock == null) {
+      return false;
+    }
+    if (!fresh(timestamp, clock)) {
       return false;
     }
     byte[] expected = hmac(secretBytes(secret), svixId + "." + timestamp + "." + body);
@@ -45,6 +56,16 @@ public final class ResendWebhookSignature {
     } catch (Exception ex) {
       throw new IllegalStateException("Unable to verify webhook signature");
     }
+  }
+
+  private static boolean fresh(String timestamp, Clock clock) {
+    long epochSeconds;
+    try {
+      epochSeconds = Long.parseLong(timestamp.trim());
+    } catch (NumberFormatException ignored) {
+      return false;
+    }
+    return Math.abs(clock.instant().getEpochSecond() - epochSeconds) <= MAX_SKEW_SECONDS;
   }
 
   private static boolean blank(String value) {

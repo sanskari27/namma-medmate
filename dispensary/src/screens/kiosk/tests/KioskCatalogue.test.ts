@@ -44,4 +44,19 @@ describe('kiosk catalogue', () => {
     const shelf = row({ productId: 'shelf', onlineListed: false, onHandQuantity: 3, outOfStock: false });
     expect(catalogueForKiosk([listed, shelf]).map((item) => item.productId)).toEqual(['shelf']);
   });
+
+  it('drops NDPS, H/H1/X, and controlled-substance SKUs', () => {
+    const otc = row({ productId: 'otc', onHandQuantity: 3 });
+    const ndps = row({ productId: 'ndps', scheduleClassification: 'NDPS', onHandQuantity: 4 });
+    const scheduleH = row({ productId: 'h', scheduleClassification: 'H', onHandQuantity: 2 });
+    const flagged = row({
+      productId: 'flagged',
+      controlledSubstance: true,
+      scheduleClassification: null,
+      onHandQuantity: 6,
+    });
+    expect(catalogueForKiosk([otc, ndps, scheduleH, flagged]).map((item) => item.productId)).toEqual([
+      'otc',
+    ]);
+  });
 });

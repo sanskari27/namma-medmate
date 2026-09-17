@@ -302,7 +302,47 @@ describe('admin HQ inbox', () => {
     await user.click(await screen.findByRole('button', { name: 'File as read' }));
     expect(await screen.findByText('Filed')).toBeInTheDocument();
     expect(store.getState().inbox.rows[0]?.read).toBe(true);
+    expect(store.getState().inbox.unread).toBe(0);
     expect(screen.queryByRole('button', { name: /mute|preference/i })).not.toBeInTheDocument();
+  });
+
+  it('file as read decrements unread instead of recounting this page', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue({
+      items: [unreadRow],
+      unreadCount: 5,
+      page: 0,
+      size: 6,
+      totalPages: 1,
+      totalItems: 5,
+    });
+    fileMock.mockResolvedValue({ ...unreadRow, read: true });
+    const { store } = renderInbox();
+    await user.click(screen.getByRole('button', { name: /hq inbox/i }));
+    await user.click(await screen.findByRole('button', { name: 'File as read' }));
+    expect(store.getState().inbox.unread).toBe(4);
+  });
+
+  it('staff hrefs stay on HQ and show a failure banner', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue({
+      items: [unreadRow],
+      unreadCount: 1,
+      page: 0,
+      size: 6,
+      totalPages: 1,
+      totalItems: 1,
+    });
+    openMock.mockResolvedValue({
+      href: '/inventory',
+      sourceType: 'approval',
+      sourceId: 'src-kyc',
+    });
+    renderInbox();
+    await user.click(screen.getByRole('button', { name: /hq inbox/i }));
+    await user.click(await screen.findByRole('button', { name: 'Open tenant file' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('This signal is not an HQ desk');
+    expect(screen.queryByText('KYC page')).not.toBeInTheDocument();
   });
 
   it('deleted target explains a withdrawn KYC pack', async () => {

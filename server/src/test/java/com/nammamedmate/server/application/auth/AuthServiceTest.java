@@ -230,7 +230,8 @@ class AuthServiceTest {
             session.getId(), user.getId(), user.getTenantId()))
         .thenReturn(Optional.of(session));
     when(passwordEncoder.matches("123456", "$2pin")).thenReturn(true);
-    when(jwtService.createToken(any(), any(), any(), any(), any(), any())).thenReturn("refreshed");
+    when(jwtService.createToken(any(), any(), any(), any(), any(), any(), isNull()))
+        .thenReturn("refreshed");
 
     LoginOutcome result = authService.unlockPin(principal, "123456");
 
@@ -246,7 +247,52 @@ class AuthServiceTest {
             eq(user.getTenantId()),
             eq(user.getRole()),
             eq(NOW),
-            eq(NOW.plus(Duration.ofMinutes(720))));
+            eq(NOW.plus(Duration.ofMinutes(720))),
+            isNull());
+  }
+
+  @Test
+  void ac04_impersonatingUnlockKeepsActingClaims_M1_PIN_004() {
+    AppUser master = activeUser("ops@hq.local", AppUserRole.admin_super);
+    master.setPinHash("$2pin");
+    AppUser owner = activeUser("owner@rx.local", AppUserRole.pharmacy_owner);
+    owner.setTenantId(UUID.randomUUID());
+    UserSession session = activeSession(master);
+    AuthPrincipal principal =
+        new AuthPrincipal(
+            owner.getId(),
+            owner.getTenantId(),
+            session.getId(),
+            owner.getRole(),
+            master.getId(),
+            master.getTenantId(),
+            master.getId(),
+            master.getRole());
+    when(appUserRepository.lockById(master.getId())).thenReturn(Optional.of(master));
+    when(userSessionRepository.lockActiveScopedSession(
+            session.getId(), master.getId(), master.getTenantId()))
+        .thenReturn(Optional.of(session));
+    when(passwordEncoder.matches("123456", "$2pin")).thenReturn(true);
+    when(jwtService.createToken(any(), any(), any(), any(), any(), any(), any()))
+        .thenReturn("acting");
+
+    LoginOutcome result = authService.unlockPin(principal, "123456");
+
+    assertThat(result.accessToken()).isEqualTo("acting");
+    ArgumentCaptor<JwtService.ActingIdentity> acting =
+        ArgumentCaptor.forClass(JwtService.ActingIdentity.class);
+    verify(jwtService)
+        .createToken(
+            eq(master.getId()),
+            eq(session.getId()),
+            eq(master.getTenantId()),
+            eq(master.getRole()),
+            eq(NOW),
+            eq(NOW.plus(Duration.ofMinutes(720))),
+            acting.capture());
+    assertThat(acting.getValue().userId()).isEqualTo(owner.getId());
+    assertThat(acting.getValue().tenantId()).isEqualTo(owner.getTenantId());
+    assertThat(acting.getValue().role()).isEqualTo(AppUserRole.pharmacy_owner);
   }
 
   @Test

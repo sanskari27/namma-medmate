@@ -15,6 +15,7 @@ public final class PurchaseOrderPolicy {
   public static final String PRODUCT_INACTIVE = "PRODUCT_INACTIVE";
   public static final String INVALID_QUANTITY = "INVALID_QUANTITY";
   public static final String PO_CLOSED = "PO_CLOSED";
+  public static final String PO_HAS_RECEIPTS = "PO_HAS_RECEIPTS";
   public static final String STALE_STATE = "STALE_STATE";
   public static final String LINES_REQUIRED = "LINES_REQUIRED";
 
@@ -78,8 +79,15 @@ public final class PurchaseOrderPolicy {
   }
 
   public static void assertEditable(PurchaseOrderStatus status) {
-    if (status == PurchaseOrderStatus.CLOSED || status == PurchaseOrderStatus.CANCELLED) {
+    if (status != PurchaseOrderStatus.DRAFT && status != PurchaseOrderStatus.ISSUED) {
       throw closed();
+    }
+  }
+
+  public static void assertNoReceipts(boolean hasReceipts) {
+    if (hasReceipts) {
+      throw new ApiException(
+          HttpStatus.CONFLICT, PO_HAS_RECEIPTS, "This purchase order already has receipts.");
     }
   }
 

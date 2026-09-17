@@ -19,7 +19,9 @@ class TenantStatusTransitionTest {
     "SUSPENDED,ACTIVE",
     "SUSPENDED,TERMINATED",
     "EXPIRED,ACTIVE",
-    "EXPIRED,TERMINATED"
+    "EXPIRED,TERMINATED",
+    "VERIFICATION_REQUIRED,SUSPENDED",
+    "VERIFICATION_REQUIRED,TERMINATED"
   })
   void ac01_documentedEdgesAreAllowed(TenantStatus from, TenantStatus to) {
     assertThat(TenantStatusTransition.isAllowed(from, to)).isTrue();
@@ -42,9 +44,7 @@ class TenantStatusTransitionTest {
     "TERMINATED,TERMINATED",
     "TERMINATED,VERIFICATION_REQUIRED",
     "VERIFICATION_REQUIRED,ACTIVE",
-    "VERIFICATION_REQUIRED,SUSPENDED",
     "VERIFICATION_REQUIRED,EXPIRED",
-    "VERIFICATION_REQUIRED,TERMINATED",
     "VERIFICATION_REQUIRED,VERIFICATION_REQUIRED"
   })
   void ac01_undocumentedEdgesAreRejected(TenantStatus from, TenantStatus to) {
@@ -68,11 +68,17 @@ class TenantStatusTransitionTest {
         .containsExactlyInAnyOrderElementsOf(expected);
   }
 
+  @Test
+  void ac01_verificationAllowsSuspendOrTerminate_M2_LIFE_004() {
+    assertThat(TenantStatusTransition.allowedFrom(TenantStatus.VERIFICATION_REQUIRED))
+        .containsExactlyInAnyOrder(TenantStatus.SUSPENDED, TenantStatus.TERMINATED);
+  }
+
   @ParameterizedTest
   @EnumSource(
       value = TenantStatus.class,
-      names = {"TERMINATED", "VERIFICATION_REQUIRED"})
-  void ac01_terminalAndVerificationHaveNoAdminTransitions(TenantStatus from) {
+      names = {"TERMINATED"})
+  void ac01_terminatedHasNoAdminTransitions(TenantStatus from) {
     assertThat(TenantStatusTransition.allowedFrom(from)).isEmpty();
   }
 }

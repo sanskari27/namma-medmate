@@ -20,7 +20,7 @@ variable "db_instance_class" {
 
 variable "skip_final_snapshot" {
   type    = bool
-  default = true
+  default = false
 }
 
 variable "resend_api_key" {
@@ -81,4 +81,27 @@ variable "password_reset_admin_url" {
 variable "email_verification_dispensary_url" {
   type    = string
   default = "https://pharmacy.nammamedmate.com/verify-email"
+}
+
+variable "meta_whatsapp_token" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "meta_whatsapp_phone_number_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "meta_whatsapp_waba_id" {
+  type      = string
+  sensitive = true
+  default   = ""
+}
+
+variable "meta_whatsapp_display_number" {
+  type    = string
+  default = ""
 }

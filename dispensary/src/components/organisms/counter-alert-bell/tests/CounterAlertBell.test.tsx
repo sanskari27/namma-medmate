@@ -274,7 +274,25 @@ describe('dispensary counter alert bell', () => {
     await user.click(await screen.findByRole('button', { name: 'Mark seen' }));
     expect(await screen.findByText('Seen')).toBeInTheDocument();
     expect(store.getState().notifications.items[0]?.read).toBe(true);
+    expect(store.getState().notifications.unreadCount).toBe(0);
     expect(screen.queryByRole('button', { name: /mute|preference/i })).not.toBeInTheDocument();
+  });
+
+  it('mark seen decrements the unread badge, not the current page', async () => {
+    const user = userEvent.setup();
+    fetchInboxMock.mockResolvedValue({
+      items: [unreadItem],
+      unreadCount: 5,
+      page: 0,
+      size: 8,
+      totalPages: 1,
+      totalItems: 5,
+    });
+    markReadMock.mockResolvedValue({ ...unreadItem, read: true });
+    const { store } = renderBell();
+    await user.click(screen.getByRole('button', { name: /counter alerts/i }));
+    await user.click(await screen.findByRole('button', { name: 'Mark seen' }));
+    expect(store.getState().notifications.unreadCount).toBe(4);
   });
 
   it('deleted target explains the stock record left the floor', async () => {

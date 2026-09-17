@@ -36,10 +36,13 @@ const notificationsSlice = createSlice({
       state.unreadCount = action.payload;
     },
     notificationRead: (state, action: PayloadAction<InboxItem>) => {
+      const wasUnread = state.items.some((item) => item.id === action.payload.id && !item.read);
       state.items = state.items.map((item) =>
         item.id === action.payload.id ? action.payload : item,
       );
-      state.unreadCount = state.items.filter((item) => !item.read).length;
+      if (wasUnread && action.payload.read) {
+        state.unreadCount = Math.max(0, state.unreadCount - 1);
+      }
     },
   },
   extraReducers: (builder) => {

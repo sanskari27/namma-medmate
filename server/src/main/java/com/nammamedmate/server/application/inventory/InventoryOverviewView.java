@@ -7,7 +7,8 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.UUID;
 
-public record InventoryOverviewView(InventoryOverviewSummary summary, List<InventoryOverviewRow> items) {
+public record InventoryOverviewView(
+    InventoryOverviewSummary summary, List<InventoryOverviewRow> items) {
 
   public record InventoryOverviewSummary(
       int totalSkus,

@@ -180,21 +180,26 @@ export function printReport(title: string, tableHtml: string): void {
   win.print();
 }
 
+const FIFO_KEYS: AgingBucketKey[] = ['D0_30', 'D31_60', 'D61_90', 'D90_PLUS'];
+
 export function csvRows(report: AgingReport): string[][] {
+  const totals: Record<AgingBucketKey, number> = {
+    D0_30: 0,
+    D31_60: 0,
+    D61_90: 0,
+    D90_PLUS: 0,
+  };
+  for (const bucket of report.buckets) {
+    if (bucket.key in totals) {
+      totals[bucket.key] = bucket.totalPaise;
+    }
+  }
   return [
-    ['FIFO remaining'],
-    ...report.buckets.map((bucket) => [
-      BUCKET_LABELS[bucket.key as AgingBucketKey] ?? bucket.label,
-      formatPaise(bucket.totalPaise),
-    ]),
+    ['FIFO remaining', ...FIFO_KEYS],
+    ['', ...FIFO_KEYS.map((key) => formatPaise(totals[key]))],
     [],
-    ['Party', 'Outstanding', 'Oldest (days)', 'Oldest bucket'],
-    ...report.items.map((row) => [
-      row.name,
-      formatPaise(row.amountPaise),
-      String(row.days),
-      BUCKET_LABELS[oldestBucket(row.days)],
-    ]),
+    ['Party', 'Outstanding', 'Oldest (days)'],
+    ...report.items.map((row) => [row.name, formatPaise(row.amountPaise), String(row.days)]),
   ];
 }
 

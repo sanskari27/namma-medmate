@@ -6,6 +6,7 @@ import com.nammamedmate.server.application.email.ResendWebhookService;
 import com.nammamedmate.server.infrastructure.email.ResendWebhookSignature;
 import com.nammamedmate.server.shared.exception.ApiException;
 import com.nammamedmate.server.shared.web.ApiResponse;
+import java.time.Clock;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -22,14 +23,17 @@ public class ResendWebhookController {
   private final ResendWebhookService webhookService;
   private final ObjectMapper objectMapper;
   private final String webhookSecret;
+  private final Clock clock;
 
   public ResendWebhookController(
       ResendWebhookService webhookService,
       ObjectMapper objectMapper,
-      @Value("${app.resend.webhook-secret:}") String webhookSecret) {
+      @Value("${app.resend.webhook-secret:}") String webhookSecret,
+      Clock clock) {
     this.webhookService = webhookService;
     this.objectMapper = objectMapper;
     this.webhookSecret = webhookSecret;
+    this.clock = clock;
   }
 
   @PostMapping(path = "/webhook", consumes = MediaType.APPLICATION_JSON_VALUE)
@@ -38,7 +42,7 @@ public class ResendWebhookController {
       @RequestHeader(value = "svix-timestamp", required = false) String timestamp,
       @RequestHeader(value = "svix-signature", required = false) String signature,
       @RequestBody String body) {
-    if (!ResendWebhookSignature.valid(webhookSecret, svixId, timestamp, body, signature)) {
+    if (!ResendWebhookSignature.valid(webhookSecret, svixId, timestamp, body, signature, clock)) {
       throw new ApiException(HttpStatus.UNAUTHORIZED, "UNAUTHORIZED", "Authentication required");
     }
     JsonNode json;

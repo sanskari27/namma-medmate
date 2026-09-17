@@ -9,6 +9,7 @@ import java.util.UUID;
 public record ReceiveBillCommand(
     UUID supplierId,
     LocalDate expectedDeliveryDate,
+    LocalDate invoiceDate,
     SupplierPaymentTerms paymentTerms,
     String notes,
     String receiptReference,

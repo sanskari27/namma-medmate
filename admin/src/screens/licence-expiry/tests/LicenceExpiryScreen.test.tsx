@@ -90,9 +90,9 @@ describe('HQ licence expiry', () => {
     listMock.mockResolvedValue([dueRow]);
     renderPage('admin_super');
     await screen.findByText('Varshmaan Pharmacy');
-    await user.click(screen.getByRole('button', { name: 'Isolate tenant' }));
+    await user.click(screen.getByRole('button', { name: 'Filter this list (display only)' }));
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Enter a tenant name before isolating the due list.',
+      'Enter a tenant name before filtering this list.',
     );
   });
 

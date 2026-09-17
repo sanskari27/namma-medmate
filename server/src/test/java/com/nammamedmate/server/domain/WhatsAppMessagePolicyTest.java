@@ -69,7 +69,7 @@ class WhatsAppMessagePolicyTest {
     assertThat(WhatsAppMessagePolicy.refillKey(schedule, day))
         .isEqualTo("refill:aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa:2026-09-06");
     assertThat(WhatsAppMessagePolicy.creditKey(account, day))
-        .isEqualTo("credit:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb:2026-09-06");
+        .isEqualTo("credit:bbbbbbbb-bbbb-bbbb-bbbb-bbbbbbbbbbbb");
     assertThat(WhatsAppMessagePolicy.campaignKey(campaign, customer))
         .isEqualTo(
             "campaign:cccccccc-cccc-cccc-cccc-cccccccccccc:dddddddd-dddd-dddd-dddd-dddddddddddd");

@@ -27,6 +27,7 @@ export interface Customer {
   lifetimeValuePaise?: number;
   creditDuePaise?: number;
   chronicRx?: boolean;
+  familyId?: string | null;
 }
 
 export interface CustomerDirectoryItem {
@@ -47,6 +48,7 @@ export interface CustomerDirectoryItem {
   chronicRx: boolean;
   createdAt: string | null;
   updatedAt: string | null;
+  familyId?: string | null;
 }
 
 export interface CustomerDirectoryPurchase {
@@ -186,13 +188,24 @@ export interface CustomerMergeField {
   duplicateValue: string | null;
 }
 
+export type CustomerMergeLinkedRecords = {
+  notificationEvents: number;
+  salesInvoices: number;
+  creditEntries: number;
+  loyaltyEntries: number;
+  historyFacts: number;
+  refills: number;
+  tags: number;
+  familyMembers: number;
+};
+
 export interface CustomerMergePreview {
   mode: 'PREVIEW';
   survivor: Customer;
   duplicate: Customer;
   fields: CustomerMergeField[];
   conflicts: string[];
-  linkedRecords: { notificationEvents: number };
+  linkedRecords: CustomerMergeLinkedRecords;
 }
 
 export async function previewCustomerMerge(

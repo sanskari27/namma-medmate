@@ -251,10 +251,19 @@ class PurchaseOrderTest extends AbstractIntegrationTest {
 
     mockMvc
         .perform(
+            patch("/api/v1/purchase-orders/" + issuedId)
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchJson(null, productId, "9", 8000, 2)))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.status").value("ISSUED"));
+
+    mockMvc
+        .perform(
             post("/api/v1/purchase-orders/" + issuedId + "/close")
                 .cookie(fx.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content("{\"expectedVersion\":2}"))
+                .content("{\"expectedVersion\":3}"))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.status").value("CLOSED"));
 
@@ -263,7 +272,7 @@ class PurchaseOrderTest extends AbstractIntegrationTest {
             patch("/api/v1/purchase-orders/" + issuedId)
                 .cookie(fx.cookie())
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(patchJson(null, productId, "9", 8000, 3)))
+                .content(patchJson(null, productId, "9", 8000, 4)))
         .andExpect(status().isUnprocessableEntity())
         .andExpect(jsonPath("$.code").value("PO_CLOSED"));
 
@@ -301,7 +310,7 @@ class PurchaseOrderTest extends AbstractIntegrationTest {
             .findAllByPurchaseOrderIdAndTenantIdAndBranchIdOrderBySortOrderAsc(
                 issuedId, fx.tenantId(), fx.branchId());
     assertThat(closedLines).hasSize(1);
-    assertThat(closedLines.get(0).getQuantity()).isEqualByComparingTo("5");
+    assertThat(closedLines.get(0).getQuantity()).isEqualByComparingTo("9");
   }
 
   @Test
@@ -498,6 +507,20 @@ class PurchaseOrderTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.purchaseOrder.id").value(poId))
         .andExpect(jsonPath("$.data.receipt.id").value(receiptId));
+
+    JsonNode received =
+        objectMapper
+            .readTree(first.getResponse().getContentAsString())
+            .path("data")
+            .path("purchaseOrder");
+    mockMvc
+        .perform(
+            patch("/api/v1/purchase-orders/" + poId)
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(patchJson(null, productId, "9", 8000, received.path("version").asInt())))
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("PO_HAS_RECEIPTS"));
 
     assertThat(purchaseOrderRepository.findById(UUID.fromString(poId)).orElseThrow().getStatus())
         .isEqualTo(PurchaseOrderStatus.CLOSED);

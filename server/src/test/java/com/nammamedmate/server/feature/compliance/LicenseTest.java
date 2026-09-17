@@ -10,11 +10,15 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.nammamedmate.server.AbstractIntegrationTest;
+import com.nammamedmate.server.application.compliance.LicenseDueScanner;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.AuditEvent;
 import com.nammamedmate.server.domain.BranchStatus;
 import com.nammamedmate.server.domain.BranchType;
+import com.nammamedmate.server.domain.ComplianceDocType;
+import com.nammamedmate.server.domain.ComplianceLicense;
+import com.nammamedmate.server.domain.ComplianceLicenseScope;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.Notification;
 import com.nammamedmate.server.domain.PlanCode;
@@ -64,6 +68,7 @@ class LicenseTest extends AbstractIntegrationTest {
   @Autowired private ComplianceLicenseEvidenceRepository complianceLicenseEvidenceRepository;
   @Autowired private NotificationRepository notificationRepository;
   @Autowired private AuditEventRepository auditEventRepository;
+  @Autowired private LicenseDueScanner licenseDueScanner;
   @Autowired private PasswordEncoder passwordEncoder;
 
   @Test
@@ -158,11 +163,13 @@ class LicenseTest extends AbstractIntegrationTest {
             due.toString())
         .andExpect(status().isOk());
 
+    long notesAfterCreate = notificationRepository.count();
     mockMvc
         .perform(get("/api/v1/compliance/licenses/due").cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items.length()").value(1))
         .andExpect(jsonPath("$.data.items[0].due").value(true));
+    assertThat(notificationRepository.count()).isEqualTo(notesAfterCreate);
 
     Cookie master = login("master@ac02.local");
     mockMvc
@@ -171,6 +178,7 @@ class LicenseTest extends AbstractIntegrationTest {
         .andExpect(jsonPath("$.data.items[0].tenantId").value(fx.tenantId().toString()))
         .andExpect(jsonPath("$.data.items[0].tenantName").value("Chem ac02"))
         .andExpect(jsonPath("$.data.items[0].docType").value("DRUG_LICENSE"));
+    assertThat(notificationRepository.count()).isEqualTo(notesAfterCreate);
 
     List<Notification> notes = notificationRepository.findAll();
     Notification ownerNote =
@@ -206,10 +214,12 @@ class LicenseTest extends AbstractIntegrationTest {
             due.toString())
         .andExpect(status().isOk());
 
+    long notesAfterCreate = notificationRepository.count();
     mockMvc
         .perform(get("/api/v1/compliance/licenses/due").cookie(fx.cookie()))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items[0].docType").value("PHARMACIST_REGISTRATION"));
+    assertThat(notificationRepository.count()).isEqualTo(notesAfterCreate);
 
     List<UUID> recipients =
         notificationRepository.findAll().stream().map(Notification::getRecipientUserId).toList();
@@ -222,6 +232,35 @@ class LicenseTest extends AbstractIntegrationTest {
         .containsExactly("staff_license");
     assertThat(notificationRepository.findAll())
         .allSatisfy(note -> assertThat(note.getHref()).isEqualTo("/account"));
+  }
+
+  @Test
+  void dueScanJobWritesNotifications_M7_LIC_003() throws Exception {
+    Fixture fx = seed("scan-job");
+    LocalDate due = LocalDate.now(ZoneOffset.UTC).plusDays(8);
+    ComplianceLicense license = new ComplianceLicense();
+    license.setId(UUID.randomUUID());
+    license.setTenantId(fx.tenantId());
+    license.setDocType(ComplianceDocType.DRUG_LICENSE);
+    license.setScope(ComplianceLicenseScope.TENANT);
+    license.setLicenseNumber("KA-DL-SCAN");
+    license.setIssuedOn(due.minusYears(1));
+    license.setExpiresOn(due);
+    license.setVersion(1);
+    license.setCreatedAt(T0);
+    license.setUpdatedAt(T0);
+    complianceLicenseRepository.saveAndFlush(license);
+
+    mockMvc
+        .perform(get("/api/v1/compliance/licenses/due").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items.length()").value(1));
+    assertThat(notificationRepository.count()).isZero();
+
+    licenseDueScanner.scanTenant(fx.tenantId());
+    assertThat(notificationRepository.findAll())
+        .isNotEmpty()
+        .allSatisfy(note -> assertThat(note.getSourceType()).isEqualTo("license_expiry"));
   }
 
   @Test

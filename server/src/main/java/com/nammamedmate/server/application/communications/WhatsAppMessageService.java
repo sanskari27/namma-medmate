@@ -222,6 +222,17 @@ public class WhatsAppMessageService {
     return List.of(row);
   }
 
+  public void releaseCredit(UUID tenantId, UUID accountId) {
+    String key = WhatsAppMessagePolicy.creditKey(accountId, null);
+    messageRepository
+        .findByTenantIdAndIdempotencyKey(tenantId, key)
+        .ifPresent(
+            row -> {
+              row.setIdempotencyKey("cleared:" + row.getId());
+              messageRepository.save(row);
+            });
+  }
+
   private WhatsAppMessage persist(
       UUID tenantId,
       WhatsAppMessageKind kind,

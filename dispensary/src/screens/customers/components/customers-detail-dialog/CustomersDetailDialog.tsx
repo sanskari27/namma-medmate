@@ -357,7 +357,7 @@ export function CustomersDetailDialog() {
                 </section>
               ) : null}
 
-              {!editOpen ? (
+              {!editOpen && row.walkInAggregate ? (
                 <section aria-label={CUSTOMERS_CONTENT.detail.purchaseHistory}>
                   <div className="cust-pl-head">{CUSTOMERS_CONTENT.detail.purchaseHistory}</div>
                   {purchases.length === 0 ? (

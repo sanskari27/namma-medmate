@@ -53,7 +53,7 @@ export function statusCopy(status: PageStatus, hint?: string | null): string | n
     case 'validation':
       return 'Use matching week or month windows of 366 days or less.';
     case 'denied':
-      return 'Till staff cannot open compare weeks. Ask the owner for Accounts access.';
+      return 'Till staff cannot open compare weeks. Ask the owner for reporting access.';
     case 'conflict':
       return 'This window changed on another till. Reload, then compare again.';
     case 'failure':

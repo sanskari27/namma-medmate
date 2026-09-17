@@ -69,6 +69,14 @@ class ExpensePolicyTest {
   }
 
   @Test
+  void gstPaiseFromInclusiveRoundsHalfUp() {
+    assertThat(ExpensePolicy.gstPaiseFromInclusive(100L, 5)).isEqualTo(5L);
+    assertThat(ExpensePolicy.gstPaiseFromInclusive(105L, 5)).isEqualTo(5L);
+    assertThat(ExpensePolicy.gstPaiseFromInclusive(1L, 18)).isEqualTo(0L);
+    assertThat(ExpensePolicy.gstPaiseFromInclusive(200L, 0)).isEqualTo(0L);
+  }
+
+  @Test
   void ac02_onlyPostedSpendCountsTowardReports() {
     assertThat(ExpensePolicy.countsTowardPostedReports(ExpensePostingStatus.POSTED)).isTrue();
     assertThat(ExpensePolicy.countsTowardPostedReports(ExpensePostingStatus.PENDING)).isFalse();

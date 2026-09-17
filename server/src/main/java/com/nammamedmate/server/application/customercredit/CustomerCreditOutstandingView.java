@@ -5,7 +5,10 @@ import java.util.List;
 import java.util.UUID;
 
 public record CustomerCreditOutstandingView(
-    Summary summary, List<AgingBand> aging, List<OutstandingItem> items, List<PaymentItem> payments) {
+    Summary summary,
+    List<AgingBand> aging,
+    List<OutstandingItem> items,
+    List<PaymentItem> payments) {
 
   public record Summary(
       long totalOutstandingPaise,

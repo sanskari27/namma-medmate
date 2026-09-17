@@ -60,6 +60,7 @@ import {
   DASHBOARD_NAV,
   NAV_SECTIONS,
   ROUTES,
+  floorNavAllowed,
   type NavItem,
 } from '@/libs/constants/routes.const';
 import { cn } from '@/libs/cn';
@@ -132,6 +133,8 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const canSeeFinance = hasFinanceAccess(user?.role, user?.roles);
   const canSeeReporting = hasReportingAccess(user?.role, user?.modules);
   const canSeeCampaigns = hasCampaignAccess(user?.role, user?.modules);
+  const tenantStatus = user?.tenantStatus;
+  const floorOpen = !tenantStatus || tenantStatus === 'ACTIVE';
   const branches = user?.branches ?? [];
   const activeBranchId = user?.activeBranchId ?? null;
   const selectedId =
@@ -317,18 +320,26 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
         aria-label="On this floor"
         className="rail-scroll relative min-h-0 flex-1 overflow-x-hidden overflow-y-auto py-3 pr-1.5 pl-2"
       >
-        <ul className="flex flex-col gap-0.5">
-          <li>
-            <RailLink
-              item={DASHBOARD_NAV}
-              collapsed={collapsed}
-              reduceMotion={Boolean(reduceMotion)}
-              onNavigate={onNavigate}
-            />
-          </li>
-        </ul>
+        {floorOpen || floorNavAllowed(tenantStatus, DASHBOARD_NAV.path) ? (
+          <ul className="flex flex-col gap-0.5">
+            <li>
+              <RailLink
+                item={DASHBOARD_NAV}
+                collapsed={collapsed}
+                reduceMotion={Boolean(reduceMotion)}
+                onNavigate={onNavigate}
+              />
+            </li>
+          </ul>
+        ) : null}
 
         {NAV_SECTIONS.map((section) => {
+          const items = section.items.filter((item) =>
+            floorNavAllowed(tenantStatus, item.path),
+          );
+          if (items.length === 0) {
+            return null;
+          }
           const open = collapsed || openSections.includes(section.id);
           return (
             <div key={section.id} className="mt-3">
@@ -353,7 +364,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
               )}
               {open ? (
                 <ul className="flex flex-col gap-0.5">
-                  {section.items
+                  {items
                     .filter((item) => canSeeFinance || !isFinanceNavPath(item.path))
                     .filter((item) => canSeeReporting || !isReportingNavPath(item.path))
                     .filter((item) => canSeeCampaigns || !isCampaignNavPath(item.path))

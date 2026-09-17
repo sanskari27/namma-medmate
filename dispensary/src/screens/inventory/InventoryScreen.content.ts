@@ -15,6 +15,17 @@ export const INVENTORY_CONTENT = {
   noSkus: 'No SKUs yet.',
   emptyFilter: 'No products match this filter.',
   toggleFailed: 'Could not update that listing flag.',
+  tabs: {
+    floor: 'Stock',
+    catalogue: 'Catalogue',
+    transfers: 'Transfers',
+    adjustments: 'Adjustments',
+    guidance: 'Guidance',
+    stocktake: 'Physical count',
+    controlled: 'Schedule stock book',
+    qc: 'Quality check',
+    returns: 'Stockist debit notes',
+  },
   filters: {
     all: 'All',
     alerts: 'Alerts',
@@ -42,7 +53,6 @@ export const INVENTORY_CONTENT = {
     mrp: 'MRP',
     value: 'Value',
     loose: 'Loose',
-    online: 'Online',
   },
 } as const;
 

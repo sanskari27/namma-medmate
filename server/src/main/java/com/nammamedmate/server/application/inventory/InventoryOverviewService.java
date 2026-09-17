@@ -440,7 +440,8 @@ public class InventoryOverviewService {
       return new Context(tenantId, List.of(branchId));
     }
     List<UUID> branchIds =
-        locationRepository.findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(tenantId)
+        locationRepository
+            .findAllByTenantIdAndDeletedAtIsNullOrderByBranchCodeAsc(tenantId)
             .stream()
             .map(Location::getId)
             .toList();

@@ -24,6 +24,7 @@ export const DASHBOARD_CONTENT = {
   openExpenses: 'Open expenses',
   openStock: 'Open stock',
   storeOpen: 'Store open',
+  asOf: 'As of',
   metricThisMonth: 'This month',
   metricAvgBillToday: 'Avg bill today',
   metricItemsSoldToday: 'Items sold today',
@@ -90,7 +91,7 @@ export const DASHBOARD_CONTENT = {
     {
       to: ROUTES.PURCHASES,
       title: 'New purchase',
-      subtitle: 'Goods inward',
+      subtitleKey: 'purchaseQueue' as const,
       tone: 'blue' as const,
     },
     {
@@ -122,6 +123,10 @@ export function pendingCountLabel(count: number): string {
 
 export function lowCountLabel(count: number): string {
   return `${count} low`;
+}
+
+export function purchaseQueueLabel(grn: number, approvals: number): string {
+  return `${grn} waiting QC · ${approvals} sign-off`;
 }
 
 export function topSellersHeading(periodLabelText: string): string {

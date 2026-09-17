@@ -13,15 +13,15 @@ export type InventoryViewMode =
   | 'returns';
 
 const VIEW_COPY: Record<InventoryViewMode, { tab: string }> = {
-  floor: { tab: 'Stock' },
-  catalogue: { tab: 'Catalogue' },
-  transfers: { tab: 'Transfers' },
-  adjustments: { tab: 'Adjustments' },
-  guidance: { tab: 'Guidance' },
-  stocktake: { tab: 'Physical count' },
-  controlled: { tab: 'Schedule stock book' },
-  qc: { tab: 'Quality check' },
-  returns: { tab: 'Returns' },
+  floor: { tab: INVENTORY_CONTENT.tabs.floor },
+  catalogue: { tab: INVENTORY_CONTENT.tabs.catalogue },
+  transfers: { tab: INVENTORY_CONTENT.tabs.transfers },
+  adjustments: { tab: INVENTORY_CONTENT.tabs.adjustments },
+  guidance: { tab: INVENTORY_CONTENT.tabs.guidance },
+  stocktake: { tab: INVENTORY_CONTENT.tabs.stocktake },
+  controlled: { tab: INVENTORY_CONTENT.tabs.controlled },
+  qc: { tab: INVENTORY_CONTENT.tabs.qc },
+  returns: { tab: INVENTORY_CONTENT.tabs.returns },
 };
 
 export type InventoryHeaderProps = {

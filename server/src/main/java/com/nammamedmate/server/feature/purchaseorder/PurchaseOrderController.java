@@ -74,6 +74,7 @@ public class PurchaseOrderController {
             new ReceiveBillCommand(
                 request.supplierId(),
                 request.expectedDeliveryDate(),
+                request.invoiceDate(),
                 request.paymentTerms(),
                 request.notes(),
                 request.receiptReference(),
@@ -524,6 +525,7 @@ public class PurchaseOrderController {
   public record ReceiveBillRequest(
       @NotNull UUID supplierId,
       LocalDate expectedDeliveryDate,
+      LocalDate invoiceDate,
       SupplierPaymentTerms paymentTerms,
       String notes,
       @NotBlank @Size(max = 128) String receiptReference,

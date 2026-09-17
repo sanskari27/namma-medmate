@@ -4,8 +4,10 @@ import userEvent from '@testing-library/user-event';
 import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { FILTER_CHIPS, type FilterChipId } from '../ShopBooksScreen.content';
+import { groupedCatalog } from '../ShopBooksScreen.utils';
 import ShopBooksScreen from '@/screens/shop-books/ShopBooksScreen';
-import { ROUTES } from '@/libs/constants/routes.const';
+import { shopBooksReducer } from '@/screens/shop-books/store';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { FinanceReportCatalogItem, FinanceReportTable } from '@/services/financeReports';
@@ -125,7 +127,7 @@ function renderPage(
   desks: string[] = [],
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, shopBooks: shopBooksReducer },
     preloadedState: {
       auth: {
         user: {
@@ -355,6 +357,18 @@ describe('Shop books', () => {
     expect(screen.queryByLabelText('Reconciliation totals')).not.toBeInTheDocument();
     expect(tableMock).not.toHaveBeenCalledWith('PROFIT_AND_LOSS', expect.anything());
     expect(tableMock).not.toHaveBeenCalledWith('GSTR1', expect.anything());
+  });
+
+  it('party and payment chips list tagged books instead of an empty catalog', () => {
+    expect(FILTER_CHIPS.some((row) => row.id === 'item')).toBe(false);
+    const keys = (chip: FilterChipId) =>
+      Object.values(groupedCatalog(catalog, '', chip))
+        .flat()
+        .map((book) => book.key);
+    expect(keys('party')).toContain('GSTR1');
+    expect(keys('party')).not.toContain('DAY_BOOK');
+    expect(keys('payment')).toContain('DAY_BOOK');
+    expect(keys('payment')).not.toContain('GSTR1');
   });
 
   it('denied PLAN_LIMIT: direct fetch hides rows and points to the plan', async () => {

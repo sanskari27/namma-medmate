@@ -691,6 +691,7 @@ describe('POS till chrome M6-POS-001', () => {
     await proceed(user);
     await user.click(screen.getByRole('button', { name: 'Cash' }));
     await user.click(screen.getByRole('button', { name: /Charge ₹/ }));
+    updateInvoiceMock.mockClear();
     await user.click(screen.getByRole('button', { name: '← Back to add items' }));
     expect(updateInvoiceMock).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Proceed to bill' })).toBeInTheDocument();

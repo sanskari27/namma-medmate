@@ -286,12 +286,9 @@ public class HomeDashboardService {
     int totalBills = invoices.size();
     List<UUID> invoiceIds = invoices.stream().map(SalesInvoice::getId).toList();
 
-    long counterSales = totalSales;
     List<HomeDashboardView.ChannelSlice> channelSplit =
         List.of(
-            new HomeDashboardView.ChannelSlice("ONLINE", "Online", 0L, 0),
-            new HomeDashboardView.ChannelSlice(
-                "COUNTER", "Counter sale", counterSales, totalBills));
+            new HomeDashboardView.ChannelSlice("COUNTER", "Counter sale", totalSales, totalBills));
 
     Map<PaymentMode, Long> byMode = new LinkedHashMap<>();
     if (!invoiceIds.isEmpty()) {

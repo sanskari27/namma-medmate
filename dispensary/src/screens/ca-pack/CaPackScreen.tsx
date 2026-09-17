@@ -8,10 +8,11 @@ import { CaPackShareCard } from './components/ca-pack-share-card';
 import { CaPackSnapshot } from './components/ca-pack-snapshot';
 import { CaPackStatusBanner } from './components/ca-pack-status-banner';
 import { CA_PACK_CONTENT } from './CaPackScreen.content';
-import { hasFinanceAccess } from './CaPackScreen.utils';
+import { hasFinanceAccess, loadAdvisors } from './CaPackScreen.utils';
 import './CaPackScreen.css';
 import {
   accessDenied,
+  advisorsSaved,
   hydrateOwnerScope,
   loadCaPack,
   selectCaPackPeriodKey,
@@ -36,7 +37,8 @@ export default function CaPackScreen() {
       return;
     }
     dispatch(hydrateOwnerScope({ owner, hasBranch: Boolean(user?.activeBranchId) }));
-  }, [allowed, dispatch, owner, user?.activeBranchId]);
+    dispatch(advisorsSaved(loadAdvisors(user?.tenantId)));
+  }, [allowed, dispatch, owner, user?.activeBranchId, user?.tenantId]);
 
   useEffect(() => {
     if (!allowed) {

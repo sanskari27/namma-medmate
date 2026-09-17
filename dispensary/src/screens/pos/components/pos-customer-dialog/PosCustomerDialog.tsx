@@ -99,6 +99,10 @@ export function PosCustomerDialog({ open, onOpenChange }: PosCustomerDialogProps
           setCreateOpen(false);
           pick(customer);
         }}
+        onPhoneConflict={(phone) => {
+          setCreateOpen(false);
+          dispatch(customerQueryChanged(phone));
+        }}
       />
     </>
   );

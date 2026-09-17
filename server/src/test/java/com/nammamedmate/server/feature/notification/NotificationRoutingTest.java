@@ -148,6 +148,46 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
 
     assertThat(inboxUserIds()).containsExactly(fx.accountant.getId());
     assertThat(sourceTypes()).containsOnly("approval");
+    assertThat(hrefs()).containsOnly("/approvals/pending");
+  }
+
+  @Test
+  void approvalAndAccountCreatedUseHqMasterHrefs_M10_ROUTE_004() {
+    Fixture fx = fixture();
+
+    routingService.route(
+        new RouteCommand(
+            "appr-master",
+            NotificationTrigger.APPROVAL_REQUESTED,
+            fx.tenant.getId(),
+            null,
+            UUID.randomUUID(),
+            null,
+            RoutingRole.MASTER,
+            null));
+
+    assertThat(inboxUserIds()).containsExactly(fx.master.getId());
+    assertThat(hrefs()).containsOnly("/sign-offs");
+
+    deliveryRepository.deleteAll();
+    eventRepository.deleteAll();
+    notificationRepository.deleteAll();
+    notificationSourceRepository.deleteAll();
+
+    fx.master.setTenantId(fx.tenant.getId());
+    appUserRepository.saveAndFlush(fx.master);
+    routingService.route(
+        new RouteCommand(
+            "acct-master",
+            NotificationTrigger.ACCOUNT_CREATED,
+            fx.tenant.getId(),
+            null,
+            UUID.randomUUID(),
+            fx.master.getId(),
+            null,
+            null));
+
+    assertThat(notificationFor(fx.master.getId()).getHref()).isEqualTo("/operators");
   }
 
   @Test
@@ -247,8 +287,8 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
   void ac01_kycAndPlanLimitRouteToOwner() {
     Fixture fx = fixture();
     routingService.route(tenantEvent("kyc-1", NotificationTrigger.KYC, fx));
-    assertThat(inboxUserIds()).containsExactly(fx.owner.getId());
-    assertThat(hrefs()).containsOnly("/account");
+    assertThat(inboxUserIds()).containsExactlyInAnyOrder(fx.owner.getId(), fx.master.getId());
+    assertThat(hrefs()).containsExactlyInAnyOrder("/account", "/kyc");
 
     deliveryRepository.deleteAll();
     eventRepository.deleteAll();
@@ -313,8 +353,8 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
 
     assertThat(second.alreadyRouted()).isTrue();
     assertThat(second.eventId()).isEqualTo(first.eventId());
-    assertThat(notificationRepository.count()).isEqualTo(1);
-    assertThat(deliveryRepository.count()).isEqualTo(1);
+    assertThat(notificationRepository.count()).isEqualTo(2);
+    assertThat(deliveryRepository.count()).isEqualTo(2);
     assertThat(eventRepository.count()).isEqualTo(1);
   }
 
@@ -356,11 +396,13 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
   void ac05_crossTenantOwnerIsNotNotified() {
     Fixture fx = fixture();
     Tenant other = persistTenant("other-pharma");
-    persistUser(other.getId(), "other@iso.local", AppUserRole.pharmacy_owner);
+    AppUser otherOwner = persistUser(other.getId(), "other@iso.local", AppUserRole.pharmacy_owner);
 
     routingService.route(tenantEvent("kyc-iso", NotificationTrigger.KYC, fx));
 
-    assertThat(inboxUserIds()).containsExactly(fx.owner.getId());
+    assertThat(inboxUserIds())
+        .containsExactlyInAnyOrder(fx.owner.getId(), fx.master.getId())
+        .doesNotContain(otherOwner.getId());
   }
 
   @Test
@@ -394,7 +436,7 @@ class NotificationRoutingTest extends AbstractIntegrationTest {
 
     routingService.route(command);
 
-    assertThat(notificationRepository.count()).isEqualTo(1);
+    assertThat(notificationRepository.count()).isEqualTo(2);
     assertThat(eventRepository.count()).isEqualTo(1);
   }
 

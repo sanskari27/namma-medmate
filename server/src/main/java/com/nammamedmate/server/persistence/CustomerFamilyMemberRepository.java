@@ -1,6 +1,7 @@
 package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.CustomerFamilyMember;
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -9,6 +10,9 @@ import org.springframework.data.jpa.repository.JpaRepository;
 public interface CustomerFamilyMemberRepository extends JpaRepository<CustomerFamilyMember, UUID> {
 
   Optional<CustomerFamilyMember> findByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
+
+  List<CustomerFamilyMember> findAllByTenantIdAndCustomerIdIn(
+      UUID tenantId, Collection<UUID> customerIds);
 
   List<CustomerFamilyMember> findAllByTenantIdAndFamilyIdOrderByCreatedAtAsc(
       UUID tenantId, UUID familyId);

@@ -121,6 +121,7 @@ export interface ReceiveBillLineInput {
 export interface ReceiveBillInput {
   supplierId: string;
   expectedDeliveryDate?: string | null;
+  invoiceDate?: string | null;
   paymentTerms: PurchasePaymentTerms;
   notes?: string;
   receiptReference: string;

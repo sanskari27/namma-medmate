@@ -15,7 +15,7 @@ export const CUSTOM_REPORTS_CONTENT = {
     filters: 'Filters',
     preview: 'Preview',
   },
-  exportSheet: 'Excel',
+  exportSheet: 'CSV',
   exportPdf: 'PDF',
   showRows: 'Show rows',
   outlet: 'Outlet',

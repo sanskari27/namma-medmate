@@ -2,6 +2,7 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.Notification;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.domain.Page;
@@ -52,4 +53,6 @@ public interface NotificationRepository extends JpaRepository<Notification, UUID
       """)
   Optional<Notification> lockOwned(
       @Param("id") UUID id, @Param("userId") UUID userId, @Param("tenantId") UUID tenantId);
+
+  List<Notification> findByRecipientUserId(UUID recipientUserId);
 }

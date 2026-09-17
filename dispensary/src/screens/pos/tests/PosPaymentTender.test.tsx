@@ -78,7 +78,12 @@ import { listStockBatches } from '@/services/inventory';
 import { evaluateMedicationSafety } from '@/services/medicationSafety';
 import { convertProductUnit, listProductUnits } from '@/services/productUnits';
 import { listSalesCatalogue } from '@/services/salesCatalogue';
-import { applyInvoicePricing, completeSalesInvoice, createSalesInvoice } from '@/services/salesInvoices';
+import {
+  applyInvoicePricing,
+  completeSalesInvoice,
+  createSalesInvoice,
+  updateSalesInvoice,
+} from '@/services/salesInvoices';
 import {
   addNamedPack,
   pickPatientPos,
@@ -102,6 +107,7 @@ const getLoyaltyMock = vi.mocked(getCustomerLoyalty);
 const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
 const completeInvoiceMock = vi.mocked(completeSalesInvoice);
+const updateInvoiceMock = vi.mocked(updateSalesInvoice);
 
 function stubUnits() {
   listUnitsMock.mockResolvedValue({
@@ -265,5 +271,9 @@ describe('PosScreen mixed payment and khata', () => {
       );
     });
     expect(screen.getByRole('button', { name: /Charge ₹/ })).toBeDisabled();
+    expect(updateInvoiceMock).toHaveBeenCalledWith(
+      'inv-1',
+      expect.objectContaining({ expectedVersion: 1, customerId: 'c1' }),
+    );
   });
 });

@@ -204,7 +204,11 @@
   background: var(--cr-gold);
 }
 
-.credit-aging-bar span[data-key='D60_PLUS'] {
+.credit-aging-bar span[data-key='D61_90'] {
+  background: var(--cr-gold);
+}
+
+.credit-aging-bar span[data-key='D90_PLUS'] {
   background: var(--cr-rose);
 }
 
@@ -250,7 +254,11 @@
   background: var(--cr-gold);
 }
 
-.credit-band[data-key='D60_PLUS'] .dot {
+.credit-band[data-key='D61_90'] .dot {
+  background: var(--cr-gold);
+}
+
+.credit-band[data-key='D90_PLUS'] .dot {
   background: var(--cr-rose);
 }
 

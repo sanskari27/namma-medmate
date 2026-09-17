@@ -76,6 +76,7 @@ import {
   holdSalesInvoice,
   listSalesInvoices,
   resumeSalesInvoice,
+  updateSalesInvoice,
 } from '@/services/salesInvoices';
 import {
   addNamedPack,
@@ -100,6 +101,7 @@ const listHeldMock = vi.mocked(listSalesInvoices);
 const holdInvoiceMock = vi.mocked(holdSalesInvoice);
 const resumeInvoiceMock = vi.mocked(resumeSalesInvoice);
 const getInvoiceMock = vi.mocked(getSalesInvoice);
+const updateInvoiceMock = vi.mocked(updateSalesInvoice);
 
 describe('PosScreen hold and resume', () => {
   beforeEach(() => {
@@ -215,6 +217,10 @@ describe('PosScreen hold and resume', () => {
     expect(
       await screen.findByText('Bill INV/2026-27/BR01/00001 sent to reception — pay later.'),
     ).toBeInTheDocument();
+    expect(updateInvoiceMock).toHaveBeenCalledWith(
+      'inv-1',
+      expect.objectContaining({ expectedVersion: 1, customerId: null }),
+    );
     expect(
       await screen.findByRole('button', { name: 'Resume bill INV/2026-27/BR01/00001' }),
     ).toBeInTheDocument();

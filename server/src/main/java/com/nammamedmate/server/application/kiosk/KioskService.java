@@ -66,8 +66,7 @@ public class KioskService {
   static final String INSUFFICIENT_STOCK_MESSAGE =
       "That item is not on the shelf at this kiosk outlet.";
 
-  private static final Set<String> PAYMENT_METHODS =
-      Set.of("CASH", "UPI", "CARD", "COD");
+  private static final Set<String> PAYMENT_METHODS = Set.of("CASH", "UPI", "CARD", "COD");
   private static final Set<String> THEMES = Set.of("green", "dark", "gold");
 
   private final AppUserRepository appUserRepository;
@@ -122,7 +121,15 @@ public class KioskService {
     boolean hasModule = accessQueryService.effectiveModules(user).contains(ModuleCode.KIOSK);
     if (branchId == null) {
       return new KioskView(
-          planEntitled, hasModule, null, null, null, NO_BRANCH_CODE, null, defaultConfig(null), List.of());
+          planEntitled,
+          hasModule,
+          null,
+          null,
+          null,
+          NO_BRANCH_CODE,
+          null,
+          defaultConfig(null),
+          List.of());
     }
     Location branch = loadVisibleBranch(user, branchId);
     KioskSession open =
@@ -210,7 +217,9 @@ public class KioskService {
   public KioskView verifyExitPin(AuthPrincipal principal, String staffExitPin) {
     Context ctx = requireReady(principal);
     KioskConfig config = loadConfig(ctx.branch());
-    if (!staffExitPinSet(config) || !passwordEncoder.matches(staffExitPin == null ? "" : staffExitPin, config.getStaffExitPin())) {
+    if (!staffExitPinSet(config)
+        || !passwordEncoder.matches(
+            staffExitPin == null ? "" : staffExitPin, config.getStaffExitPin())) {
       throw new ApiException(HttpStatus.UNAUTHORIZED, "INVALID_PIN", "Incorrect PIN");
     }
     return toView(true, true, ctx.branch(), ctx.open(), null);
@@ -224,7 +233,8 @@ public class KioskService {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY, SESSION_CLOSED_CODE, SESSION_CLOSED_MESSAGE);
     }
-    String key = blankToNull(command.idempotencyKey() == null ? null : command.idempotencyKey().trim());
+    String key =
+        blankToNull(command.idempotencyKey() == null ? null : command.idempotencyKey().trim());
     if (key != null && key.length() > 128) {
       throw validation();
     }
@@ -501,7 +511,9 @@ public class KioskService {
                   ctx.user().getTenantId(), ctx.branch().getId(), product.getId())
               .stream()
               .filter(row -> row.getQuantity().compareTo(BigDecimal.ZERO) > 0)
-              .sorted(Comparator.comparing(StockBalance::getBatchId, Comparator.nullsFirst(UUID::compareTo)))
+              .sorted(
+                  Comparator.comparing(
+                      StockBalance::getBatchId, Comparator.nullsFirst(UUID::compareTo)))
               .toList();
       BigDecimal onHand =
           balances.stream().map(StockBalance::getQuantity).reduce(BigDecimal.ZERO, BigDecimal::add);
@@ -509,8 +521,7 @@ public class KioskService {
         throw new ApiException(
             HttpStatus.UNPROCESSABLE_ENTITY, INSUFFICIENT_STOCK_CODE, INSUFFICIENT_STOCK_MESSAGE);
       }
-      long unitPrice =
-          product.getDefaultMrpPaise() == null ? 0L : product.getDefaultMrpPaise();
+      long unitPrice = product.getDefaultMrpPaise() == null ? 0L : product.getDefaultMrpPaise();
       List<Map<String, Object>> reservations = new ArrayList<>();
       for (StockBalance balance : balances) {
         if (remaining.compareTo(BigDecimal.ZERO) <= 0) {
@@ -519,14 +530,10 @@ public class KioskService {
         BigDecimal take = remaining.min(balance.getQuantity());
         String stockKey = "kiosk-" + UUID.randomUUID();
         inventoryStockService.issue(
-            principal,
-            product.getId(),
-            balance.getBatchId(),
-            take,
-            stockKey,
-            balance.getVersion());
+            principal, product.getId(), balance.getBatchId(), take, stockKey, balance.getVersion());
         Map<String, Object> reservation = new LinkedHashMap<>();
-        reservation.put("batchId", balance.getBatchId() == null ? null : balance.getBatchId().toString());
+        reservation.put(
+            "batchId", balance.getBatchId() == null ? null : balance.getBatchId().toString());
         reservation.put("quantity", take.stripTrailingZeros().toPlainString());
         reservation.put("stockKey", stockKey);
         reservations.add(reservation);
@@ -561,7 +568,9 @@ public class KioskService {
         }
         Object batchRaw = reservation.get("batchId");
         UUID batchId =
-            batchRaw == null || String.valueOf(batchRaw).isBlank() || "null".equals(String.valueOf(batchRaw))
+            batchRaw == null
+                    || String.valueOf(batchRaw).isBlank()
+                    || "null".equals(String.valueOf(batchRaw))
                 ? null
                 : UUID.fromString(String.valueOf(batchRaw));
         BigDecimal qty = new BigDecimal(String.valueOf(reservation.get("quantity")));

@@ -1,19 +1,21 @@
 import { BookOpen, FileSpreadsheet, Send, ShoppingCart, TrendingUp, Truck } from 'lucide-react';
 import type { ReactNode } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { CA_PACK_CONTENT, SHARE_TOGGLES, type ShareToggleId } from '../../CaPackScreen.content';
 import { periodOptions } from '../../CaPackScreen.utils';
 import {
   advisorSelected,
   downloadCaPackFile,
   periodKeyChanged,
+  scopeChanged,
   selectCaPackAdvisorId,
   selectCaPackAdvisors,
   selectCaPackBusy,
   selectCaPackEnabled,
   selectCaPackGstAvailable,
   selectCaPackPeriodKey,
+  selectCaPackScope,
   selectShareCount,
   selectShareLabel,
   toggleChanged,
@@ -30,6 +32,7 @@ const ICONS: Record<ShareToggleId, ReactNode> = {
 export function CaPackShareCard() {
   const dispatch = useDispatch<AppDispatch>();
   const periodKey = useSelector(selectCaPackPeriodKey);
+  const scope = useSelector(selectCaPackScope);
   const enabled = useSelector(selectCaPackEnabled);
   const gstAvailable = useSelector(selectCaPackGstAvailable);
   const advisors = useSelector(selectCaPackAdvisors);
@@ -37,6 +40,9 @@ export function CaPackShareCard() {
   const busy = useSelector(selectCaPackBusy);
   const count = useSelector(selectShareCount);
   const label = useSelector(selectShareLabel);
+  const user = useSelector((state: RootState) => state.auth.user);
+  const owner = user?.role === 'pharmacy_owner';
+  const hasBranch = Boolean(user?.activeBranchId);
   const options = periodOptions();
 
   return (
@@ -57,6 +63,21 @@ export function CaPackShareCard() {
             ))}
           </select>
         </label>
+        {owner && hasBranch ? (
+          <label className="ca-label">
+            {CA_PACK_CONTENT.outlet}
+            <select
+              className="ca-select"
+              value={scope}
+              onChange={(event) =>
+                dispatch(scopeChanged(event.target.value === 'tenant' ? 'tenant' : 'session'))
+              }
+            >
+              <option value="session">{CA_PACK_CONTENT.thisOutlet}</option>
+              <option value="tenant">{CA_PACK_CONTENT.allOutlets}</option>
+            </select>
+          </label>
+        ) : null}
         <label className="ca-label">
           {CA_PACK_CONTENT.sendTo}
           <select

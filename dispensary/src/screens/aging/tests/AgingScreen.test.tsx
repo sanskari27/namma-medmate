@@ -153,6 +153,17 @@ describe('AgingScreen', () => {
     expect(buckets).toHaveTextContent('31–60');
   });
 
+  it('success: excel download is offered for FIFO remaining', async () => {
+    const user = userEvent.setup();
+    URL.createObjectURL = vi.fn(() => 'blob:aging');
+    receivablesMock.mockResolvedValue(filledAr);
+    payablesMock.mockResolvedValue(report());
+    renderPage();
+    await screen.findByText('Khata Buyer');
+    await user.click(screen.getByRole('button', { name: 'Excel' }));
+    expect(URL.createObjectURL).toHaveBeenCalled();
+  });
+
   it('denied PLAN_LIMIT: hides parties and links to the plan', async () => {
     receivablesMock.mockRejectedValue(
       new ApiError('Khata and stockist aging is on Growth. Open the plan to turn it on.', 422, 'PLAN_LIMIT'),

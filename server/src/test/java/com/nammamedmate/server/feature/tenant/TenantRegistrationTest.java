@@ -175,8 +175,8 @@ class TenantRegistrationTest extends AbstractIntegrationTest {
             post("/api/v1/tenants/verify-email")
                 .contentType(MediaType.APPLICATION_JSON)
                 .content("{\"token\":\"" + token + "\"}"))
-        .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VERIFY_TOKEN_INVALID"));
+        .andExpect(status().isConflict())
+        .andExpect(jsonPath("$.code").value("EMAIL_ALREADY_VERIFIED"));
 
     EmailVerificationToken expired = emailVerificationTokenRepository.findAll().get(0);
     expired.setConsumedAt(null);

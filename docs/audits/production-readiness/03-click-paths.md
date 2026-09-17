@@ -80,7 +80,7 @@ Broken / inconvenient in detail: [`m6.md`](m6.md) click table; cashier Wave 5 jo
 | Idle lock during support | PIN overlay; banner kept | **FIXED** | `AUTH-ADM-001` |
 | Dashboard KPIs | em-dash | **dead** | `UX-ADM-DASH-001` |
 | KYC Approve | decide API | **OK**; evidence raw URL | `M2-KYC-002` |
-| Pharmacies Suspend | status + reason | **OK**; KYC-pending no transition | `M2-LIFE-004` |
+| Pharmacies Suspend | status + reason | **FIXED**; KYC-pending Suspend/Terminate | `M2-LIFE-004` |
 | Support Enter | impersonation | **D-001 unlogged**; HQ chrome MASTER | `M1-IMPERSON-002` |
 | Licence Rescan | GET /due | **write scan** | `M7-LIC-003` |
 | Subscriptions override | MASTER | **FIXED**; EXPIRED/CANCELLED locks ACTIVE tenant | `M2-LIFE-001` |

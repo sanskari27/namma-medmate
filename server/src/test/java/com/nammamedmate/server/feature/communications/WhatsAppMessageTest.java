@@ -230,6 +230,42 @@ class WhatsAppMessageTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void creditDueNotifiesAgainAfterBalanceClears_M10_WA_004() throws Exception {
+    Fixture fx = seed("msg-ac03b");
+    UUID customerId = createCustomer(fx.cookie(), "Cleared Patient", "9411000013");
+    setLimitAndCharge(fx.cookie(), customerId);
+    approveTemplate(fx.cookie(), "credit_due", "Varshmaan");
+
+    creditDueScanner.scanTenant(fx.tenantId());
+    assertThat(messageRepository.count()).isEqualTo(1);
+
+    mockMvc
+        .perform(
+            post("/api/v1/customers/" + customerId + "/credit/settlements")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"amountPaise\":12000,\"mode\":\"CASH\",\"idempotencyKey\":\"settle-clear\",\"expectedVersion\":2}"))
+        .andExpect(status().isOk());
+
+    mockMvc
+        .perform(
+            post("/api/v1/customers/" + customerId + "/credit/charges")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    "{\"amountPaise\":8000,\"invoiceId\":\""
+                        + UUID.randomUUID()
+                        + "\",\"idempotencyKey\":\"charge-again-"
+                        + customerId
+                        + "\",\"expectedVersion\":3}"))
+        .andExpect(status().isOk());
+
+    creditDueScanner.scanTenant(fx.tenantId());
+    assertThat(messageRepository.count()).isEqualTo(2);
+  }
+
+  @Test
   void ac04_campaignSendsOnlyFrozenAudience() throws Exception {
     Fixture fx = seed("msg-ac04");
     UUID diabetic = createTag(fx.cookie(), "diabetic");

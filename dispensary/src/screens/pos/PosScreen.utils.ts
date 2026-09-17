@@ -6,6 +6,12 @@ import type { PageStatus } from './pos.types';
 
 export type { PageStatus } from './pos.types';
 
+export const POS_SEARCH_INPUT_ID = 'pos-product-search';
+
+export function restorePosSearchFocus() {
+  document.getElementById(POS_SEARCH_INPUT_ID)?.focus();
+}
+
 export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
 
 export type TenderDraft = {

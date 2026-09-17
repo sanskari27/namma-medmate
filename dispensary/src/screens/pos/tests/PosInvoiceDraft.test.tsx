@@ -240,4 +240,25 @@ describe('PosScreen invoice draft', () => {
     });
     expect(createInvoiceMock).toHaveBeenCalledTimes(1);
   });
+
+  it('failure: convert error does not add a line from packSize', async () => {
+    const user = userEvent.setup();
+    convertMock.mockRejectedValue(new Error('down'));
+    renderPos();
+    await screen.findByText('Penicillin V');
+    await user.click(screen.getByRole('button', { name: 'Add Penicillin V pack to bill' }));
+    expect(await screen.findByRole('alert')).toBeInTheDocument();
+    expect(screen.queryByLabelText('Unit for Penicillin V')).not.toBeInTheDocument();
+  });
+
+  it('failure: unit change convert error keeps the current unit', async () => {
+    const user = userEvent.setup();
+    renderPos();
+    await addNamedPack(user, 'Penicillin V');
+    expect(screen.getByLabelText('Unit for Penicillin V')).toHaveValue('strip');
+    convertMock.mockRejectedValue(new Error('down'));
+    await user.selectOptions(screen.getByLabelText('Unit for Penicillin V'), 'Tablet');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Could not convert that pack unit');
+    expect(screen.getByLabelText('Unit for Penicillin V')).toHaveValue('strip');
+  });
 });

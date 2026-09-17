@@ -1,7 +1,10 @@
 package com.nammamedmate.server.application.customercredit;
 
 import com.nammamedmate.server.application.access.AccessQueryService;
+import com.nammamedmate.server.application.communications.CreditDueScanner;
 import com.nammamedmate.server.application.loyalty.LoyaltyService;
+import com.nammamedmate.server.domain.AgingBucket;
+import com.nammamedmate.server.domain.AgingPolicy;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Customer;
@@ -14,7 +17,6 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.CustomerCreditAccountRepository;
 import com.nammamedmate.server.persistence.CustomerCreditLedgerEntryRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
-import com.nammamedmate.server.domain.AgingPolicy;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Clock;
 import java.time.Instant;
@@ -42,6 +44,7 @@ public class CustomerCreditService {
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final LoyaltyService loyaltyService;
+  private final CreditDueScanner creditDueScanner;
   private final Clock clock;
 
   public CustomerCreditService(
@@ -51,6 +54,7 @@ public class CustomerCreditService {
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       LoyaltyService loyaltyService,
+      CreditDueScanner creditDueScanner,
       Clock clock) {
     this.accountRepository = accountRepository;
     this.ledgerRepository = ledgerRepository;
@@ -58,6 +62,7 @@ public class CustomerCreditService {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.loyaltyService = loyaltyService;
+    this.creditDueScanner = creditDueScanner;
     this.clock = clock;
   }
 
@@ -78,8 +83,7 @@ public class CustomerCreditService {
     UUID tenantId = requireCrmAccess(principal);
     Instant now = clock.instant();
     LocalDate today = AgingPolicy.today(now);
-    Instant monthStart =
-        YearMonth.from(today).atDay(1).atStartOfDay(AgingPolicy.IST).toInstant();
+    Instant monthStart = YearMonth.from(today).atDay(1).atStartOfDay(AgingPolicy.IST).toInstant();
 
     List<CustomerCreditAccount> allAccounts = accountRepository.findAllByTenantId(tenantId);
     List<CustomerCreditLedgerEntry> ledger =
@@ -99,12 +103,12 @@ public class CustomerCreditService {
     long totalOutstanding = 0L;
     long overduePaise = 0L;
     int overdueAccounts = 0;
-    long band0 = 0L;
-    long band31 = 0L;
-    long band60 = 0L;
-    int band0Accounts = 0;
-    int band31Accounts = 0;
-    int band60Accounts = 0;
+    Map<AgingBucket, Long> bandPaise = new LinkedHashMap<>();
+    Map<AgingBucket, Integer> bandAccounts = new LinkedHashMap<>();
+    for (AgingBucket bucket : AgingPolicy.orderedBuckets()) {
+      bandPaise.put(bucket, 0L);
+      bandAccounts.put(bucket, 0);
+    }
     long givenAllTime = 0L;
     long repaidAllTime = 0L;
     long collectedThisMonth = 0L;
@@ -131,16 +135,9 @@ public class CustomerCreditService {
         overduePaise += account.getBalancePaise();
         overdueAccounts++;
       }
-      if (ageDays <= 30) {
-        band0 += account.getBalancePaise();
-        band0Accounts++;
-      } else if (ageDays <= 60) {
-        band31 += account.getBalancePaise();
-        band31Accounts++;
-      } else {
-        band60 += account.getBalancePaise();
-        band60Accounts++;
-      }
+      AgingBucket bucket = AgingPolicy.bucket(ageDays);
+      bandPaise.put(bucket, bandPaise.get(bucket) + account.getBalancePaise());
+      bandAccounts.put(bucket, bandAccounts.get(bucket) + 1);
       items.add(
           new CustomerCreditOutstandingView.OutstandingItem(
               account.getCustomerId(),
@@ -155,7 +152,9 @@ public class CustomerCreditService {
               agg.repaidPaise,
               ageDays));
     }
-    items.sort(Comparator.comparingLong(CustomerCreditOutstandingView.OutstandingItem::balancePaise).reversed());
+    items.sort(
+        Comparator.comparingLong(CustomerCreditOutstandingView.OutstandingItem::balancePaise)
+            .reversed());
 
     int collectionRate =
         givenAllTime <= 0 ? 0 : (int) Math.round((repaidAllTime * 100.0) / givenAllTime);
@@ -199,11 +198,15 @@ public class CustomerCreditService {
             collectionRate,
             givenAllTime,
             khataAccounts),
-        List.of(
-            new CustomerCreditOutstandingView.AgingBand("D0_30", "0–30 days", band0, band0Accounts),
-            new CustomerCreditOutstandingView.AgingBand(
-                "D31_60", "31–60 days", band31, band31Accounts),
-            new CustomerCreditOutstandingView.AgingBand("D60_PLUS", "60+ days", band60, band60Accounts)),
+        AgingPolicy.orderedBuckets().stream()
+            .map(
+                bucket ->
+                    new CustomerCreditOutstandingView.AgingBand(
+                        bucket.name(),
+                        bucket.label(),
+                        bandPaise.get(bucket),
+                        bandAccounts.get(bucket)))
+            .toList(),
         items,
         payments);
   }
@@ -241,7 +244,8 @@ public class CustomerCreditService {
       ArrayDeque<OpenCharge> queue =
           open.computeIfAbsent(entry.getCustomerId(), id -> new ArrayDeque<>());
       if (entry.getType() == CustomerCreditLedgerType.SALE_CHARGE) {
-        queue.addLast(new OpenCharge(entry.getAmountPaise(), AgingPolicy.istDate(entry.getOccurredAt())));
+        queue.addLast(
+            new OpenCharge(entry.getAmountPaise(), AgingPolicy.istDate(entry.getOccurredAt())));
       } else if (entry.getType() == CustomerCreditLedgerType.SETTLEMENT
           || entry.getType() == CustomerCreditLedgerType.CREDIT_NOTE) {
         long leftover = entry.getAmountPaise();
@@ -435,6 +439,7 @@ public class CustomerCreditService {
         normalizedKey,
         principal.userId(),
         now);
+    creditDueScanner.releaseIfSettled(account);
     return toView(account, ledgerEntries(tenantId, customerId));
   }
 
@@ -481,6 +486,7 @@ public class CustomerCreditService {
         principal.userId(),
         now);
     loyaltyService.earnOnSettlement(principal, tenantId, customerId, amountPaise, normalizedKey);
+    creditDueScanner.releaseIfSettled(account);
     return toView(account, ledgerEntries(tenantId, customerId));
   }
 

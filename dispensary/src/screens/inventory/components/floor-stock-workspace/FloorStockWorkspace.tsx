@@ -123,9 +123,6 @@ export function FloorStockWorkspace({
         onToggleLoose={(productId, next) => {
           void dispatch(updateListingFlags({ productId, looseSellingEnabled: next }));
         }}
-        onToggleOnline={(productId, next) => {
-          void dispatch(updateListingFlags({ productId, onlineListed: next }));
-        }}
         onEdit={(productId) => {
           dispatch(openProductEditor({ mode: 'edit', productId }));
         }}

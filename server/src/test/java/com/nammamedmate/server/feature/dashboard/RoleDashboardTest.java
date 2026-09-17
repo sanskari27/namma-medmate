@@ -312,6 +312,26 @@ class RoleDashboardTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void homeKpiAssembly_defaultDeskNoOnlineSliceHasGeneratedAt() throws Exception {
+    Fixture fx = seed("dash-home-kpi");
+    Cookie cashier = staffWithPredefined(fx, "cashier", "till@dash-home-kpi.local");
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(cashier))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.generatedAt").isNotEmpty())
+        .andExpect(jsonPath("$.data.kpis.todaySalesPaise").exists())
+        .andExpect(jsonPath("$.data.owner").doesNotExist());
+
+    mockMvc
+        .perform(get("/api/v1/dashboards/home").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.generatedAt").isNotEmpty())
+        .andExpect(jsonPath("$.data.analytics.channelSplit[*].key", not(hasItem("ONLINE"))))
+        .andExpect(jsonPath("$.data.analytics.channelSplit[*].key", hasItem("COUNTER")));
+  }
+
+  @Test
   void homeCountsDistinctArCustomers_M9_DASH_003() throws Exception {
     Fixture fx = seed("dash-dues");
     Customer first = persistCustomer(fx.tenantId(), "Khata One", "9801000201");

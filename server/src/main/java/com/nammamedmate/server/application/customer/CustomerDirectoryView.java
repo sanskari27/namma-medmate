@@ -20,4 +20,5 @@ public record CustomerDirectoryView(
     long creditDuePaise,
     boolean chronicRx,
     Instant createdAt,
-    Instant updatedAt) {}
+    Instant updatedAt,
+    UUID familyId) {}

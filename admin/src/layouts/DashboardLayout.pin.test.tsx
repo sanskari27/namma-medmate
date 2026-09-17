@@ -137,4 +137,19 @@ describe('admin idle PIN lock', () => {
     expect(screen.getByText('Tenant pulse')).toBeInTheDocument();
     expect(store.getState().auth.user?.impersonation).toEqual(support);
   });
+
+  it('abandoned: four hours after lock returns to HQ sign-in', () => {
+    vi.useFakeTimers();
+    const { store } = renderShell(true);
+    act(() => {
+      vi.advanceTimersByTime(5 * 60 * 1000);
+    });
+    expect(screen.getByRole('dialog', { name: 'HQ session locked' })).toBeInTheDocument();
+    act(() => {
+      vi.advanceTimersByTime(4 * 60 * 60 * 1000);
+    });
+    expect(screen.getByText('HQ sign in')).toBeInTheDocument();
+    expect(store.getState().auth.user).toBeNull();
+    expect(sessionStorage.getItem('nmm.admin.sessionEndReason')).toBe('abandoned');
+  });
 });

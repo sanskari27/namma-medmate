@@ -146,6 +146,7 @@ export type InventoryOverviewRow = {
   onlineListed: boolean;
   unallocated: boolean;
   deadStock: boolean;
+  controlledSubstance?: boolean;
 };
 
 export type InventoryOverview = {

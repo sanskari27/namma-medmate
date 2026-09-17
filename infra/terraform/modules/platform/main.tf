@@ -159,21 +159,23 @@ resource "aws_db_subnet_group" "this" {
 }
 
 resource "aws_db_instance" "this" {
-  identifier              = "${local.name}-postgres"
-  engine                  = "postgres"
-  engine_version          = "16"
-  instance_class          = var.db_instance_class
-  allocated_storage       = 20
-  db_name                 = var.db_name
-  username                = var.db_username
-  password                = random_password.db.result
-  db_subnet_group_name    = aws_db_subnet_group.this.name
-  vpc_security_group_ids  = [aws_security_group.rds.id]
-  publicly_accessible     = false
-  storage_encrypted       = true
-  skip_final_snapshot     = var.skip_final_snapshot
-  backup_retention_period = 7
-  tags                    = { Name = "${local.name}-rds" }
+  identifier                = "${local.name}-postgres"
+  engine                    = "postgres"
+  engine_version            = "16"
+  instance_class            = var.db_instance_class
+  allocated_storage         = 20
+  db_name                   = var.db_name
+  username                  = var.db_username
+  password                  = random_password.db.result
+  db_subnet_group_name      = aws_db_subnet_group.this.name
+  vpc_security_group_ids    = [aws_security_group.rds.id]
+  publicly_accessible       = false
+  storage_encrypted         = true
+  skip_final_snapshot       = var.skip_final_snapshot
+  deletion_protection       = true
+  final_snapshot_identifier = var.skip_final_snapshot ? null : "${local.name}-final"
+  backup_retention_period   = 7
+  tags                      = { Name = "${local.name}-rds" }
 }
 
 resource "aws_elasticache_subnet_group" "this" {
@@ -181,16 +183,23 @@ resource "aws_elasticache_subnet_group" "this" {
   subnet_ids = aws_subnet.private[*].id
 }
 
-resource "aws_elasticache_cluster" "this" {
-  cluster_id           = "${local.name}-redis"
-  engine               = "redis"
-  engine_version       = "7.1"
-  node_type            = var.redis_node_type
-  num_cache_nodes      = 1
-  parameter_group_name = "default.redis7"
-  subnet_group_name    = aws_elasticache_subnet_group.this.name
-  security_group_ids   = [aws_security_group.redis.id]
-  tags                 = { Name = "${local.name}-redis" }
+resource "aws_elasticache_replication_group" "this" {
+  replication_group_id       = "${local.name}-redis"
+  description                = "${local.name} redis"
+  engine                     = "redis"
+  engine_version             = "7.1"
+  node_type                  = var.redis_node_type
+  num_cache_clusters         = 1
+  port                       = 6379
+  parameter_group_name       = "default.redis7"
+  subnet_group_name          = aws_elasticache_subnet_group.this.name
+  security_group_ids         = [aws_security_group.redis.id]
+  automatic_failover_enabled = false
+  # Cluster API cannot enable transit encryption for Redis; replication group can.
+  # preferred keeps existing unencrypted Spring clients working (Redis unused by sessions).
+  transit_encryption_enabled = true
+  transit_encryption_mode    = "preferred"
+  tags                       = { Name = "${local.name}-redis" }
 }
 
 resource "aws_iam_role" "ec2" {
@@ -347,7 +356,7 @@ resource "aws_ssm_parameter" "compose_env" {
     "DATABASE_URL=jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}",
     "DATABASE_USERNAME=${var.db_username}",
     "DATABASE_PASSWORD=${random_password.db.result}",
-    "REDIS_HOST=${aws_elasticache_cluster.this.cache_nodes[0].address}",
+    "REDIS_HOST=${aws_elasticache_replication_group.this.primary_endpoint_address}",
     "REDIS_PORT=6379",
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
@@ -366,6 +375,10 @@ resource "aws_ssm_parameter" "compose_env" {
     "PASSWORD_RESET_DISPENSARY_URL=${var.password_reset_dispensary_url}",
     "PASSWORD_RESET_ADMIN_URL=${var.password_reset_admin_url}",
     "EMAIL_VERIFICATION_DISPENSARY_URL=${var.email_verification_dispensary_url}",
+    "META_WHATSAPP_TOKEN=${var.meta_whatsapp_token}",
+    "META_WHATSAPP_PHONE_NUMBER_ID=${var.meta_whatsapp_phone_number_id}",
+    "META_WHATSAPP_WABA_ID=${var.meta_whatsapp_waba_id}",
+    "META_WHATSAPP_DISPLAY_NUMBER=${var.meta_whatsapp_display_number}",
   ])
 
   lifecycle {

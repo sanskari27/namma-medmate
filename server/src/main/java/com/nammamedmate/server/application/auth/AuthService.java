@@ -185,6 +185,11 @@ public class AuthService {
     session.setPinFailedAttempts(0);
     session.setExpiresAt(now.plus(Duration.ofMinutes(sessionTtlMinutes)));
     userSessionRepository.save(session);
+    JwtService.ActingIdentity acting =
+        principal.impersonating()
+            ? new JwtService.ActingIdentity(
+                principal.userId(), principal.tenantId(), principal.role())
+            : null;
     String token =
         jwtService.createToken(
             user.getId(),
@@ -192,7 +197,8 @@ public class AuthService {
             user.getTenantId(),
             user.getRole(),
             now,
-            now.plus(Duration.ofMinutes(sessionTtlMinutes)));
+            now.plus(Duration.ofMinutes(sessionTtlMinutes)),
+            acting);
     return new LoginOutcome(toAuthenticatedUser(user), token, session.getId());
   }
 

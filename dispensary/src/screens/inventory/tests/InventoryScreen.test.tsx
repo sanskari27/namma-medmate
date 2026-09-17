@@ -773,6 +773,17 @@ describe('floor stock', () => {
     expect(screen.getByRole('button', { name: 'Add product' })).toBeInTheDocument();
   });
 
+  it('success: floor MRP keeps paise and hides Online listing', async () => {
+    getOverviewMock.mockResolvedValue({
+      ...filledOverview,
+      items: [{ ...overviewRow, mrpPaise: 1250 }],
+    });
+    renderPage();
+    expect(await screen.findByText('₹12.50')).toBeInTheDocument();
+    expect(screen.queryByRole('columnheader', { name: 'Online' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText(/Toggle online/i)).not.toBeInTheDocument();
+  });
+
   it('success: lists stock and shows batch detail with movements', async () => {
     const user = userEvent.setup();
     getOverviewMock.mockResolvedValue(filledOverview);
@@ -1839,7 +1850,7 @@ describe('schedule register', () => {
     await openRegister(user);
     expect(await screen.findByText('Alprazolam')).toBeInTheDocument();
     expect(screen.getByText('STOCK_IN')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'NDPS sheet' }));
+    await user.click(screen.getByRole('button', { name: 'Schedule stock sheet' }));
     await waitFor(() => expect(downloadControlledExportMock).toHaveBeenCalledWith('ndps', {}));
     expect(
       await screen.findByText('Schedule register exported for this outlet.'),
@@ -1871,7 +1882,7 @@ describe('returns tab', () => {
     listMock.mockResolvedValue([sample]);
     renderPage();
     const user = userEvent.setup({ delay: null });
-    await user.click(screen.getByRole('tab', { name: 'Returns' }));
+    await user.click(screen.getByRole('tab', { name: 'Stockist debit notes' }));
     expect(
       (
         await screen.findAllByText(

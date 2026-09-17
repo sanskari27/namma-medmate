@@ -33,7 +33,7 @@ export default function TrendsScreen() {
     if (!allowed) {
       dispatch(
         accessDenied(
-          'Till staff cannot open compare weeks. Ask the owner for Accounts access.',
+          'Till staff cannot open compare weeks. Ask the owner for reporting access.',
         ),
       );
       return;

@@ -11,7 +11,7 @@ TLS and routing on the host. Compose publishes loopback only:
 ## DNS
 
 - `api.nammamedmate.com`
-- `dispensary.nammamedmate.com`
+- `pharmacy.nammamedmate.com`
 - `admin.nammamedmate.com`
 
 ## Upstreams
@@ -51,7 +51,7 @@ server {
 
 server {
     listen 443 ssl http2;
-    server_name dispensary.nammamedmate.com;
+    server_name pharmacy.nammamedmate.com;
     ssl_certificate     /etc/letsencrypt/live/nammamedmate.com/fullchain.pem;
     ssl_certificate_key /etc/letsencrypt/live/nammamedmate.com/privkey.pem;
     location / {

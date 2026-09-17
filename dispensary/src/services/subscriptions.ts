@@ -70,8 +70,10 @@ export async function startCashfreeCheckout(
 }
 
 export async function getCashfreePayment(orderId: string): Promise<CashfreePayment> {
-  const { data } = await apiClient.get<CashfreePayment>(API.SUBSCRIPTIONS_CASHFREE, {
-    params: { orderId },
-  });
+  const { data } = await apiClient.post<CashfreePayment>(
+    `${API.SUBSCRIPTIONS_CASHFREE}/reconcile`,
+    {},
+    { params: { orderId } },
+  );
   return data;
 }

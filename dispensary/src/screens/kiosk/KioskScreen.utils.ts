@@ -116,7 +116,18 @@ export function toCartLine(row: InventoryOverviewRow, loose = false): CartLine {
 }
 
 export function catalogueForKiosk(rows: InventoryOverviewRow[]): InventoryOverviewRow[] {
-  return rows.filter((row) => !row.outOfStock && row.onHandQuantity > 0);
+  return rows.filter(
+    (row) => !row.outOfStock && row.onHandQuantity > 0 && !isControlledKioskSku(row),
+  );
+}
+
+const CONTROLLED_SCHEDULES = new Set(['H', 'H1', 'X', 'NDPS']);
+
+function isControlledKioskSku(row: InventoryOverviewRow): boolean {
+  if (row.controlledSubstance) {
+    return true;
+  }
+  return row.scheduleClassification != null && CONTROLLED_SCHEDULES.has(row.scheduleClassification);
 }
 
 export function matchesQuery(row: InventoryOverviewRow, query: string): boolean {

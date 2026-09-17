@@ -468,6 +468,61 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void lowStockNotifiesAgainAfterRestock_M10_ROUTE_005() throws Exception {
+    Fixture fx = seed("low-reset");
+    UUID productId = createBatchedProduct(fx.cookie(), "SKU-DIP", "Dip Med", 10, 20, 2);
+    MvcResult received =
+        receive(
+            fx.cookie(),
+            productId,
+            "LOT-D",
+            "2026-01-01",
+            "2027-06-30",
+            1000,
+            "20",
+            "recv-dip-1",
+            0);
+    JsonNode stock =
+        objectMapper.readTree(received.getResponse().getContentAsString()).path("data");
+    UUID batchId = UUID.fromString(stock.path("batchId").asText());
+    String key = "low-stock:" + fx.tenantId() + ":" + fx.branchId() + ":" + productId;
+
+    mockMvc
+        .perform(
+            post("/api/v1/inventory/issues")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    issueJson(
+                        productId, batchId, "11", "iss-dip-1", stock.path("version").asLong())))
+        .andExpect(status().isOk());
+    assertThat(notificationEventRepository.findByEventKey(key)).isPresent();
+    long firstEvents = notificationEventRepository.count();
+
+    mockMvc
+        .perform(
+            post("/api/v1/inventory/issues")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(issueJson(productId, batchId, "1", "iss-dip-2", 2)))
+        .andExpect(status().isOk());
+    assertThat(notificationEventRepository.count()).isEqualTo(firstEvents);
+
+    receive(
+        fx.cookie(), productId, "LOT-D", "2026-01-01", "2027-06-30", 1000, "20", "recv-dip-2", 3);
+    assertThat(notificationEventRepository.findByEventKey(key)).isEmpty();
+
+    mockMvc
+        .perform(
+            post("/api/v1/inventory/issues")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(issueJson(productId, batchId, "19", "iss-dip-3", 4)))
+        .andExpect(status().isOk());
+    assertThat(notificationEventRepository.findByEventKey(key)).isPresent();
+  }
+
+  @Test
   void ac08_expiredDepletedInaccessibleCannotIssue() throws Exception {
     Fixture fx = seed("ac08");
     UUID productId = createBatchedProduct(fx.cookie(), "SKU-SAFE", "Safe Med", null, null, null);

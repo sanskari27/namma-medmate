@@ -108,6 +108,23 @@ class TenantKycTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void ac01_submitNotifiesHqKycQueue_M2_KYC_001() throws Exception {
+    Tenant tenant = persistPendingTenant("hq-kyc", "HQ Kyc");
+    persistOwner(tenant.getId(), "owner@hqkyc.local");
+    persistUser(null, "ops@hqkyc.local", AppUserRole.admin_super, null);
+    Cookie ownerCookie = login("owner@hqkyc.local");
+    Cookie masterCookie = login("ops@hqkyc.local");
+
+    mockMvc.perform(kycMultipart(tenant.getId()).cookie(ownerCookie)).andExpect(status().isOk());
+
+    mockMvc
+        .perform(get("/api/v1/notifications").cookie(masterCookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items[0].sourceType").value("kyc"))
+        .andExpect(jsonPath("$.data.items[0].title").value("KYC pack waiting"));
+  }
+
+  @Test
   void ac02_masterAndTenantKycAgentCanReview() throws Exception {
     Tenant tenant = persistPendingTenant("review-chemist", "Review Chemist");
     persistOwner(tenant.getId(), "owner@review.local");

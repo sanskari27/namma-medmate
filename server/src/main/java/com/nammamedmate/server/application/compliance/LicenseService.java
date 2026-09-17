@@ -77,18 +77,18 @@ public class LicenseService {
         .toList();
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
   public List<LicenseView> listDue(AuthPrincipal principal) {
     UUID tenantId = requireOwner(principal);
     LocalDate today = today();
-    return dueScanner.scanTenant(tenantId).stream().map(license -> toView(license, today)).toList();
+    return dueScanner.listDue(tenantId).stream().map(license -> toView(license, today)).toList();
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
   public List<AdminDueLicenseView> listPlatformDue(AuthPrincipal principal) {
     requireMaster(principal);
     LocalDate today = today();
-    return dueScanner.scanAll().stream().map(license -> toAdminView(license, today)).toList();
+    return dueScanner.listAllDue().stream().map(license -> toAdminView(license, today)).toList();
   }
 
   @Transactional

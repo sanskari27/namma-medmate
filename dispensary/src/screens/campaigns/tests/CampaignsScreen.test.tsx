@@ -148,7 +148,7 @@ describe('tag broadcasts', () => {
     await user.click(screen.getByRole('button', { name: 'New broadcast' }));
     await user.click(screen.getByRole('button', { name: 'Save draft' }));
     expect(screen.getByRole('status')).toHaveTextContent(
-      'Name and at least one patient tag are needed before saving this broadcast.',
+      'Name, a patient tag, and an approved shop update slot are needed before saving this broadcast.',
     );
     expect(createMock).not.toHaveBeenCalled();
   });
@@ -202,8 +202,12 @@ describe('tag broadcasts', () => {
     });
     await user.click(screen.getByRole('checkbox', { name: 'diabetic' }));
     await user.click(screen.getByRole('button', { name: 'Save draft' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Broadcast saved as a draft at this counter.',
+    expect(createMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        name: 'Diabetes promo',
+        tagIds: ['tag1'],
+        templateUniqueName: 'campaign',
+      }),
     );
     await user.click(screen.getByRole('button', { name: 'Count this list' }));
     expect(await screen.findByRole('status')).toHaveTextContent(

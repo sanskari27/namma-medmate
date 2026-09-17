@@ -6,7 +6,8 @@ export function formatPaise(paise: number | null | undefined): string {
     return '—';
   }
   return `₹${(paise / 100).toLocaleString('en-IN', {
-    maximumFractionDigits: 0,
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
   })}`;
 }
 
@@ -84,7 +85,6 @@ export function downloadInventoryCsv(rows: InventoryOverviewRow[]): void {
     'MRP',
     'Value',
     'Loose',
-    'Online',
   ];
   const lines = [
     header.join(','),
@@ -102,7 +102,6 @@ export function downloadInventoryCsv(rows: InventoryOverviewRow[]): void {
         row.mrpPaise == null ? '' : (row.mrpPaise / 100).toFixed(2),
         (row.retailValuePaise / 100).toFixed(2),
         row.looseSellingEnabled ? 'yes' : 'no',
-        row.onlineListed ? 'yes' : 'no',
       ].join(','),
     ),
   ];

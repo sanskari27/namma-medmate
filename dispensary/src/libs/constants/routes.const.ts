@@ -65,8 +65,8 @@ export const NAV_SECTIONS = [
     label: 'Billing / POS',
     items: [
       { label: 'Sales', path: ROUTES.SALES, hint: 'Bill at this counter' },
-      { label: 'Orders', path: ROUTES.ORDERS, hint: 'Online & counter sales' },
-      { label: 'Returns', path: ROUTES.RETURNS, hint: 'Take a sale back' },
+      { label: 'Orders', path: ROUTES.ORDERS, hint: 'Counter & kiosk history' },
+      { label: 'Sale returns', path: ROUTES.RETURNS, hint: 'Take a sale back' },
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },
@@ -155,3 +155,19 @@ export const MODULE_NAV_ITEMS: readonly NavItem[] = [
 ];
 
 export const NAV_ITEMS = MODULE_NAV_ITEMS.map(({ label, path }) => ({ label, path }));
+
+const LOCKED_ALWAYS = new Set<string>([ROUTES.ACCOUNT]);
+const LOCKED_AFTER_KYC = new Set<string>([ROUTES.ACCOUNT, ROUTES.SUBSCRIPTION]);
+
+export function floorNavAllowed(
+  tenantStatus: string | null | undefined,
+  path: string,
+): boolean {
+  if (!tenantStatus || tenantStatus === 'ACTIVE') {
+    return true;
+  }
+  if (tenantStatus === 'VERIFICATION_REQUIRED') {
+    return LOCKED_ALWAYS.has(path);
+  }
+  return LOCKED_AFTER_KYC.has(path);
+}

@@ -14,7 +14,6 @@ type InventoryStockRowProps = {
   row: InventoryOverviewRow;
   busy: boolean;
   onToggleLoose: (next: boolean) => void;
-  onToggleOnline: (next: boolean) => void;
   onEdit: () => void;
   onOpenBatches: () => void;
 };
@@ -23,7 +22,6 @@ export function InventoryStockRow({
   row,
   busy,
   onToggleLoose,
-  onToggleOnline,
   onEdit,
   onOpenBatches,
 }: InventoryStockRowProps) {
@@ -116,14 +114,6 @@ export function InventoryStockRow({
             </span>
           ) : null}
         </div>
-      </td>
-      <td className="px-3 py-3 align-middle">
-        <Switch
-          checked={row.onlineListed}
-          onCheckedChange={onToggleOnline}
-          disabled={busy}
-          label={`Toggle online for ${row.name}`}
-        />
       </td>
       <td className="px-3 py-3 align-middle">
         <Button

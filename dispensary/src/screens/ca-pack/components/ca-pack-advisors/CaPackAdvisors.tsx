@@ -1,6 +1,6 @@
 import { Pencil, Trash2 } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { CA_PACK_CONTENT } from '../../CaPackScreen.content';
 import { emptyAdvisor, saveAdvisors, type AdvisorKind } from '../../CaPackScreen.utils';
 import {
@@ -12,6 +12,7 @@ import {
 export function CaPackAdvisors() {
   const dispatch = useDispatch<AppDispatch>();
   const advisors = useSelector(selectCaPackAdvisors);
+  const tenantId = useSelector((state: RootState) => state.auth.user?.tenantId);
 
   function add(kind: AdvisorKind) {
     dispatch(openAdvisorForm(emptyAdvisor(kind)));
@@ -19,7 +20,7 @@ export function CaPackAdvisors() {
 
   function remove(id: string) {
     const next = advisors.filter((row) => row.id !== id);
-    saveAdvisors(next);
+    saveAdvisors(next, tenantId);
     dispatch(advisorsSaved(next));
   }
 

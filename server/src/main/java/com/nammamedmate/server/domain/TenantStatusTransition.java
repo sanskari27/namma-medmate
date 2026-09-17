@@ -18,7 +18,9 @@ public final class TenantStatusTransition {
     map.put(TenantStatus.SUSPENDED, EnumSet.of(TenantStatus.ACTIVE, TenantStatus.TERMINATED));
     map.put(TenantStatus.EXPIRED, EnumSet.of(TenantStatus.ACTIVE, TenantStatus.TERMINATED));
     map.put(TenantStatus.TERMINATED, EnumSet.noneOf(TenantStatus.class));
-    map.put(TenantStatus.VERIFICATION_REQUIRED, EnumSet.noneOf(TenantStatus.class));
+    map.put(
+        TenantStatus.VERIFICATION_REQUIRED,
+        EnumSet.of(TenantStatus.SUSPENDED, TenantStatus.TERMINATED));
     ALLOWED = Map.copyOf(map);
   }
 

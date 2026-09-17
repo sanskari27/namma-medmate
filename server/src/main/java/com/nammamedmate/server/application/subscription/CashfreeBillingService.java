@@ -143,6 +143,30 @@ public class CashfreeBillingService {
     return toView(payment);
   }
 
+  @Transactional(readOnly = true)
+  public CashfreePaymentView status(AuthPrincipal principal, UUID paymentId) {
+    UUID tenantId = requireOwner(principal);
+    SubscriptionPayment payment =
+        paymentRepository
+            .findByIdAndTenantId(paymentId, tenantId)
+            .orElseThrow(CashfreeBillingPolicy::notFound);
+    return toView(payment);
+  }
+
+  @Transactional(readOnly = true)
+  public CashfreePaymentView statusByOrder(AuthPrincipal principal, String orderId) {
+    UUID tenantId = requireOwner(principal);
+    if (orderId == null || orderId.isBlank()) {
+      throw CashfreeBillingPolicy.shape();
+    }
+    SubscriptionPayment payment =
+        paymentRepository
+            .findByProviderOrderId(orderId.trim())
+            .filter(row -> row.getTenantId().equals(tenantId))
+            .orElseThrow(CashfreeBillingPolicy::notFound);
+    return toView(payment);
+  }
+
   @Transactional
   public CashfreePaymentView reconcile(AuthPrincipal principal, UUID paymentId) {
     UUID tenantId = requireOwner(principal);

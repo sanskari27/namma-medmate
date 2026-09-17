@@ -15,7 +15,9 @@ import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -25,37 +27,56 @@ public class LicenseDueScanner {
   private final TenantRepository tenantRepository;
   private final NotificationRoutingService notificationRoutingService;
   private final Clock clock;
+  private final LicenseDueScanner self;
 
   public LicenseDueScanner(
       ComplianceLicenseRepository licenseRepository,
       TenantRepository tenantRepository,
       NotificationRoutingService notificationRoutingService,
-      Clock clock) {
+      Clock clock,
+      @Lazy LicenseDueScanner self) {
     this.licenseRepository = licenseRepository;
     this.tenantRepository = tenantRepository;
     this.notificationRoutingService = notificationRoutingService;
     this.clock = clock;
+    this.self = self;
   }
 
-  @Transactional
   public List<ComplianceLicense> scanAll() {
     List<ComplianceLicense> due = new ArrayList<>();
     for (Tenant tenant : tenantRepository.findAllByDeletedAtIsNullOrderByNameAsc()) {
-      due.addAll(scanTenant(tenant.getId()));
+      try {
+        due.addAll(self.scanTenant(tenant.getId()));
+      } catch (RuntimeException ignored) {
+        // one tenant must not roll back the rest
+      }
     }
     return due;
   }
 
-  @Transactional
+  @Transactional(readOnly = true)
+  public List<ComplianceLicense> listAllDue() {
+    List<ComplianceLicense> due = new ArrayList<>();
+    for (Tenant tenant : tenantRepository.findAllByDeletedAtIsNullOrderByNameAsc()) {
+      due.addAll(listDue(tenant.getId()));
+    }
+    return due;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public List<ComplianceLicense> scanTenant(UUID tenantId) {
     LocalDate today = today();
-    List<ComplianceLicense> due =
-        licenseRepository.findByTenantIdAndExpiresOnLessThanEqualOrderByExpiresOnAsc(
-            tenantId, LicensePolicy.dueCutoff(today));
+    List<ComplianceLicense> due = listDue(tenantId);
     for (ComplianceLicense license : due) {
       notifyIfDue(license, today);
     }
     return due;
+  }
+
+  @Transactional(readOnly = true)
+  public List<ComplianceLicense> listDue(UUID tenantId) {
+    return licenseRepository.findByTenantIdAndExpiresOnLessThanEqualOrderByExpiresOnAsc(
+        tenantId, LicensePolicy.dueCutoff(today()));
   }
 
   public void notifyIfDue(ComplianceLicense license) {

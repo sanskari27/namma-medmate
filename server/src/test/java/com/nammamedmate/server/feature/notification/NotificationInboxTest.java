@@ -1,6 +1,7 @@
 package com.nammamedmate.server.feature.notification;
 
 import static org.assertj.core.api.Assertions.assertThat;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -420,6 +421,82 @@ class NotificationInboxTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.items.length()").value(1))
         .andExpect(jsonPath("$.data.items[0].title").value("KYC waiting"));
+  }
+
+  @Test
+  void openReturnsTypedHrefAndSourceRecordId_M10_INBOX_003() throws Exception {
+    Tenant tenant = persistTenant("typed-href");
+    AppUser owner = persistOwner(tenant.getId(), "owner@typed.local");
+    UUID recordId = UUID.randomUUID();
+    NotificationSource source = persistSource(tenant.getId(), null, "/approvals/pending");
+    source.setSourceRecordId(recordId);
+    notificationSourceRepository.saveAndFlush(source);
+    Notification unread =
+        persistNotification(
+            owner.getId(), tenant.getId(), null, source, "Approve this", "body", null, T0);
+    unread.setSourceType("approval");
+    unread.setHref("/approvals/pending");
+    notificationRepository.saveAndFlush(unread);
+
+    Cookie cookie = login("owner@typed.local");
+    mockMvc
+        .perform(post("/api/v1/notifications/" + unread.getId() + "/open").cookie(cookie))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.href").value("/approvals/pending?id=" + recordId))
+        .andExpect(jsonPath("$.data.sourceRecordId").value(recordId.toString()));
+  }
+
+  @Test
+  void strippingStaffRoleRevokesInboxOpen_M10_INBOX_002() throws Exception {
+    Tenant tenant = persistTenant("revoke-role");
+    persistOwner(tenant.getId(), "owner@revoke.local");
+    AppUser staff = persistUser(tenant.getId(), "clerk@revoke.local", AppUserRole.pharmacy_staff);
+    NotificationSource source = persistSource(tenant.getId(), null, "/inventory");
+    Notification unread =
+        persistNotification(
+            staff.getId(), tenant.getId(), null, source, "Stock alert", "body", null, T0);
+
+    Cookie owner = login("owner@revoke.local");
+    UUID inventory = predefinedRoleId(owner, "inventory");
+    mockMvc
+        .perform(
+            post("/api/v1/users/" + staff.getId() + "/roles")
+                .cookie(owner)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"roleId\":\"" + inventory + "\"}"))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(delete("/api/v1/users/" + staff.getId() + "/roles/" + inventory).cookie(owner))
+        .andExpect(status().isOk());
+
+    assertThat(
+            notificationSourceRepository
+                .findById(source.getId())
+                .orElseThrow()
+                .getAccessRevokedAt())
+        .isNotNull();
+
+    Cookie staffCookie = login("clerk@revoke.local");
+    mockMvc
+        .perform(post("/api/v1/notifications/" + unread.getId() + "/open").cookie(staffCookie))
+        .andExpect(status().isForbidden())
+        .andExpect(jsonPath("$.code").value("SOURCE_DENIED"));
+  }
+
+  private UUID predefinedRoleId(Cookie cookie, String code) throws Exception {
+    String body =
+        mockMvc
+            .perform(get("/api/v1/roles").cookie(cookie))
+            .andExpect(status().isOk())
+            .andReturn()
+            .getResponse()
+            .getContentAsString();
+    for (JsonNode role : objectMapper.readTree(body).path("data").path("roles")) {
+      if (code.equals(role.path("code").asText())) {
+        return UUID.fromString(role.path("id").asText());
+      }
+    }
+    throw new AssertionError("missing predefined role " + code);
   }
 
   private Cookie login(String email) throws Exception {

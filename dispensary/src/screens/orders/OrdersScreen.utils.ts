@@ -3,6 +3,13 @@ import { ORDERS_CONTENT } from './OrdersScreen.content';
 
 export type OrdersFilter = 'all' | 'online' | 'counter' | 'needsAction' | 'unpaid';
 
+export const ORDER_FILTER_TABS: Exclude<OrdersFilter, 'online'>[] = [
+  'all',
+  'counter',
+  'needsAction',
+  'unpaid',
+];
+
 export type OrdersFilterCounts = Record<OrdersFilter, number>;
 
 export function formatPaise(paise: number): string {

@@ -42,6 +42,8 @@ public class TenantRegistrationService {
   static final String EMAIL_TAKEN_MESSAGE = "This email is already in use.";
   static final String TOKEN_INVALID_CODE = "VERIFY_TOKEN_INVALID";
   static final String TOKEN_INVALID_MESSAGE = "This verification link is invalid or has expired.";
+  static final String ALREADY_VERIFIED_CODE = "EMAIL_ALREADY_VERIFIED";
+  static final String ALREADY_VERIFIED_MESSAGE = "This pharmacy email was already verified.";
 
   private final TenantRepository tenantRepository;
   private final AppUserRepository appUserRepository;
@@ -177,7 +179,20 @@ public class TenantRegistrationService {
                         HttpStatus.UNPROCESSABLE_ENTITY,
                         TOKEN_INVALID_CODE,
                         TOKEN_INVALID_MESSAGE));
-    if (token.getConsumedAt() != null || !token.getExpiresAt().isAfter(now)) {
+    if (token.getConsumedAt() != null) {
+      Tenant already =
+          tenantRepository
+              .findById(token.getTenantId())
+              .filter(candidate -> candidate.getDeletedAt() == null)
+              .orElse(null);
+      if (already != null && already.getEmailVerifiedAt() != null) {
+        throw new ApiException(
+            HttpStatus.CONFLICT, ALREADY_VERIFIED_CODE, ALREADY_VERIFIED_MESSAGE);
+      }
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, TOKEN_INVALID_CODE, TOKEN_INVALID_MESSAGE);
+    }
+    if (!token.getExpiresAt().isAfter(now)) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY, TOKEN_INVALID_CODE, TOKEN_INVALID_MESSAGE);
     }

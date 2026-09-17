@@ -152,6 +152,39 @@ describe('CaPackScreen', () => {
     expect(gst).toBeDisabled();
   });
 
+  it('stores advisors under a tenant-prefixed key', async () => {
+    const user = userEvent.setup();
+    getMock.mockResolvedValue(filled);
+    localStorage.setItem(
+      'namma-ca-advisors',
+      JSON.stringify([{ id: 'g1', kind: 'CA', name: 'Global CA', firm: '', email: '', phone: '' }]),
+    );
+    localStorage.setItem(
+      'namma-ca-advisors:t1',
+      JSON.stringify([{ id: 'a1', kind: 'CA', name: 'Mehta CA', firm: '', email: '', phone: '' }]),
+    );
+    renderPage();
+    expect(await screen.findByText('Mehta CA')).toBeInTheDocument();
+    expect(screen.queryByText('Global CA')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Remove' }));
+    expect(localStorage.getItem('namma-ca-advisors:t1')).toBe('[]');
+    expect(localStorage.getItem('namma-ca-advisors')).toContain('Global CA');
+  });
+
+  it('owner can switch all outlets vs this outlet', async () => {
+    const user = userEvent.setup();
+    getMock.mockResolvedValue(filled);
+    renderPage();
+    await screen.findByRole('button', { name: /Download PDF pack/ });
+    expect(getMock).toHaveBeenCalledWith(expect.not.objectContaining({ scope: 'tenant' }));
+    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
+    await waitFor(() =>
+      expect(getMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' })),
+    );
+    expect(screen.getByRole('option', { name: 'All outlets' })).toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'This outlet' })).toBeInTheDocument();
+  });
+
   it('conflict: download is stale on another till', async () => {
     const user = userEvent.setup();
     getMock.mockResolvedValue(filled);

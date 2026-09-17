@@ -89,4 +89,30 @@ class EmailTemplateRendererTest {
     assertThat(rendered.subject()).isEqualTo("Verify your Namma MedMate email");
     assertThat(rendered.html()).contains("https://app.example/verify?t=xyz");
   }
+
+  @Test
+  void invoiceCopyEscapesBrandAndInvoiceNumber() {
+    RenderedEmail rendered =
+        EmailTemplateRenderer.render(
+            EmailTemplate.INVOICE_COPY,
+            "<script>x</script>",
+            Map.of("invoiceNumber", "INV-<b>1</b>"));
+
+    assertThat(rendered.html()).doesNotContain("<script>");
+    assertThat(rendered.html()).doesNotContain("<b>1</b>");
+    assertThat(rendered.html()).contains("&lt;script&gt;x&lt;/script&gt;");
+    assertThat(rendered.html()).contains("INV-&lt;b&gt;1&lt;/b&gt;");
+  }
+
+  @Test
+  void onboardingEscapesBrandAndVerifyUrl() {
+    RenderedEmail rendered =
+        EmailTemplateRenderer.render(
+            EmailTemplate.ONBOARDING,
+            "A&B Chemist",
+            Map.of("verifyUrl", "https://app.example/verify?t=a&b=1"));
+
+    assertThat(rendered.html()).contains("A&amp;B Chemist");
+    assertThat(rendered.html()).contains("https://app.example/verify?t=a&amp;b=1");
+  }
 }

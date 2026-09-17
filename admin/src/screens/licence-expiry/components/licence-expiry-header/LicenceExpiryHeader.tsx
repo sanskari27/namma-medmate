@@ -49,11 +49,11 @@ export function LicenceExpiryHeader({
               id="licence-tenant-filter"
               value={tenantQuery}
               onChange={(event) => onQueryChange(event.target.value)}
-              placeholder="Isolate one pharmacy"
+              placeholder="Filter one pharmacy"
             />
           </div>
           <Button type="submit" variant="outline">
-            Isolate tenant
+            Filter this list (display only)
           </Button>
         </form>
       )}

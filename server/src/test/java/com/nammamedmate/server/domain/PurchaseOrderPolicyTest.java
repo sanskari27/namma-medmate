@@ -42,6 +42,7 @@ class PurchaseOrderPolicyTest {
   void ac04_closedAndCancelledRejectQuantityEdits() {
     PurchaseOrderPolicy.assertEditable(PurchaseOrderStatus.DRAFT);
     PurchaseOrderPolicy.assertEditable(PurchaseOrderStatus.ISSUED);
+    PurchaseOrderPolicy.assertNoReceipts(false);
     assertThatThrownBy(() -> PurchaseOrderPolicy.assertEditable(PurchaseOrderStatus.CLOSED))
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
@@ -50,6 +51,16 @@ class PurchaseOrderPolicyTest {
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(PurchaseOrderPolicy.PO_CLOSED);
+    assertThatThrownBy(() -> PurchaseOrderPolicy.assertNoReceipts(true))
+        .isInstanceOf(ApiException.class)
+        .satisfies(
+            ex -> {
+              ApiException api = (ApiException) ex;
+              org.assertj.core.api.Assertions.assertThat(api.getCode())
+                  .isEqualTo(PurchaseOrderPolicy.PO_HAS_RECEIPTS);
+              org.assertj.core.api.Assertions.assertThat(api.getStatus())
+                  .isEqualTo(org.springframework.http.HttpStatus.CONFLICT);
+            });
   }
 
   @Test

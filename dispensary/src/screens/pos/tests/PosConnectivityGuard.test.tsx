@@ -128,6 +128,13 @@ describe('POS connectivity guard', () => {
     pingHealthMock.mockResolvedValue({ status: 'UP' });
   });
 
+  it('shows a full-screen overlay when the sales API is down while the browser is online', async () => {
+    pingHealthMock.mockRejectedValue(new Error('network'));
+    renderPos();
+    expect(await screen.findByRole('alertdialog', { name: 'Sales is offline' })).toBeInTheDocument();
+    expect(completeInvoiceMock).not.toHaveBeenCalled();
+  });
+
   it('shows a full-screen overlay on disconnect and keeps the draft', async () => {
     const user = userEvent.setup();
     renderPos();

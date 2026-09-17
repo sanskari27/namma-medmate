@@ -99,7 +99,7 @@ public final class WhatsAppMessagePolicy {
   }
 
   public static String creditKey(UUID accountId, LocalDate day) {
-    return "credit:" + accountId + ":" + day;
+    return "credit:" + accountId;
   }
 
   public static String campaignKey(UUID campaignId, UUID customerId) {

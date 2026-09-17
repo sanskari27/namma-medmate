@@ -15,7 +15,7 @@ output "rds_address" {
 }
 
 output "redis_endpoint" {
-  value = aws_elasticache_cluster.this.cache_nodes[0].address
+  value = aws_elasticache_replication_group.this.primary_endpoint_address
 }
 
 output "db_secret_arn" {

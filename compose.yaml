@@ -8,6 +8,7 @@ name: ${COMPOSE_PROJECT_NAME:-namma-medmate-local}
 
 services:
   redis:
+    # Unused by sessions (Postgres user_session). Kept for depends_on / Spring redis host.
     image: docker.io/library/redis:7-alpine
     restart: unless-stopped
     ports:

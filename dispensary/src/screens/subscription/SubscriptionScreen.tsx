@@ -29,8 +29,11 @@ export default function SubscriptionScreen() {
       dispatch(accessDenied('Only the pharmacy owner can change the plan at this counter.'));
       return;
     }
+    if (payOrder) {
+      return;
+    }
     void dispatch(loadSubscription());
-  }, [allowed, dispatch]);
+  }, [allowed, dispatch, payOrder]);
 
   useEffect(() => {
     if (!allowed || !payOrder) {
@@ -47,12 +50,18 @@ export default function SubscriptionScreen() {
         if (payment.status === 'SUCCESS') {
           sessionStorage.removeItem(`nmm.cf.checkout.${payment.planCode}`);
           dispatch(checkoutHeld(null));
-          await dispatch(loadSubscription());
-          dispatch(statusSet({ status: 'success' }));
         } else if (payment.status === 'PENDING') {
           dispatch(checkoutHeld(payment.planCode));
         } else if (payment.status === 'FAILED') {
           dispatch(checkoutHeld(null));
+        }
+        await dispatch(loadSubscription());
+        if (cancelled) {
+          return;
+        }
+        if (payment.status === 'SUCCESS') {
+          dispatch(statusSet({ status: 'success' }));
+        } else if (payment.status === 'FAILED') {
           dispatch(statusSet({ status: 'failure' }));
         }
         window.history.replaceState({}, '', window.location.pathname);

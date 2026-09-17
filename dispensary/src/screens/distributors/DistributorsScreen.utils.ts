@@ -34,12 +34,15 @@ export type DialogFormState = {
   phone: string;
   email: string;
   gstin: string;
+  pan: string;
   drugLicenseNumber: string;
   addressLine1: string;
   city: string;
   state: string;
   pincode: string;
   paymentTermsChoice: PaymentTermsChoice;
+  creditLimitRupees: string;
+  bankName: string;
   status: SupplierStatus;
   /** Preserved on edit so we do not wipe bank / licence extras. */
   preserved: Partial<SupplierInput> | null;
@@ -66,12 +69,15 @@ export function emptyDialogForm(): DialogFormState {
     phone: '',
     email: '',
     gstin: '',
+    pan: '',
     drugLicenseNumber: '',
     addressLine1: '',
     city: '',
     state: '',
     pincode: '',
     paymentTermsChoice: 'CREDIT:30',
+    creditLimitRupees: '',
+    bankName: '',
     status: 'ACTIVE',
     preserved: null,
   };
@@ -95,17 +101,20 @@ export function toDialogForm(supplier: Supplier): DialogFormState {
     phone: supplier.phone,
     email: supplier.email ?? '',
     gstin: supplier.gstin ?? '',
+    pan: supplier.pan ?? '',
     drugLicenseNumber: supplier.drugLicenseNumber ?? '',
     addressLine1: supplier.addressLine1,
     city: supplier.city,
     state: supplier.state,
     pincode: supplier.pincode,
     paymentTermsChoice: paymentTermsChoiceFromSupplier(supplier),
+    creditLimitRupees:
+      supplier.creditLimitPaise != null ? String(supplier.creditLimitPaise / 100) : '',
+    bankName: supplier.bankName ?? '',
     status: supplier.status === 'BLOCKED' ? 'INACTIVE' : supplier.status,
     preserved: {
       tradeName: supplier.tradeName ?? undefined,
       supplierType: supplier.supplierType,
-      pan: supplier.pan ?? undefined,
       drugLicenseType: supplier.drugLicenseType,
       drugLicenseExpiry: supplier.drugLicenseExpiry ?? undefined,
       fssaiLicenseNumber: supplier.fssaiLicenseNumber ?? undefined,
@@ -114,8 +123,6 @@ export function toDialogForm(supplier: Supplier): DialogFormState {
       website: supplier.website ?? undefined,
       addressLine2: supplier.addressLine2 ?? undefined,
       country: supplier.country,
-      creditLimitPaise: supplier.creditLimitPaise ?? undefined,
-      bankName: supplier.bankName ?? undefined,
       accountHolderName: supplier.accountHolderName ?? undefined,
       accountNumber: supplier.accountNumber ?? undefined,
       confirmAccountNumber: supplier.accountNumber ?? undefined,
@@ -153,6 +160,12 @@ function optional(value: string): string | undefined {
   return trimmed ? trimmed : undefined;
 }
 
+function rupeesToPaise(value: string): number | undefined {
+  const n = Number(value);
+  if (!value.trim() || !Number.isFinite(n) || n < 0) return undefined;
+  return Math.round(n * 100);
+}
+
 export function generateSupplierCode(legalName: string): string {
   const slug = legalName
     .trim()
@@ -174,7 +187,7 @@ export function toSupplierInput(form: DialogFormState, creating: boolean): Suppl
     tradeName: preserved.tradeName,
     supplierType: preserved.supplierType ?? 'DISTRIBUTOR',
     gstin: optional(form.gstin),
-    pan: preserved.pan,
+    pan: optional(form.pan),
     drugLicenseNumber: optional(form.drugLicenseNumber),
     drugLicenseType: preserved.drugLicenseType ?? null,
     drugLicenseExpiry: preserved.drugLicenseExpiry,
@@ -193,8 +206,8 @@ export function toSupplierInput(form: DialogFormState, creating: boolean): Suppl
     country: preserved.country ?? 'India',
     paymentTerms: terms.paymentTerms,
     creditPeriodDays: terms.creditPeriodDays,
-    creditLimitPaise: preserved.creditLimitPaise,
-    bankName: preserved.bankName,
+    creditLimitPaise: rupeesToPaise(form.creditLimitRupees),
+    bankName: optional(form.bankName),
     accountHolderName: preserved.accountHolderName,
     accountNumber: preserved.accountNumber,
     confirmAccountNumber: preserved.confirmAccountNumber ?? preserved.accountNumber,

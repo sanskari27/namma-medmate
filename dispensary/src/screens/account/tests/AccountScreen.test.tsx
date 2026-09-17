@@ -182,7 +182,9 @@ describe('pharmacy account KYC', () => {
     await fillKycForm(user);
     await user.click(screen.getByRole('button', { name: 'Submit KYC pack' }));
     await waitFor(() => expect(submitMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent('KYC pack sent');
+    expect(await screen.findByRole('status')).toHaveTextContent(
+      'HQ verification (MASTER or agent) files this',
+    );
   });
 
   it('rejected: shows HQ reason and keeps the form for resubmit', async () => {

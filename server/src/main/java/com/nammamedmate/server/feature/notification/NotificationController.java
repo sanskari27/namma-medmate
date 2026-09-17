@@ -65,7 +65,8 @@ public class NotificationController {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     NotificationOpenResult result = notificationInboxService.open(principal, id);
     return ApiResponse.ok(
-        new NotificationOpenResponse(result.href(), result.sourceType(), result.sourceId()));
+        new NotificationOpenResponse(
+            result.href(), result.sourceType(), result.sourceId(), result.sourceRecordId()));
   }
 
   private static NotificationItemResponse toItem(NotificationItem item) {

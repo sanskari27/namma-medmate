@@ -103,8 +103,9 @@ public class QualityCheckService {
     }
     List<UUID> receiptIds = receipts.stream().map(GoodsReceipt::getId).toList();
     List<GoodsReceiptLine> allLines =
-        goodsReceiptLineRepository.findAllByGoodsReceiptIdInAndTenantIdAndBranchIdOrderBySortOrderAsc(
-            receiptIds, ctx.tenantId(), ctx.branchId());
+        goodsReceiptLineRepository
+            .findAllByGoodsReceiptIdInAndTenantIdAndBranchIdOrderBySortOrderAsc(
+                receiptIds, ctx.tenantId(), ctx.branchId());
     Map<UUID, List<GoodsReceiptLine>> linesByReceipt =
         allLines.stream().collect(Collectors.groupingBy(GoodsReceiptLine::getGoodsReceiptId));
     Set<UUID> poLineIds =
@@ -114,7 +115,8 @@ public class QualityCheckService {
     Map<UUID, PurchaseOrderLine> poLinesById =
         poLineIds.isEmpty()
             ? Map.of()
-            : purchaseOrderLineRepository.findAllByTenantIdAndIdIn(ctx.tenantId(), poLineIds)
+            : purchaseOrderLineRepository
+                .findAllByTenantIdAndIdIn(ctx.tenantId(), poLineIds)
                 .stream()
                 .collect(Collectors.toMap(PurchaseOrderLine::getId, line -> line));
     return new QualityCheckListResult(

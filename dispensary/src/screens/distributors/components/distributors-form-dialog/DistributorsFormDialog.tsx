@@ -143,6 +143,36 @@ export function DistributorsFormDialog() {
                 />
               </label>
               <label className="dist-field">
+                <span>{DISTRIBUTORS_CONTENT.form.pan}</span>
+                <input
+                  value={form.pan}
+                  onChange={(event) =>
+                    dispatch(patchDistributorForm({ pan: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="dist-field">
+                <span>{DISTRIBUTORS_CONTENT.form.creditLimit}</span>
+                <input
+                  type="number"
+                  min="0"
+                  step="0.01"
+                  value={form.creditLimitRupees}
+                  onChange={(event) =>
+                    dispatch(patchDistributorForm({ creditLimitRupees: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="dist-field">
+                <span>{DISTRIBUTORS_CONTENT.form.bank}</span>
+                <input
+                  value={form.bankName}
+                  onChange={(event) =>
+                    dispatch(patchDistributorForm({ bankName: event.target.value }))
+                  }
+                />
+              </label>
+              <label className="dist-field">
                 <span>{DISTRIBUTORS_CONTENT.form.drugLicense}</span>
                 <input
                   value={form.drugLicenseNumber}
