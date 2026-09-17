@@ -136,13 +136,13 @@ class GoodsReceiptTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/purchase-orders/" + po.poId() + "/receipts").cookie(fx.cookie()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.status").value("ISSUED"))
+        .andExpect(jsonPath("$.data.status").value("CLOSED"))
         .andExpect(jsonPath("$.data.lines[0].receivedQuantity").value(10))
         .andExpect(jsonPath("$.data.lines[0].remainingQuantity").value(0))
         .andExpect(jsonPath("$.data.receipts", hasSize(2)));
 
     assertThat(purchaseOrderRepository.findById(po.poId()).orElseThrow().getStatus())
-        .isEqualTo(PurchaseOrderStatus.ISSUED);
+        .isEqualTo(PurchaseOrderStatus.CLOSED);
   }
 
   @Test

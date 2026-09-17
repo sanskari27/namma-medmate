@@ -12,7 +12,6 @@ import { useCallback, useEffect, useId, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { PageStatus } from '../../InventoryScreen.utils';
 import {
-  bumpInventorySync,
   refreshInventoryAfterMutation,
   selectInventorySyncEpoch,
 } from '../../store';
@@ -37,12 +36,16 @@ export type QualityCheckWorkspaceProps = {
   allowed: boolean;
   activeBranchId: string | null;
   onStatusChange: (status: PageStatus) => void;
+  canAccept?: boolean;
+  initialReceiptId?: string | null;
 };
 
 export function QualityCheckWorkspace({
   allowed,
   activeBranchId,
   onStatusChange,
+  canAccept = true,
+  initialReceiptId = null,
 }: QualityCheckWorkspaceProps) {
   const dispatch = useDispatch<AppDispatch>();
   const syncEpoch = useSelector(selectInventorySyncEpoch);
@@ -82,6 +85,13 @@ export function QualityCheckWorkspace({
   useEffect(() => {
     void loadList();
   }, [loadList, syncEpoch]);
+
+  useEffect(() => {
+    if (!initialReceiptId) return;
+    void onSelect(initialReceiptId);
+    // ponytail: select once when the deep-link id arrives
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [initialReceiptId]);
 
   async function onSelect(id: string) {
     setSelectedId(id);
@@ -144,7 +154,6 @@ export function QualityCheckWorkspace({
       setDetail(result);
       setItems((prev) => prev.filter((row) => row.id !== result.id));
       setConfirmOpen(false);
-      dispatch(bumpInventorySync());
       void dispatch(refreshInventoryAfterMutation());
       onStatusChange('success');
     } catch (error) {
@@ -229,7 +238,7 @@ export function QualityCheckWorkspace({
           <InventoryOpsCard
             title={detail.receiptNumber}
             headerAction={
-              readOnly ? null : (
+              readOnly || !canAccept ? null : (
                 <Button
                   ref={acceptRef}
                   type="button"

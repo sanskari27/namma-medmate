@@ -10,6 +10,7 @@ import {
   productLabel,
   toNumber,
   validateEntry,
+  validateIndent,
 } from '../../PurchasesScreen.utils';
 import {
   addDraftLine,
@@ -24,13 +25,14 @@ import {
 import {
   selectCreateBusy,
   selectCreateHint,
+  selectCreateMode,
   selectCreateOpen,
   selectCreateStatus,
   selectPurchaseDraft,
   selectPurchasesProducts,
   selectPurchasesSuppliers,
 } from '../../store/purchases.selectors';
-import { createPurchaseEntry } from '../../store/purchases.thunks';
+import { createIndent, createPurchaseEntry } from '../../store/purchases.thunks';
 
 export function PurchasesEntryDialog() {
   const dispatch = useDispatch<AppDispatch>();
@@ -41,6 +43,8 @@ export function PurchasesEntryDialog() {
   const busy = useSelector(selectCreateBusy);
   const createStatus = useSelector(selectCreateStatus);
   const createHint = useSelector(selectCreateHint);
+  const createMode = useSelector(selectCreateMode);
+  const indent = createMode === 'indent';
 
   const productsById = useMemo(
     () => new Map(products.map((product) => [product.id, product])),
@@ -61,9 +65,13 @@ export function PurchasesEntryDialog() {
         : null;
 
   function onSave() {
-    const error = validateEntry(draft);
+    const error = indent ? validateIndent(draft) : validateEntry(draft);
     if (error) {
       dispatch(setCreateValidation(error));
+      return;
+    }
+    if (indent) {
+      void dispatch(createIndent());
       return;
     }
     void dispatch(createPurchaseEntry());
@@ -79,7 +87,9 @@ export function PurchasesEntryDialog() {
         onClick={(e) => e.stopPropagation()}
       >
         <div className="purchases-modal-head">
-          <h2 id="purchases-entry-title">{PURCHASES_CONTENT.entry.title}</h2>
+          <h2 id="purchases-entry-title">
+            {indent ? PURCHASES_CONTENT.entry.indentTitle : PURCHASES_CONTENT.entry.title}
+          </h2>
           <button
             type="button"
             className="purchases-x"
@@ -149,6 +159,7 @@ export function PurchasesEntryDialog() {
                   <div className="purchases-field">
                     <label>{PURCHASES_CONTENT.entry.product}</label>
                     <select
+                      aria-label={PURCHASES_CONTENT.entry.product}
                       value={line.productId}
                       onChange={(e) =>
                         dispatch(
@@ -182,6 +193,7 @@ export function PurchasesEntryDialog() {
                   <div className="purchases-field">
                     <label>{PURCHASES_CONTENT.entry.qty}</label>
                     <input
+                      aria-label={PURCHASES_CONTENT.entry.qty}
                       inputMode="decimal"
                       value={line.quantity}
                       onChange={(e) =>
@@ -192,6 +204,7 @@ export function PurchasesEntryDialog() {
                   <div className="purchases-field">
                     <label>{PURCHASES_CONTENT.entry.free}</label>
                     <input
+                      aria-label={PURCHASES_CONTENT.entry.free}
                       inputMode="decimal"
                       value={line.freeQuantity}
                       onChange={(e) =>
@@ -204,6 +217,7 @@ export function PurchasesEntryDialog() {
                   <div className="purchases-field">
                     <label>{PURCHASES_CONTENT.entry.rate}</label>
                     <input
+                      aria-label={PURCHASES_CONTENT.entry.rate}
                       inputMode="decimal"
                       value={line.rateRupees}
                       onChange={(e) =>
@@ -286,7 +300,7 @@ export function PurchasesEntryDialog() {
               disabled={busy || totals.lineCount === 0}
             >
               <Check size={15} aria-hidden />
-              {busy ? 'Saving…' : PURCHASES_CONTENT.entry.save}
+              {busy ? 'Saving…' : indent ? PURCHASES_CONTENT.entry.indentSave : PURCHASES_CONTENT.entry.save}
             </button>
           </div>
         </div>

@@ -8,11 +8,13 @@ import {
   listExpenseTotals,
   listExpenses,
   updateExpense,
+  attachExpenseEvidence,
   type ExpenseCategory,
   type ExpenseTotals,
   type ShopExpense,
 } from '@/services/expenses';
 import type { RootState } from '@/store';
+import { EXPENSES_CONTENT } from '../ExpensesScreen.content';
 import {
   apiStatusHint,
   formValid,
@@ -73,10 +75,10 @@ export const loadExpenses = createAsyncThunk<
 
 export const saveExpense = createAsyncThunk<
   ShopExpense,
-  void,
+  File | undefined,
   { state: RootState; rejectValue: ExpensesReject }
->('expenses/save', async (_, { getState, dispatch, rejectWithValue }) => {
-  const { form, editingId, items } = getState().expenses;
+>('expenses/save', async (evidence, { getState, dispatch, rejectWithValue }) => {
+  const { form, editingId, items, scope } = getState().expenses;
   if (!formValid(form)) {
     return rejectWithValue({
       status: 'validation',
@@ -89,6 +91,14 @@ export const saveExpense = createAsyncThunk<
   }
   const selected = items.find((row) => row.id === editingId) ?? null;
   const user = getState().auth.user;
+  const allOutlets = scope === 'tenant' || !user?.activeBranchId;
+  const branchId = allOutlets ? form.branchId || undefined : (user?.activeBranchId ?? undefined);
+  if (!branchId) {
+    return rejectWithValue({
+      status: 'validation',
+      hint: EXPENSES_CONTENT.outletRequired,
+    });
+  }
   const payload = {
     categoryId: form.categoryId,
     amountPaise,
@@ -97,7 +107,7 @@ export const saveExpense = createAsyncThunk<
     partyName: form.partyName.trim() || undefined,
     paymentMode: form.paymentMode,
     gstPercent: form.gstPercent,
-    branchId: user?.activeBranchId ?? user?.branches?.[0]?.id,
+    branchId,
     idempotencyKey: editingId ? undefined : crypto.randomUUID(),
     expectedVersion: editingId ? (selected?.version ?? 1) : undefined,
   };
@@ -105,8 +115,9 @@ export const saveExpense = createAsyncThunk<
     const saved = editingId
       ? await updateExpense(editingId, payload)
       : await createExpense(payload);
+    const withEvidence = evidence ? await attachExpenseEvidence(saved.id, evidence) : saved;
     void dispatch(loadExpenses());
-    return saved;
+    return withEvidence;
   } catch (error) {
     if (isApiError(error)) {
       return rejectWithValue({

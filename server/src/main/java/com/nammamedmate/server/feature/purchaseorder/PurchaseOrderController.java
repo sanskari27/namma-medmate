@@ -10,6 +10,8 @@ import com.nammamedmate.server.application.purchaseorder.PurchaseOrderAnalyticsV
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderService;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderVersionView;
 import com.nammamedmate.server.application.purchaseorder.PurchaseOrderView;
+import com.nammamedmate.server.application.purchaseorder.ReceiveBillCommand;
+import com.nammamedmate.server.application.purchaseorder.ReceiveBillView;
 import com.nammamedmate.server.application.purchaseorder.ReorderDraftResult;
 import com.nammamedmate.server.application.purchaseorder.ReorderToDraftService;
 import com.nammamedmate.server.application.purchaseorder.UpdatePurchaseOrderCommand;
@@ -60,6 +62,35 @@ public class PurchaseOrderController {
   public ApiResponse<ReorderDraftResponse> reorderPreview(Authentication authentication) {
     AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
     return ApiResponse.ok(toReorderResponse(reorderToDraftService.preview(principal)));
+  }
+
+  @PostMapping("/receive-bill")
+  public ApiResponse<ReceiveBillResponse> receiveBill(
+      Authentication authentication, @Valid @RequestBody ReceiveBillRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    ReceiveBillView view =
+        purchaseOrderService.receiveBill(
+            principal,
+            new ReceiveBillCommand(
+                request.supplierId(),
+                request.expectedDeliveryDate(),
+                request.paymentTerms(),
+                request.notes(),
+                request.receiptReference(),
+                request.idempotencyKey(),
+                request.lines().stream()
+                    .map(
+                        line ->
+                            new ReceiveBillCommand.Line(
+                                line.productId(),
+                                line.quantity(),
+                                line.freeQuantity(),
+                                line.unitRatePaise()))
+                    .toList()));
+    return ApiResponse.ok(
+        new ReceiveBillResponse(
+            toResponse(view.purchaseOrder()),
+            view.receipt() == null ? null : toReceiptResponse(view.receipt())));
   }
 
   @PostMapping("/from-reorder")
@@ -483,4 +514,22 @@ public class PurchaseOrderController {
       @NotBlank @Size(max = 128) String receiptReference,
       @NotBlank @Size(max = 128) String idempotencyKey,
       @NotEmpty List<@Valid ReceiptLineRequest> lines) {}
+
+  public record ReceiveBillLineRequest(
+      @NotNull UUID productId,
+      @NotNull BigDecimal quantity,
+      BigDecimal freeQuantity,
+      @NotNull Long unitRatePaise) {}
+
+  public record ReceiveBillRequest(
+      @NotNull UUID supplierId,
+      LocalDate expectedDeliveryDate,
+      SupplierPaymentTerms paymentTerms,
+      String notes,
+      @NotBlank @Size(max = 128) String receiptReference,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @NotEmpty List<@Valid ReceiveBillLineRequest> lines) {}
+
+  public record ReceiveBillResponse(
+      PurchaseOrderResponse purchaseOrder, GoodsReceiptResponse receipt) {}
 }

@@ -1,5 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
-import type { Supplier, SupplierLedger } from '@/services/suppliers';
+import type { Supplier, SupplierDueItem, SupplierLedger } from '@/services/suppliers';
 import { DISTRIBUTORS_CONTENT } from '../DistributorsScreen.content';
 import {
   emptyDialogForm,
@@ -31,6 +31,8 @@ export type DistributorsState = {
   payError: string | null;
   ledger: SupplierLedger | null;
   ledgerLoading: boolean;
+  dues: SupplierDueItem[];
+  duesPlanLimit: boolean;
 };
 
 export const initialDistributorsState: DistributorsState = {
@@ -48,6 +50,8 @@ export const initialDistributorsState: DistributorsState = {
   payError: null,
   ledger: null,
   ledgerLoading: false,
+  dues: [],
+  duesPlanLimit: false,
 };
 
 const distributorsSlice = createSlice({
@@ -107,8 +111,10 @@ const distributorsSlice = createSlice({
         state.statusHint = null;
       })
       .addCase(loadDistributors.fulfilled, (state, action) => {
-        state.items = action.payload;
-        state.status = action.payload.length === 0 ? 'empty' : null;
+        state.items = action.payload.items;
+        state.dues = action.payload.dues;
+        state.duesPlanLimit = action.payload.duesPlanLimit;
+        state.status = action.payload.items.length === 0 ? 'empty' : null;
       })
       .addCase(loadDistributors.rejected, (state, action) => {
         state.status = action.payload?.status ?? 'failure';

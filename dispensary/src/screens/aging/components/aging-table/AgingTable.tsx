@@ -1,6 +1,7 @@
 import { useSelector } from 'react-redux';
 import { AGING_CONTENT } from '../../AgingScreen.content';
-import { bucketForDays, BUCKET_LABELS, formatPaise } from '../../AgingScreen.utils';
+import { BUCKET_LABELS, formatPaise, oldestBucket } from '../../AgingScreen.utils';
+import { AgingBucketsStrip } from '../aging-buckets-strip';
 import {
   selectAgingActiveReport,
   selectAgingBook,
@@ -32,6 +33,7 @@ export function AgingTable() {
       <p className="ag-hint">
         {hint} · {report.items.length} row{report.items.length === 1 ? '' : 's'}
       </p>
+      <AgingBucketsStrip report={report} />
       {report.items.length === 0 ? (
         <p className="ag-empty">{empty}</p>
       ) : (
@@ -42,7 +44,7 @@ export function AgingTable() {
                 <th>{AGING_CONTENT.colParty}</th>
                 <th className="ag-num">{AGING_CONTENT.colOutstanding}</th>
                 <th className="ag-num">{AGING_CONTENT.colAge}</th>
-                <th>{AGING_CONTENT.colBucket}</th>
+                <th>{AGING_CONTENT.colOldest}</th>
               </tr>
             </thead>
             <tbody>
@@ -51,7 +53,7 @@ export function AgingTable() {
                   <td>{row.name || '—'}</td>
                   <td className="ag-num">{formatPaise(row.amountPaise)}</td>
                   <td className="ag-num">{row.days}</td>
-                  <td>{BUCKET_LABELS[bucketForDays(row.days)]}</td>
+                  <td>{BUCKET_LABELS[oldestBucket(row.days)]}</td>
                 </tr>
               ))}
               <tr className="ag-total">

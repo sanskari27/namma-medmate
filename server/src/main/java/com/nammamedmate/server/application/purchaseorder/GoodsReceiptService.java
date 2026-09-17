@@ -15,6 +15,7 @@ import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.PurchaseOrder;
 import com.nammamedmate.server.domain.PurchaseOrderLine;
 import com.nammamedmate.server.domain.PurchaseOrderPolicy;
+import com.nammamedmate.server.domain.PurchaseOrderStatus;
 import com.nammamedmate.server.domain.Supplier;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
@@ -238,7 +239,29 @@ public class GoodsReceiptService {
       throw ex;
     }
     audit(principal, receipt.getId(), order.getId());
+    closeIfFullyReceived(order, poLines, received, now);
     return toView(receipt, lines);
+  }
+
+  private void closeIfFullyReceived(
+      PurchaseOrder order,
+      List<PurchaseOrderLine> poLines,
+      Map<UUID, BigDecimal> received,
+      Instant now) {
+    if (order.getStatus() != PurchaseOrderStatus.ISSUED) {
+      return;
+    }
+    for (PurchaseOrderLine poLine : poLines) {
+      BigDecimal already = received.getOrDefault(poLine.getId(), BigDecimal.ZERO);
+      if (poLine.getQuantity().compareTo(already) > 0) {
+        return;
+      }
+    }
+    PurchaseOrderPolicy.assertTransition(PurchaseOrderStatus.ISSUED, PurchaseOrderStatus.CLOSED);
+    order.setStatus(PurchaseOrderStatus.CLOSED);
+    order.setVersion(order.getVersion() + 1);
+    order.setUpdatedAt(now);
+    purchaseOrderRepository.save(order);
   }
 
   private Map<UUID, BigDecimal> receivedByPoLine(List<GoodsReceipt> receipts, Context ctx) {

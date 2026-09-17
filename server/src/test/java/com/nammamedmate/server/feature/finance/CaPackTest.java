@@ -226,7 +226,7 @@ class CaPackTest extends AbstractIntegrationTest {
             .andExpect(
                 jsonPath(
                         "$.data.sections[?(@.key=='PROFIT_AND_LOSS')].totals[?(@.key=='profit')].amountPaise")
-                    .value(hasItem(4200)))
+                    .value(hasItem(3000)))
             .andReturn();
     String json = preview.getResponse().getContentAsString();
     assertThat(json).doesNotContain(ALLERGY, PATIENT, RX, DOCTOR, CONDITION);

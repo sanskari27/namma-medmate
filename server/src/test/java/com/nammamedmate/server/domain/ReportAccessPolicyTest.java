@@ -79,8 +79,7 @@ class ReportAccessPolicyTest {
         .isEqualTo(ReportCapability.GST);
     assertThat(ReportAccessPolicy.capability(FinanceReportKey.GSTR3B))
         .isEqualTo(ReportCapability.GST);
-    assertThat(ReportAccessPolicy.capability(ComplianceReportKey.NEAR_EXPIRY))
-        .isEqualTo(ReportCapability.NEAR_EXPIRY);
+    assertThat(ReportAccessPolicy.capability(ComplianceReportKey.NEAR_EXPIRY)).isNull();
     assertThat(ReportAccessPolicy.capability(ComplianceReportKey.H1_SALES)).isNull();
     assertThat(ReportAccessPolicy.capability(ComplianceReportKey.EXPIRED)).isNull();
   }

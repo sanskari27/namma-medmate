@@ -1,6 +1,8 @@
-import { useDispatch, useSelector } from 'react-redux';
+import { Link } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import type { GoodsReceiptSummary } from '@/services/goodsReceipts';
+import { ROUTES } from '@/libs/constants/routes.const';
 import { PURCHASES_CONTENT } from '../../PurchasesScreen.content';
 import {
   formatDate,
@@ -39,6 +41,15 @@ export function PurchasesRow({ row }: Props) {
           <span className="d" aria-hidden />
           {PURCHASES_CONTENT.status[row.status]}
         </span>
+        {row.status === 'PENDING_QC' ? (
+          <Link
+            className="purchases-qc"
+            to={`${ROUTES.INVENTORY}?view=qc&receiptId=${row.id}`}
+            onClick={(event) => event.stopPropagation()}
+          >
+            {PURCHASES_CONTENT.qcCheck}
+          </Link>
+        ) : null}
       </td>
     </tr>
   );

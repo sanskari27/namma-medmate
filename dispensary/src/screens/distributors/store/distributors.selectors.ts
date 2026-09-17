@@ -17,6 +17,9 @@ export const selectDistributorPayError = (state: RootState) => state.distributor
 export const selectDistributorLedger = (state: RootState) => state.distributors.ledger;
 export const selectDistributorLedgerLoading = (state: RootState) =>
   state.distributors.ledgerLoading;
+export const selectDistributorDues = (state: RootState) => state.distributors.dues;
+export const selectDistributorDuesPlanLimit = (state: RootState) =>
+  state.distributors.duesPlanLimit;
 
 export const selectFilteredDistributors = (state: RootState) =>
   filterSuppliers(state.distributors.items, state.distributors.query);

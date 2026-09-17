@@ -2,6 +2,7 @@ package com.nammamedmate.server.application.finance;
 
 import com.nammamedmate.server.application.audit.AuditRecordCommand;
 import com.nammamedmate.server.application.audit.AuditService;
+import com.nammamedmate.server.domain.AgingPolicy;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.Expense;
 import com.nammamedmate.server.domain.ExpenseCategory;
@@ -19,7 +20,6 @@ import com.nammamedmate.server.persistence.UserBranchRepository;
 import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.Comparator;
 import java.util.LinkedHashMap;
 import java.util.List;
@@ -135,13 +135,7 @@ public class ExpenseService {
     String query = q == null || q.isBlank() ? "" : q.trim();
     List<Expense> rows =
         expenseRepository.findScoped(
-            ctx.tenantId(),
-            branchIds,
-            categoryId,
-            from,
-            to,
-            ExpensePostingStatus.POSTED,
-            query);
+            ctx.tenantId(), branchIds, categoryId, from, to, ExpensePostingStatus.POSTED, query);
     long total = 0;
     long gstTotal = 0;
     long count = 0;
@@ -541,7 +535,7 @@ public class ExpenseService {
   }
 
   private LocalDate today() {
-    return LocalDate.ofInstant(clock.instant(), ZoneOffset.UTC);
+    return AgingPolicy.today(clock.instant());
   }
 
   private static UUID parseUuid(String value) {

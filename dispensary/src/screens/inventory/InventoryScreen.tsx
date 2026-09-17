@@ -1,12 +1,13 @@
 import type { AppDispatch, RootState } from '@/store';
-import { useCallback, useId } from 'react';
+import { useCallback, useEffect, useId } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
+import { useSearchParams } from 'react-router-dom';
 import { AdjustmentWorkspace } from './components/adjustment-workspace/AdjustmentWorkspace';
 import { CatalogueWorkspace } from './components/catalogue-workspace/CatalogueWorkspace';
 import { ControlledStockWorkspace } from './components/controlled-stock-workspace/ControlledStockWorkspace';
 import { FloorStockWorkspace } from './components/floor-stock-workspace/FloorStockWorkspace';
 import { GuidanceWorkspace } from './components/guidance-workspace/GuidanceWorkspace';
-import { InventoryHeader } from './components/inventory-header/InventoryHeader';
+import { InventoryHeader, type InventoryViewMode } from './components/inventory-header/InventoryHeader';
 import { InventoryStatusBanner } from './components/inventory-status-banner';
 import { ProductEditorDialog } from './components/product-editor-dialog';
 import { QualityCheckWorkspace } from './components/quality-check-workspace';
@@ -38,6 +39,12 @@ export default function InventoryScreen() {
   const activeBranchId = user?.activeBranchId ?? null;
   const branches = user?.branches ?? [];
   const statusId = useId();
+  const [searchParams] = useSearchParams();
+  const requestedView = searchParams.get('view');
+  const receiptId = searchParams.get('receiptId');
+  const canQcAccept =
+    user?.role === 'pharmacy_owner' ||
+    user?.roles?.some((role) => role.code === 'pharmacist') === true;
 
   const view = useSelector(selectInventoryView);
   const status = useSelector(selectInventoryStatus);
@@ -53,6 +60,23 @@ export default function InventoryScreen() {
     },
     [dispatch],
   );
+
+  useEffect(() => {
+    const allowedViews: InventoryViewMode[] = [
+      'floor',
+      'catalogue',
+      'transfers',
+      'adjustments',
+      'guidance',
+      'stocktake',
+      'controlled',
+      'qc',
+      'returns',
+    ];
+    if (requestedView && allowedViews.includes(requestedView as InventoryViewMode)) {
+      dispatch(setInventoryView(requestedView as InventoryViewMode));
+    }
+  }, [dispatch, requestedView]);
 
   const denied = !allowed || status === 'denied';
   const showBanner = view !== 'floor' && status !== null;
@@ -134,6 +158,8 @@ export default function InventoryScreen() {
           allowed={allowed}
           activeBranchId={activeBranchId}
           onStatusChange={onStatusChange}
+          canAccept={canQcAccept}
+          initialReceiptId={receiptId}
         />
       ) : null}
       {!denied && view === 'returns' ? (

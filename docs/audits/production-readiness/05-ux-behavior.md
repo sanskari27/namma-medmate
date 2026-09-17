@@ -32,11 +32,11 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 
 | Convenient | Actual | Fix |
 |---|---|---|
-| Aging 0–30…90+ FIFO | Whole party in oldest bucket | render server buckets |
-| Expense GST honest | “ITC eligible” but 3B ignores | rename or include |
-| P&L shop profit | GST-inclusive revenue | use taxable |
-| Share pack with CA | Download; GSTR-ready copy | Download PDF + drop filing language |
-| Posted spend safe | One-click delete | confirm / VOID |
+| Aging 0–30…90+ FIFO | Server buckets on the strip; CSV uses remaining + oldest bucket | Band 3 |
+| Expense GST honest | Card: “GST in spend (inclusive)” | Band 3 |
+| P&L shop profit | Taxable revenue (subtotal − returns) | Band 3 |
+| Share pack with CA | Download PDF pack; GST toggle off when Growth sections omitted | Band 3 |
+| Posted spend safe | Confirm before delete; evidence stays local; all-outlets pick outlet | Band 3 |
 
 ## Restock day (OWNER / inventory)
 

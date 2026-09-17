@@ -1,5 +1,6 @@
 import type { RootState } from '@/store';
-import { lastName, selectedCount } from '../CaPackScreen.utils';
+import { CA_PACK_CONTENT } from '../CaPackScreen.content';
+import { selectedCount } from '../CaPackScreen.utils';
 
 export const selectCaPackStatus = (state: RootState) => state.caPack.status;
 export const selectCaPackStatusHint = (state: RootState) => state.caPack.statusHint;
@@ -14,22 +15,12 @@ export const selectCaPackHistory = (state: RootState) => state.caPack.history;
 export const selectCaPackFormOpen = (state: RootState) => state.caPack.formOpen;
 export const selectCaPackForm = (state: RootState) => state.caPack.form;
 export const selectCaPackBusy = (state: RootState) => state.caPack.busy;
-
-export const selectActiveAdvisor = (state: RootState) =>
-  state.caPack.advisors.find((row) => row.id === state.caPack.advisorId) ?? null;
+export const selectCaPackGstAvailable = (state: RootState) => state.caPack.gstAvailable;
 
 export const selectShareCount = (state: RootState) => selectedCount(state.caPack.enabled);
 
-export const selectShareLabel = (state: RootState) => {
-  const count = selectShareCount(state);
-  const advisor = selectActiveAdvisor(state);
-  if (!advisor) {
-    return count === 1 ? 'Download 1 report' : `Download ${count} reports`;
-  }
-  return count === 1
-    ? `Share 1 report with ${lastName(advisor.name)}`
-    : `Share ${count} reports with ${lastName(advisor.name)}`;
-};
+export const selectShareLabel = (state: RootState) =>
+  CA_PACK_CONTENT.share(selectShareCount(state));
 
 export const selectSnapshot = (state: RootState) => {
   const pack = state.caPack.pack;

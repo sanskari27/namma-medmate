@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store';
 import { DistributorsComparePanel } from './components/distributors-compare-panel';
 import { DistributorsDirectory } from './components/distributors-directory';
+import { DistributorsDuesBanner } from './components/distributors-dues-banner';
 import { DistributorsFormDialog } from './components/distributors-form-dialog';
 import { DistributorsPaymentDialog } from './components/distributors-payment-dialog';
 import { DistributorsStatusBanner } from './components/distributors-status-banner';
@@ -51,6 +52,7 @@ export default function DistributorsScreen() {
   return (
     <div className="dist" aria-label={DISTRIBUTORS_CONTENT.regionLabel}>
       <DistributorsStatusBanner />
+      <DistributorsDuesBanner />
       <DistributorsTabs />
 
       {status === 'loading' || status === 'idle' ? (

@@ -465,3 +465,14 @@
   background: var(--ex-wash2);
   border-bottom: 0;
 }
+
+.ex-evidence {
+  margin: 0;
+  padding-left: 18px;
+  font-weight: 500;
+}
+
+.ex-muted {
+  color: var(--ex-muted);
+  font-weight: 500;
+}

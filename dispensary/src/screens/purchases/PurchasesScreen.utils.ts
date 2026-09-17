@@ -56,7 +56,7 @@ export function emptyEntryDraft(): EntryDraft {
   return {
     supplierId: '',
     invoiceNo: '',
-    invoiceDate: new Date().toISOString().slice(0, 10),
+    invoiceDate: new Date().toLocaleDateString('en-CA', { timeZone: 'Asia/Kolkata' }),
     lines: [emptyEntryLine()],
   };
 }
@@ -226,7 +226,9 @@ export function mapLoadError(error: ApiError): PageStatus {
 }
 
 export function mapCreateError(error: ApiError): CreateStatus {
-  if (error.status === 403 || error.code === 'FORBIDDEN') return 'denied';
+  if (error.status === 403 || error.code === 'FORBIDDEN' || error.code === 'PLAN_LIMIT') {
+    return 'denied';
+  }
   if (
     error.status === 409 ||
     error.code === 'DUPLICATE_RECEIPT' ||
@@ -244,6 +246,47 @@ export function mapCreateError(error: ApiError): CreateStatus {
     return 'validation';
   }
   return 'failure';
+}
+
+export function reuseIdempotencyKey(storageKey: string): string {
+  const existing = sessionStorage.getItem(storageKey);
+  if (existing) return existing;
+  const next = crypto.randomUUID();
+  sessionStorage.setItem(storageKey, next);
+  return next;
+}
+
+export function clearIdempotencyKey(storageKey: string): void {
+  sessionStorage.removeItem(storageKey);
+}
+
+export const BILL_IDEMPOTENCY_KEY = 'namma.purchases.receiveBill';
+export const INDENT_IDEMPOTENCY_KEY = 'namma.purchases.indent';
+export const REORDER_IDEMPOTENCY_KEY = 'namma.purchases.reorder';
+
+export function deliveryIdempotencyKey(poId: string): string {
+  return `namma.purchases.delivery.${poId}`;
+}
+
+export function validateIndent(draft: EntryDraft): string | null {
+  if (!draft.supplierId) return 'Pick a distributor.';
+  const filled = draft.lines.filter(
+    (line) => line.productId && toNumber(line.quantity) + toNumber(line.freeQuantity) > 0,
+  );
+  if (filled.length === 0) return 'Add at least one indent line with qty.';
+  for (const line of filled) {
+    if (toNumber(line.quantity) < 0 || toNumber(line.freeQuantity) < 0) {
+      return 'Qty cannot be negative.';
+    }
+    if (toNumber(line.quantity) > 0 && line.rateRupees.trim() === '') {
+      return 'Enter Rate / PTR for charged qty.';
+    }
+  }
+  return null;
+}
+
+export function openIndents<T extends { status: string }>(orders: T[]): T[] {
+  return orders.filter((row) => row.status === 'DRAFT' || row.status === 'ISSUED');
 }
 
 export function productLabel(product: Product): string {

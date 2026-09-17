@@ -1,9 +1,12 @@
+import { configureStore } from '@reduxjs/toolkit';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { useState } from 'react';
+import { Provider } from 'react-redux';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { InventoryStatusBanner } from '@/screens/inventory/components/inventory-status-banner';
 import { QualityCheckWorkspace } from '@/screens/inventory/components/quality-check-workspace';
+import { inventoryReducer } from '@/screens/inventory/store/inventory.slice';
 import { ApiError } from '@/services/axios';
 import type { PageStatus } from '@/screens/inventory/InventoryScreen.utils';
 import type { GoodsReceiptDetail, GoodsReceiptSummary } from '@/services/goodsReceipts';
@@ -120,7 +123,12 @@ function renderWorkspace(activeBranchId: string | null = 'br1') {
       </div>
     );
   }
-  return render(<Page />);
+  const store = configureStore({ reducer: { inventory: inventoryReducer } });
+  return render(
+    <Provider store={store}>
+      <Page />
+    </Provider>,
+  );
 }
 
 async function fillHappyPath(user: ReturnType<typeof userEvent.setup>) {
@@ -241,7 +249,7 @@ describe('quality check workspace', () => {
       await screen.findByText('Accepted onto the floor. Rejected packs stay off the shelf.'),
     ).toBeInTheDocument();
     expect(screen.getByText('Checked')).toBeInTheDocument();
-    expect(screen.getByText('Debit note DN/2026-27/BR01/00001')).toBeInTheDocument();
+    expect(screen.getByText('Open debit note DN/2026-27/BR01/00001')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Accept onto floor' })).not.toBeInTheDocument();
   });
 

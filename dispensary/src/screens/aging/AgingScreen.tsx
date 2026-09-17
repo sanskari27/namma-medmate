@@ -15,6 +15,7 @@ import {
   selectAgingMonth,
   selectAgingPeriodKind,
   selectAgingScope,
+  selectAgingStatus,
 } from './store';
 
 export default function AgingScreen() {
@@ -24,6 +25,7 @@ export default function AgingScreen() {
   const month = useSelector(selectAgingMonth);
   const customAsOf = useSelector(selectAgingCustomAsOf);
   const scope = useSelector(selectAgingScope);
+  const status = useSelector(selectAgingStatus);
   const allowed = hasFinanceAccess(user?.role, user?.roles);
   const owner = user?.role === 'pharmacy_owner';
 
@@ -45,7 +47,7 @@ export default function AgingScreen() {
   return (
     <div className="ag" aria-label={AGING_CONTENT.regionLabel}>
       <AgingStatusBanner />
-      {allowed ? (
+      {allowed && status !== 'denied' ? (
         <>
           <AgingToolbar owner={owner} />
           <AgingTable />

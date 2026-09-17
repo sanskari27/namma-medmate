@@ -20,6 +20,7 @@ import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.StockMovementType;
 import com.nammamedmate.server.domain.SubscriptionStatus;
+import com.nammamedmate.server.domain.SupplierLedgerEntry;
 import com.nammamedmate.server.domain.SupplierLedgerType;
 import com.nammamedmate.server.domain.Tenant;
 import com.nammamedmate.server.domain.TenantStatus;
@@ -38,7 +39,9 @@ import com.nammamedmate.server.persistence.TenantSubscriptionRepository;
 import jakarta.servlet.http.Cookie;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.Comparator;
 import java.util.LinkedHashMap;
+import java.util.List;
 import java.util.Map;
 import java.util.UUID;
 import org.junit.jupiter.api.Test;
@@ -268,6 +271,50 @@ class PurchaseReturnTest extends AbstractIntegrationTest {
   }
 
   @Test
+  void dues_fifoRemainingSlicesNotWholeBalanceOnOldestDue() throws Exception {
+    Fixture fx = seed("pr-fifo", PlanCode.GROWTH);
+    UUID supplierId = createSupplier(fx.cookie(), "SUP-FIFO", "COD", null);
+    PendingGrn older = pendingGrn(fx, supplierId, "10", 10000, "fifo-a");
+    PendingGrn newer = pendingGrn(fx, supplierId, "5", 10000, "fifo-b");
+    mockMvc
+        .perform(
+            post("/api/v1/goods-receipts/" + older.receiptId() + "/quality-check")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(qcJson(older.lineId(), "10", "0", "qc-fifo-a")))
+        .andExpect(status().isOk());
+    mockMvc
+        .perform(
+            post("/api/v1/goods-receipts/" + newer.receiptId() + "/quality-check")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(qcJson(newer.lineId(), "5", "0", "qc-fifo-b")))
+        .andExpect(status().isOk());
+
+    List<SupplierLedgerEntry> invoices =
+        ledgerEntryRepository.findAll().stream()
+            .filter(
+                row ->
+                    row.getTenantId().equals(fx.tenantId())
+                        && row.getSupplierId().equals(supplierId)
+                        && row.getType() == SupplierLedgerType.INVOICE)
+            .sorted(Comparator.comparing(SupplierLedgerEntry::getOccurredAt))
+            .toList();
+    assertThat(invoices).hasSize(2);
+    invoices.get(0).setDueOn(LocalDate.of(2026, 1, 1));
+    invoices.get(1).setDueOn(LocalDate.of(2026, 12, 1));
+    ledgerEntryRepository.saveAll(invoices);
+
+    mockMvc
+        .perform(get("/api/v1/suppliers/dues").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.items", hasSize(1)))
+        .andExpect(jsonPath("$.data.items[0].balancePaise").value(100000))
+        .andExpect(jsonPath("$.data.items[0].dueOn").value("2026-01-01"))
+        .andExpect(jsonPath("$.data.items[0].overdue").value(true));
+  }
+
+  @Test
   void ac05_isolationAuthOverReturnOverpayDuplicateAndStaleFailClosed() throws Exception {
     Fixture fx = seed("pr-ac05");
     Location annex = persistBranch(fx.tenantId(), "Annex", "BR02", false);
@@ -429,7 +476,12 @@ class PurchaseReturnTest extends AbstractIntegrationTest {
   private PendingGrn pendingGrn(
       Fixture fx, String qty, long rate, String key, String terms, Integer creditDays)
       throws Exception {
-    UUID supplierId = createSupplier(fx.cookie(), "SUP-" + key, terms, creditDays);
+    return pendingGrn(
+        fx, createSupplier(fx.cookie(), "SUP-" + key, terms, creditDays), qty, rate, key);
+  }
+
+  private PendingGrn pendingGrn(Fixture fx, UUID supplierId, String qty, long rate, String key)
+      throws Exception {
     UUID productId = createProduct(fx.cookie(), "SKU-" + key, "Pack " + key);
     UUID poId =
         idOf(

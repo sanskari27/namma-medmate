@@ -32,10 +32,8 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.ArrayList;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.UUID;
 import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
@@ -58,6 +56,7 @@ public class PurchaseOrderService {
   private final AppUserRepository appUserRepository;
   private final AccessQueryService accessQueryService;
   private final AuditService auditService;
+  private final GoodsReceiptService goodsReceiptService;
   private final Clock clock;
 
   public PurchaseOrderService(
@@ -70,6 +69,7 @@ public class PurchaseOrderService {
       AppUserRepository appUserRepository,
       AccessQueryService accessQueryService,
       AuditService auditService,
+      GoodsReceiptService goodsReceiptService,
       Clock clock) {
     this.purchaseOrderRepository = purchaseOrderRepository;
     this.purchaseOrderLineRepository = purchaseOrderLineRepository;
@@ -80,6 +80,7 @@ public class PurchaseOrderService {
     this.appUserRepository = appUserRepository;
     this.accessQueryService = accessQueryService;
     this.auditService = auditService;
+    this.goodsReceiptService = goodsReceiptService;
     this.clock = clock;
   }
 
@@ -176,6 +177,76 @@ public class PurchaseOrderService {
         principal, id, expectedVersion, PurchaseOrderStatus.CANCELLED, "PURCHASE_ORDER_CANCEL");
   }
 
+  @Transactional
+  public ReceiveBillView receiveBill(AuthPrincipal principal, ReceiveBillCommand command) {
+    Context ctx = requireReady(principal);
+    String key = requireIdempotencyKey(command.idempotencyKey());
+    return purchaseOrderRepository
+        .findByTenantIdAndBranchIdAndIdempotencyKey(ctx.tenantId(), ctx.branchId(), key)
+        .map(existing -> replayBill(principal, existing))
+        .orElseGet(() -> insertBill(principal, ctx, command, key));
+  }
+
+  private ReceiveBillView replayBill(AuthPrincipal principal, PurchaseOrder existing) {
+    GoodsReceiptsResult listed = goodsReceiptService.list(principal, existing.getId());
+    GoodsReceiptView receipt =
+        listed.receipts().isEmpty() ? null : listed.receipts().get(listed.receipts().size() - 1);
+    return new ReceiveBillView(toView(existing, linesOf(existing)), receipt);
+  }
+
+  private ReceiveBillView insertBill(
+      AuthPrincipal principal, Context ctx, ReceiveBillCommand command, String key) {
+    List<CreatePurchaseOrderCommand.Line> poLines = expandBillLines(command.lines());
+    PurchaseOrderView created =
+        insert(
+            principal,
+            ctx,
+            new CreatePurchaseOrderCommand(
+                command.supplierId(),
+                command.expectedDeliveryDate(),
+                command.paymentTerms(),
+                command.notes(),
+                key,
+                poLines),
+            key);
+    PurchaseOrderView issued = issue(principal, created.id(), created.version());
+    List<CreateGoodsReceiptCommand.Line> receiptLines =
+        issued.lines().stream()
+            .map(
+                line ->
+                    new CreateGoodsReceiptCommand.Line(
+                        line.id(), line.quantity(), line.unitRatePaise()))
+            .toList();
+    GoodsReceiptView receipt =
+        goodsReceiptService.create(
+            principal,
+            issued.id(),
+            new CreateGoodsReceiptCommand(command.receiptReference(), key, receiptLines));
+    return new ReceiveBillView(get(principal, issued.id()), receipt);
+  }
+
+  private static List<CreatePurchaseOrderCommand.Line> expandBillLines(
+      List<ReceiveBillCommand.Line> incoming) {
+    PurchaseOrderPolicy.requireLines(incoming);
+    List<CreatePurchaseOrderCommand.Line> lines = new ArrayList<>();
+    for (ReceiveBillCommand.Line item : incoming) {
+      if (item == null || item.productId() == null) {
+        throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+      }
+      BigDecimal charged = item.quantity() == null ? BigDecimal.ZERO : item.quantity();
+      BigDecimal free = item.freeQuantity() == null ? BigDecimal.ZERO : item.freeQuantity();
+      if (charged.compareTo(BigDecimal.ZERO) > 0) {
+        lines.add(
+            new CreatePurchaseOrderCommand.Line(item.productId(), charged, item.unitRatePaise()));
+      }
+      if (free.compareTo(BigDecimal.ZERO) > 0) {
+        lines.add(new CreatePurchaseOrderCommand.Line(item.productId(), free, 0L));
+      }
+    }
+    PurchaseOrderPolicy.requireLines(lines);
+    return lines;
+  }
+
   private PurchaseOrderView insert(
       AuthPrincipal principal, Context ctx, CreatePurchaseOrderCommand command, String key) {
     UUID supplierId = PurchaseOrderPolicy.requireSupplierId(command.supplierId());
@@ -238,12 +309,11 @@ public class PurchaseOrderService {
     PurchaseOrderPolicy.requireLines(incoming);
     purchaseOrderLineRepository.deleteByPurchaseOrderIdAndTenantIdAndBranchId(
         order.getId(), order.getTenantId(), order.getBranchId());
-    Set<UUID> seen = new LinkedHashSet<>();
     List<PurchaseOrderLine> saved = new ArrayList<>();
     List<PurchaseOrderPolicy.LineMoney> money = new ArrayList<>();
     int sort = 0;
     for (CreatePurchaseOrderCommand.Line item : incoming) {
-      if (item == null || item.productId() == null || !seen.add(item.productId())) {
+      if (item == null || item.productId() == null) {
         throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
       }
       Product product = requireProduct(item.productId(), order.getTenantId());

@@ -1,6 +1,8 @@
 import { X } from 'lucide-react';
+import { Link } from 'react-router-dom';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
+import { ROUTES } from '@/libs/constants/routes.const';
 import { PURCHASES_CONTENT } from '../../PurchasesScreen.content';
 import {
   formatDate,
@@ -92,6 +94,20 @@ export function PurchasesDetailDialog() {
             </div>
           ) : detail ? (
             <>
+              {row.status === 'PENDING_QC' ? (
+                <p>
+                  <Link to={`${ROUTES.INVENTORY}?view=qc&receiptId=${row.id}`}>
+                    {PURCHASES_CONTENT.qcCheck}
+                  </Link>
+                </p>
+              ) : null}
+              {detail.debitNoteNumber ? (
+                <p>
+                  <Link to={`${ROUTES.INVENTORY}?view=returns`}>
+                    {PURCHASES_CONTENT.openDebitNote(detail.debitNoteNumber)}
+                  </Link>
+                </p>
+              ) : null}
               <div className="purchases-lines-head">
                 <h3>{PURCHASES_CONTENT.detail.items}</h3>
               </div>

@@ -11,8 +11,10 @@ import com.nammamedmate.server.persistence.SupplierRepository;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.util.ArrayDeque;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -57,37 +59,64 @@ public class SupplierLedgerService {
       return new SupplierDueListResult(List.of());
     }
     List<UUID> supplierIds = accounts.stream().map(SupplierPayableAccount::getSupplierId).toList();
-    Map<UUID, LocalDate> earliestDue = new HashMap<>();
+    Map<UUID, ArrayDeque<OpenDue>> open = new LinkedHashMap<>();
     for (SupplierLedgerEntry entry :
         ledgerRepository.findAllByTenantIdAndBranchIdAndSupplierIdInOrderByOccurredAtAsc(
             tenantId, branchId, supplierIds)) {
-      if (entry.getType() != SupplierLedgerType.INVOICE || entry.getDueOn() == null) {
-        continue;
+      ArrayDeque<OpenDue> queue =
+          open.computeIfAbsent(entry.getSupplierId(), ignored -> new ArrayDeque<>());
+      if (entry.getType() == SupplierLedgerType.INVOICE) {
+        queue.addLast(new OpenDue(entry.getSupplierId(), entry.getAmountPaise(), entry.getDueOn()));
+      } else if (entry.getType() == SupplierLedgerType.PAYMENT
+          || entry.getType() == SupplierLedgerType.DEBIT_NOTE) {
+        apply(queue, entry.getAmountPaise());
       }
-      earliestDue.putIfAbsent(entry.getSupplierId(), entry.getDueOn());
     }
+    Map<UUID, String> names = new HashMap<>();
     List<SupplierDueListResult.DueItem> items = new ArrayList<>();
-    for (SupplierPayableAccount account : accounts) {
-      LocalDate dueOn = earliestDue.get(account.getSupplierId());
-      if (dueOn == null) {
-        continue;
+    for (ArrayDeque<OpenDue> queue : open.values()) {
+      for (OpenDue slice : queue) {
+        if (slice.dueOn() == null || slice.remaining() <= 0L) {
+          continue;
+        }
+        boolean overdue = !slice.dueOn().isAfter(todayIst);
+        boolean dueSoon = !slice.dueOn().isAfter(todayIst.plusDays(7));
+        if (!overdue && !dueSoon) {
+          continue;
+        }
+        String name =
+            names.computeIfAbsent(
+                slice.supplierId(),
+                id ->
+                    supplierRepository
+                        .findByIdAndTenantId(id, tenantId)
+                        .map(Supplier::getLegalName)
+                        .orElse(""));
+        items.add(
+            new SupplierDueListResult.DueItem(
+                slice.supplierId(), name, slice.remaining(), slice.dueOn(), overdue));
       }
-      boolean overdue = !dueOn.isAfter(todayIst);
-      boolean dueSoon = !dueOn.isAfter(todayIst.plusDays(7));
-      if (!overdue && !dueSoon) {
-        continue;
-      }
-      String name =
-          supplierRepository
-              .findByIdAndTenantId(account.getSupplierId(), tenantId)
-              .map(Supplier::getLegalName)
-              .orElse("");
-      items.add(
-          new SupplierDueListResult.DueItem(
-              account.getSupplierId(), name, account.getBalancePaise(), dueOn, overdue));
     }
     return new SupplierDueListResult(items);
   }
+
+  private static void apply(ArrayDeque<OpenDue> queue, long amountPaise) {
+    long leftover = amountPaise;
+    while (leftover > 0 && !queue.isEmpty()) {
+      OpenDue first = queue.peekFirst();
+      if (first.remaining() <= leftover) {
+        leftover -= first.remaining();
+        queue.pollFirst();
+      } else {
+        queue.pollFirst();
+        queue.addFirst(
+            new OpenDue(first.supplierId(), first.remaining() - leftover, first.dueOn()));
+        leftover = 0L;
+      }
+    }
+  }
+
+  private record OpenDue(UUID supplierId, long remaining, LocalDate dueOn) {}
 
   public SupplierPayableAccount postInvoice(
       UUID tenantId,

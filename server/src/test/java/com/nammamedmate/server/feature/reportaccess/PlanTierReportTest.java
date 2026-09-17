@@ -366,8 +366,12 @@ class PlanTierReportTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/compliance/reports").cookie(fx.cookie()))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.items[?(@.key=='NEAR_EXPIRY')].entitled").value(hasItem(false)))
+        .andExpect(jsonPath("$.data.items[?(@.key=='NEAR_EXPIRY')].entitled").value(hasItem(true)))
         .andExpect(jsonPath("$.data.items[?(@.key=='H1_SALES')].entitled").value(hasItem(true)));
+    mockMvc
+        .perform(get("/api/v1/compliance/reports/NEAR_EXPIRY").cookie(fx.cookie()))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.key").value("NEAR_EXPIRY"));
   }
 
   private LocalDate today() {

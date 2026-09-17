@@ -1,6 +1,6 @@
 # Audit fix progress
 
-Updated: 2026-09-16
+Updated: 2026-09-17
 Policy: restore story chrome; no tracker edits; no out-of-scope.
 
 | ID | Status | Slice | Apps | Tests | Gates | Notes |
@@ -56,11 +56,65 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | SEC-NEW-005 | FIXED | Q | infra | same | same | nginx HSTS + CSP frame-ancestors |
 | M11-CF-002 | FIXED | R | dispensary | see Slice R close-out | same | PENDING copy + reuse checkout key |
 | M11-CF-008 | FIXED | R | admin + server | same | same | MASTER POST reconcile |
+| M5-PO-002 | FIXED | Band 3 | server + dispensary | see Band 3 close-out | see Band 3 close-out | POST /purchase-orders/receive-bill |
+| M5-PO-003 | FIXED | Band 3 | server | same | same | close PO when remaining qty 0 |
+| M5-GRN-002 | FIXED | Band 3 | server + dispensary | same | same | free qty as 0-rate line |
+| M5-GRN-001 | FIXED | Band 3 | dispensary | same | same | Record delivery against outstanding |
+| M5-PO-001 | FIXED | Band 3 | dispensary | same | same | Bills + Open indents desk |
+| M5-REO-001 | FIXED | Band 3 | dispensary | same | same | Draft from this outlet reorder + PLAN_LIMIT |
+| M5-QC-001 | FIXED | Band 3 | dispensary | same | same | QC deep-link; Accept pharmacist/OWNER |
+| M5-RET-001 | FIXED | Band 3 | dispensary | same | same | Open debit note after QC reject |
+| M5-KHATA-001 | FIXED | Band 3 | dispensary | same | same | dues strip + PLAN_LIMIT CTA |
+| M5-KHATA-002 | FIXED | Band 3 | server | same | same | FIFO remaining slices on /suppliers/dues |
+| M5-SUP-002 | FIXED | Band 3 | dispensary | same | same | live Purchases + Distributors tests |
+| M8-AGE-001 | FIXED | Band 3 | dispensary | same | same | render server FIFO buckets |
+| M8-GST-001 | FIXED | Band 3 | dispensary | same | same | GST in spend (inclusive) |
+| M8-BOOK-001 | FIXED | Band 3 | server | same | same | P&L taxable revenue |
+| M8-EXP-001 | FIXED | Band 3 | dispensary | same | same | confirm before delete posted spend |
+| M8-EXP-002 | FIXED | Band 3 | server | same | same | expense today = IST |
+| M8-EXP-003 | FIXED | Band 3 | dispensary | same | same | receipt evidence local file state |
+| OWN-EXP-001 | FIXED | Band 3 | dispensary | same | same | all-outlets require outlet pick |
+| M8-CA-001 | FIXED | Band 3 | dispensary | same | same | Download PDF pack; drop filing language |
+| OWN-CA-002 | FIXED | Band 3 | dispensary | same | same | GST toggle off when GSTR omitted |
+| M8-TEST-001 | FIXED | Band 3 | dispensary | same | same | expenses/aging/CA tests on live chrome |
+| M7-REG-001 | FIXED | Band 3 | server | same | same | compliance NEAR_EXPIRY ungated |
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: Band 1 leftovers — FIXED. Next picker: Band 3.
-Blocked on user: none of these two. M1-IMPERSON-001 WONTFIX (D-001). D-013 still tracker-blocks M1-S09.
+Current slice: Band 3 — FIXED. Next picker: Band 4.
+Blocked on user: none. M1-IMPERSON-001 WONTFIX (D-001). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01.
+
+## Band 3 close-out (2026-09-17)
+
+No commit requested. P1 money desks: purchases, aging, GST, expenses, CA pack, compliance near-expiry.
+
+- `POST /api/v1/purchase-orders/receive-bill` one key; free qty as 0-rate line; PO CLOSED when remaining 0
+- Indent desk: Bills | Open indents; New indent; Issue; Record delivery qty ≤ remaining; Draft from reorder + PLAN_LIMIT
+- QC deep-link `/inventory?view=qc&receiptId=`; Accept pharmacist or OWNER; Open debit note after reject
+- `/suppliers/dues` FIFO remaining slices; Distributors overdue strip + PLAN_LIMIT CTA
+- Aging floor renders server buckets; expense today IST; P&L “Taxable revenue”; expense GST card “GST in spend (inclusive)”
+- Expenses: confirm delete; evidence file local; all-outlets require outlet pick
+- CA: Download PDF pack; GST switch off when GSTR1/GSTR3B omitted
+- Compliance `NEAR_EXPIRY` ungated (`capability(ComplianceReportKey)` null); finance Starter gate unchanged
+
+Tests: `TESTCONTAINERS_RYUK_DISABLED=true ./mvnw -Dtest=PurchaseOrderTest,PurchaseOrderPolicyTest,GoodsReceiptTest,PurchaseReturnTest,FinanceReportTest,CaPackTest,ReportAccessPolicyTest,PlanTierReportTest test` — Tests run: 46, Failures: 0.
+
+`cd dispensary && npm run test -- --run src/screens/expenses/tests/ExpensesScreen.test.tsx src/screens/aging/tests/AgingScreen.test.tsx src/screens/ca-pack/tests/CaPackScreen.test.tsx src/screens/purchases/tests/PurchasesScreen.test.tsx src/screens/distributors/tests/DistributorsScreen.test.tsx src/screens/inventory/tests/QualityCheckWorkspace.test.tsx` — 47 passed.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && ./mvnw spotless:check` — HEAD residuals (kiosk/inventory/expense/credit/auth). Band 3 Java applied.
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw test` — Tests run: 936, Failures: 2 **not this slice**: `ExpenseTest.ac01_systemCategoriesAndCustomExtensibility`, `InventoryGuidanceTest.ac03_expiryThresholdIsConfigurable`.
+- `cd dispensary && npm run lint` — HEAD unused-import residuals (account/credit/distributors/offers). Band 3 files eslint clean.
+- Slice tests 47 passed (above). Full suite 267 failed / 381 passed — HEAD screens missing slice reducers (M4-TEST-001 / CRM), predates this band.
+- `cd dispensary && npm run build` — HEAD `tsc` residuals (account/credit/distributors/inventory.format/offers/orders/shop-books). Band 3 purchases/inventory status/CA files typed clean.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 190 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 71 stories valid.
+
+Browser (localhost:5173 owner, Indiranagar): Purchases shows Bills / Open indents, New indent, New purchase entry, Draft from this outlet reorder. Open pharmacist check lands on Inventory Quality check with the GRN selected and Accept onto floor. Expenses card reads GST in spend (inclusive). Khata dues strip shows 0–30 / 31–60 / 61–90 / 90+ remaining buckets. CA pack button is Download PDF pack; hint is not a GSTR filing.
+
+Out of scope: Band 4+; D-013/M1-S09; D-006/M12-S01; D-001 audit.
 
 ## Band 1 close-out (2026-09-16)
 

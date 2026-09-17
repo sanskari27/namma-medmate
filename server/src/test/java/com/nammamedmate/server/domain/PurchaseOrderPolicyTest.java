@@ -73,7 +73,8 @@ class PurchaseOrderPolicyTest {
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(PurchaseOrderPolicy.INVALID_QUANTITY);
-    assertThatThrownBy(() -> PurchaseOrderPolicy.requireUnitRatePaise(0L))
+    assertThat(PurchaseOrderPolicy.requireUnitRatePaise(0L)).isZero();
+    assertThatThrownBy(() -> PurchaseOrderPolicy.requireUnitRatePaise(-1L))
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getCode())
         .isEqualTo(PurchaseOrderPolicy.INVALID_QUANTITY);

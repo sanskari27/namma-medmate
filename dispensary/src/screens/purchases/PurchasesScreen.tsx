@@ -1,6 +1,7 @@
 import { useEffect } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '@/store';
+import { PurchasesDeliveryDialog } from './components/purchases-delivery-dialog';
 import { PurchasesDetailDialog } from './components/purchases-detail-dialog';
 import { PurchasesEntryDialog } from './components/purchases-entry-dialog';
 import { PurchasesStatusBanner } from './components/purchases-status-banner';
@@ -10,13 +11,15 @@ import { PurchasesTip } from './components/purchases-tip';
 import { PURCHASES_CONTENT } from './PurchasesScreen.content';
 import './PurchasesScreen.css';
 import { hasPurchaseAccess } from './PurchasesScreen.utils';
-import { selectCreateHint, selectPurchasesStatus } from './store/purchases.selectors';
+import { selectCreateHint, selectCreateOpen, selectCreateStatus, selectPurchasesStatus } from './store/purchases.selectors';
 import { loadPurchases } from './store/purchases.thunks';
 
 export default function PurchasesScreen() {
   const dispatch = useDispatch<AppDispatch>();
   const status = useSelector(selectPurchasesStatus);
   const createHint = useSelector(selectCreateHint);
+  const createOpen = useSelector(selectCreateOpen);
+  const createStatus = useSelector(selectCreateStatus);
   const user = useSelector((state: RootState) => state.auth.user);
   const activeBranchId = user?.activeBranchId ?? null;
   const allowed = hasPurchaseAccess(user?.modules);
@@ -57,7 +60,7 @@ export default function PurchasesScreen() {
   return (
     <div className="purchases" aria-label={PURCHASES_CONTENT.regionLabel}>
       <PurchasesStatusBanner />
-      {createHint && status !== 'loading' && status !== 'failure' ? (
+      {createHint && createStatus === 'success' && !createOpen ? (
         <div className="purchases-banner" data-tone="ok" role="status">
           {createHint}
         </div>
@@ -78,6 +81,7 @@ export default function PurchasesScreen() {
       )}
 
       <PurchasesEntryDialog />
+      <PurchasesDeliveryDialog />
       <PurchasesDetailDialog />
     </div>
   );

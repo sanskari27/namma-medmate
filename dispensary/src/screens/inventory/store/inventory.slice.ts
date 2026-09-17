@@ -12,7 +12,15 @@ import {
   updateListingFlags,
 } from './inventory.thunks';
 
-export type InventoryPageStatus = 'loading' | 'empty' | 'denied' | 'failure' | 'success' | null;
+export type InventoryPageStatus =
+  | 'loading'
+  | 'empty'
+  | 'validation'
+  | 'denied'
+  | 'conflict'
+  | 'failure'
+  | 'success'
+  | null;
 
 export type ProductEditorMode = 'create' | 'edit';
 

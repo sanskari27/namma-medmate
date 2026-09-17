@@ -39,7 +39,7 @@ export function AgingToolbar({ owner }: { owner: boolean }) {
   function onExcel() {
     downloadCsv(
       book === 'payables' ? 'payable-ageing.csv' : 'receivable-ageing.csv',
-      csvRows(report.items),
+      csvRows(report),
     );
   }
 

@@ -1,15 +1,12 @@
 export const CA_PACK_CONTENT = {
   regionLabel: 'CA / Accountant',
-  shareTitle: 'Share reports',
+  shareTitle: 'Download reports',
   period: 'Reporting period',
-  sendTo: 'Send to',
+  sendTo: 'Hand to',
   include: 'Include reports',
-  shareHint:
-    'Selected reports download as a GSTR-ready pack for your CA. Hand them the file — no extra login.',
-  share: (count: number, name: string) =>
-    count === 1 ? `Share 1 report with ${name}` : `Share ${count} reports with ${name}`,
-  downloadFallback: (count: number) =>
-    count === 1 ? 'Download 1 report' : `Download ${count} reports`,
+  shareHint: 'Downloads a PDF pack for your CA. This is not a GSTR filing.',
+  share: (count: number) =>
+    count === 1 ? 'Download PDF pack (1 report)' : `Download PDF pack (${count} reports)`,
   advisorsTitle: 'Your CA & Accountant',
   addCa: '+ CA',
   addAccountant: '+ Accountant',
@@ -33,7 +30,7 @@ export const CA_PACK_CONTENT = {
 } as const;
 
 export const SHARE_TOGGLES = [
-  { id: 'gst', label: 'GST summary (GSTR-ready)', keys: ['GSTR1', 'GSTR3B'] },
+  { id: 'gst', label: 'GST summary', keys: ['GSTR1', 'GSTR3B'] },
   { id: 'sales', label: 'Sales register', keys: ['SALES_SUMMARY'] },
   { id: 'purchase', label: 'Purchase register', keys: ['PURCHASE_SUMMARY'] },
   { id: 'pnl', label: 'Profit & Loss statement', keys: ['PROFIT_AND_LOSS'] },

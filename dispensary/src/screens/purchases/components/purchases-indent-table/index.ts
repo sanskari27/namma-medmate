@@ -1,0 +1,1 @@
+export { PurchasesIndentTable } from './PurchasesIndentTable';

@@ -16,6 +16,7 @@ import {
   loadCaPack,
   selectCaPackPeriodKey,
   selectCaPackScope,
+  selectCaPackStatus,
 } from './store';
 
 export default function CaPackScreen() {
@@ -23,6 +24,7 @@ export default function CaPackScreen() {
   const user = useSelector((state: RootState) => state.auth.user);
   const periodKey = useSelector(selectCaPackPeriodKey);
   const scope = useSelector(selectCaPackScope);
+  const status = useSelector(selectCaPackStatus);
   const allowed = hasFinanceAccess(user?.role, user?.roles);
   const owner = user?.role === 'pharmacy_owner';
 
@@ -46,6 +48,11 @@ export default function CaPackScreen() {
   return (
     <div className="ca" aria-label={CA_PACK_CONTENT.regionLabel}>
       <CaPackStatusBanner />
+      {allowed && status === 'loading' ? (
+        <p className="ca-loading" role="status">
+          {CA_PACK_CONTENT.loading}
+        </p>
+      ) : null}
       {allowed ? (
         <>
           <div className="ca-grid">

@@ -1,10 +1,10 @@
 import { X } from 'lucide-react';
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
-import type { AppDispatch } from '@/store';
+import type { AppDispatch, RootState } from '@/store';
 import { EXPENSES_CONTENT } from '../../ExpensesScreen.content';
 import { GST_OPTIONS, PAYMENT_OPTIONS } from '../../ExpensesScreen.utils';
-import type { ExpensePaymentMode } from '@/services/expenses';
+import { expenseEvidenceUrl, type ExpensePaymentMode } from '@/services/expenses';
 import {
   closeExpenseForm,
   patchExpenseForm,
@@ -14,6 +14,8 @@ import {
   selectExpensesForm,
   selectExpensesFormBusy,
   selectExpensesFormOpen,
+  selectExpensesItems,
+  selectExpensesScope,
 } from '../../store';
 
 export function ExpensesFormDialog() {
@@ -23,11 +25,20 @@ export function ExpensesFormDialog() {
   const busy = useSelector(selectExpensesFormBusy);
   const editingId = useSelector(selectExpensesEditingId);
   const categories = useSelector(selectExpensesCategories);
+  const items = useSelector(selectExpensesItems);
+  const scope = useSelector(selectExpensesScope);
+  const user = useSelector((state: RootState) => state.auth.user);
   const titleRef = useRef<HTMLHeadingElement | null>(null);
+  const [evidence, setEvidence] = useState<File | null>(null);
+
+  const editing = items.find((row) => row.id === editingId) ?? null;
+  const branches = user?.branches ?? [];
+  const needsOutlet = scope === 'tenant' || !user?.activeBranchId;
 
   useEffect(() => {
     if (open) {
       titleRef.current?.focus();
+      setEvidence(null);
     }
   }, [open]);
 
@@ -72,9 +83,28 @@ export function ExpensesFormDialog() {
             className="ex-form-grid"
             onSubmit={(event) => {
               event.preventDefault();
-              void dispatch(saveExpense());
+              void dispatch(saveExpense(evidence ?? undefined));
             }}
           >
+            {needsOutlet ? (
+              <label className="ex-label">
+                {EXPENSES_CONTENT.fieldOutlet}
+                <select
+                  className="ex-select"
+                  value={form.branchId}
+                  onChange={(event) =>
+                    dispatch(patchExpenseForm({ branchId: event.target.value }))
+                  }
+                >
+                  <option value="">{EXPENSES_CONTENT.fieldOutletPlaceholder}</option>
+                  {branches.map((branch) => (
+                    <option key={branch.id} value={branch.id}>
+                      {branch.name}
+                    </option>
+                  ))}
+                </select>
+              </label>
+            ) : null}
             <label className="ex-label">
               {EXPENSES_CONTENT.fieldDate}
               <input
@@ -173,6 +203,32 @@ export function ExpensesFormDialog() {
                 value={form.notes}
                 placeholder={EXPENSES_CONTENT.fieldNotePlaceholder}
                 onChange={(event) => dispatch(patchExpenseForm({ notes: event.target.value }))}
+              />
+            </label>
+            <label className="ex-label">
+              {EXPENSES_CONTENT.fieldEvidence}
+              {editing?.evidence?.length ? (
+                <ul className="ex-evidence">
+                  {editing.evidence.map((row) => (
+                    <li key={row.id}>
+                      <a
+                        href={expenseEvidenceUrl(editing.id, row.id)}
+                        target="_blank"
+                        rel="noreferrer"
+                      >
+                        {row.originalFilename}
+                      </a>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <span className="ex-muted">{EXPENSES_CONTENT.evidenceEmpty}</span>
+              )}
+              <input
+                className="ex-field"
+                type="file"
+                accept="image/*,.pdf"
+                onChange={(event) => setEvidence(event.target.files?.[0] ?? null)}
               />
             </label>
             <div className="ex-dialog-actions">

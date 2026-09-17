@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import ExpensesScreen from '@/screens/expenses/ExpensesScreen';
+import { expensesReducer } from '@/screens/expenses/store/expenses.slice';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
 import type { ExpenseCategory, ExpenseTotals, ShopExpense } from '@/services/expenses';
@@ -17,28 +18,30 @@ vi.mock('@/services/expenses', async () => {
     listExpenseTotals: vi.fn(),
     createExpense: vi.fn(),
     updateExpense: vi.fn(),
+    deleteExpense: vi.fn(),
     createExpenseCategory: vi.fn(),
     attachExpenseEvidence: vi.fn(),
+    expenseEvidenceUrl: () => 'http://localhost/evidence',
     ApiError: axios.ApiError,
     isApiError: axios.isApiError,
   };
 });
 
 import {
+  attachExpenseEvidence,
   createExpense,
-  createExpenseCategory,
+  deleteExpense,
   listExpenseCategories,
   listExpenseTotals,
   listExpenses,
-  updateExpense,
 } from '@/services/expenses';
 
 const listMock = vi.mocked(listExpenses);
 const catsMock = vi.mocked(listExpenseCategories);
 const totalsMock = vi.mocked(listExpenseTotals);
 const createMock = vi.mocked(createExpense);
-const updateMock = vi.mocked(updateExpense);
-const categoryCreateMock = vi.mocked(createExpenseCategory);
+const deleteMock = vi.mocked(deleteExpense);
+const attachMock = vi.mocked(attachExpenseEvidence);
 
 const rent: ExpenseCategory = {
   id: 'cat-rent',
@@ -53,30 +56,56 @@ const sample: ShopExpense = {
   tenantId: 't1',
   branchId: 'b1',
   branchName: 'Main',
+  expenseNo: 'EXP/001',
   categoryId: 'cat-rent',
   categoryCode: 'RENT',
   categoryLabel: 'Rent',
+  partyName: 'Landlord',
+  paymentMode: 'CASH',
   amountPaise: 150000,
+  gstPercent: 0,
+  gstPaise: 0,
   occurredOn: '2026-09-01',
   notes: 'September rent',
+  status: 'POSTED',
   currentEvidenceId: null,
   version: 1,
-  status: 'POSTED',
   createdAt: '2026-09-06T00:00:00Z',
   updatedAt: '2026-09-06T00:00:00Z',
   evidence: [],
 };
 
-const emptyTotals: ExpenseTotals = { totalPaise: 0, byCategory: [], byBranch: [] };
+const emptyTotals: ExpenseTotals = {
+  totalPaise: 0,
+  gstPaise: 0,
+  count: 0,
+  byCategory: [],
+  byBranch: [],
+};
 const rentTotals: ExpenseTotals = {
   totalPaise: 150000,
-  byCategory: [{ categoryId: 'cat-rent', code: 'RENT', label: 'Rent', totalPaise: 150000 }],
+  gstPaise: 0,
+  count: 1,
+  byCategory: [
+    {
+      categoryId: 'cat-rent',
+      code: 'RENT',
+      label: 'Rent',
+      entries: 1,
+      totalPaise: 150000,
+      gstPaise: 0,
+      taxablePaise: 150000,
+    },
+  ],
   byBranch: [{ branchId: 'b1', branchName: 'Main', totalPaise: 150000 }],
 };
 
-function renderPage(role = 'pharmacy_owner', modules: string[] = ['FINANCE']) {
+function renderPage(
+  role = 'pharmacy_owner',
+  extras: { activeBranchId?: string | null; branches?: { id: string; name: string; branchCode: string; status: string }[] } = {},
+) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, expenses: expensesReducer },
     preloadedState: {
       auth: {
         user: {
@@ -87,7 +116,12 @@ function renderPage(role = 'pharmacy_owner', modules: string[] = ['FINANCE']) {
           pinSet: true,
           tenantStatus: 'ACTIVE',
           emailVerified: true,
-          modules,
+          modules: ['FINANCE'],
+          activeBranchId: extras.activeBranchId === undefined ? 'b1' : extras.activeBranchId,
+          branches: extras.branches ?? [
+            { id: 'b1', name: 'Main', branchCode: 'BR01', status: 'ACTIVE' },
+            { id: 'b2', name: 'Annex', branchCode: 'BR02', status: 'ACTIVE' },
+          ],
         },
       },
     },
@@ -101,52 +135,50 @@ function renderPage(role = 'pharmacy_owner', modules: string[] = ['FINANCE']) {
   );
 }
 
-describe('shop spend', () => {
+describe('ExpensesScreen', () => {
   beforeEach(() => {
     listMock.mockReset();
     catsMock.mockReset();
     totalsMock.mockReset();
     createMock.mockReset();
-    updateMock.mockReset();
-    categoryCreateMock.mockReset();
+    deleteMock.mockReset();
+    attachMock.mockReset();
     catsMock.mockResolvedValue([rent]);
     totalsMock.mockResolvedValue(emptyTotals);
+    vi.stubGlobal('confirm', vi.fn(() => true));
   });
 
-  it('loading: waits for shop spend', () => {
+  it('loading: waits for expenses', () => {
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading shop spend for this outlet…')).toBeInTheDocument();
+    expect(screen.getByText('Loading expenses…')).toBeInTheDocument();
   });
 
-  it('empty: no spend on the books', async () => {
+  it('empty: no expenses in this period', async () => {
     listMock.mockResolvedValue([]);
     renderPage();
-    expect(
-      await screen.findByText(
-        'No spend on the books. Record rent, power, salaries, or miscellaneous.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Shop spend' })).toBeInTheDocument();
+    expect(await screen.findByText('No expenses in this period. Create the first one.')).toBeInTheDocument();
+    expect(screen.getByText('GST in spend (inclusive)')).toBeInTheDocument();
   });
 
-  it('denied: till staff cannot open shop books', () => {
-    renderPage('pharmacy_staff', ['SALES']);
-    expect(screen.getByRole('alert')).toHaveTextContent(
+  it('denied: till staff cannot open shop books', async () => {
+    renderPage('pharmacy_staff');
+    expect(await screen.findByRole('alert')).toHaveTextContent(
       'Till staff cannot open shop books. Ask the owner for Accounts access.',
     );
     expect(listMock).not.toHaveBeenCalled();
   });
 
-  it('validation: category amount and date before save', async () => {
+  it('validation: amount is required before save', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([]);
     renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.click(screen.getByRole('button', { name: 'Record spend' }));
-    await user.click(screen.getByRole('button', { name: 'Save this spend' }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Category, amount, and the date it occurred are needed before saving.',
+    await screen.findByRole('button', { name: 'Create Expense' });
+    await user.click(screen.getByRole('button', { name: 'Create Expense' }));
+    fireEvent.change(screen.getByLabelText('Amount ₹ (incl. GST)'), { target: { value: 'abc' } });
+    await user.click(screen.getByRole('button', { name: 'Save expense' }));
+    expect(screen.getByRole('alert')).toHaveTextContent(
+      'Category, amount, and date are required before saving.',
     );
     expect(createMock).not.toHaveBeenCalled();
   });
@@ -156,145 +188,60 @@ describe('shop spend', () => {
     listMock.mockResolvedValue([]);
     createMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.click(screen.getByRole('button', { name: 'Record spend' }));
-    fireEvent.change(screen.getByLabelText('Spend category'), { target: { value: 'cat-rent' } });
-    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '1500' } });
-    fireEvent.change(screen.getByLabelText('Occurred on'), { target: { value: '2026-09-01' } });
-    await user.click(screen.getByRole('button', { name: 'Save this spend' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'This spend was updated on another till. Reload, then save again.',
+    await user.click(await screen.findByRole('button', { name: 'Create Expense' }));
+    fireEvent.change(screen.getByLabelText('Amount ₹ (incl. GST)'), { target: { value: '1500' } });
+    await user.click(screen.getByRole('button', { name: 'Save expense' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This expense was updated on another till. Reload, then save again.',
     );
   });
 
   it('failure: list network error', async () => {
     listMock.mockRejectedValue(new Error('network'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not load shop spend. Check the connection and try again.',
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load expenses. Check the connection and try again.',
     );
   });
 
-  it('success: record rent and restore focus', async () => {
+  it('success: posts spend to the active outlet and keeps evidence', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValueOnce([]).mockResolvedValue([sample]);
     totalsMock.mockResolvedValueOnce(emptyTotals).mockResolvedValue(rentTotals);
     createMock.mockResolvedValue(sample);
     renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.click(screen.getByRole('button', { name: 'Record spend' }));
-    fireEvent.change(screen.getByLabelText('Spend category'), { target: { value: 'cat-rent' } });
-    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '1500' } });
-    fireEvent.change(screen.getByLabelText('Occurred on'), { target: { value: '2026-09-01' } });
-    await user.click(screen.getByRole('button', { name: 'Save this spend' }));
+    await user.click(await screen.findByRole('button', { name: 'Create Expense' }));
+    expect(screen.getByText('No receipt attached yet.')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Amount ₹ (incl. GST)'), { target: { value: '1500' } });
+    await user.click(screen.getByRole('button', { name: 'Save expense' }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent('Spend recorded for this outlet.');
-    expect(screen.getByText(/Main/)).toBeInTheDocument();
-    expect(screen.getByText(/This outlet:/)).toHaveTextContent('₹1,500.00');
-    expect(screen.getByRole('button', { name: 'Record spend' })).toHaveFocus();
+    expect(createMock.mock.calls[0][0]).toMatchObject({ branchId: 'b1', amountPaise: 150000 });
+    expect(await screen.findByText('EXP/001')).toBeInTheDocument();
   });
 
-  it('adds a custom category from the form', async () => {
-    const user = userEvent.setup();
-    listMock.mockResolvedValue([]);
-    categoryCreateMock.mockResolvedValue({
-      id: 'cat-water',
-      tenantId: 't1',
-      code: 'WATER_BILL',
-      label: 'Water bill',
-      system: false,
-    });
-    catsMock.mockResolvedValueOnce([rent]).mockResolvedValue([
-      rent,
-      {
-        id: 'cat-water',
-        tenantId: 't1',
-        code: 'WATER_BILL',
-        label: 'Water bill',
-        system: false,
-      },
-    ]);
-    renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.click(screen.getByRole('button', { name: 'Record spend' }));
-    fireEvent.change(screen.getByLabelText('Code'), { target: { value: 'water_bill' } });
-    fireEvent.change(screen.getByLabelText('Name'), { target: { value: 'Water bill' } });
-    await user.click(screen.getByRole('button', { name: 'Add a category' }));
-    await waitFor(() => expect(categoryCreateMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Category added to the shop books.',
-    );
-  });
-
-  it('owner all outlets consolidates tenant totals', async () => {
-    const user = userEvent.setup();
-    const tenantTotals: ExpenseTotals = {
-      totalPaise: 280000,
-      byCategory: [{ categoryId: 'cat-rent', code: 'RENT', label: 'Rent', totalPaise: 280000 }],
-      byBranch: [
-        { branchId: 'b1', branchName: 'Main', totalPaise: 150000 },
-        { branchId: 'b2', branchName: 'Annex', totalPaise: 130000 },
-      ],
-    };
-    listMock.mockResolvedValue([sample]);
-    totalsMock.mockResolvedValueOnce(rentTotals).mockResolvedValue(tenantTotals);
-    renderPage();
-    expect(await screen.findByText(/This outlet:/)).toHaveTextContent('₹1,500.00');
-    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
-    await waitFor(() =>
-      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' })),
-    );
-    expect(totalsMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' }));
-    expect(await screen.findByText(/All outlets:/)).toHaveTextContent('₹2,800.00');
-  });
-
-  it('waiting: spend posts as you record it', async () => {
-    const user = userEvent.setup();
-    listMock.mockResolvedValue([]);
-    renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.selectOptions(screen.getByLabelText('Spend state'), 'PENDING');
-    expect(
-      await screen.findByText('Spend posts as you record it — nothing waits on sign-off.'),
-    ).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /send for approval/i })).not.toBeInTheDocument();
-    await waitFor(() =>
-      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'PENDING' })),
-    );
-  });
-
-  it('turned down: phase 1 does not reject spend', async () => {
-    const user = userEvent.setup();
-    listMock.mockResolvedValue([]);
-    renderPage();
-    await screen.findByRole('heading', { name: 'Shop spend' });
-    await user.selectOptions(screen.getByLabelText('Spend state'), 'REJECTED');
-    expect(await screen.findByText('Phase 1 does not reject spend.')).toBeInTheDocument();
-    await waitFor(() =>
-      expect(listMock).toHaveBeenCalledWith(expect.objectContaining({ status: 'REJECTED' })),
-    );
-  });
-
-  it('posted badge on the books', async () => {
-    listMock.mockResolvedValue([sample]);
-    totalsMock.mockResolvedValue(rentTotals);
-    renderPage();
-    expect(await screen.findByRole('button', { name: /On the books/ })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Rent/ })).toBeInTheDocument();
-  });
-
-  it('success: correct posted spend and restore focus', async () => {
+  it('confirm before deleting posted spend', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([sample]);
     totalsMock.mockResolvedValue(rentTotals);
-    updateMock.mockResolvedValue({ ...sample, amountPaise: 160000, version: 2 });
+    deleteMock.mockResolvedValue(undefined);
     renderPage();
-    await screen.findByRole('button', { name: /On the books/ });
-    await user.click(screen.getByRole('button', { name: /Rent/ }));
-    fireEvent.change(screen.getByLabelText('Amount (₹)'), { target: { value: '1600' } });
-    await user.click(screen.getByRole('button', { name: 'Correct this spend' }));
-    await waitFor(() => expect(updateMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent('Spend is still on the books.');
-    expect(screen.getByRole('button', { name: 'Record spend' })).toHaveFocus();
+    await screen.findByText('EXP/001');
+    await user.click(screen.getByRole('button', { name: 'Delete' }));
+    expect(window.confirm).toHaveBeenCalled();
+    await waitFor(() => expect(deleteMock).toHaveBeenCalledWith('exp-1'));
+  });
+
+  it('all-outlets never guesses the branch', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue([]);
+    renderPage('pharmacy_owner', { activeBranchId: null });
+    await user.click(await screen.findByRole('button', { name: 'Create Expense' }));
+    expect(screen.getByLabelText('Outlet')).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText('Amount ₹ (incl. GST)'), { target: { value: '1500' } });
+    await user.click(screen.getByRole('button', { name: 'Save expense' }));
+    expect(createMock).not.toHaveBeenCalled();
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Pick an outlet before posting spend. All-outlets never guesses the branch.',
+    );
   });
 });

@@ -142,7 +142,25 @@
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 16px 18px 12px;
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--pur-line);
+}
+
+.purchases-desk {
+  display: flex;
+  gap: 6px;
+}
+
+.purchases-desk .purchases-btn[data-active='true'] {
+  background: var(--pur-wash);
+  color: var(--pur-dark);
+  border-color: var(--pur-mid);
+}
+
+.purchases-qc {
+  display: block;
+  margin-top: 4px;
+  font-size: 12px;
 }
 
 .purchases-card-head h2 {

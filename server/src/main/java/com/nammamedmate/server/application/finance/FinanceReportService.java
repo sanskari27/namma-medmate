@@ -420,7 +420,7 @@ public class FinanceReportService {
     Pnl pnl = pnl(query);
     List<Map<String, String>> items =
         List.of(
-            row("line", "Revenue", "amountPaise", Long.toString(pnl.revenue)),
+            row("line", "Taxable revenue", "amountPaise", Long.toString(pnl.revenue)),
             row("line", "Purchase-price COGS", "amountPaise", Long.toString(pnl.cogs)),
             row("line", "Posted spend", "amountPaise", Long.toString(pnl.expenses)),
             row("line", "Profit", "amountPaise", Long.toString(pnl.profit)));
@@ -428,7 +428,7 @@ public class FinanceReportService {
         query,
         FinanceReportKey.PROFIT_AND_LOSS,
         List.of(
-            total("revenue", "Revenue", pnl.revenue),
+            total("revenue", "Taxable revenue", pnl.revenue),
             total("cogs", "COGS", pnl.cogs),
             total("expenses", "Spend", pnl.expenses),
             total("profit", "Profit", pnl.profit)),
@@ -685,7 +685,7 @@ public class FinanceReportService {
         query,
         FinanceReportKey.BRANCH_PNL,
         List.of(
-            total("revenue", "Revenue", revenue),
+            total("revenue", "Taxable revenue", revenue),
             total("cogs", "COGS", cogs),
             total("expenses", "Spend", expenses),
             total("profit", "Profit", profit)),
@@ -696,12 +696,28 @@ public class FinanceReportService {
   }
 
   private Pnl pnl(QueryScope query) {
+    List<SalesInvoice> invoices = completed(query);
     long revenue = 0L;
-    for (SalesInvoice invoice : completed(query)) {
-      revenue += invoice.getTotalPaise();
+    Map<UUID, SalesInvoice> invoiceById = new HashMap<>();
+    for (SalesInvoice invoice : invoices) {
+      revenue += invoice.getSubtotalPaise();
+      invoiceById.put(invoice.getId(), invoice);
+    }
+    List<UUID> returnInvoiceIds =
+        returns(query).stream().map(SalesReturn::getSalesInvoiceId).distinct().toList();
+    if (!returnInvoiceIds.isEmpty()) {
+      for (SalesInvoice invoice :
+          salesInvoiceRepository.findAllByTenantIdAndIdIn(query.tenantId(), returnInvoiceIds)) {
+        invoiceById.put(invoice.getId(), invoice);
+      }
     }
     for (SalesReturn ret : returns(query)) {
-      revenue -= ret.getRefundTotalPaise();
+      SalesInvoice source = invoiceById.get(ret.getSalesInvoiceId());
+      revenue -=
+          source == null
+              ? ret.getRefundTotalPaise()
+              : FinanceReportPolicy.proportion(
+                  source.getSubtotalPaise(), source.getTotalPaise(), ret.getRefundTotalPaise());
     }
     long cogs = 0L;
     List<StockMovement> movements =

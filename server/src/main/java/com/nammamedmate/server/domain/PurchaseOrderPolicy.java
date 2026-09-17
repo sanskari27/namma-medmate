@@ -70,11 +70,9 @@ public final class PurchaseOrderPolicy {
   }
 
   public static long requireUnitRatePaise(Long unitRatePaise) {
-    if (unitRatePaise == null || unitRatePaise <= 0) {
+    if (unitRatePaise == null || unitRatePaise < 0) {
       throw new ApiException(
-          HttpStatus.UNPROCESSABLE_ENTITY,
-          INVALID_QUANTITY,
-          "Agreed rate must be greater than zero.");
+          HttpStatus.UNPROCESSABLE_ENTITY, INVALID_QUANTITY, "Agreed rate cannot be negative.");
     }
     return unitRatePaise;
   }

@@ -160,6 +160,34 @@
   font-size: 13px;
 }
 
+.ag-buckets {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 8px;
+  margin: 10px 0 14px;
+  padding: 0;
+  list-style: none;
+}
+
+.ag-buckets li {
+  display: grid;
+  gap: 2px;
+  padding: 10px 12px;
+  border: 1px solid var(--ag-line);
+  border-radius: 10px;
+  background: var(--ag-paper);
+}
+
+.ag-buckets span {
+  color: var(--ag-muted);
+  font-size: 12px;
+}
+
+.ag-buckets strong {
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+}
+
 .ag-table-wrap {
   overflow: auto;
   border-radius: 12px;

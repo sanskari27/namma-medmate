@@ -20,7 +20,9 @@ export function QualityCheckOutcome({ detail }: QualityCheckOutcomeProps) {
         ) : null}
       </div>
       {detail.debitNoteNumber ? (
-        <p className="mt-2 font-mono text-sm text-ink">Debit note {detail.debitNoteNumber}</p>
+        <p className="mt-2 font-mono text-sm text-ink">
+          <a href="/inventory?view=returns">Open debit note {detail.debitNoteNumber}</a>
+        </p>
       ) : null}
       <ul className="mt-3 divide-y divide-line/60 border-t border-line/60">
         {detail.lines.map((line) => (

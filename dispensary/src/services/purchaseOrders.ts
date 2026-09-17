@@ -106,6 +106,33 @@ export async function createPurchaseOrder(input: CreatePurchaseOrderInput): Prom
   return data;
 }
 
+export async function receivePurchaseBill(input: ReceiveBillInput): Promise<ReceiveBillResult> {
+  const { data } = await apiClient.post<ReceiveBillResult>(API.PURCHASE_ORDERS_RECEIVE_BILL, input);
+  return data;
+}
+
+export interface ReceiveBillLineInput {
+  productId: string;
+  quantity: number;
+  freeQuantity?: number;
+  unitRatePaise: number;
+}
+
+export interface ReceiveBillInput {
+  supplierId: string;
+  expectedDeliveryDate?: string | null;
+  paymentTerms: PurchasePaymentTerms;
+  notes?: string;
+  receiptReference: string;
+  idempotencyKey: string;
+  lines: ReceiveBillLineInput[];
+}
+
+export interface ReceiveBillResult {
+  purchaseOrder: PurchaseOrder;
+  receipt: GoodsReceipt;
+}
+
 export async function updatePurchaseOrder(
   id: string,
   input: UpdatePurchaseOrderInput,

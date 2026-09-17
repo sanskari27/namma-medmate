@@ -111,11 +111,11 @@ class FinanceReportTest extends AbstractIntegrationTest {
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.success").value(true))
         .andExpect(jsonPath("$.data.key").value("PROFIT_AND_LOSS"))
-        .andExpect(jsonPath("$.data.totals[?(@.key=='revenue')].amountPaise").value(hasItem(11200)))
+        .andExpect(jsonPath("$.data.totals[?(@.key=='revenue')].amountPaise").value(hasItem(10000)))
         .andExpect(jsonPath("$.data.totals[?(@.key=='cogs')].amountPaise").value(hasItem(5000)))
         .andExpect(jsonPath("$.data.totals[?(@.key=='expenses')].amountPaise").value(hasItem(2000)))
-        .andExpect(jsonPath("$.data.totals[?(@.key=='profit')].amountPaise").value(hasItem(4200)))
-        .andExpect(jsonPath("$.data.items[*].line", hasItem("Revenue")))
+        .andExpect(jsonPath("$.data.totals[?(@.key=='profit')].amountPaise").value(hasItem(3000)))
+        .andExpect(jsonPath("$.data.items[*].line", hasItem("Taxable revenue")))
         .andExpect(jsonPath("$.data.items[*].line", not(hasItem("Trial balance"))))
         .andExpect(jsonPath("$.data.items[*].line", not(hasItem("Balance sheet"))));
   }

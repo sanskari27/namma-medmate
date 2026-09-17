@@ -73,6 +73,7 @@ export const API = {
   SUPPLIER_DUES: '/api/v1/suppliers/dues',
   PURCHASE_RETURNS: '/api/v1/purchase-returns',
   PURCHASE_ORDERS: '/api/v1/purchase-orders',
+  PURCHASE_ORDERS_RECEIVE_BILL: '/api/v1/purchase-orders/receive-bill',
   GOODS_RECEIPTS: '/api/v1/goods-receipts',
   PURCHASE_ORDERS_REORDER_PREVIEW: '/api/v1/purchase-orders/reorder-preview',
   PURCHASE_ORDERS_FROM_REORDER: '/api/v1/purchase-orders/from-reorder',

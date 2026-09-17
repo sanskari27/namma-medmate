@@ -439,6 +439,70 @@ class PurchaseOrderTest extends AbstractIntegrationTest {
             });
   }
 
+  @Test
+  void receiveBill_isIdempotentAndClosesWhenFullyReceived() throws Exception {
+    Fixture fx = seed("recv-bill");
+    UUID supplierId = createSupplier(fx.cookie(), "SUP-RB", "29ABCDE1234F1Z5");
+    UUID productId = createProduct(fx.cookie(), "RECV-1", "Receive Pack");
+    String body =
+        """
+        {
+          "supplierId":"%s",
+          "expectedDeliveryDate":"2026-09-20",
+          "paymentTerms":"CREDIT",
+          "notes":"Invoice BPD/1",
+          "receiptReference":"BPD/1",
+          "idempotencyKey":"recv-bill-1",
+          "lines":[{"productId":"%s","quantity":10,"freeQuantity":2,"unitRatePaise":10000}]
+        }
+        """
+            .formatted(supplierId, productId);
+
+    MvcResult first =
+        mockMvc
+            .perform(
+                post("/api/v1/purchase-orders/receive-bill")
+                    .cookie(fx.cookie())
+                    .contentType(MediaType.APPLICATION_JSON)
+                    .content(body))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.data.purchaseOrder.status").value("CLOSED"))
+            .andExpect(jsonPath("$.data.purchaseOrder.lines", hasSize(2)))
+            .andExpect(jsonPath("$.data.purchaseOrder.subtotalPaise").value(100000))
+            .andExpect(jsonPath("$.data.purchaseOrder.taxPaise").value(12000))
+            .andExpect(jsonPath("$.data.receipt.status").value("PENDING_QC"))
+            .andExpect(jsonPath("$.data.receipt.receiptReference").value("BPD/1"))
+            .andExpect(jsonPath("$.data.receipt.lines", hasSize(2)))
+            .andReturn();
+    String poId =
+        objectMapper
+            .readTree(first.getResponse().getContentAsString())
+            .path("data")
+            .path("purchaseOrder")
+            .path("id")
+            .asText();
+    String receiptId =
+        objectMapper
+            .readTree(first.getResponse().getContentAsString())
+            .path("data")
+            .path("receipt")
+            .path("id")
+            .asText();
+
+    mockMvc
+        .perform(
+            post("/api/v1/purchase-orders/receive-bill")
+                .cookie(fx.cookie())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(body))
+        .andExpect(status().isOk())
+        .andExpect(jsonPath("$.data.purchaseOrder.id").value(poId))
+        .andExpect(jsonPath("$.data.receipt.id").value(receiptId));
+
+    assertThat(purchaseOrderRepository.findById(UUID.fromString(poId)).orElseThrow().getStatus())
+        .isEqualTo(PurchaseOrderStatus.CLOSED);
+  }
+
   private UUID categoryId(Cookie cookie, String name) throws Exception {
     String body =
         mockMvc

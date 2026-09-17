@@ -81,6 +81,6 @@ public final class ReportAccessPolicy {
   }
 
   public static ReportCapability capability(ComplianceReportKey key) {
-    return key == ComplianceReportKey.NEAR_EXPIRY ? ReportCapability.NEAR_EXPIRY : null;
+    return null;
   }
 }

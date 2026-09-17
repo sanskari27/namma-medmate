@@ -27,6 +27,7 @@ export type CaPackScreenState = {
   formOpen: boolean;
   form: Advisor | null;
   busy: boolean;
+  gstAvailable: boolean;
 };
 
 const options = periodOptions();
@@ -45,6 +46,7 @@ export const initialCaPackScreenState: CaPackScreenState = {
   formOpen: false,
   form: null,
   busy: false,
+  gstAvailable: true,
 };
 
 const caPackSlice = createSlice({
@@ -106,6 +108,11 @@ const caPackSlice = createSlice({
       .addCase(loadCaPack.fulfilled, (state, action) => {
         state.pack = action.payload.pack;
         state.gstin = action.payload.gstin;
+        const keys = new Set(action.payload.pack.sections.map((section) => section.key));
+        state.gstAvailable = keys.has('GSTR1') || keys.has('GSTR3B');
+        if (!state.gstAvailable) {
+          state.enabled.gst = false;
+        }
         const empty = action.payload.pack.sections.every((section) => section.items.length === 0);
         state.status = empty ? 'empty' : null;
         if (!state.advisorId && state.advisors[0]) {

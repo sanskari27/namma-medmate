@@ -74,6 +74,9 @@ export function ExpensesTable() {
                       disabled={deletingId === row.id}
                       onClick={(event) => {
                         event.stopPropagation();
+                        if (!window.confirm(EXPENSES_CONTENT.deleteConfirm)) {
+                          return;
+                        }
                         void dispatch(removeExpense(row.id));
                       }}
                     >

@@ -25,6 +25,7 @@ export type FormState = {
   partyName: string;
   paymentMode: ExpensePaymentMode;
   gstPercent: number;
+  branchId: string;
 };
 
 export const GST_OPTIONS = [0, 5, 12, 18, 28] as const;
@@ -56,6 +57,7 @@ export function emptyForm(today = isoTodayIst()): FormState {
     partyName: '',
     paymentMode: 'CASH',
     gstPercent: 0,
+    branchId: '',
   };
 }
 
@@ -68,6 +70,7 @@ export function formFromExpense(row: ShopExpense): FormState {
     partyName: row.partyName ?? '',
     paymentMode: row.paymentMode ?? 'CASH',
     gstPercent: row.gstPercent ?? 0,
+    branchId: row.branchId ?? '',
   };
 }
 

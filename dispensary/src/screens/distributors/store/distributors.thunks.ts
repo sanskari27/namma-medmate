@@ -3,11 +3,13 @@ import { isApiError } from '@/services/axios';
 import {
   createSupplier,
   getSupplierLedger,
+  listSupplierDues,
   listSuppliers,
   recordSupplierPayment,
   updateSupplier,
   type RecordSupplierPaymentInput,
   type Supplier,
+  type SupplierDueItem,
   type SupplierInput,
   type SupplierLedger,
 } from '@/services/suppliers';
@@ -18,12 +20,22 @@ import type { RootState } from '@/store';
 type Reject = { message: string; status?: DistributorsPageStatus };
 
 export const loadDistributors = createAsyncThunk<
-  Supplier[],
+  { items: Supplier[]; dues: SupplierDueItem[]; duesPlanLimit: boolean },
   string | undefined,
   { rejectValue: Reject }
 >('distributors/load', async (query, { rejectWithValue }) => {
   try {
-    return await listSuppliers(query);
+    const items = await listSuppliers(query);
+    let dues: SupplierDueItem[] = [];
+    let duesPlanLimit = false;
+    try {
+      dues = await listSupplierDues();
+    } catch (error) {
+      if (isApiError(error) && error.code === 'PLAN_LIMIT') {
+        duesPlanLimit = true;
+      }
+    }
+    return { items, dues, duesPlanLimit };
   } catch (error) {
     if (isApiError(error)) {
       return rejectWithValue({

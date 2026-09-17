@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
-import type { AgingParty } from '@/services/aging';
+import type { AgingReport } from '@/services/aging';
 
 export type PageStatus =
   | 'loading'
@@ -106,6 +106,8 @@ export function bucketForDays(days: number): AgingBucketKey {
   return 'D90_PLUS';
 }
 
+export const oldestBucket = bucketForDays;
+
 export function bucketLabel(key: string, fallback: string): string {
   if (key === 'D0_30' || key === 'D31_60' || key === 'D61_90' || key === 'D90_PLUS') {
     return BUCKET_LABELS[key];
@@ -178,14 +180,20 @@ export function printReport(title: string, tableHtml: string): void {
   win.print();
 }
 
-export function csvRows(items: AgingParty[]): string[][] {
+export function csvRows(report: AgingReport): string[][] {
   return [
-    ['Party', 'Outstanding', 'Age (days)', 'Bucket'],
-    ...items.map((row) => [
+    ['FIFO remaining'],
+    ...report.buckets.map((bucket) => [
+      BUCKET_LABELS[bucket.key as AgingBucketKey] ?? bucket.label,
+      formatPaise(bucket.totalPaise),
+    ]),
+    [],
+    ['Party', 'Outstanding', 'Oldest (days)', 'Oldest bucket'],
+    ...report.items.map((row) => [
       row.name,
       formatPaise(row.amountPaise),
       String(row.days),
-      BUCKET_LABELS[bucketForDays(row.days)],
+      BUCKET_LABELS[oldestBucket(row.days)],
     ]),
   ];
 }

@@ -99,4 +99,12 @@ export const DISTRIBUTORS_CONTENT = {
     failure: 'Could not complete that distributor action. Try again.',
     denied: 'This till cannot open the supplier book.',
   },
+  dues: {
+    overdue: (n: number) =>
+      n === 1 ? '1 stockist due is overdue.' : `${n} stockist dues are overdue.`,
+    dueSoon: 'Stockist dues in the next 7 days are on this list.',
+    planLimit: 'Stockist due reminders are on Growth.',
+    openPlan: 'Open the plan',
+    empty: 'No stockist dues due soon.',
+  },
 } as const;
