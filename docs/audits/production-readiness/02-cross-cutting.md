@@ -33,39 +33,39 @@ Parent merged and deduped subagent output. Evidence is from source, not from re-
 
 ## Auth, session, PIN
 
-Idle lock **implementation** matches D-015 on both SPAs. Copy and HQ gating do not.
+Idle lock **implementation** matches D-015 on both SPAs. Enroll copy matches lock/resume (2026-09-18).
 
 ### [PIN-DISP-01] PIN enroll copy still says idle “signs out”
 - Severity: P2
+- **Status: FIXED** 2026-09-18 — `CounterPinEnroll` helper is lock + six-digit resume; tests forbid “signs out”.
 - Type: UX-vs-CONTRACT / DRIFT
 - Epic/Story: M1-S10 / D-015
 - Apps: dispensary
 - Persona: cashier / pharmacist / OWNER
 - Evidence:
-  - `dispensary/src/components/organisms/counter-pin-enroll/CounterPinEnroll.tsx` helper text (“five quiet minutes this till **signs out**”)
+  - `dispensary/src/components/organisms/counter-pin-enroll/CounterPinEnroll.tsx` helper text (“this till **locks**” / “unlock and keep working”)
   - Runtime: `useIdleLock` + `DashboardLayout` keep session
 - Expected: D-015 — idle shows PIN lock; same session resumes.
-- Actual: First-enroll copy teaches hard logout.
-- Click path: First password login → enroll dialog → misleading idle sentence.
-- User impact: Staff expect logout, not lock overlay; they may walk away thinking the till signed out.
+- Actual (was): First-enroll copy taught hard logout. **Now:** lock/resume.
+- Click path: First password login → enroll dialog.
 - Root layer: layout
-- Fix: One-line copy: lock + PIN resume.
+- Fix: Done.
 - Suggested tests: `CounterPinEnroll` asserts lock/resume wording, not “signs out”.
 - Out of scope?: no
 
 ### [UX-ADM-001] HqPinEnroll copy still claims idle sign-out
 - Severity: P1
+- **Status: FIXED** 2026-09-18 — `HqPinEnroll` helper is lock + unlock this console; tests forbid “sign out”.
 - Type: UX-vs-CONTRACT
 - Epic/Story: M1-S02 / D-015
 - Apps: admin
 - Persona: MASTER | VA
 - Evidence: `admin/src/components/organisms/hq-pin-enroll/HqPinEnroll.tsx` (~108–110)
 - Expected: D-015 lock/resume.
-- Actual: “Idle HQ consoles **sign out** after five minutes.”
+- Actual (was): “Idle HQ consoles **sign out** after five minutes.” **Now:** lock after five minutes.
 - Click path: First HQ login → Set HQ PIN modal.
-- User impact: Operators learn the superseded security model.
 - Root layer: layout
-- Fix: Rewrite to lock/resume.
+- Fix: Done.
 - Suggested tests: enroll helper mentions lock, not sign-out.
 - Out of scope?: no
 
@@ -279,6 +279,8 @@ Money paise and UTC persist are solid. Residual time issues:
 - Fix: Per-tenant `REQUIRES_NEW`.
 - Suggested tests: `RefillDueScannerTest_oneTenantFailureDoesNotRollbackOthers`
 
+**Status:** FIXED 2026-09-20 — remaining `ItemExpiryScanner` / `SupplierDueScanner` scan per tenant `REQUIRES_NEW`; `SubscriptionExpiryScanner` expires each due row in `REQUIRES_NEW`.
+
 ### [FLYWAY-001] Schema head is V64; tracker narrative stops at V56
 - Severity: P3
 - Type: DRIFT
@@ -416,10 +418,14 @@ Money paise and UTC persist are solid. Residual time issues:
 - User impact: Extra failure domain (actuator Redis health) and cost.
 - Fix: Use Redis for a defined purpose, or remove until needed.
 
+**Status:** FIXED 2026-09-20 — keep Redis service; `management.health.redis.enabled=false` so unused Redis cannot fail `/actuator/health`.
+
 ### [HEALTH-SHALLOW] / [CROSS-002] `/api/v1/health` is static UP
 - Severity: P2/P3
 - Evidence: `HealthService` hardcoded `UP`. Compose probes `/actuator/health` (better).
 - Fix: Document actuator as readiness; or split liveness/readiness.
+
+**Status:** FIXED 2026-09-18 — `HealthService` pings DataSource; actuator Redis health disabled (see `COMPOSE-REDIS-UNUSED`).
 
 Other ops P2/P3: ElastiCache transit encryption `preferred` (P2), tfstate public-access block (P2), `HOST_NGINX.md` `pharmacy.` (P2). Cashfree env example vs TF and unused `PUBLIC_BASE_URL` are P3 **FIXED**.
 

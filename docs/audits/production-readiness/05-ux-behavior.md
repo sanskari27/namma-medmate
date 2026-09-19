@@ -76,7 +76,7 @@ Grouped by persona. Convenient vs actual vs smallest fix. Owner decision only wh
 | Inventory Online toggle | D-008 | hide/rename |
 | Home Online = 0 | D-008 | drop channel |
 | QC OWNER allowed | story pharmacist-only | DECISIONS |
-| PIN enroll “signs out” | D-015 | copy only |
+| PIN enroll lock/resume | D-015 | **FIXED** copy |
 | Story S10-AC04b | D-015 wins | doc edit |
 | M2-S07 story still blocked_by D-009 | runtime built | human rewrite ACs |
 | POS rewrite vs M6 ACs | till is a new product | restore **or** amend stories |

@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CounterRolesScreen from '@/screens/counter-roles/CounterRolesScreen';
 import { ApiError } from '@/services/axios';
+import { counterRolesReducer } from '@/screens/counter-roles/store';
 import { authReducer } from '@/store';
 import type { RoleCatalog } from '@/services/roles';
 
@@ -46,7 +47,7 @@ const catalog: RoleCatalog = {
 
 function renderPage(role: string) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, counterRoles: counterRolesReducer },
     preloadedState: {
       auth: {
         user: {
@@ -75,7 +76,7 @@ describe('Floor roles', () => {
   it('loading: waits for floor roles', () => {
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage('pharmacy_owner');
-    expect(screen.getByRole('alert')).toHaveTextContent('Loading floor roles');
+    expect(screen.getByRole('status')).toHaveTextContent('Loading floor roles');
   });
 
   it('empty: no custom roles yet', async () => {
@@ -87,7 +88,7 @@ describe('Floor roles', () => {
 
   it('denied: staff cannot change floor roles', () => {
     renderPage('pharmacy_staff');
-    expect(screen.getByRole('alert')).toHaveTextContent(
+    expect(screen.getByRole('status')).toHaveTextContent(
       'Only the pharmacy owner can manage floor roles.',
     );
     expect(listMock).not.toHaveBeenCalled();
@@ -123,7 +124,7 @@ describe('Floor roles', () => {
   it('failure: cannot load floor roles', async () => {
     listMock.mockRejectedValue(new ApiError('down', 500, 'SERVER'));
     renderPage('pharmacy_owner');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Could not load floor roles. Try again.',
     );
   });
@@ -149,7 +150,7 @@ describe('Floor roles', () => {
     await user.click(within(dialog).getByLabelText('Sales'));
     await user.click(within(dialog).getByRole('button', { name: 'Save role' }));
     expect(createMock).toHaveBeenCalledWith('Evening till', ['SALES']);
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Role saved. Assign it to staff from Staff accounts.',
     );
   });

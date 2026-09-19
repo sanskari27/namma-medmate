@@ -11,8 +11,10 @@ import java.time.Clock;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.util.List;
+import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -22,48 +24,71 @@ public class SubscriptionExpiryScanner {
   private final TenantRepository tenantRepository;
   private final NotificationRoutingService notificationRoutingService;
   private final Clock clock;
+  private final SubscriptionExpiryScanner self;
 
   public SubscriptionExpiryScanner(
       TenantSubscriptionRepository tenantSubscriptionRepository,
       TenantRepository tenantRepository,
       NotificationRoutingService notificationRoutingService,
-      Clock clock) {
+      Clock clock,
+      @Lazy SubscriptionExpiryScanner self) {
     this.tenantSubscriptionRepository = tenantSubscriptionRepository;
     this.tenantRepository = tenantRepository;
     this.notificationRoutingService = notificationRoutingService;
     this.clock = clock;
+    this.self = self;
   }
 
-  @Transactional
   public int expireDue() {
     Instant now = Instant.now(clock);
-    LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
-    List<TenantSubscription> due =
+    int expired = 0;
+    for (TenantSubscription subscription :
         tenantSubscriptionRepository.findByStatusAndExpiresAtLessThanEqual(
-            SubscriptionStatus.ACTIVE, now);
-    for (TenantSubscription subscription : due) {
-      notificationRoutingService.route(
-          new RouteCommand(
-              "subscription-expiry:" + subscription.getTenantId() + ":" + today,
-              NotificationTrigger.SUBSCRIPTION_EXPIRY,
-              subscription.getTenantId(),
-              null,
-              subscription.getTenantId(),
-              null,
-              null,
-              null));
-      subscription.setStatus(SubscriptionStatus.EXPIRED);
-      subscription.setUpdatedAt(now);
-      tenantSubscriptionRepository.save(subscription);
-      tenantRepository
-          .lockById(subscription.getTenantId())
-          .filter(tenant -> tenant.getDeletedAt() == null)
-          .ifPresent(
-              tenant -> {
-                SubscriptionService.expireActiveTenant(tenant, now);
-                tenantRepository.save(tenant);
-              });
+            SubscriptionStatus.ACTIVE, now)) {
+      try {
+        if (self.expireOne(subscription.getId(), now)) {
+          expired++;
+        }
+      } catch (RuntimeException ignored) {
+        // one subscription must not roll back the rest
+      }
     }
-    return due.size();
+    return expired;
+  }
+
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
+  public boolean expireOne(UUID subscriptionId, Instant now) {
+    TenantSubscription subscription =
+        tenantSubscriptionRepository.findById(subscriptionId).orElse(null);
+    if (subscription == null || subscription.getStatus() != SubscriptionStatus.ACTIVE) {
+      return false;
+    }
+    Instant expiresAt = subscription.getExpiresAt();
+    if (expiresAt == null || expiresAt.isAfter(now)) {
+      return false;
+    }
+    LocalDate today = LocalDate.ofInstant(now, ZoneOffset.UTC);
+    notificationRoutingService.route(
+        new RouteCommand(
+            "subscription-expiry:" + subscription.getTenantId() + ":" + today,
+            NotificationTrigger.SUBSCRIPTION_EXPIRY,
+            subscription.getTenantId(),
+            null,
+            subscription.getTenantId(),
+            null,
+            null,
+            null));
+    subscription.setStatus(SubscriptionStatus.EXPIRED);
+    subscription.setUpdatedAt(now);
+    tenantSubscriptionRepository.save(subscription);
+    tenantRepository
+        .lockById(subscription.getTenantId())
+        .filter(tenant -> tenant.getDeletedAt() == null)
+        .ifPresent(
+            tenant -> {
+              SubscriptionService.expireActiveTenant(tenant, now);
+              tenantRepository.save(tenant);
+            });
+    return true;
   }
 }

@@ -106,6 +106,12 @@ function renderPage(
   );
 }
 
+async function openTillBills() {
+  const user = userEvent.setup();
+  await user.click((await screen.findAllByRole('button', { name: /Till bills/ }))[0]);
+  return user;
+}
+
 describe('CustomReportsScreen', () => {
   beforeEach(() => {
     catalogMock.mockReset();
@@ -118,7 +124,7 @@ describe('CustomReportsScreen', () => {
   it('loading: reserved builder status while the catalog loads', () => {
     catalogMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByRole('status')).toHaveTextContent('Loading the report builder…');
+    expect(screen.getAllByText(CUSTOM_REPORTS_CONTENT.loading).length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Build a report' })).toBeInTheDocument();
   });
 
@@ -126,6 +132,7 @@ describe('CustomReportsScreen', () => {
     catalogMock.mockResolvedValue(catalog);
     previewMock.mockResolvedValue({ ...preview, items: [], rowCount: 0 });
     renderPage();
+    await openTillBills();
     expect(
       await screen.findByText(
         'No rows for this pick. Change the dates or columns and show rows again.',
@@ -139,7 +146,8 @@ describe('CustomReportsScreen', () => {
     catalogMock.mockResolvedValue(catalog);
     previewMock.mockResolvedValue(preview);
     renderPage();
-    await screen.findByRole('table', { name: 'Till bills' });
+    await openTillBills();
+    await screen.findByRole('table', { name: 'Report preview' });
     fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-10' } });
     fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-01' } });
     await user.click(screen.getByRole('button', { name: 'Show rows' }));
@@ -176,6 +184,7 @@ describe('CustomReportsScreen', () => {
     catalogMock.mockResolvedValue(catalog);
     previewMock.mockRejectedValue(new ApiError('Stale', 409, 'STALE_STATE'));
     renderPage();
+    await openTillBills();
     expect(
       await screen.findByText('This report changed on another till. Reload, then show rows again.'),
     ).toBeInTheDocument();
@@ -195,24 +204,26 @@ describe('CustomReportsScreen', () => {
     previewMock.mockResolvedValue(preview);
     downloadMock.mockResolvedValue(new Blob(['%PDF'], { type: 'application/pdf' }));
     renderPage();
-    const table = await screen.findByRole('table', { name: 'Till bills' });
+    await openTillBills();
+    const table = await screen.findByRole('table', { name: 'Report preview' });
     expect(table).toHaveTextContent('INV-1');
     expect(table).toHaveTextContent('Top Pack');
     expect(screen.queryByText(/schedule/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/every night/i)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Print this report' }));
+    await user.click(screen.getByRole('button', { name: 'PDF' }));
     await waitFor(() => expect(downloadMock).toHaveBeenCalled());
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Print file saved for this report.',
     );
-    expect(screen.getByRole('button', { name: 'Print this report' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'PDF' })).toHaveFocus();
   });
 
   it('success: owner on all outlets sends tenant scope', async () => {
     catalogMock.mockResolvedValue(catalog);
     previewMock.mockResolvedValue(preview);
     renderPage('pharmacy_owner', ['REPORTING'], null);
-    await screen.findByRole('table', { name: 'Till bills' });
+    await openTillBills();
+    await screen.findByRole('table', { name: 'Report preview' });
     expect(previewMock).toHaveBeenCalledWith(expect.objectContaining({ scope: 'tenant' }));
     expect(screen.getByRole('option', { name: 'All outlets' })).toBeInTheDocument();
   });
@@ -223,6 +234,7 @@ describe('CustomReportsScreen', () => {
       new ApiError('That column is not on this report.', 422, 'UNKNOWN_FIELD'),
     );
     renderPage();
+    await openTillBills();
     expect(
       await screen.findByText('That column is not on this report. Pick from the list.'),
     ).toBeInTheDocument();

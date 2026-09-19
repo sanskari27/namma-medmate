@@ -106,8 +106,8 @@ export function HqPinEnroll({ onEnrolled }: { onEnrolled: () => void }) {
           Set HQ PIN
         </h2>
         <p className="mt-1 mb-5 text-sm text-muted">
-          Idle HQ consoles sign out after five minutes. Choose six digits to authenticate again on
-          this console.
+          Idle HQ consoles lock after five minutes. Choose six digits to unlock this console and
+          keep the same session.
         </p>
         {banner ? (
           <p

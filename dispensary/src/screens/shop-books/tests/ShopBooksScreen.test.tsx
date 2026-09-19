@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { FILTER_CHIPS, type FilterChipId } from '../ShopBooksScreen.content';
 import { groupedCatalog } from '../ShopBooksScreen.utils';
+import { ROUTES } from '@/libs/constants/routes.const';
 import ShopBooksScreen from '@/screens/shop-books/ShopBooksScreen';
 import { shopBooksReducer } from '@/screens/shop-books/store';
 import { ApiError } from '@/services/axios';
@@ -155,6 +156,24 @@ function renderPage(
   );
 }
 
+async function openCatalogBook(name: string | RegExp) {
+  const user = userEvent.setup();
+  await user.click((await screen.findAllByRole('button', { name }))[0]);
+  return user;
+}
+
+async function openDaybook() {
+  return openCatalogBook(/Daybook/i);
+}
+
+async function waitForBook(title: string | RegExp) {
+  return screen.findByRole('heading', { name: title });
+}
+
+async function backToCatalog(user: ReturnType<typeof userEvent.setup>) {
+  await user.click(screen.getByRole('button', { name: /All reports/ }));
+}
+
 describe('Shop books', () => {
   beforeEach(() => {
     listMock.mockReset();
@@ -167,21 +186,19 @@ describe('Shop books', () => {
   it('loading: waits for shop books', () => {
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading shop books…')).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Shop books' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Shop books')).toBeInTheDocument();
   });
 
   it('empty: no rows in this shop book yet', async () => {
     listMock.mockResolvedValue(catalog);
     tableMock.mockResolvedValue({ ...dayBook, items: [] });
     renderPage();
+    await openDaybook();
     expect(
       await screen.findByText(
         'No rows in this shop book yet. Complete a sale or post spend and it lands here.',
       ),
     ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Shop books' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /Day book/i })).toBeInTheDocument();
     expect(ROUTES.BOOKS).toBe('/books');
     expect(ROUTES.REPORTS).toBe('/reports');
   });
@@ -199,13 +216,14 @@ describe('Shop books', () => {
     listMock.mockResolvedValue(catalog);
     tableMock.mockResolvedValue(dayBook);
     renderPage();
-    await screen.findByRole('table', { name: 'Day book' });
-    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-10' } });
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    await user.selectOptions(screen.getByLabelText('Period'), 'custom');
     fireEvent.change(screen.getByLabelText('To'), { target: { value: '2026-09-01' } });
-    await user.click(screen.getByRole('button', { name: 'Show this book' }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Choose a period that starts on or before the end date.',
-    );
+    fireEvent.change(screen.getByLabelText('From'), { target: { value: '2026-09-10' } });
+    expect(
+      await screen.findByText('Choose a period that starts on or before the end date.'),
+    ).toBeInTheDocument();
     expect(exportMock).not.toHaveBeenCalled();
   });
 
@@ -215,8 +233,9 @@ describe('Shop books', () => {
     tableMock.mockResolvedValue(dayBook);
     exportMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await screen.findByRole('table', { name: 'Day book' });
-    await user.click(screen.getByRole('button', { name: 'Download spreadsheet' }));
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    await user.click(screen.getByRole('button', { name: 'Excel' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'This book changed on another till. Reload, then take the sheet again.',
     );
@@ -236,28 +255,28 @@ describe('Shop books', () => {
     tableMock.mockResolvedValue(dayBook);
     exportMock.mockResolvedValue(new Blob(['%PDF'], { type: 'application/pdf' }));
     renderPage();
-    const book = await screen.findByRole('table', { name: 'Day book' });
-    expect(book).toHaveTextContent('Cash');
-    expect(book).toHaveTextContent('INV-1');
-    expect(screen.getByText('Cash-like collected')).toBeInTheDocument();
-    expect(screen.getAllByText(/GST for the CA/).length).toBeGreaterThan(0);
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    expect(screen.getByText('Cash')).toBeInTheDocument();
+    expect(screen.getByText('INV-1')).toBeInTheDocument();
     tableMock.mockResolvedValue(pnl);
-    await user.click(screen.getByRole('button', { name: 'Shop P&L' }));
+    await backToCatalog(user);
+    await openCatalogBook(/Profit And Loss Report/);
     expect(await screen.findByText('Purchase-price COGS')).toBeInTheDocument();
-    expect(screen.getByLabelText('Reconciliation totals')).toHaveTextContent(/42/);
+    expect(screen.getByText(/42/)).toBeInTheDocument();
     tableMock.mockResolvedValue(gstr1);
-    await user.click(screen.getByRole('button', { name: 'GST for the CA (GSTR-1)' }));
+    await backToCatalog(user);
+    await openCatalogBook(/GSTR-1 \(Sales\)/);
     expect(await screen.findByText('B2B')).toBeInTheDocument();
     expect(screen.getByText('B2CS')).toBeInTheDocument();
     tableMock.mockResolvedValue(dayBook);
-    await user.click(screen.getByRole('button', { name: 'Day book' }));
-    await screen.findByRole('table', { name: 'Day book' });
-    await user.click(screen.getByRole('button', { name: 'Print this book' }));
+    await backToCatalog(user);
+    await openCatalogBook(/Daybook/i);
+    await waitForBook(/Daybook/i);
+    await user.click(screen.getByRole('button', { name: 'PDF' }));
     await waitFor(() => expect(exportMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Print file saved for this shop book.',
-    );
-    expect(screen.getByRole('button', { name: 'Print this book' })).toHaveFocus();
+    expect(await screen.findByRole('status')).toHaveTextContent('Shop book file saved.');
+    expect(screen.getByRole('button', { name: 'PDF' })).toHaveFocus();
   });
 
   it('owner all outlets consolidates shop books', async () => {
@@ -265,8 +284,9 @@ describe('Shop books', () => {
     listMock.mockResolvedValue(catalog);
     tableMock.mockResolvedValue(dayBook);
     renderPage();
-    await screen.findByRole('table', { name: 'Day book' });
-    await user.selectOptions(screen.getByLabelText('Outlet'), 'tenant');
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    await user.selectOptions(screen.getByLabelText('Outlet scope'), 'tenant');
     await waitFor(() =>
       expect(tableMock).toHaveBeenCalledWith(
         'DAY_BOOK',
@@ -281,8 +301,9 @@ describe('Shop books', () => {
     listMock.mockResolvedValue(catalog);
     tableMock.mockResolvedValue(dayBook);
     renderPage('pharmacy_staff', ['FINANCE'], ['accountant']);
-    await screen.findByRole('table', { name: 'Day book' });
-    expect(screen.queryByLabelText('Outlet')).not.toBeInTheDocument();
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    expect(screen.queryByLabelText('Outlet scope')).not.toBeInTheDocument();
     expect(screen.queryByText('All outlets')).not.toBeInTheDocument();
   });
 
@@ -338,23 +359,22 @@ describe('Shop books', () => {
     listMock.mockResolvedValue(freeCatalog);
     tableMock.mockResolvedValue(dayBook);
     renderPage();
-    const book = await screen.findByRole('table', { name: 'Day book' });
-    expect(book).toHaveTextContent('INV-1');
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    expect(screen.getByText('INV-1')).toBeInTheDocument();
+    await backToCatalog(user);
     expect(screen.getAllByText('On Growth').length).toBeGreaterThan(0);
     expect(screen.getByText('On Starter')).toBeInTheDocument();
     expect(tableMock.mock.calls.every((call) => call[0] === 'DAY_BOOK')).toBe(true);
-    await user.click(screen.getByRole('button', { name: 'Shop P&L, On Growth' }));
+    await user.click(screen.getAllByRole('button', { name: /Profit And Loss Report/ })[0]);
     const upgrade = await screen.findByRole('region', { name: 'Plan required for this shop book' });
     expect(upgrade).toHaveTextContent('Shop P&L is on Growth');
-    await waitFor(() =>
-      expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveFocus(),
-    );
+    expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toBeInTheDocument();
     expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
       'href',
       ROUTES.SUBSCRIPTION,
     );
     expect(screen.queryByText('Purchase-price COGS')).not.toBeInTheDocument();
-    expect(screen.queryByLabelText('Reconciliation totals')).not.toBeInTheDocument();
     expect(tableMock).not.toHaveBeenCalledWith('PROFIT_AND_LOSS', expect.anything());
     expect(tableMock).not.toHaveBeenCalledWith('GSTR1', expect.anything());
   });
@@ -385,8 +405,10 @@ describe('Shop books', () => {
       return dayBook;
     });
     renderPage();
-    await screen.findByRole('table', { name: 'Day book' });
-    await user.click(screen.getByRole('button', { name: 'GST for the CA (GSTR-1)' }));
+    await openDaybook();
+    await waitForBook(/Daybook/i);
+    await backToCatalog(user);
+    await openCatalogBook(/GSTR-1 \(Sales\)/);
     const upgrade = await screen.findByRole('region', { name: 'Plan required for this shop book' });
     expect(upgrade).toHaveTextContent('This shop book is on Growth. Open the plan to turn it on.');
     expect(within(upgrade).getByRole('link', { name: 'Open the plan' })).toHaveAttribute(

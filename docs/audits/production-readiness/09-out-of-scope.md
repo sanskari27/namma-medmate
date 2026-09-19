@@ -68,7 +68,7 @@ Convenient UX that **conflicts** with a story or closed decision. Recorded in [`
 | Kiosk / inventory `onlineListed` | D-008 |
 | Home **Online** channel = 0 | D-008 |
 | QC allowed for OWNER | Story pharmacist-only (`M5-QC-002`) |
-| PIN enroll “signs out” | D-015 idle lock |
+| PIN enroll lock/resume | D-015 idle lock — **FIXED** 2026-09-18 |
 | M2-S07 story still `blocked_by` D-009 | Runtime built after close — human rewrite ACs |
 | Live POS vs M6 ACs | Restore chrome **or** amend stories (`M6-POS-001`) |
 | Walk-in vs last-patient sticky | `UX-CRM-001` — may be safer; owner |
@@ -77,7 +77,7 @@ Convenient UX that **conflicts** with a story or closed decision. Recorded in [`
 
 ## Not “production ready” just because stories are `done`
 
-Independent verifier PASS was against **pre-rewrite** floors. Tracker `done` is not a launch certificate. See [`01-executive-summary.md`](01-executive-summary.md).
+Independent verifier PASS was against **pre-rewrite** floors. Tracker `done` is not a launch certificate. Audit findings are closed in [`10-fix-progress.md`](10-fix-progress.md); go-live still needs owner D-013 / D-006 / D-001 residual. See [`01-executive-summary.md`](01-executive-summary.md).
 
 ---
 

@@ -116,8 +116,8 @@ export function CounterPinEnroll({ onEnrolled }: { onEnrolled: () => void }) {
               Set a counter PIN
             </h2>
             <p className="mt-1 text-sm text-muted">
-              After five quiet minutes this till signs out. Choose six digits to sign back in on
-              this till.
+              After five quiet minutes this till locks. Choose six digits to unlock and keep working
+              on this till.
             </p>
           </div>
           {banner ? (

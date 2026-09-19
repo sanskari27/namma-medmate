@@ -100,6 +100,9 @@ export function mapApiStatus(error: { status: number; code: string | null }): Pa
 }
 
 export function apiStatusHint(code: string | null): string | null {
+  if (code === 'STALE_STATE') {
+    return 'This offer was updated on another till. Refresh, then try again.';
+  }
   if (code === 'INVALID_DATES') {
     return 'Start and end must be a valid window for this seasonal scheme.';
   }

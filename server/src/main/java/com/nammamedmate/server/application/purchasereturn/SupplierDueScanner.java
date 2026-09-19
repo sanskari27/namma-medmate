@@ -11,7 +11,9 @@ import com.nammamedmate.server.persistence.TenantRepository;
 import java.time.Clock;
 import java.time.LocalDate;
 import java.util.UUID;
+import org.springframework.context.annotation.Lazy;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 @Service
@@ -22,30 +24,36 @@ public class SupplierDueScanner {
   private final SupplierLedgerService supplierLedgerService;
   private final NotificationRoutingService notificationRoutingService;
   private final Clock clock;
+  private final SupplierDueScanner self;
 
   public SupplierDueScanner(
       TenantRepository tenantRepository,
       LocationRepository locationRepository,
       SupplierLedgerService supplierLedgerService,
       NotificationRoutingService notificationRoutingService,
-      Clock clock) {
+      Clock clock,
+      @Lazy SupplierDueScanner self) {
     this.tenantRepository = tenantRepository;
     this.locationRepository = locationRepository;
     this.supplierLedgerService = supplierLedgerService;
     this.notificationRoutingService = notificationRoutingService;
     this.clock = clock;
+    this.self = self;
   }
 
-  @Transactional
   public int scanAll() {
     int notified = 0;
     for (Tenant tenant : tenantRepository.findAllByDeletedAtIsNullOrderByNameAsc()) {
-      notified += scanTenant(tenant.getId());
+      try {
+        notified += self.scanTenant(tenant.getId());
+      } catch (RuntimeException ignored) {
+        // one tenant must not roll back the rest
+      }
     }
     return notified;
   }
 
-  @Transactional
+  @Transactional(propagation = Propagation.REQUIRES_NEW)
   public int scanTenant(UUID tenantId) {
     LocalDate today = LocalDate.ofInstant(clock.instant(), DashboardPolicy.IST);
     int notified = 0;

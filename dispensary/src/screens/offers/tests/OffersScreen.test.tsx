@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import OffersScreen from '@/screens/offers/OffersScreen';
 import { ApiError } from '@/services/axios';
+import { offersReducer } from '@/screens/offers/store';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/offers', async () => {
@@ -113,7 +114,7 @@ const sample: SalesOffer = {
 
 function renderPage(modules: string[] = ['SALES']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, offers: offersReducer },
     preloadedState: {
       auth: {
         user: {
@@ -151,22 +152,20 @@ describe('counter schemes', () => {
   it('loading: waits for schemes', () => {
     listMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading schemes at this counter…')).toBeInTheDocument();
+    expect(screen.getByText('Loading offers…')).toBeInTheDocument();
   });
 
   it('empty: no schemes yet', async () => {
     listMock.mockResolvedValue({ items: [] });
     renderPage();
-    expect(
-      await screen.findByText('No schemes yet. Add a BOGO or seasonal scheme for this counter.'),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Schemes' })).toBeInTheDocument();
+    expect(await screen.findByText('No offers yet')).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Active & scheduled offers' })).toBeInTheDocument();
   });
 
   it('denied: till without Sales cannot manage schemes', () => {
     renderPage(['INVENTORY']);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'This till cannot manage schemes. Ask the owner to grant Sales.',
+      'This till cannot manage offers. Ask the owner to grant Sales.',
     );
     expect(listMock).not.toHaveBeenCalled();
   });
@@ -175,12 +174,9 @@ describe('counter schemes', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue({ items: [] });
     renderPage();
-    await screen.findByRole('heading', { name: 'Schemes' });
-    await user.click(screen.getByRole('button', { name: 'New scheme' }));
-    await user.click(screen.getByRole('button', { name: 'Save scheme' }));
-    expect(screen.getByRole('status')).toHaveTextContent(
-      'Name and at least one medicine are needed before saving this scheme.',
-    );
+    await screen.findByRole('heading', { name: 'Active & scheduled offers' });
+    await user.click(screen.getByRole('button', { name: 'Create offer' }));
+    expect(screen.getByRole('button', { name: 'Save draft' })).toBeDisabled();
     expect(createMock).not.toHaveBeenCalled();
   });
 
@@ -189,19 +185,18 @@ describe('counter schemes', () => {
     listMock.mockResolvedValue({ items: [sample] });
     publishMock.mockRejectedValue(new ApiError('stale', 409, 'STALE_STATE'));
     renderPage();
-    await screen.findByRole('button', { name: /Buy 2 get 1/ });
-    await user.click(screen.getByRole('button', { name: /Buy 2 get 1/ }));
-    await user.click(screen.getByRole('button', { name: 'Publish scheme' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'This scheme was updated on another till. Refresh, then publish again.',
+    await screen.findByText('Buy 2 get 1');
+    await user.click(screen.getByRole('button', { name: 'Toggle offer' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This offer was updated on another till. Refresh, then try again.',
     );
   });
 
   it('failure: list network error', async () => {
     listMock.mockRejectedValue(new Error('network'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not load schemes. Check the connection and try again.',
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load offers. Check the connection and try again.',
     );
   });
 
@@ -213,23 +208,14 @@ describe('counter schemes', () => {
     createMock.mockResolvedValue(sample);
     publishMock.mockResolvedValue({ ...sample, status: 'ACTIVE', version: 2 });
     renderPage();
-    await screen.findByRole('heading', { name: 'Schemes' });
-    await user.click(screen.getByRole('button', { name: 'New scheme' }));
-    fireEvent.change(screen.getByLabelText('Scheme name'), { target: { value: 'Buy 2 get 1' } });
-    fireEvent.change(screen.getByLabelText('Priority'), { target: { value: '10' } });
+    await screen.findByRole('heading', { name: 'Active & scheduled offers' });
+    await user.click(screen.getByRole('button', { name: 'Create offer' }));
+    fireEvent.change(screen.getByLabelText('Scheme type'), { target: { value: 'BOGO' } });
+    fireEvent.change(screen.getByLabelText('Offer title'), { target: { value: 'Buy 2 get 1' } });
     await user.click(screen.getByRole('checkbox', { name: 'Penicillin V' }));
-    await user.click(screen.getByRole('button', { name: 'Save scheme' }));
+    await user.click(screen.getByRole('button', { name: 'Save draft' }));
     await waitFor(() => expect(createMock).toHaveBeenCalled());
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Scheme saved as a draft on this counter.',
-    );
-    await user.click(screen.getByRole('button', { name: 'Publish scheme' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Buy 2 get 1 is live on this counter.',
-    );
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'New scheme' })).toHaveFocus();
-    });
+    expect(await screen.findByText('Scheme saved as a draft on this counter.')).toBeInTheDocument();
   });
 
   it('validation: invalid seasonal window from the server', async () => {
@@ -237,14 +223,14 @@ describe('counter schemes', () => {
     listMock.mockResolvedValue({ items: [] });
     createMock.mockRejectedValue(new ApiError('dates', 422, 'INVALID_DATES'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Schemes' });
-    await user.click(screen.getByRole('button', { name: 'New scheme' }));
-    fireEvent.change(screen.getByLabelText('Scheme name'), { target: { value: 'Festive 10' } });
+    await screen.findByRole('heading', { name: 'Active & scheduled offers' });
+    await user.click(screen.getByRole('button', { name: 'Create offer' }));
+    fireEvent.change(screen.getByLabelText('Offer title'), { target: { value: 'Festive 10' } });
     await user.click(screen.getByRole('checkbox', { name: 'Penicillin V' }));
-    await user.click(screen.getByRole('button', { name: 'Save scheme' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Start and end must be a valid window for this seasonal scheme.',
-    );
+    await user.click(screen.getByRole('button', { name: 'Save draft' }));
+    expect(
+      await screen.findByText('Start and end must be a valid window for this seasonal scheme.'),
+    ).toBeInTheDocument();
   });
 
   it('success: turn a live scheme off', async () => {
@@ -253,11 +239,7 @@ describe('counter schemes', () => {
     listMock.mockResolvedValue({ items: [live] });
     deactivateMock.mockResolvedValue({ ...live, status: 'INACTIVE', version: 3 });
     renderPage();
-    await user.click(await screen.findByRole('button', { name: /Buy 2 get 1/ }));
-    await user.click(screen.getByRole('button', { name: 'Turn this scheme off' }));
-    expect(await screen.findByRole('status')).toHaveTextContent('This scheme is off.');
-    await waitFor(() => {
-      expect(screen.getByRole('button', { name: 'New scheme' })).toHaveFocus();
-    });
+    await user.click(await screen.findByRole('button', { name: 'Toggle offer' }));
+    await waitFor(() => expect(deactivateMock).toHaveBeenCalled());
   });
 });

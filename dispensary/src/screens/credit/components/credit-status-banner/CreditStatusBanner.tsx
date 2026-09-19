@@ -1,4 +1,3 @@
-import { AlertCircle, BadgeCheck, Wallet } from 'lucide-react';
 import { useSelector } from 'react-redux';
 import { CREDIT_CONTENT } from '../../CreditScreen.content';
 import { statusCopy } from '../../CreditScreen.utils';
@@ -11,7 +10,6 @@ export function CreditStatusBanner() {
     return null;
   }
   const alert = status === 'denied' || status === 'failure';
-  const Icon = status === 'success' ? BadgeCheck : status === 'empty' ? Wallet : AlertCircle;
   return (
     <div
       className="credit-banner"

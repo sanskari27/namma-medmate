@@ -4,6 +4,7 @@ import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import FloorActivityScreen from '@/screens/floor-activity/FloorActivityScreen';
 import { ApiError } from '@/services/axios';
+import { floorActivityReducer } from '@/screens/floor-activity/store';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/approvals', () => ({
@@ -16,7 +17,7 @@ const listAudit = vi.mocked(listAuditEvents);
 
 function renderPage(role: string, modules?: string[]) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, floorActivity: floorActivityReducer },
     preloadedState: {
       auth: {
         user: {

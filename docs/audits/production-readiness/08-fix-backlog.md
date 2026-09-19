@@ -1,6 +1,7 @@
 # Fix backlog (ordered)
 
-**Date:** 2026-09-15  
+**Date:** 2026-09-15 (original work order)  
+**Validated:** 2026-09-20 — implementable rows are **FIXED** in [`10-fix-progress.md`](10-fix-progress.md). This file stays the original ordered list; do not re-open FIXED IDs.  
 **Agrees with:** [`01-executive-summary.md`](01-executive-summary.md)  
 Do **not** add tracker rows. Suggested `M6-FIX-01`-style IDs are for a future owner to mint stories.
 
@@ -196,6 +197,8 @@ Do with or immediately after `M6-POS-001`. If owner **amends** stories instead o
 
 ## P2 (do after P1 band 1–3) — compact
 
+**Status 2026-09-20:** compact P2 closed (see `10-fix-progress.md`). `UX-POS-002` / `M4-COMP-001` remain **WONTFIX**. JOB-001 residual scanners + Redis actuator health closed 2026-09-20.
+
 Full text in epic files. Unique IDs (aliases already merged):
 
 **Auth / layout:** `PIN-DISP-02`/`M1-PIN-003`, `M1-PIN-004`, `M1-BRANCH-003`, `M1-IMPERSON-003`, `TENANT-001`, `SEC-003`, `M2-REG-002`, `M2-KYC-001`, `M2-LIFE-003`, `M2-PLAN-001`, `M2-LIFE-004`, `UX-ADM-002`.
@@ -216,7 +219,7 @@ Full text in epic files. Unique IDs (aliases already merged):
 
 **Integrations:** `SEC-002`, `M11-CF-004`, `M11-CF-005`, `M11-MAIL-003`, `M11-CF-006`.
 
-**Jobs / ops:** `JOB-001`, `COMPOSE-REDIS-UNUSED`, `HEALTH-SHALLOW`, `TF-REDIS-CRYPTO`, `TF-S3-STATE`, `COMPOSE-DOC-DRIFT`, `UX-vs-CONTRACT-01` (Orders Online vs D-008).
+**Jobs / ops:** `JOB-001` (**FIXED** incl. expiry/supplier/subscription scanners), `COMPOSE-REDIS-UNUSED` (**FIXED** — Redis health off), `HEALTH-SHALLOW` (**FIXED**), `TF-REDIS-CRYPTO`, `TF-S3-STATE`, `COMPOSE-DOC-DRIFT`, `UX-vs-CONTRACT-01` (Orders Online vs D-008).
 
 ---
 

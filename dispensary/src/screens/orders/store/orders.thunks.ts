@@ -17,7 +17,7 @@ export const loadOrders = createAsyncThunk<
   } catch (error) {
     if (isApiError(error)) {
       return rejectWithValue({
-        code: error.code,
+        code: error.code ?? undefined,
         message: error.message || ORDERS_CONTENT.loadFailed,
       });
     }

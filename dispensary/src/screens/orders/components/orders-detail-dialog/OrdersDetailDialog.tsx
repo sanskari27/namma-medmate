@@ -43,10 +43,13 @@ export function OrdersDetailDialog() {
   const busy = busyId === row.id;
   const events = historyEvents(row);
 
+  const invoiceId = row.id;
+  const invoiceFile = `${row.invoiceNumber}.pdf`;
+
   async function onPrint() {
     try {
-      const blob = await downloadInvoicePdf(row.id);
-      openInvoicePdf(blob, `${row.invoiceNumber}.pdf`, true);
+      const blob = await downloadInvoicePdf(invoiceId);
+      openInvoicePdf(blob, invoiceFile, true);
     } catch {
       dispatch(setOrdersActionHint(ORDERS_CONTENT.printFail));
     }

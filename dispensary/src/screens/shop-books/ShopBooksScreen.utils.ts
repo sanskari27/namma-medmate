@@ -213,7 +213,7 @@ export function rangeValid(from?: string, to?: string): boolean {
 }
 
 export function isFutureRange(to?: string, today = todayIst()): boolean {
-  return Boolean(to) && to > today;
+  return to != null && to !== '' && to > today;
 }
 
 export function filenameFor(key: string, format: 'csv' | 'pdf'): string {

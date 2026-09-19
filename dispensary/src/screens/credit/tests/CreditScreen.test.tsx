@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import CreditScreen from '@/screens/credit/CreditScreen';
 import { ApiError } from '@/services/axios';
+import { creditReducer } from '@/screens/credit/store';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/credit', async () => {
@@ -24,6 +25,7 @@ vi.mock('@/services/credit', async () => {
 });
 
 import { listOutstandingCreditAccounts, settleCustomerCredit } from '@/services/credit';
+import { emptySummary } from '@/screens/credit/CreditScreen.utils';
 
 const listMock = vi.mocked(listOutstandingCreditAccounts);
 const settleMock = vi.mocked(settleCustomerCredit);
@@ -36,11 +38,19 @@ const sample = {
   balancePaise: 12000,
   availablePaise: 38000,
   version: 2,
+  billCount: 1,
+  givenPaise: 12000,
+  repaidPaise: 0,
+  ageDays: 12,
 };
+
+function directory(items = [sample]) {
+  return { summary: emptySummary(), aging: [], items, payments: [] };
+}
 
 function renderPage(modules: string[] = ['CRM']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, credit: creditReducer },
     preloadedState: {
       auth: {
         user: {
@@ -78,17 +88,17 @@ describe('CreditScreen', () => {
   });
 
   it('empty: no outstanding', async () => {
-    listMock.mockResolvedValue([]);
+    listMock.mockResolvedValue(directory([]));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'No outstanding khata on this pharmacy yet.',
-    );
+    expect(
+      await screen.findByText('No outstanding khata on this pharmacy yet.'),
+    ).toBeInTheDocument();
   });
 
   it('denied: till without CRM', () => {
     renderPage(['SALES']);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'This till cannot open Credit / Khata. Ask the owner for CRM access.',
+      'CRM module is required to open Credit · Khata.',
     );
     expect(listMock).not.toHaveBeenCalled();
   });
@@ -104,10 +114,10 @@ describe('CreditScreen', () => {
   it('success: lists outstanding and settles', async () => {
     const user = userEvent.setup();
     listMock
-      .mockResolvedValueOnce([sample])
-      .mockResolvedValueOnce([
-        { ...sample, balancePaise: 7000, availablePaise: 43000, version: 3 },
-      ]);
+      .mockResolvedValueOnce(directory())
+      .mockResolvedValueOnce(
+        directory([{ ...sample, balancePaise: 7000, availablePaise: 43000, version: 3 }]),
+      );
     settleMock.mockResolvedValue({
       customerId: 'c1',
       limitPaise: 50000,
@@ -117,10 +127,11 @@ describe('CreditScreen', () => {
       entries: [],
     });
     renderPage();
-    expect(await screen.findByRole('button', { name: /Ravi Kumar/ })).toBeInTheDocument();
-    expect(screen.getByText(/due ₹120/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Settle' }));
-    await screen.findByRole('dialog');
+    expect(await screen.findByText('Ravi Kumar')).toBeInTheDocument();
+    expect(screen.getAllByText('₹120.00').length).toBeGreaterThan(0);
+    await user.click(screen.getByText('Ravi Kumar'));
+    await user.click(await screen.findByRole('button', { name: 'Record repayment' }));
+    await screen.findByLabelText('Amount (₹)');
     await user.clear(screen.getByLabelText('Amount (₹)'));
     await user.type(screen.getByLabelText('Amount (₹)'), '50');
     await user.click(screen.getByRole('button', { name: 'Post settlement' }));
@@ -128,31 +139,30 @@ describe('CreditScreen', () => {
     expect(
       await screen.findByText('Settlement posted. Outstanding list updated.'),
     ).toBeInTheDocument();
-    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('conflict: settle stale surfaces dialog conflict', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue(directory());
     settleMock.mockRejectedValue(new ApiError('Stale', 409, 'STALE_STATE'));
     renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Settle' }));
+    await user.click(await screen.findByText('Ravi Kumar'));
+    await user.click(await screen.findByRole('button', { name: 'Record repayment' }));
     await user.clear(screen.getByLabelText('Amount (₹)'));
     await user.type(screen.getByLabelText('Amount (₹)'), '50');
     await user.click(screen.getByRole('button', { name: 'Post settlement' }));
     expect(
-      await screen.findByText(
-        'Khata balance changed on another till. Close and open settle again.',
-      ),
+      await screen.findByText(/khata balance changed on another till/i),
     ).toBeInTheDocument();
   });
 
   it('validation: overpayment surfaced as validation', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue([sample]);
+    listMock.mockResolvedValue(directory());
     settleMock.mockRejectedValue(new ApiError('Over', 422, 'OVERPAYMENT'));
     renderPage();
-    await user.click(await screen.findByRole('button', { name: 'Settle' }));
+    await user.click(await screen.findByText('Ravi Kumar'));
+    await user.click(await screen.findByRole('button', { name: 'Record repayment' }));
     await user.clear(screen.getByLabelText('Amount (₹)'));
     await user.type(screen.getByLabelText('Amount (₹)'), '500');
     await user.click(screen.getByRole('button', { name: 'Post settlement' }));

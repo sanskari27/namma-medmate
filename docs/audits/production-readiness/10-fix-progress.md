@@ -1,6 +1,6 @@
 # Audit fix progress
 
-Updated: 2026-09-18
+Updated: 2026-09-20
 Policy: restore story chrome; no tracker edits; no out-of-scope.
 
 | ID | Status | Slice | Apps | Tests | Gates | Notes |
@@ -119,6 +119,8 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M2-KYC-002 | FIXED | Band 5 | admin | same | same | evidence Open via blob + cookie |
 | SEC-NEW-006 | WONTFIX | Band 5 | server | owner | — | keep cookie + Bearer; owner if cookie-only |
 | SEC-NEW-007 | FIXED | Band 5 | server + dispensary | same | same | GET status read-only; POST reconcile |
+| PIN-DISP-01 | FIXED | P2 Auth | dispensary | CounterPinEnroll | validation close-out | alias M1-PIN-001 floor copy |
+| UX-ADM-001 | FIXED | P2 Auth | admin | HqPinEnroll | validation close-out | alias M1-PIN-001 HQ copy |
 | PIN-DISP-02 | FIXED | P2 Auth | dispensary + admin | alias of M1-PIN-003 | same | 4h abandon |
 | M1-PIN-003 | FIXED | P2 Auth | dispensary + admin | see P2 Auth close-out | see P2 Auth close-out | 4h abandon after lock |
 | M1-PIN-004 | FIXED | P2 Auth | server | same | same | PIN unlock keeps act_* |
@@ -138,9 +140,9 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 | M11-CF-005 | FIXED | P2 Integrations | infra | same | same | CASHFREE_ENV=production in .env.prod.example |
 | M11-MAIL-003 | FIXED | P2 Integrations | server | same | same | ONBOARDING/INVOICE_COPY HTML escaped |
 | M11-CF-006 | FIXED | P2 Integrations | dispensary | same | same | PlanStatusBanner alert vs status |
-| JOB-001 | FIXED | P2 Jobs/ops | server | same | same | per-tenant REQUIRES_NEW |
-| COMPOSE-REDIS-UNUSED | FIXED | P2 Jobs/ops | compose | comment | — | Redis unused by sessions; keep service |
-| HEALTH-SHALLOW | FIXED | P2 Jobs/ops | server | same | same | /health pings DataSource |
+| JOB-001 | FIXED | P2 Jobs/ops | server | ItemExpiry/SupplierDue/SubscriptionExpiry scanner tests | see JOB-001 residual | per-tenant/row REQUIRES_NEW including leftover scanners |
+| COMPOSE-REDIS-UNUSED | FIXED | P2 Jobs/ops | compose + server | — | same | Redis unused by sessions; actuator Redis health disabled |
+| HEALTH-SHALLOW | FIXED | P2 Jobs/ops | server | same | same | /health pings DataSource; Redis health off |
 | TF-REDIS-CRYPTO | FIXED | P2 Jobs/ops | infra | terraform | — | replication group + transit encryption preferred |
 | TF-S3-STATE | FIXED | P2 Jobs/ops | infra | terraform | — | tfstate public access block |
 | COMPOSE-DOC-DRIFT | FIXED | P2 Jobs/ops | docs | — | — | HOST_NGINX pharmacy. host |
@@ -221,8 +223,52 @@ Policy: restore story chrome; no tracker edits; no out-of-scope.
 
 Status: OPEN | IN_PROGRESS | FIXED | BLOCKED | WONTFIX (cite 09-out-of-scope)
 
-Current slice: P3 — FIXED.
+Current slice: validation close-out — FIXED.
 Blocked on user: SEC-NEW-006 (cookie-only needs owner). M1-IMPERSON-001 WONTFIX (D-001). M4-COMP-001 WONTFIX (unstructured TEXT / D-011). UX-POS-002 WONTFIX (Proceed disabled until customer/walk-in). SEC-004 / M1-SAVED-001 / M2-KIOSK-005 / UX-CRM-001 WONTFIX (P3). D-013 still tracker-blocks M1-S09. D-006 still tracker-blocks M12-S01 and OPS-STORAGE file-backup policy.
+
+## Validation close-out (2026-09-18)
+
+Independent live-tree check of this folder vs HEAD. No tracker edits. No D-013 / D-006 / D-001 work.
+
+Product P0–P3 unique IDs were already FIXED/BLOCKED/WONTFIX in the table above except leftover enroll copy and HEAD test-gap:
+
+- PIN enroll: dispensary + HQ helper text is lock/resume (D-015). `CounterPinEnroll` / `HqPinEnroll` tests forbid “signs out”.
+- Expense V63: `ExpenseTest.ac01` expects 11 system codes including `RENT` / Rent Expense.
+- Credit settle: directory reload no longer wipes the success banner or replaces the khata list with a spinner.
+- Offers `STALE_STATE` uses the till-conflict sentence, not the raw API message.
+- Dispensary catalog-first tests retargeted: credit, shop books, custom reports, offers, returns, prescriptions, trends. Reducers already wired on HEAD screens.
+
+Delta tests: `ExpenseTest#ac01` BUILD SUCCESS (1). Dispensary 7 screen files 65 passed. PIN enroll tests on both SPAs.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` — BUILD SUCCESS. Tests run: 980, Failures: 0. ExpenseTest.ac01 HEAD residual gone.
+- `cd dispensary && npm run lint` — 0 errors, 2 warnings (pre-existing refresh/hook).
+- `cd dispensary && npm run test -- --run` — Test Files 85 passed; Tests 690 passed.
+- `cd dispensary && npm run build` — `tsc -b && vite build` ok.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 200 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 8 passed; 71 stories valid.
+
+Out of scope unchanged: D-013/M1-S09; D-006/M12-S01/`OPS-STORAGE`; D-001 audit.
+
+## JOB-001 / Redis residual (2026-09-20)
+
+Live re-check found three scanners still wrapping all tenants in one `@Transactional`, and unused Redis still on `/actuator/health`.
+
+- `ItemExpiryScanner` / `SupplierDueScanner`: `scanAll` is not transactional; `scanTenant` is `REQUIRES_NEW` via lazy self. One tenant failure does not roll back others.
+- `SubscriptionExpiryScanner`: `expireDue` is not transactional; each due row `expireOne` is `REQUIRES_NEW`.
+- `management.health.redis.enabled=false` so unused Redis cannot fail container probes.
+
+Delta tests: `ItemExpiryScannerTest`, `SupplierDueScannerTest`, `SubscriptionExpiryScannerTest` plus existing `InventoryGuidanceTest` / `PurchaseReturnTest` / `SubscriptionTest` scan/expire calls — Tests run: 37, Failures: 0.
+
+Listed gates (server then SPA, sequential):
+
+- `cd server && TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` — BUILD SUCCESS. Tests run: 983, Failures: 0.
+- `cd dispensary && npm run lint && npm run test -- --run && npm run build` — 0 errors, 2 warnings (pre-existing); Tests 690 passed; `tsc -b && vite build` ok.
+- `cd admin && npm run lint && npm run test -- --run && npm run build` — lint clean; Tests 200 passed; vite build ok.
+- `make compose-config` — ok.
+- `node --test scripts/validate-requirements.test.mjs` then `node scripts/validate-requirements.mjs` — 8 passed; 71 stories valid.
 
 ## P2 remainder close-out (2026-09-18)
 
@@ -287,8 +333,8 @@ No commit requested.
 
 - Cashfree/Resend HMAC still constant-time; timestamps older than 5 minutes are rejected (`Clock` injected).
 - Subscription `?payment=` skips the parallel catalogue load; fulfilled load does not clear `success`. Failure banners use `role="alert"`.
-- Scanners `scanAll` is not one platform TX; each tenant is `REQUIRES_NEW` via a lazy self-proxy.
-- `/api/v1/health` pings the DataSource; envelope unchanged. Redis stays in Compose (sessions are Postgres).
+- Scanners `scanAll` is not one platform TX; each tenant is `REQUIRES_NEW` via a lazy self-proxy. 2026-09-20: also `ItemExpiryScanner`, `SupplierDueScanner`, and per-row `SubscriptionExpiryScanner.expireOne`.
+- `/api/v1/health` pings the DataSource; envelope unchanged. Redis stays in Compose (sessions are Postgres); `management.health.redis.enabled=false`.
 - ElastiCache is a single-node replication group with transit encryption `preferred` (cluster API cannot TLS Redis). Tfstate bucket blocks public access. Nginx doc host is `pharmacy.`.
 - Orders nav is counter/kiosk history; Online filter hidden (D-008 Phase 2).
 

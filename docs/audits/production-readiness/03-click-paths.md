@@ -18,7 +18,7 @@ Verdict key: **OK** | **partial** | **broken** | **missing** | **dead** (control
 | Rail | Outlet (expanded) | `selectOutlet` | `POST /session/branch` | `branchSwitched` | POS catalogue only | failure | **partial** lists stale |
 | Rail | Outlet (collapsed) | MapPin button | none | none | — | — | **broken** `UX-DISP-01` |
 | Overlay | PIN unlock | `unlockPin` | `POST /auth/pin/unlock` | keep session | — | denied ×3 revoke | **OK** runtime |
-| Overlay | PIN enroll | `setPin` | `POST /auth/pin` | `pinEnrolled` | — | validation | **copy WRONG** D-015 |
+| Overlay | PIN enroll | `setPin` | `POST /auth/pin` | `pinEnrolled` | — | validation | **FIXED** D-015 lock/resume |
 | Banner | KYC / lock | Link `/account` | — | — | Outlet still mounts | — | **copy vs UI** `M2-LIFE-003` |
 
 ---
@@ -76,20 +76,20 @@ Broken / inconvenient in detail: [`m6.md`](m6.md) click table; cashier Wave 5 jo
 | Header Sign out | `leaveHq` | **OK** | — |
 | Inbox Open | `navigate(href)` | **dump to dashboard** on staff hrefs | `M10-ROUTE-004` |
 | Banner Exit support | `exitImpersonation` | auth OK; screens stale | `IMPERSON-002` |
-| PIN enroll | copy “sign out” | **WRONG** D-015 | `UX-ADM-001` |
+| PIN enroll | copy lock/resume | **FIXED** D-015 | `UX-ADM-001` |
 | Idle lock during support | PIN overlay; banner kept | **FIXED** | `AUTH-ADM-001` |
-| Dashboard KPIs | em-dash | **dead** | `UX-ADM-DASH-001` |
+| Dashboard KPIs | live KYC/pharmacy/subs | **FIXED** | `UX-ADM-DASH-001` |
 | KYC Approve | decide API | **OK**; evidence raw URL | `M2-KYC-002` |
 | Pharmacies Suspend | status + reason | **FIXED**; KYC-pending Suspend/Terminate | `M2-LIFE-004` |
 | Support Enter | impersonation | **D-001 unlogged**; HQ chrome MASTER | `M1-IMPERSON-002` |
-| Licence Rescan | GET /due | **write scan** | `M7-LIC-003` |
+| Licence Rescan | GET /due | **FIXED** read-only | `M7-LIC-003` |
 | Subscriptions override | MASTER | **FIXED**; EXPIRED/CANCELLED locks ACTIVE tenant | `M2-LIFE-001` |
-| Checkout exceptions | display only | **no HQ reconcile** | `M11-CF-008` |
-| WABA Rescan | Graph ping | **does not pull templates** | `M10-WA-007` |
+| Checkout exceptions | MASTER POST reconcile | **FIXED** | `M11-CF-008` |
+| WABA Rescan | Graph ping | **FIXED** ping-only (templates unchanged) | `M10-WA-007` |
 | Workflow desks Store | platform rule | **FIXED**; POS fallback when no Sign-off rule | `M1-WF-001` |
 
 ---
 
 ## OWNER day path (compressed)
 
-Home (OWNER OK) → Restock **lands on Stock not Guidance** (`OWN-NAV-001`) → no reorder draft (`M5-REO-001`) → Transfers blank on All outlets (`OWN-NAV-004`) → Approvals href **correct** → Expenses All-outlets posts to `branches[0]` (`OWN-EXP-001`) → Aging FIFO hidden (`M8-AGE-001`) → Books D-005 OK → CA silent drop of GST (`OWN-CA-002`) → Plan card “Monthly billing” on Free (`OWN-SUB-001`).
+**Status 2026-09-20:** Band 3/4 closed Restock Guidance (`OWN-NAV-001`), reorder draft (`M5-REO-001`), all-outlets Transfers (`OWN-NAV-004`), all-outlets expense pick (`OWN-EXP-001`), FIFO aging (`M8-AGE-001`). Original 2026-09-15 path: Home (OWNER OK) → Restock **lands on Stock not Guidance** (`OWN-NAV-001`) → no reorder draft (`M5-REO-001`) → Transfers blank on All outlets (`OWN-NAV-004`) → Approvals href **correct** → Expenses All-outlets posts to `branches[0]` (`OWN-EXP-001`) → Aging FIFO hidden (`M8-AGE-001`) → Books D-005 OK → CA silent drop of GST (`OWN-CA-002`) → Plan card “Monthly billing” on Free (`OWN-SUB-001`).

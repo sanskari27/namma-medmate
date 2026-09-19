@@ -27,6 +27,8 @@ describe('dispensary counter PIN enroll', () => {
   it('empty: asks the chemist to set a till PIN', () => {
     render(<CounterPinEnroll onEnrolled={vi.fn()} />);
     expect(screen.getByRole('heading', { name: 'Set a counter PIN' })).toBeInTheDocument();
+    expect(screen.getByText(/this till locks/i)).toBeInTheDocument();
+    expect(screen.queryByText(/signs out/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByLabelText('Counter PIN')).toHaveValue('');
   });

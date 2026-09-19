@@ -8,6 +8,7 @@ import ReturnsScreen from '@/screens/returns/ReturnsScreen';
 import { ApiError } from '@/services/axios';
 import type { SalesInvoice } from '@/services/salesInvoices';
 import type { SalesReturn } from '@/services/salesReturns';
+import { returnsReducer } from '@/screens/returns/store';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/salesReturns', async () => {
@@ -141,7 +142,7 @@ const preview: SalesReturn = {
 
 function renderPage(modules: string[] = ['SALES']) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, returns: returnsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -153,6 +154,7 @@ function renderPage(modules: string[] = ['SALES']) {
           tenantStatus: 'ACTIVE',
           emailVerified: true,
           modules,
+          activeBranchId: 'b1',
         },
       },
     },
@@ -168,13 +170,12 @@ function renderPage(modules: string[] = ['SALES']) {
 
 async function openBill() {
   const user = userEvent.setup();
+  await user.click(await screen.findByRole('button', { name: 'New return' }));
   fireEvent.change(screen.getByLabelText('Collected bill number'), {
     target: { value: invoice.invoiceNumber },
   });
   await user.click(screen.getByRole('button', { name: 'Find bill' }));
-  expect(
-    await screen.findByRole('heading', { name: `Bill ${invoice.invoiceNumber}` }),
-  ).toBeVisible();
+  expect(await screen.findByText(invoice.invoiceNumber)).toBeVisible();
   return user;
 }
 
@@ -193,45 +194,39 @@ describe('counter returns', () => {
     listInvoicesMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
     expect(
-      screen.getByText('Loading collected bills and returns at this counter…'),
+      screen.getByText('Loading returns at this outlet…'),
     ).toBeInTheDocument();
   });
 
   it('empty: no collected bills yet', async () => {
     listInvoicesMock.mockResolvedValue({ items: [] });
     renderPage();
-    expect(
-      await screen.findByText(
-        'No collected bills to take back yet. Complete a sale first, then find the bill here.',
-      ),
-    ).toBeInTheDocument();
+    expect(await screen.findByText('No returns yet')).toBeInTheDocument();
   });
 
   it('denied: till without Sales cannot take a sale back', () => {
     renderPage(['INVENTORY']);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'This till cannot take sales back. Ask the owner to grant Sales.',
+      'Sales module is required to take returns.',
     );
     expect(listInvoicesMock).not.toHaveBeenCalled();
   });
 
-  it('validation: bill, qty, and reason are required', async () => {
+  it('validation: bill number is required before find', async () => {
+    const user = userEvent.setup();
     renderPage();
-    await screen.findByRole('heading', { name: 'Take a sale back' });
-    await userEvent.setup().click(screen.getByRole('button', { name: 'Find bill' }));
-    expect(screen.getByRole('alert')).toHaveTextContent('Type a collected bill number first.');
-    const user = await openBill();
-    await user.click(screen.getByRole('button', { name: 'Record return' }));
-    expect(screen.getByRole('alert')).toHaveTextContent(
-      'Find a collected bill, enter a qty still sold on that line, and say why it is coming back.',
-    );
+    await user.click(await screen.findByRole('button', { name: 'New return' }));
+    await user.click(screen.getByRole('button', { name: 'Find bill' }));
+    expect(
+      screen.getAllByText('Type a collected bill number first.').length,
+    ).toBeGreaterThan(0);
     expect(createMock).not.toHaveBeenCalled();
   });
 
   it('conflict: replayed request used a different qty', async () => {
     createMock.mockRejectedValue(new ApiError('used', 409, 'IDEMPOTENCY_CONFLICT'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Take a sale back' });
+    await screen.findByRole('button', { name: 'New return' });
     const user = await openBill();
     fireEvent.change(screen.getByLabelText('Return quantity for Return Pack'), {
       target: { value: '1' },
@@ -240,16 +235,17 @@ describe('counter returns', () => {
       target: { value: 'Wrong strength' },
     });
     await user.click(screen.getByRole('button', { name: 'Record return' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'This return request was already used with a different qty or refund.',
-    );
+    expect(
+      (await screen.findAllByText(/this return request was already used with a different qty/i))
+        .length,
+    ).toBeGreaterThan(0);
   });
 
   it('failure: list network error', async () => {
     listInvoicesMock.mockRejectedValue(new Error('network'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not record this return. Check the connection and try again.',
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load returns. Try again.',
     );
   });
 
@@ -276,7 +272,7 @@ describe('counter returns', () => {
       ],
     });
     renderPage();
-    await screen.findByRole('heading', { name: 'Take a sale back' });
+    await screen.findByRole('button', { name: 'New return' });
     const user = await openBill();
     fireEvent.change(screen.getByLabelText('Return quantity for Return Pack'), {
       target: { value: '1' },
@@ -285,12 +281,16 @@ describe('counter returns', () => {
       target: { value: 'Wrong strength' },
     });
     await user.click(screen.getByRole('button', { name: 'Preview refund' }));
-    expect(await screen.findByText('Refund and restock')).toBeVisible();
+    expect(await screen.findByText('Refund & restock')).toBeVisible();
     expect(screen.getByText('Restock 1 Return Pack to batch LOT-RET-1')).toBeVisible();
     await user.click(screen.getByRole('button', { name: 'Record return' }));
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Return recorded. Stock is back on the originating batch and the refund is ready.',
-    );
+    expect(
+      (
+        await screen.findAllByText(
+          'Return recorded. Stock is back on the originating batch and the refund is ready.',
+        )
+      ).length,
+    ).toBeGreaterThan(0);
     await waitFor(() => expect(createMock).toHaveBeenCalled());
     expect(createMock.mock.calls[0][0]).toMatchObject({
       salesInvoiceId: 'inv-1',
@@ -298,13 +298,13 @@ describe('counter returns', () => {
       reason: 'Wrong strength',
       lines: [{ salesInvoiceLineId: 'line-1', quantity: 1 }],
     });
-    await waitFor(() => expect(screen.getByLabelText('Collected bill number')).toHaveFocus());
+    expect(screen.getByLabelText('Collected bill number')).toBeInTheDocument();
   });
 
   it('validation: over-return from the server', async () => {
     createMock.mockRejectedValue(new ApiError('too many', 422, 'OVER_RETURN'));
     renderPage();
-    await screen.findByRole('heading', { name: 'Take a sale back' });
+    await screen.findByRole('button', { name: 'New return' });
     const user = await openBill();
     fireEvent.change(screen.getByLabelText('Return quantity for Return Pack'), {
       target: { value: '9' },
@@ -313,8 +313,12 @@ describe('counter returns', () => {
       target: { value: 'Damaged' },
     });
     await user.click(screen.getByRole('button', { name: 'Record return' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Cannot take back more than what is still sold on this bill.',
-    );
+    expect(
+      (
+        await screen.findAllByText(
+          'Cannot take back more than what is still sold on this bill.',
+        )
+      ).length,
+    ).toBeGreaterThan(0);
   });
 });

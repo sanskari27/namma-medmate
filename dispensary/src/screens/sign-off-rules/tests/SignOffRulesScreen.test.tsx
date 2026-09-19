@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import SignOffRulesScreen from '@/screens/sign-off-rules/SignOffRulesScreen';
 import { ApiError } from '@/services/axios';
+import { signOffRulesReducer } from '@/screens/sign-off-rules/store';
 import { authReducer } from '@/store';
 
 vi.mock('@/services/approvals', () => ({
@@ -21,7 +22,7 @@ const createRule = vi.mocked(createApprovalRule);
 
 function renderPage(role: string, modules?: string[]) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, signOffRules: signOffRulesReducer },
     preloadedState: {
       auth: {
         user: {

@@ -123,7 +123,7 @@ describe('TrendsScreen', () => {
   it('loading: reserved compare-weeks status while the window loads', () => {
     getMock.mockReturnValue(new Promise(() => undefined));
     renderPage();
-    expect(screen.getByText('Loading this week vs last week…')).toBeInTheDocument();
+    expect(screen.getAllByText('Loading this week vs last week…').length).toBeGreaterThan(0);
     expect(screen.getByRole('heading', { name: 'Compare weeks' })).toBeInTheDocument();
   });
 
@@ -170,7 +170,7 @@ describe('TrendsScreen', () => {
     expect(await screen.findByRole('alert')).toHaveTextContent(
       'Compare weeks is on Growth. Open the plan to turn it on.',
     );
-    expect(screen.getByRole('link', { name: 'Open the plan' })).toHaveAttribute(
+    expect(screen.getAllByRole('link', { name: 'Open the plan' })[0]).toHaveAttribute(
       'href',
       ROUTES.SUBSCRIPTION,
     );
@@ -198,13 +198,13 @@ describe('TrendsScreen', () => {
     const user = userEvent.setup();
     getMock.mockResolvedValue(filled);
     renderPage();
-    expect(await screen.findByText('Collected this week')).toBeInTheDocument();
+    expect(await screen.findByText('Collected this window')).toBeInTheDocument();
     expect(screen.getAllByText(/Top Pack/).length).toBeGreaterThan(0);
     expect(screen.getByText('Idle Pack')).toBeInTheDocument();
     expect(screen.getByText(/Walk-in bills/)).toBeInTheDocument();
     expect(screen.queryByText(/forecast/i)).not.toBeInTheDocument();
     expect(screen.queryByText(/stock-out in/i)).not.toBeInTheDocument();
-    await user.click(screen.getByRole('radio', { name: 'This month vs last month' }));
+    await user.click(screen.getByRole('button', { name: 'This month vs last' }));
     await user.click(screen.getByRole('button', { name: 'Show this window' }));
     await waitFor(() =>
       expect(getMock).toHaveBeenCalledWith(expect.objectContaining({ compare: 'MOM' })),
@@ -215,7 +215,7 @@ describe('TrendsScreen', () => {
   it('success: owner on all outlets loads the tenant window', async () => {
     getMock.mockResolvedValue(filled);
     renderPage('pharmacy_owner', ['REPORTING'], null);
-    expect(await screen.findByText('Collected this week')).toBeInTheDocument();
+    expect(await screen.findByText('Collected this window')).toBeInTheDocument();
     expect(getMock).toHaveBeenCalledWith(
       expect.objectContaining({ compare: 'WOW', scope: 'tenant' }),
     );

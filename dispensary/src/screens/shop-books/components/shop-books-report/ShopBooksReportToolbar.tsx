@@ -86,7 +86,7 @@ export function ShopBooksReportToolbar({ owner }: { owner: boolean }) {
           onChange={(event) => dispatch(periodPatched({ year: event.target.value }))}
         />
       ) : null}
-      {period.kind === 'custom' || (period.span === 'range' && period.kind === 'custom') ? (
+      {period.kind === 'custom' ? (
         <>
           <input
             className="bk-field"

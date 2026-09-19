@@ -1,6 +1,7 @@
 # State and data flow
 
-**Date:** 2026-09-15
+**Date:** 2026-09-15  
+**Validated:** 2026-09-20 — implementable rows in this file are **FIXED** in [`10-fix-progress.md`](10-fix-progress.md). Original tables below are the 2026-09-15 snapshot.
 
 ---
 
@@ -61,7 +62,7 @@ Production `Provider`: only `main.tsx`. Nested Providers only in tests.
 | Credit due | yes | `/credit` | every positive balance daily `M10-WA-004` |
 | Rx archive | yes | none | OK |
 | Low stock | on issue | `/inventory` | once-per-SKU `M10-ROUTE-005`; floor not Guidance |
-| Approval | on create | `/inventory` | **wrong** `/approvals/pending` |
+| Approval | on create | `/approvals/pending` | **FIXED** `M10-ROUTE-003` |
 | KYC decide | yes | `/account` OWNER | MASTER not a recipient |
 
-Staff roster `notification_role_assignment` is **never written** (`M10-ROUTE-001`). Five matrix triggers have no producer (`M10-ROUTE-002`).
+**Status:** `M10-ROUTE-001` **FIXED** — `NotificationRoleSync` writes `notification_role_assignment`. `M10-ROUTE-002` **FIXED** with producers. Refill Graph and licence scan TX residuals closed in `10-fix-progress.md`.

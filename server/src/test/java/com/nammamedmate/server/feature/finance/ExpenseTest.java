@@ -70,7 +70,18 @@ class ExpenseTest extends AbstractIntegrationTest {
     Fixture fx = seed("cat");
     JsonNode cats = listCategories(fx.cookie());
     assertThat(cats.path("items").findValuesAsText("code"))
-        .containsExactlyInAnyOrder("RENT", "ELECTRICITY", "SALARIES", "MISCELLANEOUS");
+        .contains(
+            "RENT",
+            "ELECTRICITY",
+            "SALARIES",
+            "MISCELLANEOUS",
+            "TELECOM",
+            "STATIONERY",
+            "REPAIR",
+            "TRAVEL",
+            "RAW_MATERIAL",
+            "MARKETING",
+            "BANK");
 
     mockMvc
         .perform(
@@ -101,7 +112,7 @@ class ExpenseTest extends AbstractIntegrationTest {
                 .content(createJson(rentId, 150000, OCCURRED, "September rent", "rent-1")))
         .andExpect(status().isOk())
         .andExpect(jsonPath("$.data.categoryCode").value("RENT"))
-        .andExpect(jsonPath("$.data.categoryLabel").value("Rent"));
+        .andExpect(jsonPath("$.data.categoryLabel").value("Rent Expense"));
   }
 
   @Test

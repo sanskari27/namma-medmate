@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import BranchesScreen from '@/screens/branches/BranchesScreen';
 import { ApiError } from '@/services/axios';
+import { branchesReducer } from '@/screens/branches/store';
 import { authReducer } from '@/store';
 import type { Branch } from '@/services/branches';
 
@@ -55,7 +56,7 @@ const sample: Branch = {
 
 function renderPage(role = 'pharmacy_owner') {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, branches: branchesReducer },
     preloadedState: {
       auth: {
         user: {

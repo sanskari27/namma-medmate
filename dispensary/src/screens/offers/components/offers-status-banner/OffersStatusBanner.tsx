@@ -1,5 +1,4 @@
 import { useSelector } from 'react-redux';
-import { OFFERS_CONTENT } from '../../OffersScreen.content';
 import { statusCopy, statusIcon } from '../../OffersScreen.utils';
 import {
   selectOffersStatus,

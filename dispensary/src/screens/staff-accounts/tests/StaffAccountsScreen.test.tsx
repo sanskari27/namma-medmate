@@ -5,6 +5,7 @@ import { Provider } from 'react-redux';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import StaffAccountsScreen from '@/screens/staff-accounts/StaffAccountsScreen';
 import { ApiError } from '@/services/axios';
+import { staffAccountsReducer } from '@/screens/staff-accounts/store';
 import { authReducer } from '@/store';
 import type { StaffAccount } from '@/services/staff';
 
@@ -73,7 +74,7 @@ const clerk: StaffAccount = {
 
 function renderPage(role: string) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, staffAccounts: staffAccountsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -113,8 +114,8 @@ describe('staff accounts at this pharmacy', () => {
   it('empty: owner sees no extra staff yet', async () => {
     listMock.mockResolvedValue([owner]);
     renderPage('pharmacy_owner');
-    expect(await screen.findByRole('heading', { name: 'Staff accounts' })).toBeInTheDocument();
-    expect(screen.getByRole('alert')).toHaveTextContent('No additional staff accounts yet');
+    expect(await screen.findByRole('heading', { name: 'Staff & access control' })).toBeInTheDocument();
+    expect(screen.getByRole('status')).toHaveTextContent('No additional staff accounts yet');
     expect(
       screen.queryByRole('link', { name: /create account|sign up|register/i }),
     ).not.toBeInTheDocument();
@@ -123,18 +124,18 @@ describe('staff accounts at this pharmacy', () => {
   it('denied: staff cannot add another account', async () => {
     listMock.mockResolvedValue([owner, clerk]);
     renderPage('pharmacy_staff');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Only the pharmacy owner can add or remove staff access.',
     );
-    expect(screen.queryByRole('button', { name: 'Add staff' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add user' })).not.toBeInTheDocument();
   });
 
   it('validation: owner must fill name, phone, email and password', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([owner]);
     renderPage('pharmacy_owner');
-    await screen.findByRole('heading', { name: 'Staff accounts' });
-    await user.click(screen.getByRole('button', { name: 'Add staff' }));
+    await screen.findByRole('heading', { name: 'Staff & access control' });
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
     await user.click(screen.getByRole('button', { name: 'Save staff' }));
     expect(screen.getByRole('alert')).toHaveTextContent(
       'Enter name, phone, email, and a password of at least eight characters.',
@@ -147,8 +148,8 @@ describe('staff accounts at this pharmacy', () => {
     listMock.mockResolvedValue([owner]);
     createMock.mockRejectedValue(new ApiError('limit', 422, 'PLAN_LIMIT'));
     renderPage('pharmacy_owner');
-    await screen.findByRole('heading', { name: 'Staff accounts' });
-    await user.click(screen.getByRole('button', { name: 'Add staff' }));
+    await screen.findByRole('heading', { name: 'Staff & access control' });
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
     await user.type(screen.getByLabelText('Name'), 'Asha');
     await user.type(screen.getByLabelText('Phone'), '9876543210');
     await user.type(screen.getByLabelText('Email'), 'clerk@pharmacy.local');
@@ -164,8 +165,8 @@ describe('staff accounts at this pharmacy', () => {
     listMock.mockResolvedValue([owner]);
     createMock.mockRejectedValue(new ApiError('taken', 409, 'EMAIL_TAKEN'));
     renderPage('pharmacy_owner');
-    await screen.findByRole('heading', { name: 'Staff accounts' });
-    await user.click(screen.getByRole('button', { name: 'Add staff' }));
+    await screen.findByRole('heading', { name: 'Staff & access control' });
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
     await user.type(screen.getByLabelText('Name'), 'Asha');
     await user.type(screen.getByLabelText('Phone'), '9876543210');
     await user.type(screen.getByLabelText('Email'), 'clerk@pharmacy.local');
@@ -179,7 +180,7 @@ describe('staff accounts at this pharmacy', () => {
   it('failure: network errors stay on staff accounts', async () => {
     listMock.mockRejectedValue(new ApiError('down', 0, 'NETWORK'));
     renderPage('pharmacy_owner');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Could not load staff accounts. Try again.',
     );
   });
@@ -189,14 +190,14 @@ describe('staff accounts at this pharmacy', () => {
     listMock.mockResolvedValueOnce([owner]).mockResolvedValueOnce([owner, clerk]);
     createMock.mockResolvedValue(clerk);
     renderPage('pharmacy_owner');
-    await screen.findByRole('heading', { name: 'Staff accounts' });
-    await user.click(screen.getByRole('button', { name: 'Add staff' }));
+    await screen.findByRole('heading', { name: 'Staff & access control' });
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
     await user.type(screen.getByLabelText('Name'), 'Asha');
     await user.type(screen.getByLabelText('Phone'), '9876543210');
     await user.type(screen.getByLabelText('Email'), 'clerk@pharmacy.local');
     await user.type(screen.getByLabelText('Temporary password'), 'till-pass-1');
     await user.click(screen.getByRole('button', { name: 'Save staff' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Staff saved. They cannot sign in until their registration is approved.',
     );
     expect(createMock).toHaveBeenCalledWith({
@@ -220,7 +221,7 @@ describe('staff accounts at this pharmacy', () => {
     await user.click(screen.getByRole('menuitem', { name: 'Remove access' }));
     await user.click(screen.getByRole('button', { name: 'Remove access' }));
     expect(deactivateMock).toHaveBeenCalledWith('s1');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Access removed. Their record remains on file.',
     );
   });
@@ -247,7 +248,7 @@ describe('staff accounts at this pharmacy', () => {
     await user.type(within(dialog).getByLabelText('Confirm password'), 'temp-pass-9');
     await user.click(within(dialog).getByRole('button', { name: 'Save password' }));
     expect(resetMock).toHaveBeenCalledWith('clerk@pharmacy.local', 'temp-pass-9');
-    expect(await screen.findByRole('alert')).toHaveTextContent(
+    expect(await screen.findByRole('status')).toHaveTextContent(
       'Temporary password saved. They must change it at next sign-in.',
     );
   });
@@ -256,8 +257,8 @@ describe('staff accounts at this pharmacy', () => {
     const user = userEvent.setup();
     listMock.mockResolvedValue([owner]);
     renderPage('pharmacy_owner');
-    await screen.findByRole('heading', { name: 'Staff accounts' });
-    await user.click(screen.getByRole('button', { name: 'Add staff' }));
+    await screen.findByRole('heading', { name: 'Staff & access control' });
+    await user.click(screen.getByRole('button', { name: 'Add user' }));
     await user.type(screen.getByLabelText('Name'), 'Ravi');
     await user.type(screen.getByLabelText('Phone'), '9876543211');
     await user.type(screen.getByLabelText('Email'), 'rx@pharmacy.local');
@@ -317,6 +318,6 @@ describe('staff accounts at this pharmacy', () => {
     await user.click(within(dialog).getByLabelText('Pharmacist'));
     await user.click(within(dialog).getByRole('button', { name: 'Save roles' }));
     expect(replaceRolesMock).toHaveBeenCalledWith('s1', ['pharm']);
-    expect(await screen.findByRole('alert')).toHaveTextContent('Roles updated for Asha.');
+    expect(await screen.findByRole('status')).toHaveTextContent('Roles updated for Asha.');
   });
 });

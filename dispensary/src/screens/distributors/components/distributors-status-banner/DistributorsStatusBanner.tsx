@@ -1,5 +1,4 @@
 import { useSelector } from 'react-redux';
-import { DISTRIBUTORS_CONTENT } from '../../DistributorsScreen.content';
 import {
   selectDistributorsStatus,
   selectDistributorsStatusHint,

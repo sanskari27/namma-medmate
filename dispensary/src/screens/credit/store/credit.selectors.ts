@@ -31,7 +31,7 @@ export const selectFilteredOutstanding = createSelector(
 
 export const selectSelectedCreditAccount = createSelector(
   [selectCreditItems, selectCreditSelectedId],
-  (items, selectedId) => items.find((row) => row.customerId === selectedId) ?? null,
+  (items, selectedId) => (items ?? []).find((row) => row.customerId === selectedId) ?? null,
 );
 
 export const selectPaymentsTotalPaise = createSelector([selectCreditPayments], (payments) =>

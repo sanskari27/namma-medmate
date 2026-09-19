@@ -13,7 +13,7 @@ export function formatPaise(paise: number | null | undefined): string {
 
 export function formatQty(qty: number, unit: string): string {
   const rounded = Number.isInteger(qty) ? String(qty) : qty.toFixed(2).replace(/\.?0+$/, '');
-  const label = unit.toLowerCase().replaceAll('_', ' ');
+  const label = unit.toLowerCase().replace(/_/g, ' ');
   return `${rounded} ${label}`;
 }
 
@@ -117,7 +117,7 @@ export function downloadInventoryCsv(rows: InventoryOverviewRow[]): void {
 function csv(value: string | null | undefined): string {
   const raw = value ?? '';
   if (/[",\n]/.test(raw)) {
-    return `"${raw.replaceAll('"', '""')}"`;
+    return `"${raw.replace(/"/g, '""')}"`;
   }
   return raw;
 }

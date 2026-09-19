@@ -92,15 +92,21 @@ const creditSlice = createSlice({
   extraReducers: (builder) => {
     builder
       .addCase(loadCreditDirectory.pending, (state) => {
-        state.status = 'loading';
-        state.statusHint = null;
+        if (state.items.length === 0 && state.status !== 'success') {
+          state.status = 'loading';
+        }
+        if (state.status !== 'success') {
+          state.statusHint = null;
+        }
       })
       .addCase(loadCreditDirectory.fulfilled, (state, action) => {
         state.summary = action.payload.summary;
         state.aging = action.payload.aging;
         state.items = action.payload.items;
         state.payments = action.payload.payments;
-        state.status = null;
+        if (state.status !== 'success') {
+          state.status = null;
+        }
         if (
           state.selectedId &&
           !action.payload.items.some((row) => row.customerId === state.selectedId)

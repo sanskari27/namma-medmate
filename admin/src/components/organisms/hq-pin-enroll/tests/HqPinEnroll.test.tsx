@@ -27,6 +27,8 @@ describe('admin HQ PIN enroll', () => {
   it('empty: asks the operator to set an HQ PIN', () => {
     render(<HqPinEnroll onEnrolled={vi.fn()} />);
     expect(screen.getByRole('heading', { name: 'Set HQ PIN' })).toBeInTheDocument();
+    expect(screen.getByText(/lock after five minutes/i)).toBeInTheDocument();
+    expect(screen.queryByText(/sign out/i)).not.toBeInTheDocument();
     expect(screen.queryByRole('alert')).not.toBeInTheDocument();
     expect(screen.getByLabelText('HQ PIN')).toHaveValue('');
   });

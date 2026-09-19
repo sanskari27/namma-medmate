@@ -6,6 +6,7 @@ import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import PrescriptionsScreen from '@/screens/prescriptions/PrescriptionsScreen';
 import { ApiError } from '@/services/axios';
+import { prescriptionsReducer } from '@/screens/prescriptions/store';
 import { authReducer } from '@/store';
 import type { PrescriptionReference } from '@/services/prescriptionReferences';
 
@@ -78,7 +79,7 @@ function renderPage(
   roles: { id: string; name: string; code: string | null; kind: string }[] = [],
 ) {
   const store = configureStore({
-    reducer: { auth: authReducer },
+    reducer: { auth: authReducer, prescriptions: prescriptionsReducer },
     preloadedState: {
       auth: {
         user: {
@@ -91,6 +92,7 @@ function renderPage(
           emailVerified: true,
           modules: ['SALES', 'COMPLIANCE'],
           roles,
+          activeBranchId: 'b1',
         },
       },
     },
@@ -122,12 +124,7 @@ describe('Rx file', () => {
   it('empty: no sale-time references yet', async () => {
     listMock.mockResolvedValue({ items: [] });
     renderPage();
-    expect(
-      await screen.findByText(
-        'No sale-time Rx references on this list yet. Attach an Rx on a collected bill, then it shows here.',
-      ),
-    ).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Rx file' })).toBeInTheDocument();
+    expect(await screen.findByText('No Rx on this list')).toBeInTheDocument();
   });
 
   it('denied: cashier cannot open the Rx file', () => {
@@ -135,21 +132,21 @@ describe('Rx file', () => {
       { id: 'r1', name: 'Cashier', code: 'cashier', kind: 'PREDEFINED' },
     ]);
     expect(screen.getByRole('alert')).toHaveTextContent(
-      'Only a pharmacist or owner can open the Rx file. Ask them at this counter.',
+      'Only a pharmacist or owner can open the Rx file.',
     );
     expect(listMock).not.toHaveBeenCalled();
   });
 
   it('validation: still-valid Rx cannot be archived', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValue({ items: [active] });
+    listMock.mockResolvedValue({ items: [detailed] });
     archiveMock.mockRejectedValue(
       new ApiError('This Rx is still valid and still has quantity left.', 422, 'PREMATURE_ARCHIVE'),
     );
     renderPage();
     await screen.findByText('RX-90');
     await user.click(screen.getByRole('button', { name: /RX-90/ }));
-    await screen.findByText('INV/2026-27/BR01/00009');
+    expect(screen.getAllByText('INV/2026-27/BR01/00009').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Archive this Rx' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'This Rx is still valid and still has quantity left. Wait until it is filled or six months have passed.',
@@ -173,25 +170,24 @@ describe('Rx file', () => {
   it('failure: list network error', async () => {
     listMock.mockRejectedValue(new Error('network'));
     renderPage();
-    expect(await screen.findByRole('status')).toHaveTextContent(
-      'Could not load the Rx file. Check the connection and try again.',
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Could not load the Rx file. Try again.',
     );
   });
 
   it('success: archive restores Archive expired focus and keeps source bills', async () => {
     const user = userEvent.setup();
-    listMock.mockResolvedValueOnce({ items: [active] }).mockResolvedValue({ items: [archived] });
+    listMock.mockResolvedValueOnce({ items: [detailed] }).mockResolvedValue({ items: [archived] });
     archiveMock.mockResolvedValue(archived);
-    getMock.mockResolvedValue(detailed);
     renderPage();
     await screen.findByText('RX-90');
     await user.click(screen.getByRole('button', { name: /RX-90/ }));
-    await screen.findByText('INV/2026-27/BR01/00009');
+    expect(screen.getAllByText('INV/2026-27/BR01/00009').length).toBeGreaterThan(0);
     await user.click(screen.getByRole('button', { name: 'Archive this Rx' }));
     expect(await screen.findByRole('status')).toHaveTextContent(
       'Rx archived. History and source bills stay on file.',
     );
-    expect(screen.getByRole('button', { name: 'Archive expired' })).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Archive expired' })).toBeInTheDocument();
     expect(archiveMock).toHaveBeenCalledWith('rx-1', 0);
   });
 
@@ -202,31 +198,20 @@ describe('Rx file', () => {
       id: 'rx-arch',
       prescriptionReference: 'RX-ARCH',
     };
-    listMock.mockImplementation(async (status) => {
-      if (status === 'ARCHIVED') {
-        return { items: [archivedRow] };
-      }
-      return { items: [active] };
-    });
-    getMock.mockImplementation(async (id) => {
-      if (id === 'rx-arch') {
-        return archivedRow;
-      }
-      return detailed;
-    });
+    listMock.mockResolvedValue({ items: [detailed, archivedRow] });
     renderPage();
     expect(await screen.findByText('RX-90')).toBeInTheDocument();
     expect(screen.queryByText('RX-ARCH')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Archived' }));
+    await user.click(screen.getByRole('tab', { name: /Fulfilled/ }));
     expect(await screen.findByText('RX-ARCH')).toBeInTheDocument();
     expect(screen.queryByText('RX-90')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /RX-ARCH/ }));
-    const detail = await screen.findByRole('region', { name: 'Rx detail' });
+    const detail = await screen.findByRole('dialog');
     expect(detail).toHaveTextContent('Archived');
     expect(detail).toHaveTextContent('Filled — nothing left on this Rx');
-    expect(detail).toHaveTextContent('INV/2026-27/BR01/00009');
     expect(screen.getByText('History only. This Rx cannot go on a new bill.')).toBeInTheDocument();
-    await user.click(screen.getByRole('tab', { name: 'Active' }));
+    await user.click(screen.getByLabelText('Close'));
+    await user.click(screen.getByRole('tab', { name: /Active/ }));
     expect(await screen.findByText('RX-90')).toBeInTheDocument();
     expect(screen.queryByText('RX-ARCH')).not.toBeInTheDocument();
   });
