@@ -11,7 +11,7 @@ chosen behavior and date.
 | D-003 | Prescription reference retention | Confirm the Phase 1 prescription-reference validity and archive period. | Closed | M7-S04 | Product owner |
 | D-004 | Expense approval | Must expense recording use approval thresholds, and which role approves? | Closed | M8-S02 | Product owner |
 | D-005 | Starter versus Growth reporting | Finalize the report and analytics entitlement split. | Closed | M9-S05 | Product owner |
-| D-006 | Production NFR baseline | Define hosting, residency, platforms, scale, DR, retention, portability, localization, and environments. | Open | M12-S01 | Product owner |
+| D-006 | Production NFR baseline | Define hosting, residency, platforms, scale, DR, retention, portability, localization, and environments. | Closed | M12-S01 | Product owner |
 | D-007 | Canonical branch limits | Resolve Starter 1 versus 2 and Pro unlimited versus 5 branches across product sources. | Closed | M2-S05 | Product owner |
 | D-008 | Growth online-store entitlement | Confirm ecommerce is Phase 2 and remove it from Phase 1 Growth entitlements, or specify Phase 1 behavior. | Closed | M2-S05 | Product owner |
 | D-009 | Kiosk scope | Confirm whether Kiosk is only a branch classification or includes a Phase 1 self-order workflow. | Closed | M2-S07 | Product owner |
@@ -34,6 +34,16 @@ affected story IDs below the table. Never rewrite product source history.
 **Effective:** 2026-09-03  
 **Owner:** Product owner  
 **Affected:** M1-S08
+
+## D-006 — Production NFR baseline (Phase 1)
+
+**Chosen:** Phase 1 production is a single EC2 in ap-south-1 with RDS Postgres 16, ElastiCache Redis, and host Nginx TLS. All application data, backups, logs, and object files stay in ap-south-1. Named processors may hold copies as those vendors require: Resend (email), Cashfree (payments), Meta WhatsApp. Clients are browser-only (dispensary SPA, admin SPA, kiosk in the browser). The till is a shop PC or tablet browser; invoice copy is A4 PDF. Thermal printers, cash drawers, and hardware scanners are not in this baseline. Scale is tens of pharmacies and a few concurrent tills per shop, with no published peak-TPS number. Availability is best-effort single AZ; deploys and Flyway restarts may take the shop offline for minutes. RDS keeps 7-day automated backups and deletion protection. KYC, licence, expense, and prescription evidence files live in private S3 in ap-south-1 with versioning and no public access (not the EC2 bind mount). Database RPO is about 24 hours; RTO is hours (restore RDS and rebuild or restart EC2). File restore uses S3 versions. UI is English only; money is INR paise; time persists UTC and displays IST. While a tenant is active, keep business records. Personal-data access, export, erasure, and churn deletion wait on D-013. Environments are local/docker (never RDS or ElastiCache) and prod (SSM secrets). LocalEnvironmentGuard stays.
+
+**Rejected:** Multi-AZ or managed compute as the Phase 1 hosting baseline; a DR copy in another region; leaving evidence files on the EC2 disk without S3; a 99.9% availability promise; native or PWA clients; Hindi or other locale packs; a separate staging stack; inventing DPDP principal-request or churn-deletion rules in this decision.
+
+**Effective:** 2026-09-20  
+**Owner:** Product owner  
+**Affected:** M12-S01
 
 ## D-002 — Family credit uses individual limits
 

@@ -15,6 +15,9 @@ public class LocalEnvironmentGuard {
   @Value("${spring.data.redis.host:}")
   private String redisHost;
 
+  @Value("${nmm.storage.s3.bucket:}")
+  private String filesBucket;
+
   @PostConstruct
   public void failIfPointingAtProd() {
     if (databaseUrl != null && databaseUrl.contains("rds.amazonaws.com")) {
@@ -24,6 +27,10 @@ public class LocalEnvironmentGuard {
     if (redisHost != null && redisHost.contains("cache.amazonaws.com")) {
       throw new IllegalStateException(
           "Local profile must not use ElastiCache. Use compose redis or localhost:16379.");
+    }
+    if (filesBucket != null && !filesBucket.isBlank()) {
+      throw new IllegalStateException(
+          "Local profile must not use S3. Leave NMM_FILES_BUCKET blank and use disk storage.");
     }
   }
 }

@@ -6,14 +6,14 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 67 |
+| done | 68 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
 | ready | 0 |
 | blocked | 1 |
 | deferred | 3 |
-| total | 71 |
+| total | 72 |
 
 | Story | Epic | Apps | Status | Depends on | Decisions | Evidence / notes |
 |---|---|---|---|---|---|---|
@@ -87,4 +87,5 @@ independent verifier verdict. When a row status changes, update the counts.
 | M11-S01 | M11 | server + dispensary + admin | done | M2-S05 | — | Independent verifier PASS (story-verifier bc-25ec46f8). verified→done. Gap-close after FAIL (bc-1f542098): `x-client-secret` + MockRestServiceServer `/pg/orders`; dispensary PROVIDER_UNAVAILABLE copy; SUCCESS focus on visible Starter licence. Delta CashfreePgAdapterTest 4 BUILD SUCCESS; SubscriptionScreen.test 10 passed (d22ebd1). Implementer c1b20ed (3b28586 + Spotless ccf0279 + LoyaltyTest FREE downgrade). Server: V56 `subscription_payment`; CashfreeBillingPolicy/Service/Controller POST/GET `/api/v1/subscriptions/payments/cashfree` + HMAC callback; MASTER GET `/api/v1/admin/subscriptions/payments`; RestClient adapter no SDK; paid POST `/upgrade` `422 PAYMENT_REQUIRED`; unsigned `/payment-callback` 404; blank keys `422 PROVIDER_UNAVAILABLE`; amount from PlanCatalogue. Tests: CashfreeBillingPolicyTest, CashfreeBillingTest AC01–AC05, CashfreeBillingRollbackTest, CashfreePgAdapterTest, SubscriptionTest.ac03. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock TESTCONTAINERS_RYUK_DISABLED=true ./mvnw spotless:check test` Tests run: 903 Failures: 0 BUILD SUCCESS (20:09, 2026-09-06T23:19:35). Dispensary `/subscription` Pay this pharmacy’s plan + `?payment=` reconcile; FREE still upgradePlan; tests SubscriptionScreen 10. SPA `cd dispensary && npm run lint && npm run test -- --run && npm run build` lint OK; 71 files 654 tests; tsc+vite OK. Admin `/subscriptions` Pharmacy-to-platform charges + Checkout exceptions (navy/Plex, not pay clone); tests SubscriptionsScreen 15 (override 7 + charges 8). SPA `cd admin && npm run lint && npm run test -- --run && npm run build` lint OK; 25 files 183 tests; tsc+vite OK. `make compose-config` OK. `node --test scripts/validate-requirements.test.mjs` 8 pass; `node scripts/validate-requirements.mjs` Requirements valid: 71 stories. Host API: OWNER checkout blank keys 422 PROVIDER_UNAVAILABLE; paid `/upgrade` 422 PAYMENT_REQUIRED; unsigned callback 404; OWNER admin payments 403; MASTER payments `{items:[]}` 200. Browser: no IDE browser MCP; `:5173/subscription` and `:5174/subscriptions` HTTP 200. Uniqueness from source (viridian Pay this pharmacy’s plan / Checkout not finished vs navy Pharmacy-to-platform charges / Checkout exceptions). |
 | M11-S02 | M11 | server | done | — | — | Independent verifier PASS (7f49a35d). verified→done. Server: V7 transactional_email; TransactionalEmailService.send (PASSWORD_RESET/ONBOARDING/INVOICE_COPY, typed vars, tenant-scoped persist, REQUIRES_NEW); ResendEmailAdapter (com.resend:resend-java 4.13.0, CreateEmailOptions + RequestOptions.setIdempotencyKey); POST /api/v1/integrations/resend/webhook Svix HMAC isolated. Tests: EmailTemplateRendererTest 3, TransactionalEmailServiceTest 6, ResendEmailAdapterTest 6, TransactionalEmailTest 6, TransactionalEmailRollbackTest 2, ResendWebhookTest 4. Gate `DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 132 tests BUILD SUCCESS. `make compose-config` OK. API key only in gitignored .env. |
 | M11-S03 | M11 | decision | deferred | — | — | Phase 2 integration backlog |
-| M12-S01 | M12 | decision | deferred | — | D-006 | — |
+| M12-S01 | M12 | decision | deferred | — | D-006 | D-006 Closed 2026-09-20. Phase 2 decision contract stays deferred by phase. Follow-up runtime is M12-S02. |
+| M12-S02 | M12 | server | done | — | — | Independent verifier PASS (16aa51dc). verified→done. Gap-close after FAIL (4a6e48bf): Redis starter restored; ProdOpsSeedTest SSE-S3 AES256 + NMM_FILES_REGION. Delta 6 tests BUILD SUCCESS 2026-09-20T02:37:34. Listed gate 991/0 2026-09-20T02:32:12. `make compose-config` OK. |

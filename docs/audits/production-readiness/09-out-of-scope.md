@@ -10,9 +10,8 @@ This file exists so the next agent does not treat blocked, deferred, or excluded
 | ID | Blocks | What is *not* a code todo |
 |---|---|---|
 | **D-013** | **M1-S09** | DPDP inventory, consent, principal requests, erasure, grievance, breach, retention, accountable roles. Absence of those screens/APIs is **not** MISSING. Inventing a policy is forbidden. |
-| **D-006** | **M12-S01** | Hosting, India residency, DR, backups, scale, retention, localization, environments. Current single-EC2 + 7-day RDS backup is a *fact*, not an approved NFR. `OPS-STORAGE` file-backup **policy** waits here; the bind-mount risk is still documented in `07-production-ops.md`. |
 
-Do not mark M1-S09 or M12-S01 `done` while the decision is Open.
+Do not mark M1-S09 `done` while D-013 is Open. **D-006** is Closed 2026-09-20; evidence files are M12-S02.
 
 ---
 
@@ -22,7 +21,7 @@ Do not mark M1-S09 or M12-S01 `done` while the decision is Open.
 |---|---|
 | **M7-S05** | Phase 2 compliance (cold-chain / quarantine / recall / Schedule X repository as scoped in the story). |
 | **M11-S03** | Phase 2 integration backlog. |
-| **M12-S01** | Deferred on D-006. |
+| **M12-S01** | Decision contract delivered; D-006 closed 2026-09-20. Runtime files are M12-S02. |
 
 ---
 

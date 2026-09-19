@@ -106,8 +106,8 @@ src/
 ## Environments and gates
 
 - Local: `compose.yaml`, PostgreSQL `localhost:25432`, Redis `localhost:16379`.
-- Production: `compose.prod.yaml` on EC2 with private RDS and ElastiCache.
-- The Spring `local` profile must never target RDS or ElastiCache.
+- Production: `compose.prod.yaml` on EC2 with private RDS, ElastiCache, and private S3 for evidence files (`ap-south-1`).
+- The Spring `local` profile must never target RDS, ElastiCache, or S3.
 
 The implementer runs every listed gate for the story **once** before verify.
 Independent review cites that output and must not re-run these commands:

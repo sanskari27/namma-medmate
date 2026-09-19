@@ -33,6 +33,7 @@ Keep unresolved production constraints visible without allowing an agent to inve
 | Order | Story | Target apps | Depends on | Decision blockers |
 |---:|---|---|---|---|
 | 1 | [M12-S01 — Define production NFR baseline](m12-s01-define-production-nfr-baseline.md) | decision | — | D-006 |
+| 2 | [M12-S02 — Private S3 file storage](m12-s02-private-s3-file-storage.md) | server | — | — |
 
 ## Boundaries
 

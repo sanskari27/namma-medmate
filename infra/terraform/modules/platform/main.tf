@@ -20,6 +20,8 @@ data "aws_availability_zones" "available" {
   state = "available"
 }
 
+data "aws_caller_identity" "current" {}
+
 locals {
   name = var.project_name
   azs  = slice(data.aws_availability_zones.available.names, 0, 2)
@@ -202,6 +204,40 @@ resource "aws_elasticache_replication_group" "this" {
   tags                       = { Name = "${local.name}-redis" }
 }
 
+resource "aws_s3_bucket" "files" {
+  bucket = "${local.name}-files-${data.aws_caller_identity.current.account_id}"
+  tags   = { Name = "${local.name}-files" }
+}
+
+resource "aws_s3_bucket_versioning" "files" {
+  bucket = aws_s3_bucket.files.id
+  versioning_configuration { status = "Enabled" }
+}
+
+resource "aws_s3_bucket_server_side_encryption_configuration" "files" {
+  bucket = aws_s3_bucket.files.id
+  rule {
+    apply_server_side_encryption_by_default {
+      sse_algorithm = "AES256"
+    }
+  }
+}
+
+resource "aws_s3_bucket_public_access_block" "files" {
+  bucket                  = aws_s3_bucket.files.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_s3_bucket_ownership_controls" "files" {
+  bucket = aws_s3_bucket.files.id
+  rule {
+    object_ownership = "BucketOwnerEnforced"
+  }
+}
+
 resource "aws_iam_role" "ec2" {
   name = "${local.name}-ec2-role"
   assume_role_policy = jsonencode({
@@ -232,6 +268,30 @@ resource "aws_iam_role_policy" "compose_env" {
       ]
       Resource = aws_ssm_parameter.compose_env.arn
     }]
+  })
+}
+
+resource "aws_iam_role_policy" "files" {
+  name = "${local.name}-files"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "s3:GetObject",
+          "s3:PutObject",
+          "s3:DeleteObject",
+        ]
+        Resource = "${aws_s3_bucket.files.arn}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["s3:ListBucket"]
+        Resource = aws_s3_bucket.files.arn
+      }
+    ]
   })
 }
 
@@ -291,6 +351,11 @@ resource "aws_instance" "app" {
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
+  metadata_options {
+    http_endpoint               = "enabled"
+    http_tokens                 = "required"
+    http_put_response_hop_limit = 2
+  }
   user_data              = local.user_data
   root_block_device {
     volume_size = 40
@@ -361,7 +426,9 @@ resource "aws_ssm_parameter" "compose_env" {
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
     "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com",
-    "STORAGE_ROOT=/app/files",
+    "NMM_FILES_BUCKET=${aws_s3_bucket.files.bucket}",
+    "NMM_FILES_REGION=${var.aws_region}",
+    "AWS_REGION=${var.aws_region}",
     "VITE_API_BASE_URL=https://api.nammamedmate.com",
     "RESEND_API_KEY=${var.resend_api_key}",
     "RESEND_WEBHOOK_SECRET=${var.resend_webhook_secret}",

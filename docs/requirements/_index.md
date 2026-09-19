@@ -16,7 +16,7 @@ Stories are vertical implementation contracts, not backend-only tasks.
 | M9 | [Reporting, Analytics & Dashboards](09-reporting-analytics/_index.md) | 5 | Phase 1 |
 | M10 | [Notifications & Communication](10-notifications-communication/_index.md) | 4 | Phase 1 |
 | M11 | [Integrations](11-integrations/_index.md) | 3 | Phase 1 + deferred |
-| M12 | [Deferred Non-Functional Requirements](12-deferred-non-functional/_index.md) | 1 | deferred |
+| M12 | [Deferred Non-Functional Requirements](12-deferred-non-functional/_index.md) | 2 | Phase 1 + deferred |
 
 ## Product-source coverage map
 
@@ -118,9 +118,10 @@ dependencies rather than duplicated.
 - **Hosting and residency:** M12-S01
 - **Client platforms and POS hardware:** M12-S01
 - **Scale and performance:** M12-S01
-- **Backup and disaster recovery:** M12-S01
+- **Backup and disaster recovery:** M12-S01, M12-S02
 - **Retention and portability:** M12-S01
 - **Localization and environments:** M12-S01
+- **Private evidence files:** M12-S02
 
 ## Explicit exclusions
 
@@ -128,4 +129,4 @@ dependencies rather than duplicated.
 - Customer and doctor portals, standalone prescription repository, advanced
   regulatory workflows, ecommerce, customer POS gateway, GST/GSP filing, and
   government integrations are Phase 2 or later.
-- Module 12 is a deferred decision backlog, not implementation authorization.
+- Module 12 NFR baseline is D-006 (closed). File evidence storage is M12-S02.

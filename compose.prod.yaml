@@ -17,9 +17,8 @@ services:
         required: false
     environment:
       SPRING_PROFILES_ACTIVE: prod
-      STORAGE_ROOT: /app/files
-    volumes:
-      - ./files:/app/files
+      NMM_FILES_BUCKET: ${NMM_FILES_BUCKET:-}
+      AWS_REGION: ${AWS_REGION:-ap-south-1}
     healthcheck:
       test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null || exit 1']
       interval: 30s

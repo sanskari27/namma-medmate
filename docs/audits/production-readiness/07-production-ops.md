@@ -12,7 +12,7 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 - Secrets: SSM SecureString compose.env; `.env` gitignored; JWT random in TF.
 - Flyway on Spring boot at container start (deploy = rebuild/restart).
 - Health: containers probe `/actuator/health`. Product `GET /api/v1/health` pings DataSource (`HEALTH-SHALLOW` **FIXED**).
-- `LocalEnvironmentGuard` rejects RDS/ElastiCache hostnames on `local` profile.
+- `LocalEnvironmentGuard` rejects RDS/ElastiCache/S3 on `local` profile.
 
 ---
 
@@ -27,7 +27,7 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 | Email URLs | localhost defaults | HTTPS SSM seed (`OPS-EMAIL-URL` **FIXED**) |
 | Cashfree return | — | **is** seeded pharmacy `/subscription` |
 | WhatsApp | compose env | TF SSM seed includes `META_WHATSAPP_*` (existing blobs need one-time set) |
-| Files | — | `./files` bind mount; backup **policy** waits on D-006 (`OPS-STORAGE`) |
+| Files | — | private S3 ap-south-1 (`OPS-STORAGE` / M12-S02) |
 
 ---
 
@@ -39,7 +39,7 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 | `SECRET-SSM-WHATSAPP` | P1 | Meta keys in SSM seed (`FIXED`) |
 | `TF-SNAPSHOT` | P1 | `skip_final_snapshot` default false + deletion protection (`FIXED`) |
 | `TF-SSH-EXAMPLE` | P1 | Example SSH `/32` (`FIXED`) |
-| `OPS-STORAGE` | P1 | KYC/licence files on EC2 disk; policy under D-006 **BLOCKED** |
+| `OPS-STORAGE` | P1 | KYC/licence files on private S3 (`FIXED` via D-006 / M12-S02; apply Terraform + SSM) |
 | `COMPOSE-REDIS-UNUSED` | P2 | Redis unused by sessions; keep service; actuator Redis health off (`FIXED`) |
 | `HEALTH-SHALLOW` | P2 | `/api/v1/health` pings DataSource; Redis health off (`FIXED`) |
 | `TF-REDIS-CRYPTO` | P2 | ElastiCache transit encryption `preferred` (`FIXED`) |
@@ -52,9 +52,9 @@ Spine detail also in [`02-cross-cutting.md`](02-cross-cutting.md).
 
 ## D-006 / Module 12
 
-**Open.** Hosting, India residency, DR, backups, scale, retention, localization, environments are **not decided**. Current single-EC2 + 7-day RDS backup is a *fact*, not an approved NFR.
+**D-006 Closed** 2026-09-20. Hosting/residency/backups: single EC2 + RDS + ElastiCache in ap-south-1; evidence files on private S3 (M12-S02). Personal-data access/export/erasure still waits on **D-013**.
 
-Honest “production ready” cannot be claimed until D-006 is closed. Implementable P0/P1 product/ops rows in this folder are **FIXED**; file-backup **policy** stays blocked. Do not implement M12-S01 while D-006 is open.
+File-backup policy is closed; apply Terraform + SSM `NMM_FILES_BUCKET` for M12-S02. Do not invent DPDP controls.
 
 ---
 
