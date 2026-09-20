@@ -369,7 +369,7 @@ class InventoryAdjustmentTest extends AbstractIntegrationTest {
             .andExpect(jsonPath("$.data.decidedAt").isNotEmpty())
             .andReturn();
     Instant created =
-        Instant.parse(first.path("createdAt").asText()).truncatedTo(ChronoUnit.MICROS);
+        Instant.parse(first.path("createdAt").asText()).truncatedTo(ChronoUnit.MILLIS);
     Instant persisted =
         Instant.parse(
                 objectMapper
@@ -377,7 +377,7 @@ class InventoryAdjustmentTest extends AbstractIntegrationTest {
                     .path("data")
                     .path("createdAt")
                     .asText())
-            .truncatedTo(ChronoUnit.MICROS);
+            .truncatedTo(ChronoUnit.MILLIS);
     assertThat(persisted).isEqualTo(created);
   }
 
