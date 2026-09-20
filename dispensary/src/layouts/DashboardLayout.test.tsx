@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { TooltipProvider } from '@atoms';
 import DashboardLayout from '@/layouts/DashboardLayout';
 import { MODULE_NAV_ITEMS, NAV_SECTIONS, ROUTES } from '@/libs/constants/routes.const';
+import { hasHospitalAccess, isHospitalNavPath } from '@/libs/hospitalAccess';
 import { authReducer, kioskReducer, notificationsReducer } from '@/store';
 import { initialKioskScreenState } from '@/screens/kiosk/store';
 import { initialPosState, posReducer } from '@/screens/pos/store/pos.slice';
@@ -273,14 +274,20 @@ describe('dispensary counter rail', () => {
     renderDashboard();
     const nav = screen.getByRole('navigation', { name: 'On this floor' });
 
-    for (const section of NAV_SECTIONS) {
+    const visibleSections = NAV_SECTIONS.filter(
+      (section) => section.id !== 'hospital' || hasHospitalAccess(undefined),
+    );
+    for (const section of visibleSections) {
       expect(within(nav).getByRole('button', { name: section.label })).toHaveAttribute(
         'aria-expanded',
         'true',
       );
     }
 
-    for (const item of MODULE_NAV_ITEMS) {
+    const visibleNavItems = MODULE_NAV_ITEMS.filter(
+      (item) => !isHospitalNavPath(item.path) || hasHospitalAccess(undefined),
+    );
+    for (const item of visibleNavItems) {
       const name = item.badge ? `${item.label}, ${item.badge.label}` : item.label;
       expect(within(nav).getByRole('link', { name })).toBeInTheDocument();
     }

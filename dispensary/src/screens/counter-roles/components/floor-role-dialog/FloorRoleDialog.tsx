@@ -113,8 +113,8 @@ export function FloorRoleDialog({ open, catalog, onOpenChange, onSuccess }: Floo
                     className="mt-0.5 size-4 accent-brand"
                     aria-label={moduleLabel(item.code)}
                     checked={picked.includes(item.code)}
-                    disabled={!item.entitled || item.gated}
-                    onChange={() => toggle(item.code, item.entitled && !item.gated)}
+                    disabled={!item.entitled}
+                    onChange={() => toggle(item.code, item.entitled)}
                   />
                   <span className="min-w-0">
                     <span className="block text-sm text-ink">{moduleLabel(item.code)}</span>

@@ -123,6 +123,12 @@ describe('HQ plan overrides', () => {
     );
   });
 
+  it('legend: Pro mix names hospital and IPD for HQ', async () => {
+    listMock.mockResolvedValue([{ ...row, planCode: 'PRO' }]);
+    renderPage('admin_super');
+    expect(await screen.findByText('Unlocks hospital / IPD on tenant pharmacies')).toBeInTheDocument();
+  });
+
   it('denied: non-MASTER cannot override', () => {
     renderPage('admin_verification');
     expect(screen.getByRole('alert')).toHaveTextContent(

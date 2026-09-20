@@ -186,7 +186,10 @@ class ApprovalWorkflowTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/approvals/actions").cookie(owner))
         .andExpect(status().isOk())
-        .andExpect(jsonPath("$.data.actions.length()").value(2));
+        .andExpect(jsonPath("$.data.actions.length()").value(3))
+        .andExpect(
+            jsonPath("$.data.actions[?(@.actionKey=='HOSPITAL_PRICE_LIST')].moduleCode")
+                .value("HOSPITAL"));
   }
 
   @Test

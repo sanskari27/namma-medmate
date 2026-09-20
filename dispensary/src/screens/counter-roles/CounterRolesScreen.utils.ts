@@ -26,6 +26,8 @@ export function moduleLabel(code: string): string {
       return 'Campaigns';
     case 'KIOSK':
       return 'Self-order kiosk';
+    case 'HOSPITAL':
+      return 'Hospital';
     case 'ONLINE_STORE':
       return 'Online store';
     default:

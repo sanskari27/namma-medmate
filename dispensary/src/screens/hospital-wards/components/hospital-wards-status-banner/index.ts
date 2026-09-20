@@ -1,0 +1,1 @@
+export { HospitalWardsStatusBanner } from './HospitalWardsStatusBanner';

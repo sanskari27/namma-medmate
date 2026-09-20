@@ -319,7 +319,7 @@ for (const file of markdownFiles) {
 }
 
 const topIndex = await readFile(path.join(root, '_index.md'), 'utf8');
-for (let module = 1; module <= 12; module += 1) {
+for (let module = 1; module <= 13; module += 1) {
   if (!topIndex.includes(`| M${module} |`)) errors.push(`_index.md: missing M${module} epic`);
   const row = topIndex.split('\n').find((line) => line.startsWith(`| M${module} |`));
   const declaredCount = Number(row?.split('|').map((cell) => cell.trim()).filter(Boolean)[2]);

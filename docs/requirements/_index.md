@@ -1,6 +1,6 @@
 # Namma MedMate requirements index
 
-The 12 epics mirror the 12 modules in `docs/product/product-compiled.md`.
+The 13 epics cover the 12 compiled product modules plus Hospital Pharmacy (M13).
 Stories are vertical implementation contracts, not backend-only tasks.
 
 | Epic | Product module | Stories | Delivery |
@@ -17,6 +17,7 @@ Stories are vertical implementation contracts, not backend-only tasks.
 | M10 | [Notifications & Communication](10-notifications-communication/_index.md) | 4 | Phase 1 |
 | M11 | [Integrations](11-integrations/_index.md) | 3 | Phase 1 + deferred |
 | M12 | [Deferred Non-Functional Requirements](12-deferred-non-functional/_index.md) | 2 | Phase 1 + deferred |
+| M13 | [Hospital Pharmacy — IPD, Ward Supply & Institutional Billing](13-hospital-pharmacy/_index.md) | 10 | Phase 1 |
 
 ## Product-source coverage map
 
@@ -113,6 +114,19 @@ dependencies rather than duplicated.
 - **Resend transactional email:** M11-S02
 - **Deferred integration boundaries:** M11-S03
 
+### Module 13: Hospital Pharmacy
+
+- **Entitlement and hospital account:** M13-S01
+- **Wards and occupancy:** M13-S02
+- **Departments and doctors:** M13-S03
+- **IPD admission:** M13-S04
+- **Ward indents:** M13-S05
+- **Issue to ward / institutional invoice:** M13-S06
+- **Ward stock, returns, hospital AR:** M13-S07
+- **POS ward / emergency / OPD:** M13-S08
+- **Patient settlement and discharge:** M13-S09
+- **Sales register:** M13-S10
+
 ### Module 12: Deferred Non-Functional Requirements
 
 - **Hosting and residency:** M12-S01
@@ -130,3 +144,4 @@ dependencies rather than duplicated.
   regulatory workflows, ecommerce, customer POS gateway, GST/GSP filing, and
   government integrations are Phase 2 or later.
 - Module 12 NFR baseline is D-006 (closed). File evidence storage is M12-S02.
+- HIS/EMR, doctor or patient login, and insurer/TPA claim APIs are out of M13.

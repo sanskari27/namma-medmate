@@ -1,0 +1,1 @@
+export { HospitalWardFields } from './HospitalWardFields';

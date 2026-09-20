@@ -6,14 +6,14 @@ independent verifier verdict. When a row status changes, update the counts.
 
 | Status | Count |
 |---|---:|
-| done | 69 |
+| done | 72 |
 | in_progress | 0 |
 | implemented | 0 |
 | verified | 0 |
-| ready | 0 |
+| ready | 7 |
 | blocked | 0 |
 | deferred | 3 |
-| total | 72 |
+| total | 82 |
 
 | Story | Epic | Apps | Status | Depends on | Decisions | Evidence / notes |
 |---|---|---|---|---|---|---|
@@ -89,3 +89,13 @@ independent verifier verdict. When a row status changes, update the counts.
 | M11-S03 | M11 | decision | deferred | — | — | Phase 2 integration backlog |
 | M12-S01 | M12 | decision | deferred | — | D-006 | D-006 Closed 2026-09-20. Phase 2 decision contract stays deferred by phase. Follow-up runtime is M12-S02. |
 | M12-S02 | M12 | server | done | — | — | Independent verifier PASS (16aa51dc). verified→done. Gap-close after FAIL (4a6e48bf): Redis starter restored; ProdOpsSeedTest SSE-S3 AES256 + NMM_FILES_REGION. Delta 6 tests BUILD SUCCESS 2026-09-20T02:37:34. Listed gate 991/0 2026-09-20T02:32:12. `make compose-config` OK. |
+| M13-S01 | M13 | server + dispensary + admin | done | M2-S05, M1-S05 | D-016 closed | Independent verifier PASS (85bcc7fe). Server: V67 hospital_credit_account + hospital_product_price_rule; HOSPITAL Pro-only module; GET/PUT /api/v1/hospital/account + /prices; HOSPITAL_PRICE_LIST approval; HospitalPolicyTest, HospitalAccountTest, HospitalPriceTest, HospitalRollbackTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 1018 tests BUILD SUCCESS 2026-09-20T15:32:25. Dispensary: HospitalBillingScreen /hospital-billing (7 states + pending_approval), hospital.ts, nav gated on HOSPITAL, Pro subscription copy, floor-role HOSPITAL label + entitled checkbox fix. SPA lint+710 tests+build. Admin: Pro mix legend hospital/IPD (not dispensary clone). SPA lint+209 tests+build. `make compose-config` OK. Requirements valid. Browser: stack not running on verify host; uniqueness from source — viridian Hospital billing vs navy Pro ledger legend. |
+| M13-S02 | M13 | server + dispensary | done | M13-S01, M2-S04 | — | Independent verifier PASS (430ac634). Server: V68 hospital_ward + hospital_bed; HospitalWardService/Controller GET/POST/PUT /api/v1/hospital/wards; occupyBed for AC04; pharmacist HOSPITAL module in V68. Tests HospitalWardTest (AC01–AC05), HospitalWardRollbackTest, HospitalPolicyTest. Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` 1030 tests BUILD SUCCESS 2026-09-20T15:51:24. Dispensary: HospitalWardsScreen /hospital-wards (11 tests incl. edit ward AC01, no_branch), nav IPD · Wards, hospital.ts wards API, BedDouble icon. SPA lint+721 tests+build. Delta after FAIL (a21ded3d): edit-ward test green. `make compose-config` OK. Requirements valid. Browser: stack not running on verify host; uniqueness from source — viridian bed map/KPI strip vs hospital billing form. |
+| M13-S03 | M13 | server + dispensary | done | M13-S01, M3-S04 | — | Independent verifier PASS (8837a40a). Server: V69 hospital_department + hospital_doctor; HospitalDepartmentService/DoctorService + controllers `/api/v1/hospital/departments` + `/doctors`; M3 registration reuse REGISTRATION_TAKEN; HospitalPolicy type/status parsers. Tests HospitalDepartmentTest, HospitalDoctorTest, HospitalDirectoryRollbackTest, HospitalPolicyTest (+2). Gate `cd server && DOCKER_HOST=unix:///var/run/docker.sock ./mvnw spotless:check test` Tests run: 1042 Failures: 0 BUILD SUCCESS 2026-09-20T16:46:23. Dispensary: HospitalDepartmentsScreen + HospitalDoctorsScreen (8 tests each), nav Departments/Doctors, hospital.ts, hospitalAccess. SPA lint+737 tests+build. `make compose-config` OK. Requirements valid 82. Browser: :5173 login session ended (server restart needed for V69); uniqueness from source — viridian Departments/Doctors directory vs IPD wards. |
+| M13-S04 | M13 | server + dispensary | ready | M13-S02, M13-S03, M3-S01 | — | New epic. Not started. IPD admit, UHID, payer snapshot. |
+| M13-S05 | M13 | server + dispensary | ready | M13-S02, M4-S03 | — | New epic. Not started. Ward indents. |
+| M13-S06 | M13 | server + dispensary | ready | M13-S01, M13-S05, M6-S02, M4-S03 | — | New epic. Not started. Issue to ward, WS tax invoice, hospital AR debit. |
+| M13-S07 | M13 | server + dispensary | ready | M13-S06, M8-S03 | — | New epic. Not started. Ward stock, returns, statement, payments. |
+| M13-S08 | M13 | server + dispensary | ready | M13-S04, M6-S05 | — | New epic. Not started. POS OPD/Ward/Emergency sources; patient INV not hospital AR. |
+| M13-S09 | M13 | server + dispensary | ready | M13-S08, M13-S04 | — | New epic. Not started. Active-patient settlement and discharge. |
+| M13-S10 | M13 | server + dispensary | ready | M13-S08, M13-S09, M6-S08 | — | New epic. Not started. Hospital-aware sales register. |

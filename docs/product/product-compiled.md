@@ -1,5 +1,5 @@
 # Pharmacy CRM + ERP — Master Requirements Document (v1)
-**Status:** Modules 1–11 locked. Module 12 (Non-Functional Requirements) deferred — see note at end.
+**Status:** Modules 1–11 locked. Module 12 (Non-Functional Requirements) deferred — see note at end. Module 13 (Hospital Pharmacy) is a new Phase 1 epic on the dispensary dashboard.
 **Type:** Multi-tenant SaaS
 
 ---
@@ -291,8 +291,25 @@ Cold-Chain Temperature Logs & Refrigerator Maintenance Logs & Temperature Excurs
 - **Communication:** WhatsApp only, no SMS fallback.
 - **Accounting software export** (Tally/Zoho/QuickBooks): not planned.
 - **E-commerce/storefront:** own built-in storefront, Phase 2 (not third-party platform integration).
-- **Labs/Insurance/TPA:** out of scope.
+- **Labs/Insurance/TPA APIs:** out of scope. Module 13 may snapshot Insurance/TPA as a staff-selected payer or POS payment mode (insurer name + policy number) with no claim file, insurer portal, or TPA integration.
 - **Transactional email:** Resend (password reset links for MASTER/OWNER, invoice copies if customer email present, etc.).
+
+---
+
+## Module 13: Hospital Pharmacy
+
+Hospital pharmacies (Pro) run this module from the dispensary dashboard. It is not a HIS: no doctor/patient login, no EMR, no TPA/claim APIs.
+
+- **Entitlement:** `HOSPITAL` is plan-gated on Pro. Other plans get `PLAN_LIMIT`.
+- **Two money paths:** (1) ward/floor/refill **issues** billed to one tenant **hospital credit account** at institutional credit price (GST invoice `WS/…`, NET terms, credit limit); (2) **patient** POS invoices with sale source OPD Rx / Ward / Emergency (`INV/…`) settled Cash/UPI/Card/Khata/Insurance-TPA snapshot — these do not debit hospital AR.
+- **Masters:** wards/beds/occupancy; departments; hospital doctor directory (extends M3 doctor references; no login).
+- **IPD:** admit to a free bed with tenant-unique UHID; optional attending, diagnosis, SELF_PAY or INSURANCE_TPA; discharge frees the bed after patient bills are settled.
+- **Indents:** PENDING → APPROVED|REJECTED → ISSUED on linked ward issue.
+- **Issue to ward:** pharmacy `STOCK_OUT` + ward-held stock + hospital AR in one transaction; reasons FLOOR_STOCK / CONSUMPTION / PATIENT_REFILL.
+- **AR:** ward stock, returns, statement, payments, ageing, reminder (M10).
+- **Register:** filter/export patient sales by source, payment, insurer, ward. Online remains Phase 2 (D-008).
+
+Detail: `docs/product/m13-hospital.md`.
 
 ---
 

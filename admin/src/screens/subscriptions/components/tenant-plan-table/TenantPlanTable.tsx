@@ -50,6 +50,9 @@ export function TenantPlanTable({
             <p className="font-mono text-[11px] text-brand">{code}</p>
             <p className="font-serif text-lg text-ink">{mix[code] ?? 0}</p>
             <p className="text-xs text-muted">{planLabel(code)} tenants</p>
+            {code === 'PRO' ? (
+              <p className="mt-1 text-[11px] text-muted">Unlocks hospital / IPD on tenant pharmacies</p>
+            ) : null}
           </div>
         ))}
       </section>

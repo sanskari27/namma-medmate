@@ -1,0 +1,128 @@
+.hw {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  min-height: 0;
+  padding: 4px 4px 20px;
+  color: var(--color-ink);
+  font-size: 14px;
+  line-height: 1.5;
+}
+
+.hw-banner {
+  margin: 0;
+  padding: 10px 14px;
+  border-radius: 8px;
+  border: 1px solid var(--color-line);
+}
+
+.hw-banner[data-tone='alert'] {
+  background: #feecec;
+}
+
+.hw-banner[data-tone='warn'] {
+  background: #fff8eb;
+}
+
+.hw-banner[data-tone='ok'] {
+  background: var(--color-brand-soft);
+}
+
+.hw-header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.hw-kpi-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+  gap: 10px;
+}
+
+.hw-kpi {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  padding: 10px 12px;
+  background: var(--color-surface);
+}
+
+.hw-kpi dt {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+}
+
+.hw-kpi dd {
+  margin: 4px 0 0;
+  font-size: 18px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+
+.hw-bed-map {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  min-height: 0;
+}
+
+.hw-ward-block {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.hw-ward-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-canvas);
+}
+
+.hw-ward-meta {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.hw-bed-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+  gap: 8px;
+  padding: 10px 12px;
+}
+
+.hw-bed {
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+}
+
+.hw-bed[data-state='occupied'] {
+  border-color: var(--color-warn);
+  background: #fff8eb;
+}
+
+.hw-bed[data-state='free'] {
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
+.hw-bed-state {
+  display: block;
+  margin-top: 2px;
+  font-family: var(--font-sans, sans-serif);
+  font-size: 11px;
+  color: var(--color-muted);
+}

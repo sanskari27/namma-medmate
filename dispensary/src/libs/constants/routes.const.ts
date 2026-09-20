@@ -10,6 +10,10 @@ export const ROUTES = {
   RETURNS: '/returns',
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
+  HOSPITAL_WARDS: '/hospital-wards',
+  HOSPITAL_BILLING: '/hospital-billing',
+  HOSPITAL_DEPARTMENTS: '/hospital-departments',
+  HOSPITAL_DOCTORS: '/hospital-doctors',
   CAMPAIGNS: '/campaigns',
   CREDIT: '/credit',
   INVENTORY: '/inventory',
@@ -71,6 +75,32 @@ export const NAV_SECTIONS = [
       { label: 'Prescriptions', path: ROUTES.PRESCRIPTIONS, hint: 'Rx file for this pharmacy' },
       { label: 'Customers', path: ROUTES.CUSTOMERS, hint: 'Walk-in and regulars' },
       { label: 'Tag broadcasts', path: ROUTES.CAMPAIGNS, hint: 'WhatsApp lists from patient tags' },
+    ],
+  },
+  {
+    id: 'hospital',
+    label: 'Hospital',
+    items: [
+      {
+        label: 'IPD · Wards',
+        path: ROUTES.HOSPITAL_WARDS,
+        hint: 'Ward beds and live occupancy',
+      },
+      {
+        label: 'Hospital billing',
+        path: ROUTES.HOSPITAL_BILLING,
+        hint: 'Bill-to institution and credit prices',
+      },
+      {
+        label: 'Departments',
+        path: ROUTES.HOSPITAL_DEPARTMENTS,
+        hint: 'OPD, IPD, and diagnostic units',
+      },
+      {
+        label: 'Doctors',
+        path: ROUTES.HOSPITAL_DOCTORS,
+        hint: 'Hospital doctor directory — no login',
+      },
     ],
   },
   {

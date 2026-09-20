@@ -1,0 +1,1 @@
+export { HospitalOccupancyStrip } from './HospitalOccupancyStrip';

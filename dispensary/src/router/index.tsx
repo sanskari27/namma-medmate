@@ -40,6 +40,10 @@ import CampaignsScreen from '@/screens/campaigns/CampaignsScreen';
 import TrendsScreen from '@/screens/trends/TrendsScreen';
 import CustomReportsScreen from '@/screens/custom-reports/CustomReportsScreen';
 import KioskScreen from '@/screens/kiosk/KioskScreen';
+import HospitalBillingScreen from '@/screens/hospital-billing/HospitalBillingScreen';
+import HospitalDepartmentsScreen from '@/screens/hospital-departments/HospitalDepartmentsScreen';
+import HospitalDoctorsScreen from '@/screens/hospital-doctors/HospitalDoctorsScreen';
+import HospitalWardsScreen from '@/screens/hospital-wards/HospitalWardsScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
 
 const router = createBrowserRouter([
@@ -69,6 +73,10 @@ const router = createBrowserRouter([
           { path: ROUTES.BRANCHES, element: <BranchesScreen /> },
           { path: ROUTES.CUSTOMERS, element: <CustomersScreen /> },
           { path: ROUTES.CAMPAIGNS, element: <CampaignsScreen /> },
+          { path: ROUTES.HOSPITAL_WARDS, element: <HospitalWardsScreen /> },
+          { path: ROUTES.HOSPITAL_BILLING, element: <HospitalBillingScreen /> },
+          { path: ROUTES.HOSPITAL_DEPARTMENTS, element: <HospitalDepartmentsScreen /> },
+          { path: ROUTES.HOSPITAL_DOCTORS, element: <HospitalDoctorsScreen /> },
           { path: ROUTES.CREDIT, element: <CreditScreen /> },
           { path: ROUTES.INVENTORY, element: <InventoryScreen /> },
           { path: ROUTES.SALES, element: <PosScreen /> },

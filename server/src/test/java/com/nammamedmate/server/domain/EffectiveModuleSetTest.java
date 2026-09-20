@@ -10,7 +10,7 @@ class EffectiveModuleSetTest {
   @Test
   void ac04_proOwnerReceivesKioskModule() {
     assertThat(EffectiveModuleSet.resolve(AppUserRole.pharmacy_owner, Set.of(), PlanCode.PRO))
-        .contains(ModuleCode.KIOSK, ModuleCode.LOYALTY);
+        .contains(ModuleCode.KIOSK, ModuleCode.LOYALTY, ModuleCode.HOSPITAL);
   }
 
   @Test
@@ -18,7 +18,8 @@ class EffectiveModuleSetTest {
     assertThat(EffectiveModuleSet.resolve(AppUserRole.pharmacy_owner, Set.of()))
         .isEqualTo(PlanModuleEntitlements.entitledTenantModules())
         .contains(ModuleCode.SALES, ModuleCode.ROLES, ModuleCode.STAFF, ModuleCode.COMPLIANCE)
-        .doesNotContain(ModuleCode.LOYALTY, ModuleCode.KIOSK, ModuleCode.TENANT_KYC);
+        .doesNotContain(
+            ModuleCode.LOYALTY, ModuleCode.KIOSK, ModuleCode.HOSPITAL, ModuleCode.TENANT_KYC);
   }
 
   @Test

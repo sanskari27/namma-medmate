@@ -13,6 +13,8 @@ class ModuleCatalogTest {
     assertThat(ModuleCode.LOYALTY.planGated()).isTrue();
     assertThat(ModuleCode.KIOSK.planGated()).isTrue();
     assertThat(ModuleCode.KIOSK.tenantModule()).isTrue();
+    assertThat(ModuleCode.HOSPITAL.planGated()).isTrue();
+    assertThat(ModuleCode.HOSPITAL.tenantModule()).isTrue();
     assertThat(ModuleCode.SALES.planGated()).isFalse();
     assertThat(ModuleCode.COMPLIANCE.tenantModule()).isTrue();
     assertThat(ModuleCode.COMPLIANCE.planGated()).isFalse();

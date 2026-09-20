@@ -1,5 +1,7 @@
 import {
   BadgePercent,
+  BedDouble,
+  Building2,
   Banknote,
   BookOpen,
   Calculator,
@@ -30,6 +32,7 @@ import {
   ShieldAlert,
   ShoppingBag,
   Stamp,
+  Stethoscope,
   Store,
   Table2,
   Tag,
@@ -71,6 +74,7 @@ import { cn } from '@/libs/cn';
 import { hasFinanceAccess, isFinanceNavPath } from '@/libs/financeAccess';
 import { hasReportingAccess, isReportingNavPath } from '@/libs/reportingAccess';
 import { hasCampaignAccess, isCampaignNavPath } from '@/libs/campaignAccess';
+import { hasHospitalAccess, isHospitalNavPath } from '@/libs/hospitalAccess';
 import { ALL_OUTLETS_LABEL, PHARMACY_NAME } from '@/libs/constants/counters.const';
 import { branchSwitched, logout, type RootState } from '@/store';
 import { logoutSession } from '@/services/auth';
@@ -86,6 +90,10 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.PRESCRIPTIONS]: Pill,
   [ROUTES.CUSTOMERS]: Users,
   [ROUTES.CAMPAIGNS]: Megaphone,
+  [ROUTES.HOSPITAL_WARDS]: BedDouble,
+  [ROUTES.HOSPITAL_BILLING]: Stethoscope,
+  [ROUTES.HOSPITAL_DEPARTMENTS]: Building2,
+  [ROUTES.HOSPITAL_DOCTORS]: UserRound,
   [ROUTES.CREDIT]: Wallet,
   [ROUTES.INVENTORY]: Package,
   [ROUTES.PURCHASES]: ShoppingBag,
@@ -141,6 +149,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
   const canSeeFinance = hasFinanceAccess(user?.role, user?.roles);
   const canSeeReporting = hasReportingAccess(user?.role, user?.modules);
   const canSeeCampaigns = hasCampaignAccess(user?.role, user?.modules);
+  const canSeeHospital = hasHospitalAccess(user?.modules);
   const tenantStatus = user?.tenantStatus;
   const floorOpen = !tenantStatus || tenantStatus === 'ACTIVE';
   const branches = user?.branches ?? [];
@@ -342,6 +351,9 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
         ) : null}
 
         {NAV_SECTIONS.map((section) => {
+          if (section.id === 'hospital' && !canSeeHospital) {
+            return null;
+          }
           const items = section.items.filter((item) =>
             floorNavAllowed(tenantStatus, item.path),
           );
@@ -376,6 +388,7 @@ export function AppSidebar({ collapsed = false, onNavigate }: AppSidebarProps) {
                     .filter((item) => canSeeFinance || !isFinanceNavPath(item.path))
                     .filter((item) => canSeeReporting || !isReportingNavPath(item.path))
                     .filter((item) => canSeeCampaigns || !isCampaignNavPath(item.path))
+                    .filter((item) => canSeeHospital || !isHospitalNavPath(item.path))
                     .map((item) => (
                       <li key={item.path}>
                         <RailLink

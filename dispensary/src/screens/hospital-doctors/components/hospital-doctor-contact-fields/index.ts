@@ -1,0 +1,1 @@
+export { HospitalDoctorContactFields } from './HospitalDoctorContactFields';

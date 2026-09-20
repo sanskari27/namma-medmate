@@ -15,9 +15,11 @@ class PlanModuleEntitlementsTest {
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.LOYALTY))
         .isFalse();
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.KIOSK)).isFalse();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.FREE, ModuleCode.HOSPITAL))
+        .isFalse();
     assertThat(PlanModuleEntitlements.entitledForTenant(ModuleCode.ONLINE_STORE)).isFalse();
     assertThat(PlanModuleEntitlements.gatedTenantModules())
-        .containsExactly(ModuleCode.LOYALTY, ModuleCode.KIOSK);
+        .containsExactly(ModuleCode.LOYALTY, ModuleCode.KIOSK, ModuleCode.HOSPITAL);
     assertThat(PlanModuleEntitlements.allTenantModules()).doesNotContain(ModuleCode.ONLINE_STORE);
     assertThat(PlanModuleEntitlements.platformModules()).doesNotContain(ModuleCode.ONLINE_STORE);
     assertThat(ModuleCode.ONLINE_STORE.tenantModule()).isFalse();
@@ -34,10 +36,12 @@ class PlanModuleEntitlementsTest {
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.GROWTH, ModuleCode.KIOSK))
         .isFalse();
     assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.PRO, ModuleCode.KIOSK)).isTrue();
+    assertThat(PlanModuleEntitlements.entitledForTenant(PlanCode.PRO, ModuleCode.HOSPITAL))
+        .isTrue();
     assertThat(PlanModuleEntitlements.entitledTenantModules(PlanCode.GROWTH))
-        .doesNotContain(ModuleCode.ONLINE_STORE, ModuleCode.KIOSK);
+        .doesNotContain(ModuleCode.ONLINE_STORE, ModuleCode.KIOSK, ModuleCode.HOSPITAL);
     assertThat(PlanModuleEntitlements.entitledTenantModules(PlanCode.PRO))
-        .contains(ModuleCode.KIOSK);
+        .contains(ModuleCode.KIOSK, ModuleCode.HOSPITAL);
   }
 
   @Test

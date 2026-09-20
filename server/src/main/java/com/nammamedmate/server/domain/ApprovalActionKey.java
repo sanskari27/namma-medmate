@@ -2,7 +2,8 @@ package com.nammamedmate.server.domain;
 
 public enum ApprovalActionKey {
   SALES_DISCOUNT_PERCENT(ModuleCode.SALES, ApprovalThresholdUnit.BPS),
-  INVENTORY_WRITE_OFF(ModuleCode.INVENTORY, ApprovalThresholdUnit.PAISE);
+  INVENTORY_WRITE_OFF(ModuleCode.INVENTORY, ApprovalThresholdUnit.PAISE),
+  HOSPITAL_PRICE_LIST(ModuleCode.HOSPITAL, ApprovalThresholdUnit.BPS);
 
   private final ModuleCode module;
   private final ApprovalThresholdUnit unit;

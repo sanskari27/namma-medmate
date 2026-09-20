@@ -19,6 +19,7 @@ chosen behavior and date.
 | D-011 | Medication safety source and policy | Approve the clinical data source, allergy/interaction matching, severity, unavailable-data behavior, override authority, and audit policy. | Closed | M3-S08 | Product and clinical owner |
 | D-012 | Loyalty policy | Define eligible spend/products, earn rate, point value, rounding, redemption limits, expiry, return reversal, downgrade behavior, and adjustment authority. | Closed | M3-S09 | Product owner |
 | D-013 | DPDP operational policy | Define the data inventory, purpose/minimization, notice/consent, principal requests, correction, export, erasure, legal-retention exceptions, grievance, breach, deadlines, and accountable roles required for the stated India DPDP baseline. | Closed | M1-S09 | Product, legal, and security owner |
+| D-016 | Hospital pharmacy entitlement | Restore hospital/IPD on Pro, sell it on another plan, or keep it out of Phase 1? | Closed | M13-S01 | Product owner |
 
 ## Closed-decision record format
 
@@ -202,3 +203,14 @@ Denied reports show an upgrade explanation without leaking results. Downgrade pr
 **Owner:** Product owner  
 **Affected:** M1-S02, M1-S10  
 **Supersedes:** Prior D-015 idle-sign-out wording; M1-S10-AC04b idle-sign-out expectation follows this revision.
+
+## D-016 — Hospital pharmacy is Pro-only
+
+**Chosen:** Restore hospital/IPD as a plan-gated `HOSPITAL` module on **Pro** (same pattern as Kiosk). Free, Starter, and Growth cannot open hospital APIs or screens (`422 PLAN_LIMIT` + upgrade). Dual billing from the live hospital console is in scope: ward issues to the institution credit account, and patient Ward/Emergency/OPD invoices on the till. Insurance/TPA is a staff snapshot only (no TPA API). HIS/EMR and doctor/patient login stay out.
+
+**Rejected:** Hospital on Growth; a separate paid add-on SKU; keeping hospital out of Phase 1; collapsing patient IPD bills into hospital AR.
+
+**Effective:** 2026-09-20  
+**Owner:** Product owner  
+**Affected:** M13-S01
+

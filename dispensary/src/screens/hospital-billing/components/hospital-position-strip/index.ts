@@ -1,0 +1,1 @@
+export { HospitalPositionStrip } from './HospitalPositionStrip';

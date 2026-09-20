@@ -169,7 +169,7 @@ export function planTagline(code: string): string {
     case 'GROWTH':
       return 'Most popular';
     case 'PRO':
-      return 'Kiosk & more';
+      return 'Hospital, kiosk & more';
     default:
       return 'Pharmacy plan';
   }
@@ -196,6 +196,9 @@ export function planFeatures(plan: PlanOffer): string[] {
   }
   if (plan.entitledModules.includes('KIOSK')) {
     items.push('Self-order kiosk');
+  }
+  if (plan.entitledModules.includes('HOSPITAL')) {
+    items.push('Hospital billing & IPD');
   }
   return items.slice(0, 5);
 }

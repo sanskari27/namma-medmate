@@ -43,6 +43,7 @@ public final class ApprovalActionCatalog {
     return switch (key) {
       case SALES_DISCOUNT_PERCENT -> "Sales discount percent";
       case INVENTORY_WRITE_OFF -> "Inventory write-off";
+      case HOSPITAL_PRICE_LIST -> "Hospital price list";
     };
   }
 

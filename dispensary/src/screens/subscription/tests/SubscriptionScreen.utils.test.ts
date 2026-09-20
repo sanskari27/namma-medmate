@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { planFeatures, planTagline } from '../SubscriptionScreen.utils';
 
 describe('plan rate card copy', () => {
-  it('drops hospital from Pro and does not sell CRM on Free', () => {
-    expect(planTagline('PRO')).toBe('Kiosk & more');
+  it('names hospital on Pro and does not sell CRM on Free', () => {
+    expect(planTagline('PRO')).toBe('Hospital, kiosk & more');
     expect(
       planFeatures({
         planCode: 'FREE',
@@ -19,8 +19,14 @@ describe('plan rate card copy', () => {
         pricePaiseMonthly: 1,
         maxUsers: 5,
         maxBranches: 5,
-        entitledModules: ['KIOSK', 'LOYALTY'],
+        entitledModules: ['KIOSK', 'LOYALTY', 'HOSPITAL'],
       }),
-    ).toEqual(['Up to 5 users', 'Up to 5 outlets', 'Loyalty points', 'Self-order kiosk']);
+    ).toEqual([
+      'Up to 5 users',
+      'Up to 5 outlets',
+      'Loyalty points',
+      'Self-order kiosk',
+      'Hospital billing & IPD',
+    ]);
   });
 });
