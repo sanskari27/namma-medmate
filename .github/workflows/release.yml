@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Optional existing tag to deploy (leave empty to cut a new release)'
+        description: 'Optional existing tag to deploy (leave empty to cut a new release after CI)'
         required: false
         type: string
         default: ''
@@ -15,7 +15,12 @@ permissions:
   contents: write
 
 jobs:
+  ci:
+    if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
+    uses: ./.github/workflows/ci-tests.yml
+
   release:
+    needs: ci
     if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
     runs-on: ubuntu-latest
     outputs:
@@ -36,8 +41,8 @@ jobs:
         run: gh release create "${{ steps.version.outputs.tag }}" --generate-notes
 
   deploy:
-    needs: release
-    if: ${{ always() && (needs.release.result == 'success' || (needs.release.result == 'skipped' && inputs.tag != '')) }}
+    needs: [ci, release]
+    if: ${{ always() && !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')) }}
     uses: ./.github/workflows/build-deploy.yml
     with:
       tag: ${{ needs.release.outputs.tag || inputs.tag }}

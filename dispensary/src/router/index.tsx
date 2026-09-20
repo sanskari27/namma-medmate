@@ -13,6 +13,7 @@ import CounterRolesScreen from '@/screens/counter-roles/CounterRolesScreen';
 import SignOffRulesScreen from '@/screens/sign-off-rules/SignOffRulesScreen';
 import WaitingSignOffScreen from '@/screens/waiting-sign-off/WaitingSignOffScreen';
 import FloorActivityScreen from '@/screens/floor-activity/FloorActivityScreen';
+import PrivacyDeskScreen from '@/screens/privacy-desk/PrivacyDeskScreen';
 import AccountScreen from '@/screens/account/AccountScreen';
 import BranchesScreen from '@/screens/branches/BranchesScreen';
 import SubscriptionScreen from '@/screens/subscription/SubscriptionScreen';
@@ -90,6 +91,7 @@ const router = createBrowserRouter([
           { path: ROUTES.APPROVALS, element: <SignOffRulesScreen /> },
           { path: ROUTES.APPROVALS_PENDING, element: <WaitingSignOffScreen /> },
           { path: ROUTES.ACTIVITY, element: <FloorActivityScreen /> },
+          { path: ROUTES.PRIVACY, element: <PrivacyDeskScreen /> },
         ],
       },
     ],

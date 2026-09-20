@@ -29,4 +29,8 @@ export const API = {
   ADMIN_COMPLIANCE_LICENSES_DUE: '/api/v1/admin/compliance/licenses/due',
   WHATSAPP_TEMPLATES: '/api/v1/communications/whatsapp/templates',
   WHATSAPP_PROVIDER_SYNC: '/api/v1/communications/whatsapp/templates/provider/sync',
+  ADMIN_DPDP_MATRIX: '/api/v1/admin/dpdp/matrix',
+  ADMIN_DPDP_REQUESTS: '/api/v1/admin/dpdp/requests',
+  adminDpdpAccept: (id: string) => `/api/v1/admin/dpdp/requests/${id}/accept`,
+  adminDpdpDecide: (id: string) => `/api/v1/admin/dpdp/requests/${id}/decide`,
 } as const;

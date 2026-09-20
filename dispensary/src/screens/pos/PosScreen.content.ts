@@ -176,6 +176,8 @@ export const POS_CONTENT = {
 
   offlineTitle: 'Sales is offline',
   offlineBody: 'Keep this bill. Collect when the counter is back on the line.',
+  offlineOutletLabel: 'This outlet',
+  offlineOutletError: 'Could not switch outlet. Try again.',
 
   status: {
     loading: 'Loading sales catalogue…',

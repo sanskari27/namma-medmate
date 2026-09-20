@@ -34,6 +34,7 @@ export const ROUTES = {
   APPROVALS: '/approvals',
   APPROVALS_PENDING: '/approvals/pending',
   ACTIVITY: '/activity',
+  PRIVACY: '/privacy',
   BRANCHES: '/branches',
   SUBSCRIPTION: '/subscription',
 } as const;
@@ -143,6 +144,11 @@ export const NAV_SECTIONS = [
         hint: 'Requests waiting on the counter',
       },
       { label: 'Floor activity', path: ROUTES.ACTIVITY, hint: 'Who signed in and what they did' },
+      {
+        label: 'Privacy desk',
+        path: ROUTES.PRIVACY,
+        hint: 'Access, correction, export and erasure for this shop',
+      },
       { label: 'Outlets', path: ROUTES.BRANCHES, hint: 'Branches at this pharmacy' },
       { label: 'Subscription', path: ROUTES.SUBSCRIPTION, hint: 'Plan for this pharmacy' },
     ],

@@ -12,6 +12,7 @@ import HqDesksScreen from '@/screens/hq-desks/HqDesksScreen';
 import WorkflowDesksScreen from '@/screens/workflow-desks/WorkflowDesksScreen';
 import HqSignOffsScreen from '@/screens/hq-sign-offs/HqSignOffsScreen';
 import PlatformActivityScreen from '@/screens/platform-activity/PlatformActivityScreen';
+import PrincipalRequestsScreen from '@/screens/principal-requests/PrincipalRequestsScreen';
 import StaffVerificationScreen from '@/screens/staff-verifications/StaffVerificationScreen';
 import SupportSessionScreen from '@/screens/support-session/SupportSessionScreen';
 import KycQueueScreen from '@/screens/kyc-queue/KycQueueScreen';
@@ -50,6 +51,7 @@ const router = createBrowserRouter([
           { path: ROUTES.WORKFLOWS, element: <WorkflowDesksScreen /> },
           { path: ROUTES.SIGN_OFFS, element: <HqSignOffsScreen /> },
           { path: ROUTES.ACTIVITY, element: <PlatformActivityScreen /> },
+          { path: ROUTES.PRINCIPAL_REQUESTS, element: <PrincipalRequestsScreen /> },
         ],
       },
     ],

@@ -27,6 +27,7 @@ import { counterRolesReducer } from '@/screens/counter-roles/store/counterRoles.
 import { signOffRulesReducer } from '@/screens/sign-off-rules/store/signOffRules.slice';
 import { waitingSignOffReducer } from '@/screens/waiting-sign-off/store/waitingSignOff.slice';
 import { floorActivityReducer } from '@/screens/floor-activity/store/floorActivity.slice';
+import { privacyDeskReducer } from '@/screens/privacy-desk/store/privacyDesk.slice';
 import { branchesReducer } from '@/screens/branches/store/branches.slice';
 import { whatsappTemplatesReducer } from '@/screens/whatsapp-templates/store/whatsappTemplates.slice';
 import { whatsappSendsReducer } from '@/screens/whatsapp-sends/store/whatsappSends.slice';
@@ -81,6 +82,7 @@ export const store = configureStore({
     signOffRules: signOffRulesReducer,
     waitingSignOff: waitingSignOffReducer,
     floorActivity: floorActivityReducer,
+    privacyDesk: privacyDeskReducer,
     branches: branchesReducer,
     whatsappTemplates: whatsappTemplatesReducer,
     whatsappSends: whatsappSendsReducer,

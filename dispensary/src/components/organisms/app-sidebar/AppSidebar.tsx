@@ -26,6 +26,7 @@ import {
   Scale,
   ScanBarcode,
   Settings,
+  Shield,
   ShieldAlert,
   ShoppingBag,
   Stamp,
@@ -108,6 +109,7 @@ const NAV_ICONS: Record<string, LucideIcon> = {
   [ROUTES.APPROVALS]: Stamp,
   [ROUTES.APPROVALS_PENDING]: ClipboardCheck,
   [ROUTES.ACTIVITY]: History,
+  [ROUTES.PRIVACY]: Shield,
   [ROUTES.BRANCHES]: Store,
   [ROUTES.SUBSCRIPTION]: BadgePercent,
 };

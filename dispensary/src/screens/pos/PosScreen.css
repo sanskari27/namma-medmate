@@ -23,6 +23,7 @@
   --pos-r: 10px;
   --pos-r-lg: 14px;
   flex: 1;
+  position: relative;
   width: 100%;
   max-width: none;
   margin-inline: 0;

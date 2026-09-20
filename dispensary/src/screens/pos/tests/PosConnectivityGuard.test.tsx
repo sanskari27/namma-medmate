@@ -1,4 +1,4 @@
-import { screen, waitFor } from '@testing-library/react';
+import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 
@@ -38,6 +38,9 @@ vi.mock('@/services/doctors', async () => {
   const axios = await import('@/services/axios');
   return { listDoctors: vi.fn(), ApiError: axios.ApiError, isApiError: axios.isApiError };
 });
+vi.mock('@/services/sessionBranch', () => ({
+  switchSessionBranch: vi.fn(),
+}));
 vi.mock('@/services/salesInvoices', async () => {
   const axios = await import('@/services/axios');
   return {
@@ -73,6 +76,7 @@ import {
   createSalesInvoice,
   pingSalesInvoiceHealth,
 } from '@/services/salesInvoices';
+import { switchSessionBranch } from '@/services/sessionBranch';
 import {
   addNamedPack,
   posCustomer,
@@ -94,6 +98,7 @@ const createInvoiceMock = vi.mocked(createSalesInvoice);
 const applyPricingMock = vi.mocked(applyInvoicePricing);
 const completeInvoiceMock = vi.mocked(completeSalesInvoice);
 const pingHealthMock = vi.mocked(pingSalesInvoiceHealth);
+const switchBranchMock = vi.mocked(switchSessionBranch);
 
 describe('POS connectivity guard', () => {
   beforeEach(() => {
@@ -126,6 +131,13 @@ describe('POS connectivity guard', () => {
     createInvoiceMock.mockResolvedValue(invoice);
     applyPricingMock.mockResolvedValue(invoice);
     pingHealthMock.mockResolvedValue({ status: 'UP' });
+    switchBranchMock.mockResolvedValue({
+      activeBranchId: 'b2',
+      branches: [
+        { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+        { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+      ],
+    });
   });
 
   it('shows a full-screen overlay when the sales API is down while the browser is online', async () => {
@@ -165,5 +177,16 @@ describe('POS connectivity guard', () => {
     });
     expect(pingHealthMock).toHaveBeenCalled();
     expect(screen.getAllByText(/INV\/2026-27\/BR01\/00001/).length).toBeGreaterThan(0);
+  });
+
+  it('lets staff switch outlet from the offline overlay', async () => {
+    const user = userEvent.setup();
+    pingHealthMock.mockRejectedValue(new Error('network'));
+    const { store } = renderPos();
+    const overlay = await screen.findByRole('alertdialog', { name: 'Sales is offline' });
+    expect(overlay).toHaveAttribute('aria-modal', 'false');
+    await user.selectOptions(within(overlay).getByLabelText('This outlet'), 'b2');
+    await waitFor(() => expect(switchBranchMock).toHaveBeenCalledWith('b2'));
+    expect(store.getState().auth.user?.activeBranchId).toBe('b2');
   });
 });

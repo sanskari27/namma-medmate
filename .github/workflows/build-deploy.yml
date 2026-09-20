@@ -9,17 +9,22 @@ on:
   workflow_dispatch:
     inputs:
       tag:
-        description: 'Git tag to deploy (e.g. v3 or feature)'
+        description: 'Git tag to deploy (e.g. v14 or feature)'
         required: true
         type: string
 
 permissions:
   contents: read
 
+concurrency:
+  group: production-deploy
+  cancel-in-progress: false
+
 jobs:
   deploy:
     runs-on: [self-hosted, deploy-prod]
     environment: production
+    timeout-minutes: 25
     steps:
       - uses: actions/checkout@v4
         with:
@@ -30,6 +35,17 @@ jobs:
           AWS_REGION: ap-south-1
         run: ./scripts/pull-prod-env.sh .env
       - name: Build and restart
-        run: docker compose -f compose.prod.yaml up -d --build server dispensary admin
+        run: |
+          set -euo pipefail
+          if ! docker compose -f compose.prod.yaml up -d --build --wait server dispensary admin; then
+            docker compose -f compose.prod.yaml logs --tail=200 server dispensary admin
+            exit 1
+          fi
+      - name: Check API and SPAs
+        run: |
+          set -euo pipefail
+          curl -fsS http://127.0.0.1:18080/actuator/health
+          curl -fsS -o /dev/null http://127.0.0.1:10080/
+          curl -fsS -o /dev/null http://127.0.0.1:10081/
       - name: Refresh host TLS / Nginx
         run: sudo ./scripts/setup-prod-tls.sh

@@ -18,7 +18,7 @@ chosen behavior and date.
 | D-010 | Scheme and offer rule engine | Provide precedence, eligibility, stacking, date, quantity, tax, return, and approval rules. | Closed | M6-S06 | Product owner |
 | D-011 | Medication safety source and policy | Approve the clinical data source, allergy/interaction matching, severity, unavailable-data behavior, override authority, and audit policy. | Closed | M3-S08 | Product and clinical owner |
 | D-012 | Loyalty policy | Define eligible spend/products, earn rate, point value, rounding, redemption limits, expiry, return reversal, downgrade behavior, and adjustment authority. | Closed | M3-S09 | Product owner |
-| D-013 | DPDP operational policy | Define the data inventory, purpose/minimization, notice/consent, principal requests, correction, export, erasure, legal-retention exceptions, grievance, breach, deadlines, and accountable roles required for the stated India DPDP baseline. | Open | M1-S09 | Product, legal, and security owner |
+| D-013 | DPDP operational policy | Define the data inventory, purpose/minimization, notice/consent, principal requests, correction, export, erasure, legal-retention exceptions, grievance, breach, deadlines, and accountable roles required for the stated India DPDP baseline. | Closed | M1-S09 | Product, legal, and security owner |
 
 ## Closed-decision record format
 
@@ -44,6 +44,16 @@ affected story IDs below the table. Never rewrite product source history.
 **Effective:** 2026-09-20  
 **Owner:** Product owner  
 **Affected:** M12-S01
+
+## D-013 — Phase 1 DPDP operational policy
+
+**Chosen:** Phase 1 ships staff-mediated access, correction, export, and erasure in the product (no principal login, no magic-link portal, no extra consent UI). OWNER records and fulfills tenant shop principals (customers, doctors, suppliers, staff). MASTER records and fulfills MASTER accounts and OWNER/tenant KYC held to run the SaaS. Pharmacy OWNER is Fiduciary for tenant shop data; Namma MedMate is Fiduciary for MASTER accounts and SaaS KYC. Identity: OWNER/MASTER attests out-of-band (method text + attester + timestamp) before the clock starts. Deadline is 30 calendar days from verified accept. Export/access is JSON of that principal’s current profile fields plus related invoice/register IDs — not a GST/NDPS line dump. Correction changes current profile fields only; posted invoices, GST, NDPS, audit, and S3 evidence objects are never rewritten. Erasure refuses to alter those legal facts; optional CRM fields (email, DOB, gender, address, blood group, allergies, chronic conditions) may be blanked; name/phone stay if they appear on a legal invoice/register, otherwise they become a stable “erased” placeholder with the same id. Staff/OWNER/MASTER erasure revokes sessions and saved devices, marks the user inactive, blanks optional profile fields, and keeps the user id on audit/approval rows; KYC evidence required to run/close the account is kept. Tenant churn does not auto-wipe personal data. Request rows themselves are kept indefinitely. Walk-in with no profile: OWNER may create a staff-managed customer using existing name+phone fields, then process. No extra child/guardian rules. Logs/notifications keep today’s feature payloads; never log passwords, PINs, tokens, or KYC file bytes. Impersonation stays unlogged (D-001). Grievance and breach are ops runbook only (no in-app module; product copy is “contact platform ops”). No campaign consent flag.
+
+**Rejected:** Public self-service or new principal login; platform as Fiduciary for shop customer data; rewriting historical invoices/registers; automatic churn wipe; in-app grievance/breach; extra consent UI; inventing a grievance email in the product.
+
+**Effective:** 2026-09-20  
+**Owner:** Product owner  
+**Affected:** M1-S09
 
 ## D-002 — Family credit uses individual limits
 

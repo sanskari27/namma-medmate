@@ -1,0 +1,1 @@
+export { PrivacyDeskForm } from './PrivacyDeskForm';

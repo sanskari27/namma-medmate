@@ -139,6 +139,12 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
 
   long countByTenantIdAndCustomerId(UUID tenantId, UUID customerId);
 
+  boolean existsByTenantIdAndCustomerIdAndStatus(
+      UUID tenantId, UUID customerId, SalesInvoiceStatus status);
+
+  boolean existsByTenantIdAndDoctorIdAndStatus(
+      UUID tenantId, UUID doctorId, SalesInvoiceStatus status);
+
   @Modifying(clearAutomatically = true)
   @Query(
       """

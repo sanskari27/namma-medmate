@@ -47,20 +47,17 @@ make clone-db    # pg_dump prod → restore local Postgres :25432
 
 See [`scripts/clone-prod-db.env.example`](scripts/clone-prod-db.env.example).
 
-## Production deploy
+## CI / CD
 
-Terraform provisions EC2 + RDS + ElastiCache and writes the compose `.env` to
-SSM (`/namma-medmate-prod/compose.env`). The deploy workflow pulls that
-parameter onto the host, then:
+| Workflow | When | What |
+|---|---|---|
+| **CI Tests** | Every PR to `main`, and again on a `main` push before release | Server `spotless:check test`; dispensary + admin `lint` + test + Vite build (`VITE_API_BASE_URL=https://api.nammamedmate.com`); `make compose-config`; requirements validator |
+| **Main deploy** | Push to `main` (after CI) or **Run workflow** | Cuts `vN` (empty tag) or redeploys an existing tag; EC2 rebuilds **server + dispensary + admin** images, waits for health, curls API `:18080`, pharmacy `:10080`, admin `:10081` |
+| **Prod env (SSM)** | Manual | `set` / `unset` / `keys` on `/namma-medmate-prod/compose.env` |
+| **Clone Prod DB to S3** | Manual | `pg_dump` to the dumps bucket |
+| **Feature Tag** | Push `feature/**` | Force-updates the `feature` tag for a later manual deploy |
 
-```bash
-./scripts/pull-prod-env.sh .env
-docker compose -f compose.prod.yaml up -d --build
-```
-
-Change a value without a new Terraform apply: GitHub Action **Prod env (SSM)**
-(`set` / `unset` / `keys`), or `./scripts/update-prod-env.sh`. The next deploy
-pulls the updated blob into `.env`.
+Terraform provisions EC2 + RDS + ElastiCache and seeds SSM. Redeploy after an SSM change so compose picks it up.
 
 Host Nginx TLS: [`deploy/HOST_NGINX.md`](deploy/HOST_NGINX.md).
 

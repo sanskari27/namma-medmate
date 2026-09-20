@@ -1,0 +1,1 @@
+export { PrivacyDeskList } from './PrivacyDeskList';

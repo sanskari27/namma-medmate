@@ -1,0 +1,1 @@
+export { PrivacyDeskStatusBanner } from './PrivacyDeskStatusBanner';

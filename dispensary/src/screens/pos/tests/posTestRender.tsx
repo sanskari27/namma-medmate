@@ -174,6 +174,11 @@ export function renderPos(
           emailVerified: true,
           modules,
           roles,
+          branches: [
+            { id: 'b1', name: 'Main outlet', branchCode: 'BR01', status: 'ACTIVE' },
+            { id: 'b2', name: 'Annex outlet', branchCode: 'BR02', status: 'ACTIVE' },
+          ],
+          activeBranchId: 'b1',
         },
       },
     },

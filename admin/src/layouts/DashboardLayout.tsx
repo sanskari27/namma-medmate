@@ -12,6 +12,7 @@ import {
   KeyRound,
   LayoutDashboard,
   MessageCircle,
+  Shield,
   UserRound,
   type LucideIcon,
 } from 'lucide-react';
@@ -47,6 +48,7 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.WORKFLOWS]: GitBranch,
   [ROUTES.SIGN_OFFS]: ClipboardCheck,
   [ROUTES.ACTIVITY]: FileClock,
+  [ROUTES.PRINCIPAL_REQUESTS]: Shield,
   [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };
 

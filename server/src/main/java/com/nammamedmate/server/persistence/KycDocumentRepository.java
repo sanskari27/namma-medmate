@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.JpaRepository;
 
 public interface KycDocumentRepository extends JpaRepository<KycDocument, UUID> {
 
+  List<KycDocument> findByTenantIdOrderByCreatedAtAsc(UUID tenantId);
+
   List<KycDocument> findBySubmissionIdAndTenantIdOrderByDocTypeAsc(
       UUID submissionId, UUID tenantId);
 
