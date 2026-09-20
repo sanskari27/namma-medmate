@@ -1,0 +1,1 @@
+export { HospitalIssuesHeader } from './HospitalIssuesHeader';

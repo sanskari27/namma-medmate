@@ -7,20 +7,59 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import HospitalWardsScreen from '@/screens/hospital-wards/HospitalWardsScreen';
 import { ApiError } from '@/services/axios';
 import { authReducer } from '@/store';
-import type { HospitalWardOccupancy } from '@/services/hospital';
+import type { HospitalAdmission, HospitalWardOccupancy } from '@/services/hospital';
 
 vi.mock('@/services/hospital', () => ({
   getHospitalWards: vi.fn(),
   createHospitalWard: vi.fn(),
   updateHospitalWard: vi.fn(),
+  listHospitalAdmissions: vi.fn(),
+  getNextHospitalUhid: vi.fn(),
+  admitHospitalPatient: vi.fn(),
+  getHospitalDoctors: vi.fn(),
   isApiError: (error: unknown) => error instanceof ApiError,
 }));
 
-import { createHospitalWard, getHospitalWards, updateHospitalWard } from '@/services/hospital';
+import {
+  admitHospitalPatient,
+  createHospitalWard,
+  getHospitalDoctors,
+  getHospitalWards,
+  getNextHospitalUhid,
+  listHospitalAdmissions,
+  updateHospitalWard,
+} from '@/services/hospital';
 
 const listMock = vi.mocked(getHospitalWards);
 const createMock = vi.mocked(createHospitalWard);
 const updateMock = vi.mocked(updateHospitalWard);
+const admissionsMock = vi.mocked(listHospitalAdmissions);
+const nextUhidMock = vi.mocked(getNextHospitalUhid);
+const admitMock = vi.mocked(admitHospitalPatient);
+const doctorsMock = vi.mocked(getHospitalDoctors);
+
+const admission: HospitalAdmission = {
+  id: 'a1',
+  uhid: 'UHID-00001',
+  patientName: 'Ravi Kumar',
+  phone: null,
+  age: null,
+  gender: null,
+  customerId: null,
+  wardId: 'w1',
+  wardName: 'General A',
+  bedId: 'b1',
+  bedLabel: 'GA-1',
+  attendingDoctorId: null,
+  attendingDoctorName: null,
+  diagnosis: 'Observation',
+  payerType: 'SELF_PAY',
+  insurerName: null,
+  policyNumber: null,
+  status: 'ACTIVE',
+  admittedAt: '2026-09-20T10:00:00Z',
+  version: 0,
+};
 
 const occupancy: HospitalWardOccupancy = {
   wardCount: 1,
@@ -78,6 +117,13 @@ describe('HospitalWardsScreen', () => {
     listMock.mockReset();
     createMock.mockReset();
     updateMock.mockReset();
+    admissionsMock.mockReset();
+    nextUhidMock.mockReset();
+    admitMock.mockReset();
+    doctorsMock.mockReset();
+    admissionsMock.mockResolvedValue([]);
+    doctorsMock.mockResolvedValue([]);
+    nextUhidMock.mockResolvedValue('UHID-00001');
   });
 
   it('loading: waits for ward occupancy', () => {
@@ -156,8 +202,19 @@ describe('HospitalWardsScreen', () => {
     );
   });
 
+  it('empty admissions: shows admissions empty copy', async () => {
+    listMock.mockResolvedValue(occupancy);
+    admissionsMock.mockResolvedValue([]);
+    renderPage();
+    expect(await screen.findByText('General A')).toBeInTheDocument();
+    expect(
+      screen.getByText('No admitted patients on this outlet yet. Select a free bed to admit.'),
+    ).toBeInTheDocument();
+  });
+
   it('success: shows KPI strip and bed map grouped by ward', async () => {
     listMock.mockResolvedValue(occupancy);
+    admissionsMock.mockResolvedValue([admission]);
     renderPage();
     expect(await screen.findByText('General A')).toBeInTheDocument();
     expect(screen.getByText('50% occupied')).toBeInTheDocument();
@@ -227,6 +284,120 @@ describe('HospitalWardsScreen', () => {
     expect(createMock).toHaveBeenCalled();
     expect(await screen.findByRole('status')).toHaveTextContent('Ward saved.');
     await waitFor(() => expect(manageButton).toHaveFocus());
+  });
+
+  it('validation: admit requires patient name and UHID', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(occupancy);
+    renderPage();
+    await screen.findByText('General A');
+    await user.click(screen.getByRole('button', { name: 'GA-2 Free' }));
+    await user.click(screen.getByRole('button', { name: 'Admit to this bed' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Patient name and patient ID are required',
+    );
+    expect(admitMock).not.toHaveBeenCalled();
+  });
+
+  it('conflict: duplicate UHID shows taken copy', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(occupancy);
+    admitMock.mockRejectedValue(new ApiError('taken', 409, 'UHID_TAKEN'));
+    renderPage();
+    await screen.findByText('General A');
+    await user.click(screen.getByRole('button', { name: 'GA-2 Free' }));
+    await user.type(screen.getByRole('textbox', { name: 'Patient name' }), 'Ravi Kumar');
+    await user.click(screen.getByRole('button', { name: 'Admit to this bed' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'This patient ID is already in use on this pharmacy',
+    );
+  });
+
+  it('validation: TPA payer needs insurer and policy', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(occupancy);
+    renderPage();
+    await screen.findByText('General A');
+    await user.click(screen.getByRole('button', { name: 'GA-2 Free' }));
+    await user.type(screen.getByRole('textbox', { name: 'Patient name' }), 'TPA patient');
+    await user.click(screen.getByRole('radio', { name: 'Insurance / TPA' }));
+    await user.click(screen.getByRole('button', { name: 'Admit to this bed' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent(
+      'Insurance/TPA needs insurer name and policy number',
+    );
+    expect(admitMock).not.toHaveBeenCalled();
+  });
+
+  it('success: admits from free bed and shows occupied header', async () => {
+    const user = userEvent.setup();
+    listMock
+      .mockResolvedValueOnce(occupancy)
+      .mockResolvedValueOnce({
+        ...occupancy,
+        occupiedBeds: 2,
+        freeBeds: 0,
+        occupancyPercent: 100,
+        admittedCount: 2,
+        wards: [
+          {
+            ...occupancy.wards[0],
+            beds: [
+              occupancy.wards[0].beds[0],
+              { ...occupancy.wards[0].beds[1], occupancyStatus: 'OCCUPIED' },
+            ],
+          },
+        ],
+      });
+    admissionsMock
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([
+        admission,
+        {
+          ...admission,
+          id: 'a2',
+          uhid: 'UHID-00002',
+          bedId: 'b2',
+          bedLabel: 'GA-2',
+          patientName: 'Second',
+        },
+      ]);
+    admitMock.mockResolvedValue({
+      ...admission,
+      id: 'a2',
+      uhid: 'UHID-00001',
+      bedId: 'b2',
+      bedLabel: 'GA-2',
+      patientName: 'Second',
+    });
+    renderPage();
+    await screen.findByText('General A');
+    const freeBed = screen.getByRole('button', { name: 'GA-2 Free' });
+    await user.click(freeBed);
+    await user.type(screen.getByRole('textbox', { name: 'Patient name' }), 'Second');
+    const admitButton = screen.getByRole('button', { name: 'Admit to this bed' });
+    await user.click(admitButton);
+    expect(admitMock).toHaveBeenCalledWith(
+      expect.objectContaining({
+        patientName: 'Second',
+        uhid: 'UHID-00001',
+        wardId: 'w1',
+        bedId: 'b2',
+        payerType: 'SELF_PAY',
+      }),
+    );
+    expect(await screen.findByRole('status')).toHaveTextContent('Patient admitted.');
+    expect(screen.getByLabelText('Occupied bed')).toHaveTextContent('Second · UHID-00001');
+  });
+
+  it('success: occupied bed opens header from bed map', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(occupancy);
+    admissionsMock.mockResolvedValue([admission]);
+    renderPage();
+    await screen.findByText('General A');
+    await user.click(screen.getByRole('button', { name: 'GA-1 Occupied' }));
+    expect(screen.getByLabelText('Occupied bed')).toHaveTextContent('Ravi Kumar · UHID-00001');
+    expect(screen.getByText('Observation')).toBeInTheDocument();
   });
 
   it('plan_limit: shows upgrade link without hospital module', async () => {

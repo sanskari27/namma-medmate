@@ -11,6 +11,8 @@ export const ROUTES = {
   PRESCRIPTIONS: '/prescriptions',
   CUSTOMERS: '/customers',
   HOSPITAL_WARDS: '/hospital-wards',
+  HOSPITAL_INDENTS: '/hospital-indents',
+  HOSPITAL_ISSUES: '/hospital-issues',
   HOSPITAL_BILLING: '/hospital-billing',
   HOSPITAL_DEPARTMENTS: '/hospital-departments',
   HOSPITAL_DOCTORS: '/hospital-doctors',
@@ -85,6 +87,16 @@ export const NAV_SECTIONS = [
         label: 'IPD · Wards',
         path: ROUTES.HOSPITAL_WARDS,
         hint: 'Ward beds and live occupancy',
+      },
+      {
+        label: 'Ward indents',
+        path: ROUTES.HOSPITAL_INDENTS,
+        hint: 'Floor requisitions awaiting issue',
+      },
+      {
+        label: 'Issue to ward',
+        path: ROUTES.HOSPITAL_ISSUES,
+        hint: 'Issue stock and bill the hospital',
       },
       {
         label: 'Hospital billing',

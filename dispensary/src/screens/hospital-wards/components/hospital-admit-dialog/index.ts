@@ -1,0 +1,1 @@
+export { HospitalAdmitDialog } from './HospitalAdmitDialog';

@@ -26,6 +26,7 @@ import com.nammamedmate.server.domain.TenantSubscription;
 import com.nammamedmate.server.domain.UserAccountStatus;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.HospitalAdmissionRepository;
 import com.nammamedmate.server.persistence.HospitalBedRepository;
 import com.nammamedmate.server.persistence.HospitalWardRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
@@ -70,10 +71,12 @@ class HospitalWardTest extends AbstractIntegrationTest {
   @Autowired private UserAccessRoleRepository userAccessRoleRepository;
   @Autowired private HospitalWardRepository hospitalWardRepository;
   @Autowired private HospitalBedRepository hospitalBedRepository;
+  @Autowired private HospitalAdmissionRepository hospitalAdmissionRepository;
   @Autowired private PasswordEncoder passwordEncoder;
 
   @BeforeEach
   void wipe() {
+    hospitalAdmissionRepository.deleteAll();
     hospitalBedRepository.deleteAll();
     hospitalWardRepository.deleteAll();
     userBranchRepository.deleteAll();
@@ -171,7 +174,24 @@ class HospitalWardTest extends AbstractIntegrationTest {
                     .content(wardJson("General", "GEN", "1", "GENERAL", 2, null, null)))
             .andReturn();
     UUID bedId = bedId(ward, 0);
-    occupyAsOwner(fx, bedId);
+    UUID wardId = wardId(ward);
+    mockMvc
+        .perform(
+            post("/api/v1/hospital/admissions")
+                .cookie(fx.owner())
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(
+                    """
+                    {
+                      "patientName":"Ravi Kumar",
+                      "uhid":"UHID-00001",
+                      "wardId":"%s",
+                      "bedId":"%s",
+                      "payerType":"SELF_PAY"
+                    }
+                    """
+                        .formatted(wardId, bedId)))
+        .andExpect(status().isOk());
 
     mockMvc
         .perform(get("/api/v1/hospital/wards").cookie(fx.owner()))

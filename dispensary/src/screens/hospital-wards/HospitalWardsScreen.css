@@ -126,3 +126,127 @@
   font-size: 11px;
   color: var(--color-muted);
 }
+
+.hw-bed {
+  text-align: left;
+  cursor: pointer;
+}
+
+.hw-admit-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin-top: 12px;
+}
+
+.hw-admit-span-2 {
+  grid-column: span 2;
+}
+
+.hw-select {
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 8px 10px;
+  background: var(--color-surface);
+  color: var(--color-ink);
+}
+
+.hw-payer-fieldset {
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  padding: 10px 12px;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+.hw-payer-option {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 14px;
+}
+
+.hw-admissions {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-surface);
+  overflow: hidden;
+}
+
+.hw-admissions-empty {
+  margin: 0;
+  padding: 12px 14px;
+  color: var(--color-muted);
+  font-size: 13px;
+}
+
+.hw-admissions-head,
+.hw-admissions-row {
+  display: grid;
+  grid-template-columns: 1.1fr 1.2fr 1.2fr 1fr;
+  gap: 8px;
+  padding: 10px 12px;
+  text-align: left;
+}
+
+.hw-admissions-head {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  color: var(--color-muted);
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-canvas);
+}
+
+.hw-admissions-row {
+  width: 100%;
+  border: 0;
+  border-bottom: 1px solid var(--color-line);
+  background: transparent;
+  font-size: 13px;
+  cursor: pointer;
+}
+
+.hw-admissions-row:last-child {
+  border-bottom: 0;
+}
+
+.hw-admissions-row[data-selected='true'] {
+  background: var(--color-brand-soft);
+}
+
+.hw-occupied {
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-surface);
+}
+
+.hw-occupied-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--color-line);
+  background: var(--color-canvas);
+}
+
+.hw-occupied-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));
+  gap: 10px;
+  padding: 10px 12px;
+}
+
+.hw-occupied-grid dt {
+  font-size: 11px;
+  color: var(--color-muted);
+}
+
+.hw-occupied-grid dd {
+  margin: 2px 0 0;
+  font-size: 14px;
+}

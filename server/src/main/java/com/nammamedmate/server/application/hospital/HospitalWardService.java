@@ -5,6 +5,7 @@ import com.nammamedmate.server.application.branch.BranchAssignmentService;
 import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.BranchStatus;
+import com.nammamedmate.server.domain.HospitalAdmissionStatus;
 import com.nammamedmate.server.domain.HospitalBed;
 import com.nammamedmate.server.domain.HospitalBedOccupancy;
 import com.nammamedmate.server.domain.HospitalPolicy;
@@ -15,6 +16,7 @@ import com.nammamedmate.server.domain.ModuleCode;
 import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.persistence.AppUserRepository;
+import com.nammamedmate.server.persistence.HospitalAdmissionRepository;
 import com.nammamedmate.server.persistence.HospitalBedRepository;
 import com.nammamedmate.server.persistence.HospitalWardRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
@@ -46,6 +48,7 @@ public class HospitalWardService {
   private final AppUserRepository appUserRepository;
   private final HospitalWardRepository wardRepository;
   private final HospitalBedRepository bedRepository;
+  private final HospitalAdmissionRepository admissionRepository;
   private final LocationRepository locationRepository;
   private final AccessQueryService accessQueryService;
   private final SubscriptionService subscriptionService;
@@ -56,6 +59,7 @@ public class HospitalWardService {
       AppUserRepository appUserRepository,
       HospitalWardRepository wardRepository,
       HospitalBedRepository bedRepository,
+      HospitalAdmissionRepository admissionRepository,
       LocationRepository locationRepository,
       AccessQueryService accessQueryService,
       SubscriptionService subscriptionService,
@@ -64,6 +68,7 @@ public class HospitalWardService {
     this.appUserRepository = appUserRepository;
     this.wardRepository = wardRepository;
     this.bedRepository = bedRepository;
+    this.admissionRepository = admissionRepository;
     this.locationRepository = locationRepository;
     this.accessQueryService = accessQueryService;
     this.subscriptionService = subscriptionService;
@@ -96,8 +101,11 @@ public class HospitalWardService {
                 .count();
     int free = total - occupied;
     int occupancyPercent = total == 0 ? 0 : Math.round(occupied * 100f / total);
+    long admittedCount =
+        admissionRepository.countByTenantIdAndBranchIdAndStatus(
+            ctx.tenantId(), ctx.branchId(), HospitalAdmissionStatus.ACTIVE);
     return new HospitalWardOccupancyView(
-        wards.size(), total, occupied, free, occupancyPercent, occupied, wardViews);
+        wards.size(), total, occupied, free, occupancyPercent, (int) admittedCount, wardViews);
   }
 
   @Transactional

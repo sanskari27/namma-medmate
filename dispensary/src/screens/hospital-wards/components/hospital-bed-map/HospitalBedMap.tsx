@@ -5,9 +5,10 @@ import { categoryLabel } from '../../HospitalWardsScreen.utils';
 type HospitalBedMapProps = {
   wards: HospitalWard[];
   onEditWard: (ward: HospitalWard, trigger: HTMLButtonElement) => void;
+  onSelectBed: (ward: HospitalWard, bedId: string, bedLabel: string, occupied: boolean) => void;
 };
 
-export function HospitalBedMap({ wards, onEditWard }: HospitalBedMapProps) {
+export function HospitalBedMap({ wards, onEditWard, onSelectBed }: HospitalBedMapProps) {
   return (
     <section className="hw-bed-map" aria-label={HOSPITAL_WARDS_CONTENT.bedMapLabel}>
       {wards.map((ward) => (
@@ -34,17 +35,19 @@ export function HospitalBedMap({ wards, onEditWard }: HospitalBedMapProps) {
             {ward.beds.map((bed) => {
               const occupied = bed.occupancyStatus === 'OCCUPIED';
               return (
-                <div
+                <button
                   key={bed.id}
+                  type="button"
                   className="hw-bed"
                   data-state={occupied ? 'occupied' : 'free'}
                   aria-label={`${bed.label} ${occupied ? HOSPITAL_WARDS_CONTENT.bedOccupied : HOSPITAL_WARDS_CONTENT.bedFree}`}
+                  onClick={() => onSelectBed(ward, bed.id, bed.label, occupied)}
                 >
                   {bed.label}
                   <span className="hw-bed-state">
                     {occupied ? HOSPITAL_WARDS_CONTENT.bedOccupied : HOSPITAL_WARDS_CONTENT.bedFree}
                   </span>
-                </div>
+                </button>
               );
             })}
           </div>

@@ -86,10 +86,20 @@ export function HospitalWardsStatusBanner({
       </p>
     );
   }
-  if (status === 'success') {
+  if (status === 'success_ward') {
     return (
       <p role="status" className="hw-banner" data-tone="ok">
         {HOSPITAL_WARDS_CONTENT.wardSaved}{' '}
+        <button type="button" className="underline" onClick={onDismiss}>
+          {HOSPITAL_WARDS_CONTENT.dismiss}
+        </button>
+      </p>
+    );
+  }
+  if (status === 'success_admit') {
+    return (
+      <p role="status" className="hw-banner" data-tone="ok">
+        {HOSPITAL_WARDS_CONTENT.admissionSaved}{' '}
         <button type="button" className="underline" onClick={onDismiss}>
           {HOSPITAL_WARDS_CONTENT.dismiss}
         </button>
