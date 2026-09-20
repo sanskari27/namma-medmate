@@ -115,6 +115,11 @@ export const selectPosHeld = (state: RootState) => state.pos.held;
 export const selectPosHeldLoading = (state: RootState) => state.pos.heldLoading;
 export const selectPosRxFulfillment = (state: RootState) => state.pos.rxFulfillment;
 export const selectPosRxFulfillmentLoading = (state: RootState) => state.pos.rxFulfillmentLoading;
+export const selectPosSaleSource = (state: RootState) => state.pos.saleSource;
+export const selectPosUhid = (state: RootState) => state.pos.uhid;
+export const selectPosWardId = (state: RootState) => state.pos.wardId;
+export const selectPosHospitalWards = (state: RootState) => state.pos.hospitalWards;
+export const selectPosHospitalDoctors = (state: RootState) => state.pos.hospitalDoctors;
 
 export const selectPosCustomerDisplayName = (state: RootState) => {
   if (state.pos.selectedCustomer) {

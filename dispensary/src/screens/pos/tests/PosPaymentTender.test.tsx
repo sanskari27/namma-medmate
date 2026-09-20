@@ -173,7 +173,7 @@ describe('PosScreen mixed payment and khata', () => {
     await walkInPos(user);
     await proceedPos(user);
     expect(screen.getByRole('region', { name: 'Take payment' })).toHaveTextContent(
-      'Add cash, UPI, card, bank, or khata to collect.',
+      'Add cash, UPI, card, bank, khata, or insurance / TPA to collect.',
     );
     expect(screen.getByRole('button', { name: /Charge ₹/ })).toBeDisabled();
   });

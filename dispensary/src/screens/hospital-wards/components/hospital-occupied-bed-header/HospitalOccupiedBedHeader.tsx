@@ -1,4 +1,6 @@
+import { Link } from 'react-router-dom';
 import type { HospitalAdmission } from '@/services/hospital';
+import { ROUTES } from '@/libs/constants/routes.const';
 import { HOSPITAL_WARDS_CONTENT } from '../../HospitalWardsScreen.content';
 import { formatIstDateTime, payerSummary } from '../../HospitalWardsScreen.utils';
 
@@ -19,9 +21,17 @@ export function HospitalOccupiedBedHeader({ admission, onClose }: Props) {
             {admission.wardName} · {admission.bedLabel}
           </p>
         </div>
-        <button type="button" className="text-sm text-brand underline" onClick={onClose}>
-          {HOSPITAL_WARDS_CONTENT.dismiss}
-        </button>
+        <div className="hw-occupied-actions">
+          <Link
+            className="hw-bill-medicines"
+            to={`${ROUTES.SALES}?saleSource=WARD&admissionId=${admission.id}`}
+          >
+            {HOSPITAL_WARDS_CONTENT.billMedicines}
+          </Link>
+          <button type="button" className="text-sm text-brand underline" onClick={onClose}>
+            {HOSPITAL_WARDS_CONTENT.dismiss}
+          </button>
+        </div>
       </header>
       <dl className="hw-occupied-grid">
         <div>

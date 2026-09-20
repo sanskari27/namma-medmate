@@ -3,6 +3,7 @@ import { branchSwitched } from '@/store/auth.slice';
 import { clearPendingPrescriptionFile } from '../pos.prescriptionFile';
 import type { Customer } from '@/services/customers';
 import type { Doctor } from '@/services/doctors';
+import type { HospitalDoctor } from '@/services/hospital';
 import type { ProductCategory } from '@/services/productCategories';
 import type { ProductUnit } from '@/services/products';
 import type { SafetyEvaluation } from '@/services/medicationSafety';
@@ -10,6 +11,7 @@ import type { SalesCatalogueItem } from '@/services/salesCatalogue';
 import type {
   DiscountType,
   InvoiceOfferItem,
+  InvoiceSaleSource,
   PaymentMode,
   PrescriptionFulfillmentItem,
   SalesInvoice,
@@ -38,6 +40,7 @@ import {
   holdBill,
   loadBootstrap,
   loadHeldBills,
+  loadHospitalSaleRefs,
   loadRxFulfillment,
   loadCustomerCredit,
   loadCustomerLoyalty,
@@ -99,6 +102,12 @@ export type PosState = {
   heldLoading: boolean;
   rxFulfillment: PrescriptionFulfillmentItem[];
   rxFulfillmentLoading: boolean;
+  saleSource: InvoiceSaleSource;
+  uhid: string;
+  wardId: string;
+  admissionId: string;
+  hospitalWards: { id: string; name: string }[];
+  hospitalDoctors: HospitalDoctor[];
   createKey: string;
   completeKey: string;
 };
@@ -151,6 +160,12 @@ export const initialPosState: PosState = {
   heldLoading: false,
   rxFulfillment: [],
   rxFulfillmentLoading: false,
+  saleSource: 'COUNTER',
+  uhid: '',
+  wardId: '',
+  admissionId: '',
+  hospitalWards: [],
+  hospitalDoctors: [],
   createKey: crypto.randomUUID(),
   completeKey: crypto.randomUUID(),
 };
@@ -224,6 +239,10 @@ function clearBillFields(state: PosState) {
   state.step = 'cart';
   state.createKey = crypto.randomUUID();
   state.completeKey = crypto.randomUUID();
+  state.saleSource = 'COUNTER';
+  state.uhid = '';
+  state.wardId = '';
+  state.admissionId = '';
 }
 
 const posSlice = createSlice({
@@ -352,6 +371,50 @@ const posSlice = createSlice({
     },
     tenderPatched: (state, action: PayloadAction<Partial<TenderDraft>>) => {
       state.tender = { ...state.tender, ...action.payload };
+    },
+    saleSourceChanged: (state, action: PayloadAction<InvoiceSaleSource>) => {
+      state.saleSource = action.payload;
+      if (action.payload === 'COUNTER') {
+        state.uhid = '';
+        state.wardId = '';
+        state.admissionId = '';
+      }
+      if (action.payload === 'OPD_RX') {
+        state.wardId = '';
+        state.admissionId = '';
+      }
+    },
+    saleUhidChanged: (state, action: PayloadAction<string>) => {
+      state.uhid = action.payload;
+    },
+    saleWardChanged: (state, action: PayloadAction<string>) => {
+      state.wardId = action.payload;
+    },
+    admissionPrefill: (
+      state,
+      action: PayloadAction<{
+        saleSource: InvoiceSaleSource;
+        uhid: string;
+        wardId: string;
+        admissionId: string;
+        patientName: string;
+        phone: string;
+        customer: Customer | null;
+      }>,
+    ) => {
+      state.saleSource = action.payload.saleSource;
+      state.uhid = action.payload.uhid;
+      state.wardId = action.payload.wardId;
+      state.admissionId = action.payload.admissionId;
+      state.walkInName = action.payload.patientName;
+      state.walkInPhone = action.payload.phone;
+      if (action.payload.customer) {
+        state.selectedCustomer = action.payload.customer;
+        state.walkIn = false;
+      } else {
+        state.selectedCustomer = null;
+        state.walkIn = true;
+      }
     },
     selectCustomer: (state, action: PayloadAction<Customer>) => {
       state.selectedCustomer = action.payload;
@@ -509,6 +572,10 @@ const posSlice = createSlice({
       .addCase(loadHeldBills.rejected, (state) => {
         state.heldLoading = false;
         state.held = [];
+      })
+      .addCase(loadHospitalSaleRefs.fulfilled, (state, action) => {
+        state.hospitalWards = action.payload.wards;
+        state.hospitalDoctors = action.payload.doctors;
       })
       .addCase(loadRxFulfillment.pending, (state) => {
         state.rxFulfillmentLoading = true;
@@ -727,6 +794,10 @@ const posSlice = createSlice({
         state.statusHint = action.payload.statusHint;
         state.createKey = crypto.randomUUID();
         state.completeKey = crypto.randomUUID();
+        state.saleSource = action.payload.invoice.saleSource ?? 'COUNTER';
+        state.uhid = action.payload.invoice.uhid ?? '';
+        state.wardId = action.payload.invoice.wardId ?? '';
+        state.admissionId = action.payload.invoice.admissionId ?? '';
         state.held = state.held.filter((item) => item.id !== action.payload.invoice.id);
       })
       .addCase(continueInvoice.rejected, (state, action) => {
@@ -817,6 +888,10 @@ export const {
   customerGstinChanged,
   paymentModeSelected,
   tenderPatched,
+  saleSourceChanged,
+  saleUhidChanged,
+  saleWardChanged,
+  admissionPrefill,
   selectCustomer,
   continueAsWalkIn,
   clearCustomer,

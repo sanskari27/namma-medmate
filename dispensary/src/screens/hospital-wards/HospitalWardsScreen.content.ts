@@ -13,6 +13,7 @@ export const HOSPITAL_WARDS_CONTENT = {
   bedOccupiedError: 'That bed is already occupied.',
   tpaIncomplete: 'Insurance/TPA needs insurer name and policy number.',
   occupiedHeaderLabel: 'Occupied bed',
+  billMedicines: 'Bill medicines',
   patientNameLabel: 'Patient name',
   uhidLabel: 'Patient ID / UHID',
   phoneLabel: 'Phone',

@@ -334,6 +334,11 @@ export async function listHospitalAdmissions(): Promise<HospitalAdmission[]> {
   return data.items;
 }
 
+export async function getHospitalAdmission(id: string): Promise<HospitalAdmission> {
+  const { data } = await apiClient.get<HospitalAdmission>(API.hospitalAdmission(id));
+  return data;
+}
+
 export async function admitHospitalPatient(
   input: HospitalAdmissionInput,
 ): Promise<HospitalAdmission> {

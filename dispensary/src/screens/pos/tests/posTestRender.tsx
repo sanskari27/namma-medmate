@@ -159,6 +159,7 @@ export function renderPos(
   modules: string[] = ['SALES', 'CRM', 'INVENTORY', 'LOYALTY'],
   role = 'pharmacy_owner',
   roles: { id: string; name: string; code: string | null; kind: string }[] = [],
+  initialPath = '/pos',
 ) {
   const store = configureStore({
     reducer: { auth: authReducer, pos: posReducer },
@@ -187,7 +188,7 @@ export function renderPos(
     store,
     ...render(
       <Provider store={store}>
-        <MemoryRouter>
+        <MemoryRouter initialEntries={[initialPath]}>
           <PosScreen />
         </MemoryRouter>
       </Provider>,

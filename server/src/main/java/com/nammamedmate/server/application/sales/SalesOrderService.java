@@ -220,6 +220,7 @@ public class SalesOrderService {
       case UPI -> "UPI";
       case CREDIT -> "Khata / Credit";
       case BANK_TRANSFER -> "Bank transfer";
+      case INSURANCE_TPA -> "Insurance / TPA";
     };
   }
 

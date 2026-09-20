@@ -1,10 +1,11 @@
 import type { SafetyCheckStatus, SafetyWarning } from '@/services/medicationSafety';
 import type { Product } from '@/services/products';
-import type { SalesInvoice } from '@/services/salesInvoices';
+import type { PaymentMode, SalesInvoice } from '@/services/salesInvoices';
 import { POS_CONTENT, posStatusMessage } from './PosScreen.content';
 import type { PageStatus } from './pos.types';
 
 export type { PageStatus } from './pos.types';
+export type { PaymentMode };
 
 export const POS_SEARCH_INPUT_ID = 'pos-product-search';
 
@@ -12,17 +13,18 @@ export function restorePosSearchFocus() {
   document.getElementById(POS_SEARCH_INPUT_ID)?.focus();
 }
 
-export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
-
 export type TenderDraft = {
   cashRupees: string;
   cardRupees: string;
   upiRupees: string;
   creditRupees: string;
   bankRupees: string;
+  insuranceRupees: string;
   cardReference: string;
   upiReference: string;
   bankReference: string;
+  insurerName: string;
+  policyNumber: string;
 };
 
 export const emptyTender = (): TenderDraft => ({
@@ -31,9 +33,12 @@ export const emptyTender = (): TenderDraft => ({
   upiRupees: '',
   creditRupees: '',
   bankRupees: '',
+  insuranceRupees: '',
   cardReference: '',
   upiReference: '',
   bankReference: '',
+  insurerName: '',
+  policyNumber: '',
 });
 
 export function tenderForMode(mode: PaymentMode | null, totalPaise: number): TenderDraft {
@@ -50,6 +55,8 @@ export function tenderForMode(mode: PaymentMode | null, totalPaise: number): Ten
     blank.cardRupees = totalRupees;
   } else if (mode === 'CREDIT') {
     blank.creditRupees = totalRupees;
+  } else if (mode === 'INSURANCE_TPA') {
+    blank.insuranceRupees = totalRupees;
   } else {
     blank.bankRupees = totalRupees;
   }
@@ -63,6 +70,7 @@ export function tenderFilledCount(tender: TenderDraft): number {
     tender.upiRupees,
     tender.creditRupees,
     tender.bankRupees,
+    tender.insuranceRupees,
   ].filter((value) => value.trim()).length;
 }
 
@@ -429,7 +437,14 @@ export function previewTender(totalPaise: number, tender: TenderDraft): TenderPr
   const upi = fieldPaise(tender.upiRupees);
   const credit = fieldPaise(tender.creditRupees);
   const bank = fieldPaise(tender.bankRupees);
-  const invalid = cash == null || card == null || upi == null || credit == null || bank == null;
+  const insurance = fieldPaise(tender.insuranceRupees);
+  const invalid =
+    cash == null ||
+    card == null ||
+    upi == null ||
+    credit == null ||
+    bank == null ||
+    insurance == null;
   const amounts: TenderPart[] = [
     { mode: 'CASH', amountPaise: cash ?? 0, reference: null },
     { mode: 'CARD', amountPaise: card ?? 0, reference: tender.cardReference.trim() || null },
@@ -440,6 +455,7 @@ export function previewTender(totalPaise: number, tender: TenderDraft): TenderPr
       amountPaise: bank ?? 0,
       reference: tender.bankReference.trim() || null,
     },
+    { mode: 'INSURANCE_TPA', amountPaise: insurance ?? 0, reference: null },
   ];
   const parts = amounts.filter((part) => part.amountPaise > 0);
   const paidPaise = parts.reduce((sum, part) => sum + part.amountPaise, 0);
@@ -456,8 +472,11 @@ export function previewTender(totalPaise: number, tender: TenderDraft): TenderPr
 }
 
 export function collectStatusHint(status: PageStatus, code?: string | null): string | null {
-  if (status === 'denied' && code === 'PLAN_LIMIT') {
-    return POS_CONTENT.collect.planLimit;
+  if (status === 'denied') {
+    if (code === 'PLAN_LIMIT') {
+      return POS_CONTENT.collect.planLimit;
+    }
+    return POS_CONTENT.saleSource.denied;
   }
   if (status === 'validation') {
     if (code === 'CREDIT_LIMIT_EXCEEDED') {
@@ -480,6 +499,12 @@ export function collectStatusHint(status: PageStatus, code?: string | null): str
     }
     if (code === 'APPROVAL_REQUIRED') {
       return POS_CONTENT.discountApproval.pending;
+    }
+    if (code === 'TPA_INCOMPLETE') {
+      return POS_CONTENT.collect.tpaIncomplete;
+    }
+    if (code === 'ADMISSION_DISCHARGED') {
+      return POS_CONTENT.saleSource.discharged;
     }
     return POS_CONTENT.collect.validation;
   }

@@ -13,6 +13,7 @@ import { PosOfferPanel } from './components/pos-offer-panel';
 import { PosOrderSummary } from './components/pos-order-summary';
 import { PosProductGrid } from './components/pos-product-grid';
 import { PosSafetyPanel } from './components/pos-safety-panel';
+import { PosSaleSourceStrip } from './components/pos-sale-source-strip';
 import { PosStatusBanner } from './components/pos-status-banner';
 import { PosStepper } from './components/pos-stepper';
 import { PosToolbar } from './components/pos-toolbar';
@@ -60,6 +61,7 @@ export default function PosScreen() {
         hint={statusHint}
       />
       <PosStepper />
+      <PosSaleSourceStrip />
       {step === 'cart' ? (
         <>
           <PosHeldStrip />

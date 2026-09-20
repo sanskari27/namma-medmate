@@ -728,6 +728,7 @@ public class HomeDashboardService {
       case CARD -> "Card";
       case BANK_TRANSFER -> "Bank transfer";
       case CREDIT -> "Khata / credit";
+      case INSURANCE_TPA -> "Insurance / TPA";
     };
   }
 

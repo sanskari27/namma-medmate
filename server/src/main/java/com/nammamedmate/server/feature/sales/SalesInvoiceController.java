@@ -20,6 +20,7 @@ import com.nammamedmate.server.domain.EinvoiceStatus;
 import com.nammamedmate.server.domain.EmailDeliveryStatus;
 import com.nammamedmate.server.domain.GstRateSource;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
+import com.nammamedmate.server.domain.InvoiceSaleSource;
 import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
@@ -184,6 +185,10 @@ public class SalesInvoiceController {
                     Boolean.TRUE.equals(request.prescriptionVerified()),
                     request.idempotencyKey(),
                     null,
+                    request.saleSource(),
+                    request.uhid(),
+                    request.wardId(),
+                    request.admissionId(),
                     request.lines().stream().map(this::toLine).toList()))));
   }
 
@@ -205,6 +210,10 @@ public class SalesInvoiceController {
                     Boolean.TRUE.equals(request.prescriptionVerified()),
                     "patch",
                     request.expectedVersion(),
+                    request.saleSource(),
+                    request.uhid(),
+                    request.wardId(),
+                    request.admissionId(),
                     request.lines().stream().map(this::toLine).toList()))));
   }
 
@@ -315,7 +324,9 @@ public class SalesInvoiceController {
                                     payment.reference()))
                         .toList(),
                     request.safetyWarningKeys(),
-                    request.safetyReason()))));
+                    request.safetyReason(),
+                    request.insurerName(),
+                    request.policyNumber()))));
   }
 
   private DiscountType parseDiscountType(String type) {
@@ -387,6 +398,12 @@ public class SalesInvoiceController {
         view.einvoiceStatus(),
         view.einvoiceIrn(),
         view.completedAt(),
+        view.saleSource(),
+        view.uhid(),
+        view.wardId(),
+        view.admissionId(),
+        view.insurerName(),
+        view.policyNumber(),
         view.payments() == null
             ? List.of()
             : view.payments().stream()
@@ -447,6 +464,10 @@ public class SalesInvoiceController {
       @Size(max = 64) String prescriptionReference,
       Boolean prescriptionVerified,
       @NotBlank @Size(max = 128) String idempotencyKey,
+      @Size(max = 16) String saleSource,
+      @Size(max = 32) String uhid,
+      UUID wardId,
+      UUID admissionId,
       @NotEmpty List<@Valid LineRequest> lines) {}
 
   public record UpdateSalesInvoiceRequest(
@@ -455,6 +476,10 @@ public class SalesInvoiceController {
       @Size(max = 64) String prescriptionReference,
       Boolean prescriptionVerified,
       @NotNull Integer expectedVersion,
+      @Size(max = 16) String saleSource,
+      @Size(max = 32) String uhid,
+      UUID wardId,
+      UUID admissionId,
       @NotEmpty List<@Valid LineRequest> lines) {}
 
   public record LineRequest(
@@ -493,7 +518,9 @@ public class SalesInvoiceController {
       Integer redeemPoints,
       @NotEmpty List<@Valid PaymentRequest> payments,
       List<String> safetyWarningKeys,
-      String safetyReason) {}
+      String safetyReason,
+      @Size(max = 200) String insurerName,
+      @Size(max = 64) String policyNumber) {}
 
   public record PaymentRequest(
       @NotBlank @Size(max = 16) String mode,
@@ -543,6 +570,12 @@ public class SalesInvoiceController {
       EinvoiceStatus einvoiceStatus,
       String einvoiceIrn,
       Instant completedAt,
+      InvoiceSaleSource saleSource,
+      String uhid,
+      UUID wardId,
+      UUID admissionId,
+      String insurerName,
+      String policyNumber,
       List<PaymentResponse> payments,
       List<LineResponse> lines,
       Instant createdAt,

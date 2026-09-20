@@ -400,6 +400,24 @@ describe('HospitalWardsScreen', () => {
     expect(screen.getByText('Observation')).toBeInTheDocument();
   });
 
+  it('success: occupied bed bills medicines on the till', async () => {
+    const user = userEvent.setup();
+    listMock.mockResolvedValue(occupancy);
+    admissionsMock.mockResolvedValue([admission]);
+    renderPage();
+    await screen.findByText('General A');
+    const occupied = screen.getByRole('button', { name: 'GA-1 Occupied' });
+    await user.click(occupied);
+    const bill = screen.getByRole('link', { name: 'Bill medicines' });
+    expect(bill).toHaveAttribute('href', '/pos?saleSource=WARD&admissionId=a1');
+    bill.focus();
+    expect(bill).toHaveFocus();
+    await user.click(screen.getByRole('button', { name: 'Dismiss' }));
+    expect(screen.queryByLabelText('Occupied bed')).not.toBeInTheDocument();
+    occupied.focus();
+    expect(occupied).toHaveFocus();
+  });
+
   it('plan_limit: shows upgrade link without hospital module', async () => {
     renderPage([]);
     expect(await screen.findByRole('alert')).toHaveTextContent('IPD wards are on the Pro plan');

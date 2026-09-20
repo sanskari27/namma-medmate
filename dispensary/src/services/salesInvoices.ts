@@ -10,7 +10,15 @@ export type DiscountType = 'NONE' | 'PERCENT' | 'FLAT';
 export type TaxJurisdiction = 'INTRA' | 'INTER';
 export type DiscountApprovalStatus = 'NOT_REQUIRED' | 'PENDING' | 'APPROVED' | 'REJECTED';
 export type GstRateSource = 'PRODUCT' | 'MANUAL';
-export type PaymentMode = 'CASH' | 'CARD' | 'UPI' | 'CREDIT' | 'BANK_TRANSFER';
+export type PaymentMode =
+  | 'CASH'
+  | 'CARD'
+  | 'UPI'
+  | 'CREDIT'
+  | 'BANK_TRANSFER'
+  | 'INSURANCE_TPA';
+
+export type InvoiceSaleSource = 'COUNTER' | 'OPD_RX' | 'WARD' | 'EMERGENCY';
 
 export interface SalesInvoicePayment {
   mode: PaymentMode;
@@ -69,6 +77,12 @@ export interface SalesInvoice {
   doctorId: string | null;
   prescriptionReference: string | null;
   prescriptionVerified: boolean;
+  saleSource?: InvoiceSaleSource;
+  uhid?: string | null;
+  wardId?: string | null;
+  admissionId?: string | null;
+  insurerName?: string | null;
+  policyNumber?: string | null;
   version: number;
   subtotalPaise: number;
   discountPaise: number;
@@ -129,6 +143,10 @@ export interface CreateSalesInvoiceInput {
   doctorId: string | null;
   prescriptionReference: string | null;
   prescriptionVerified: boolean;
+  saleSource?: InvoiceSaleSource;
+  uhid?: string | null;
+  wardId?: string | null;
+  admissionId?: string | null;
   idempotencyKey: string;
   lines: SalesInvoiceLineInput[];
 }
@@ -138,6 +156,10 @@ export interface UpdateSalesInvoiceInput {
   doctorId: string | null;
   prescriptionReference: string | null;
   prescriptionVerified: boolean;
+  saleSource?: InvoiceSaleSource;
+  uhid?: string | null;
+  wardId?: string | null;
+  admissionId?: string | null;
   expectedVersion: number;
   lines: SalesInvoiceLineInput[];
 }
@@ -229,6 +251,8 @@ export interface InvoiceCompleteInput {
   redeemPoints?: number;
   safetyWarningKeys?: string[];
   safetyReason?: string | null;
+  insurerName?: string | null;
+  policyNumber?: string | null;
 }
 
 export async function completeSalesInvoice(

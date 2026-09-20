@@ -12,6 +12,10 @@ public record SalesInvoiceCommand(
     boolean prescriptionVerified,
     String idempotencyKey,
     Integer expectedVersion,
+    String saleSource,
+    String uhid,
+    UUID wardId,
+    UUID admissionId,
     List<Line> lines) {
 
   public record Line(

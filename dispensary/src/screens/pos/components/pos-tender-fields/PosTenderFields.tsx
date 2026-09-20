@@ -110,6 +110,36 @@ export function PosTenderFields({ offline }: PosTenderFieldsProps) {
           onChange={(event) => dispatch(tenderPatched({ creditRupees: event.target.value }))}
         />
       </label>
+      <label>
+        {POS_CONTENT.tender.insurance}
+        <input
+          value={tender.insuranceRupees}
+          disabled={disabled}
+          inputMode="decimal"
+          aria-label={POS_CONTENT.tender.insurance}
+          onChange={(event) => dispatch(tenderPatched({ insuranceRupees: event.target.value }))}
+        />
+      </label>
+      <label>
+        {POS_CONTENT.tender.insurer}
+        <input
+          value={tender.insurerName}
+          disabled={disabled}
+          autoComplete="off"
+          aria-label={POS_CONTENT.tender.insurer}
+          onChange={(event) => dispatch(tenderPatched({ insurerName: event.target.value }))}
+        />
+      </label>
+      <label>
+        {POS_CONTENT.tender.policy}
+        <input
+          value={tender.policyNumber}
+          disabled={disabled}
+          autoComplete="off"
+          aria-label={POS_CONTENT.tender.policy}
+          onChange={(event) => dispatch(tenderPatched({ policyNumber: event.target.value }))}
+        />
+      </label>
       {preview.changePaise > 0 ? (
         <p>
           {POS_CONTENT.tender.change} {formatPaise(preview.changePaise)}

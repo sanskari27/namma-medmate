@@ -11,7 +11,9 @@ public record InvoiceCompletionCommand(
     Integer redeemPoints,
     List<Payment> payments,
     List<String> safetyWarningKeys,
-    String safetyReason) {
+    String safetyReason,
+    String insurerName,
+    String policyNumber) {
 
   public record Payment(PaymentMode mode, Long amountPaise, String reference) {}
 }

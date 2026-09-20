@@ -18,6 +18,7 @@ import com.nammamedmate.server.application.offer.InvoiceOfferListResult;
 import com.nammamedmate.server.application.offer.OfferEvaluator;
 import com.nammamedmate.server.application.prescription.PrescriptionReferenceService;
 import com.nammamedmate.server.application.product.ProductUnitConverter;
+import com.nammamedmate.server.application.subscription.SubscriptionService;
 import com.nammamedmate.server.domain.AppUser;
 import com.nammamedmate.server.domain.AppUserRole;
 import com.nammamedmate.server.domain.ApprovalActionKey;
@@ -31,13 +32,18 @@ import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.EinvoiceApplicability;
 import com.nammamedmate.server.domain.EinvoiceStatus;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.HospitalAdmission;
 import com.nammamedmate.server.domain.InvoiceHoldPolicy;
+import com.nammamedmate.server.domain.InvoiceHospitalSalePolicy;
 import com.nammamedmate.server.domain.InvoicePaymentPolicy;
 import com.nammamedmate.server.domain.InvoicePolicy;
 import com.nammamedmate.server.domain.InvoicePrescriptionPolicy;
+import com.nammamedmate.server.domain.InvoiceSaleSource;
 import com.nammamedmate.server.domain.Location;
 import com.nammamedmate.server.domain.LoyaltyPolicy;
 import com.nammamedmate.server.domain.ModuleCode;
+import com.nammamedmate.server.domain.PaymentMode;
+import com.nammamedmate.server.domain.PlanCode;
 import com.nammamedmate.server.domain.Product;
 import com.nammamedmate.server.domain.ProductUnit;
 import com.nammamedmate.server.domain.ProductUnitConversion;
@@ -56,6 +62,8 @@ import com.nammamedmate.server.persistence.AppUserRepository;
 import com.nammamedmate.server.persistence.ApprovalRequestRepository;
 import com.nammamedmate.server.persistence.CustomerRepository;
 import com.nammamedmate.server.persistence.DoctorRepository;
+import com.nammamedmate.server.persistence.HospitalAdmissionRepository;
+import com.nammamedmate.server.persistence.HospitalWardRepository;
 import com.nammamedmate.server.persistence.LocationRepository;
 import com.nammamedmate.server.persistence.ProductRepository;
 import com.nammamedmate.server.persistence.ProductUnitConversionRepository;
@@ -121,6 +129,9 @@ public class SalesInvoiceService {
   private final PrescriptionReferenceService prescriptionReferenceService;
   private final PrescriptionFileStorage prescriptionFileStorage;
   private final MedicationSafetyService medicationSafetyService;
+  private final HospitalAdmissionRepository hospitalAdmissionRepository;
+  private final HospitalWardRepository hospitalWardRepository;
+  private final SubscriptionService subscriptionService;
   private final Clock clock;
 
   public SalesInvoiceService(
@@ -151,6 +162,9 @@ public class SalesInvoiceService {
       PrescriptionReferenceService prescriptionReferenceService,
       PrescriptionFileStorage prescriptionFileStorage,
       MedicationSafetyService medicationSafetyService,
+      HospitalAdmissionRepository hospitalAdmissionRepository,
+      HospitalWardRepository hospitalWardRepository,
+      SubscriptionService subscriptionService,
       Clock clock) {
     this.salesInvoiceRepository = salesInvoiceRepository;
     this.salesInvoiceLineRepository = salesInvoiceLineRepository;
@@ -179,6 +193,9 @@ public class SalesInvoiceService {
     this.prescriptionReferenceService = prescriptionReferenceService;
     this.prescriptionFileStorage = prescriptionFileStorage;
     this.medicationSafetyService = medicationSafetyService;
+    this.hospitalAdmissionRepository = hospitalAdmissionRepository;
+    this.hospitalWardRepository = hospitalWardRepository;
+    this.subscriptionService = subscriptionService;
     this.clock = clock;
   }
 
@@ -370,6 +387,13 @@ public class SalesInvoiceService {
     InvoicePolicy.assertVersion(invoice.getVersion(), command.expectedVersion());
     Instant now = clock.instant();
     applyParty(invoice, command, ctx.tenantId());
+    applyHospitalSource(
+        principal,
+        invoice,
+        command.saleSource(),
+        command.uhid(),
+        command.wardId(),
+        command.admissionId());
     List<SalesInvoiceLine> lines = replaceLines(principal, invoice, command, now);
     evaluateDiscountApproval(
         principal,
@@ -648,6 +672,21 @@ public class SalesInvoiceService {
     InvoicePaymentPolicy.Allocation allocation =
         InvoicePaymentPolicy.allocate(collectible, changePaise, parts);
     InvoicePaymentPolicy.requireKhataCustomer(allocation.amountDuePaise(), invoice.getCustomerId());
+    boolean insuranceUsed =
+        allocation.parts().stream().anyMatch(part -> part.mode() == PaymentMode.INSURANCE_TPA);
+    InvoiceHospitalSalePolicy.assertInsuranceTender(
+        insuranceUsed, command.insurerName(), command.policyNumber());
+    applyHospitalSource(
+        principal,
+        invoice,
+        invoice.getSaleSource() == null ? null : invoice.getSaleSource().name(),
+        invoice.getUhid(),
+        invoice.getWardId(),
+        invoice.getAdmissionId());
+    if (insuranceUsed) {
+      invoice.setInsurerName(InvoiceHospitalSalePolicy.trimToNull(command.insurerName()));
+      invoice.setPolicyNumber(InvoiceHospitalSalePolicy.trimToNull(command.policyNumber()));
+    }
     List<UUID> productIds = lines.stream().map(SalesInvoiceLine::getProductId).distinct().toList();
     medicationSafetyService.assertCleared(
         principal,
@@ -743,6 +782,13 @@ public class SalesInvoiceService {
     invoice.setCreatedAt(now);
     invoice.setUpdatedAt(now);
     applyParty(invoice, command, ctx.tenantId());
+    applyHospitalSource(
+        principal,
+        invoice,
+        command.saleSource(),
+        command.uhid(),
+        command.wardId(),
+        command.admissionId());
     List<PreparedLine> prepared =
         prepareLines(
             principal, ctx, command, DiscountType.NONE, 0L, TaxJurisdiction.INTRA, Map.of());
@@ -774,6 +820,69 @@ public class SalesInvoiceService {
     String rx = command.prescriptionReference();
     invoice.setPrescriptionReference(rx == null || rx.isBlank() ? null : rx.trim());
     invoice.setPrescriptionVerified(command.prescriptionVerified());
+  }
+
+  private void applyHospitalSource(
+      AuthPrincipal principal,
+      SalesInvoice invoice,
+      String rawSource,
+      String uhid,
+      UUID wardId,
+      UUID admissionId) {
+    InvoiceSaleSource source = InvoiceHospitalSalePolicy.parseSource(rawSource);
+    AppUser user =
+        appUserRepository
+            .findById(principal.userId())
+            .filter(row -> row.getDeletedAt() == null)
+            .orElseThrow(SalesInvoiceService::forbidden);
+    boolean hasHospital = accessQueryService.effectiveModules(user).contains(ModuleCode.HOSPITAL);
+    PlanCode plan = subscriptionService.resolvePlan(invoice.getTenantId());
+    InvoiceHospitalSalePolicy.assertHospitalAccess(source, plan, hasHospital);
+    if (source == InvoiceSaleSource.COUNTER) {
+      invoice.setSaleSource(InvoiceSaleSource.COUNTER);
+      invoice.setUhid(null);
+      invoice.setWardId(null);
+      invoice.setAdmissionId(null);
+      return;
+    }
+    String resolvedUhid = InvoiceHospitalSalePolicy.requireUhid(source, uhid);
+    UUID resolvedWardId = InvoiceHospitalSalePolicy.requireWard(source, wardId);
+    if (resolvedWardId != null) {
+      hospitalWardRepository
+          .findByIdAndTenantIdAndBranchId(
+              resolvedWardId, invoice.getTenantId(), invoice.getBranchId())
+          .orElseThrow(SalesInvoiceService::notFound);
+    }
+    HospitalAdmission admission = null;
+    if (admissionId != null) {
+      admission =
+          hospitalAdmissionRepository
+              .findByIdAndTenantIdAndBranchId(
+                  admissionId, invoice.getTenantId(), invoice.getBranchId())
+              .orElseThrow(SalesInvoiceService::notFound);
+    } else if (source == InvoiceSaleSource.WARD && resolvedUhid != null) {
+      admission =
+          hospitalAdmissionRepository
+              .findByTenantIdAndBranchIdAndUhidIgnoreCase(
+                  invoice.getTenantId(), invoice.getBranchId(), resolvedUhid)
+              .orElseThrow(SalesInvoiceService::notFound);
+    }
+    if (source == InvoiceSaleSource.WARD) {
+      InvoiceHospitalSalePolicy.assertActiveWardAdmission(admission, resolvedWardId);
+      resolvedUhid = admission.getUhid();
+      resolvedWardId = admission.getWardId();
+      admissionId = admission.getId();
+    } else if (admission != null) {
+      resolvedUhid = resolvedUhid == null ? admission.getUhid() : resolvedUhid;
+      if (resolvedWardId == null) {
+        resolvedWardId = admission.getWardId();
+      }
+      admissionId = admission.getId();
+    }
+    invoice.setSaleSource(source);
+    invoice.setUhid(resolvedUhid);
+    invoice.setWardId(resolvedWardId);
+    invoice.setAdmissionId(admissionId);
   }
 
   private List<SalesInvoiceLine> replaceLines(
@@ -1203,6 +1312,12 @@ public class SalesInvoiceService {
             : invoice.getEinvoiceStatus(),
         invoice.getEinvoiceIrn(),
         invoice.getCompletedAt(),
+        invoice.getSaleSource() == null ? InvoiceSaleSource.COUNTER : invoice.getSaleSource(),
+        invoice.getUhid(),
+        invoice.getWardId(),
+        invoice.getAdmissionId(),
+        invoice.getInsurerName(),
+        invoice.getPolicyNumber(),
         paymentsOf(invoice).stream()
             .map(
                 payment ->
@@ -1299,6 +1414,12 @@ public class SalesInvoiceService {
         base.einvoiceStatus(),
         base.einvoiceIrn(),
         base.completedAt(),
+        base.saleSource(),
+        base.uhid(),
+        base.wardId(),
+        base.admissionId(),
+        base.insurerName(),
+        base.policyNumber(),
         base.payments(),
         base.lines(),
         base.createdAt(),

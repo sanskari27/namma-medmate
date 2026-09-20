@@ -234,6 +234,30 @@
   background: var(--color-canvas);
 }
 
+.hw-occupied-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.hw-bill-medicines {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  background: var(--color-brand);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.hw-bill-medicines:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 .hw-occupied-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

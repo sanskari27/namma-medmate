@@ -2,6 +2,7 @@ import { createAsyncThunk } from '@reduxjs/toolkit';
 import { getCustomerCredit } from '@/services/credit';
 import { getCustomer, listCustomers, type Customer } from '@/services/customers';
 import { listDoctors, type Doctor } from '@/services/doctors';
+import { getHospitalDoctors, getHospitalWards, type HospitalDoctor } from '@/services/hospital';
 import { listStockBatches } from '@/services/inventory';
 import { isApiError } from '@/services/axios';
 import { evaluateMedicationSafety, type SafetyEvaluation } from '@/services/medicationSafety';
@@ -32,6 +33,7 @@ import {
   updateSalesInvoice,
   type DiscountType,
   type InvoiceOfferItem,
+  type InvoiceSaleSource,
   type PrescriptionFulfillmentItem,
   type SalesInvoice,
   type SalesInvoiceLine,
@@ -71,6 +73,38 @@ export type PosReject = {
   hint: string | null;
   invoice?: SalesInvoice;
 };
+
+function hospitalSourceError(state: RootState['pos']): PosReject | null {
+  if (state.saleSource === 'WARD') {
+    if (!state.uhid.trim()) {
+      return { status: 'validation', hint: POS_CONTENT.saleSource.needUhid };
+    }
+    if (!state.wardId) {
+      return { status: 'validation', hint: POS_CONTENT.saleSource.needWard };
+    }
+  }
+  if (state.saleSource === 'EMERGENCY' && !state.uhid.trim()) {
+    return { status: 'validation', hint: POS_CONTENT.saleSource.needUhid };
+  }
+  return null;
+}
+
+function hospitalSourcePayload(state: RootState['pos']): {
+  saleSource: InvoiceSaleSource;
+  uhid: string | null;
+  wardId: string | null;
+  admissionId: string | null;
+} {
+  if (state.saleSource === 'COUNTER') {
+    return { saleSource: 'COUNTER', uhid: null, wardId: null, admissionId: null };
+  }
+  return {
+    saleSource: state.saleSource,
+    uhid: state.uhid.trim() || null,
+    wardId: state.wardId || null,
+    admissionId: state.admissionId || null,
+  };
+}
 
 function toReject(error: unknown, hintFallback?: string | null): PosReject {
   if (!isApiError(error)) {
@@ -424,6 +458,20 @@ export const loadHeldBills = createAsyncThunk<SalesInvoice[], void, { state: Roo
   },
 );
 
+export const loadHospitalSaleRefs = createAsyncThunk<
+  { wards: { id: string; name: string }[]; doctors: HospitalDoctor[] },
+  void
+>('pos/loadHospitalSaleRefs', async () => {
+  const [occupancy, doctors] = await Promise.all([
+    getHospitalWards().catch(() => null),
+    getHospitalDoctors().catch(() => [] as HospitalDoctor[]),
+  ]);
+  return {
+    wards: occupancy?.wards.map((ward) => ({ id: ward.id, name: ward.name })) ?? [],
+    doctors,
+  };
+});
+
 export const loadRxFulfillment = createAsyncThunk<
   PrescriptionFulfillmentItem[],
   void,
@@ -769,12 +817,17 @@ export const saveInvoice = createAsyncThunk<
       });
     }
   }
+  const sourceError = hospitalSourceError(state);
+  if (sourceError) {
+    return rejectWithValue(sourceError);
+  }
   try {
     const payload = {
       customerId: state.selectedCustomer?.id ?? null,
       doctorId: state.selectedDoctorId || null,
       prescriptionReference: state.prescriptionReference.trim() || null,
       prescriptionVerified: state.prescriptionVerified,
+      ...hospitalSourcePayload(state),
       lines,
     };
     const open = state.invoice && state.invoice.status !== 'COMPLETED' ? state.invoice : null;
@@ -846,6 +899,7 @@ async function patchOpenInvoice(state: RootState['pos']): Promise<SalesInvoice |
     doctorId: state.selectedDoctorId || null,
     prescriptionReference: state.prescriptionReference.trim() || null,
     prescriptionVerified: state.prescriptionVerified,
+    ...hospitalSourcePayload(state),
     lines,
     expectedVersion: open.version,
   });
@@ -879,6 +933,10 @@ export const collectPayment = createAsyncThunk<
       status: 'validation',
       hint: collectStatusHint('validation'),
     });
+  }
+  const sourceError = hospitalSourceError(state);
+  if (sourceError) {
+    return rejectWithValue(sourceError);
   }
   const creditPaise = previewTender(
     collectiblePaise(state.invoice.totalPaise, parseRedeemPoints(state.redeemPoints) ?? 0),
@@ -936,6 +994,14 @@ export const collectPayment = createAsyncThunk<
       hint: collectStatusHint('validation'),
     });
   }
+  if (preview.parts.some((part) => part.mode === 'INSURANCE_TPA')) {
+    if (!state.tender.insurerName.trim() || !state.tender.policyNumber.trim()) {
+      return rejectWithValue({
+        status: 'validation',
+        hint: POS_CONTENT.collect.tpaIncomplete,
+      });
+    }
+  }
   const cashPaise = preview.parts.find((part) => part.mode === 'CASH')?.amountPaise ?? 0;
   if (preview.changePaise > cashPaise) {
     return rejectWithValue({
@@ -959,6 +1025,8 @@ export const collectPayment = createAsyncThunk<
     }
     const due = collectiblePaise(invoice.totalPaise, points);
     const finalPreview = previewTender(due, getState().pos.tender);
+    const tender = getState().pos.tender;
+    const usesTpa = finalPreview.parts.some((part) => part.mode === 'INSURANCE_TPA');
     return await completeSalesInvoice(invoice.id, {
       expectedVersion: invoice.version,
       expectedTotalPaise: invoice.totalPaise,
@@ -968,6 +1036,8 @@ export const collectPayment = createAsyncThunk<
       redeemPoints: points,
       safetyWarningKeys: warnings.map((warning) => warning.warningKey),
       safetyReason: state.reason.trim() || null,
+      insurerName: usesTpa ? tender.insurerName.trim() : null,
+      policyNumber: usesTpa ? tender.policyNumber.trim() : null,
     });
   } catch (error) {
     if (isApiError(error)) {

@@ -1,4 +1,4 @@
-import { Banknote, Building2, CreditCard, Smartphone, Wallet } from 'lucide-react';
+import { Banknote, Building2, CreditCard, Shield, Smartphone, Wallet } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch } from '@/store';
 import type { PaymentMode } from '@/services/salesInvoices';
@@ -30,6 +30,7 @@ const MODE_ICONS: Record<PaymentMode, typeof Banknote> = {
   CARD: CreditCard,
   CREDIT: Wallet,
   BANK_TRANSFER: Building2,
+  INSURANCE_TPA: Shield,
 };
 
 const PAYMENT_MODES = Object.keys(POS_CONTENT.paymentModes) as PaymentMode[];

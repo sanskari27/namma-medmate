@@ -340,6 +340,7 @@ public class CustomerDirectoryService {
       case CARD -> "Card";
       case BANK_TRANSFER -> "Bank";
       case CREDIT -> "Khata";
+      case INSURANCE_TPA -> "Insurance / TPA";
     };
   }
 

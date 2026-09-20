@@ -5,6 +5,7 @@ import com.nammamedmate.server.domain.DiscountType;
 import com.nammamedmate.server.domain.EinvoiceApplicability;
 import com.nammamedmate.server.domain.EinvoiceStatus;
 import com.nammamedmate.server.domain.GstRateSource;
+import com.nammamedmate.server.domain.InvoiceSaleSource;
 import com.nammamedmate.server.domain.OfferKind;
 import com.nammamedmate.server.domain.PaymentMode;
 import com.nammamedmate.server.domain.ProductUnit;
@@ -58,6 +59,12 @@ public record SalesInvoiceView(
     EinvoiceStatus einvoiceStatus,
     String einvoiceIrn,
     Instant completedAt,
+    InvoiceSaleSource saleSource,
+    String uhid,
+    UUID wardId,
+    UUID admissionId,
+    String insurerName,
+    String policyNumber,
     List<PaymentView> payments,
     List<LineView> lines,
     Instant createdAt,

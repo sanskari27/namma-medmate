@@ -190,6 +190,25 @@ public class SalesInvoice {
   @Column(name = "complete_idempotency_key", length = 128)
   private String completeIdempotencyKey;
 
+  @Enumerated(EnumType.STRING)
+  @Column(name = "sale_source", nullable = false, length = 16)
+  private InvoiceSaleSource saleSource = InvoiceSaleSource.COUNTER;
+
+  @Column(length = 32)
+  private String uhid;
+
+  @Column(name = "ward_id")
+  private UUID wardId;
+
+  @Column(name = "admission_id")
+  private UUID admissionId;
+
+  @Column(name = "insurer_name", length = 200)
+  private String insurerName;
+
+  @Column(name = "policy_number", length = 64)
+  private String policyNumber;
+
   @Column(name = "idempotency_key", nullable = false, length = 128)
   private String idempotencyKey;
 
