@@ -2,6 +2,7 @@ package com.nammamedmate.server.persistence;
 
 import com.nammamedmate.server.domain.HospitalWardStock;
 import jakarta.persistence.LockModeType;
+import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -25,4 +26,7 @@ public interface HospitalWardStockRepository extends JpaRepository<HospitalWardS
       @Param("branchId") UUID branchId,
       @Param("wardId") UUID wardId,
       @Param("productId") UUID productId);
+
+  List<HospitalWardStock> findAllByTenantIdAndBranchIdOrderByWardIdAscProductIdAsc(
+      UUID tenantId, UUID branchId);
 }

@@ -554,6 +554,67 @@ public class InventoryStockService {
     return loadBalanceView(ctx, balance.getId());
   }
 
+  @Transactional
+  public StockBalanceView restockHospitalReturn(
+      AuthPrincipal principal,
+      UUID productId,
+      UUID batchId,
+      BigDecimal quantity,
+      String idempotencyKey) {
+    Context ctx = requireReadyForHospitalReturn(principal);
+    Product product = requireProduct(productId, ctx.tenantId());
+    BigDecimal qty = requirePositiveQuantity(quantity, product.getQuantityPrecision());
+    String key = requireIdempotencyKey(idempotencyKey);
+
+    Optional<StockMovement> existing =
+        stockMovementRepository.findByTenantIdAndIdempotencyKey(ctx.tenantId(), key);
+    if (existing.isPresent()) {
+      StockMovement prior = existing.get();
+      assertIdempotentHospitalReturn(prior, productId, batchId, qty);
+      return loadBalanceView(ctx, prior.getBalanceId());
+    }
+
+    StockBatch batch = null;
+    if (product.isRequiresBatchTracking()) {
+      if (batchId == null) {
+        throw validationError();
+      }
+      batch =
+          stockBatchRepository
+              .findByIdAndTenantId(batchId, ctx.tenantId())
+              .filter(b -> b.getProductId().equals(productId))
+              .orElseThrow(
+                  () -> new ApiException(HttpStatus.NOT_FOUND, "NOT_FOUND", "Batch was not found"));
+    } else if (batchId != null) {
+      throw validationError();
+    }
+
+    StockBalance balance = lockOrCreateBalance(ctx, productId, batchId, null);
+    Instant now = clock.instant();
+    BigDecimal next = balance.getQuantity().add(qty);
+    balance.setQuantity(next);
+    balance.setVersion(balance.getVersion() + 1);
+    balance.setUpdatedAt(now);
+    stockBalanceRepository.saveAndFlush(balance);
+
+    StockMovement movement =
+        newMovement(
+            ctx,
+            productId,
+            batchId,
+            balance.getId(),
+            StockMovementType.STOCK_IN,
+            qty,
+            next,
+            batch == null ? null : batch.getPurchasePricePaise(),
+            key,
+            now);
+    stockMovementRepository.saveAndFlush(movement);
+    controlledStockRecorder.record(movement);
+    clearLowStockEventIfRecovered(ctx, product);
+    return loadBalanceView(ctx, balance.getId());
+  }
+
   private UUID resolveBatchForReceipt(
       Context ctx,
       Product product,
@@ -704,6 +765,16 @@ public class InventoryStockService {
   private void assertIdempotentSalesReturn(
       StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
     if (prior.getType() != StockMovementType.SALES_RETURN
+        || !prior.getProductId().equals(productId)
+        || prior.getQuantity().compareTo(qty) != 0
+        || !Objects.equals(prior.getBatchId(), batchId)) {
+      throw idempotencyConflict();
+    }
+  }
+
+  private void assertIdempotentHospitalReturn(
+      StockMovement prior, UUID productId, UUID batchId, BigDecimal qty) {
+    if (prior.getType() != StockMovementType.STOCK_IN
         || !prior.getProductId().equals(productId)
         || prior.getQuantity().compareTo(qty) != 0
         || !Objects.equals(prior.getBatchId(), batchId)) {
@@ -1224,6 +1295,17 @@ public class InventoryStockService {
     UUID tenantId =
         requireModuleAccess(
             principal, Set.of(ModuleCode.INVENTORY, ModuleCode.PROCUREMENT, ModuleCode.FINANCE));
+    UUID branchId = principal.activeBranchId();
+    if (branchId == null) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);
+    }
+    return new Context(tenantId, branchId, principal.userId());
+  }
+
+  private Context requireReadyForHospitalReturn(AuthPrincipal principal) {
+    UUID tenantId =
+        requireModuleAccess(
+            principal, Set.of(ModuleCode.HOSPITAL, ModuleCode.INVENTORY, ModuleCode.FINANCE));
     UUID branchId = principal.activeBranchId();
     if (branchId == null) {
       throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NO_BRANCH_CODE, NO_BRANCH_MESSAGE);

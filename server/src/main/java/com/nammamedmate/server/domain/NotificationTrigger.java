@@ -25,7 +25,8 @@ public enum NotificationTrigger {
           spec(RoutingRole.NEW_USER, DeliveryChannel.IN_APP))),
   KYC(false, specs(RoutingRole.OWNER, RoutingRole.MASTER)),
   PLAN_LIMIT(false, specs(RoutingRole.OWNER)),
-  SUBSCRIPTION_EXPIRY(false, specs(RoutingRole.OWNER, RoutingRole.MASTER));
+  SUBSCRIPTION_EXPIRY(false, specs(RoutingRole.OWNER, RoutingRole.MASTER)),
+  HOSPITAL_CREDIT_DUE(false, specs(RoutingRole.ACCOUNTANT, RoutingRole.OWNER));
 
   private final boolean branchRequired;
   private final List<RouteSpec> specs;

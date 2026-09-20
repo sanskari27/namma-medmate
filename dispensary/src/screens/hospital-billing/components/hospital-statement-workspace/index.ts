@@ -1,0 +1,1 @@
+export { HospitalStatementWorkspace } from './HospitalStatementWorkspace';

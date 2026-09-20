@@ -125,6 +125,15 @@ final class NotificationRoutingCopy {
               "This pharmacy's plan is nearing expiry. Open subscription to renew.",
               "Subscription expiring",
               "A tenant plan is nearing expiry. Open subscriptions.");
+      case HOSPITAL_CREDIT_DUE ->
+          new Content(
+              "hospital_credit_due",
+              "/hospital-billing?view=statement",
+              null,
+              "Hospital credit overdue",
+              "The hospital account is overdue. Open the statement to record a payment.",
+              null,
+              null);
     };
   }
 

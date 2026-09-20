@@ -78,6 +78,18 @@ class NotificationRoutingMatrixTest {
   }
 
   @Test
+  void ac01_hospitalCreditDueTargetsAccountantAndOwnerInAppOnly() {
+    assertThat(NotificationTrigger.HOSPITAL_CREDIT_DUE.specs())
+        .containsExactly(
+            new RouteSpec(RoutingRole.ACCOUNTANT, DeliveryChannel.IN_APP),
+            new RouteSpec(RoutingRole.OWNER, DeliveryChannel.IN_APP));
+    assertThat(NotificationTrigger.HOSPITAL_CREDIT_DUE.specs())
+        .extracting(RouteSpec::channel)
+        .doesNotContain(DeliveryChannel.WHATSAPP, DeliveryChannel.CREDENTIAL);
+    assertThat(NotificationTrigger.HOSPITAL_CREDIT_DUE.branchRequired()).isFalse();
+  }
+
+  @Test
   void ac01_approvalHasNoStaticRecipients() {
     assertThat(NotificationTrigger.APPROVAL_REQUESTED.specs()).isEmpty();
   }

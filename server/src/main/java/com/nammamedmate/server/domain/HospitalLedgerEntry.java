@@ -41,6 +41,18 @@ public class HospitalLedgerEntry {
   @Column(name = "issue_id")
   private UUID issueId;
 
+  @Column(name = "return_id")
+  private UUID returnId;
+
+  @Column(name = "payment_mode", length = 64)
+  private String paymentMode;
+
+  @Column(name = "payment_reference", length = 80)
+  private String paymentReference;
+
+  @Column(length = 240)
+  private String particulars;
+
   @Column(name = "occurred_at", nullable = false)
   private Instant occurredAt;
 

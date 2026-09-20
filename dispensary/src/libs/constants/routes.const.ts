@@ -101,7 +101,7 @@ export const NAV_SECTIONS = [
       {
         label: 'Hospital billing',
         path: ROUTES.HOSPITAL_BILLING,
-        hint: 'Bill-to institution and credit prices',
+        hint: 'Bill-to, ward stock, and hospital AR',
       },
       {
         label: 'Departments',

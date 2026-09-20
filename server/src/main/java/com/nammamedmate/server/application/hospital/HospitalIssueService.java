@@ -346,6 +346,7 @@ public class HospitalIssueService {
     ledger.setDebitPaise(billed);
     ledger.setCreditPaise(0L);
     ledger.setIssueId(issueId);
+    ledger.setParticulars(invoiceNumber + " issued");
     ledger.setOccurredAt(now);
     ledger.setIdempotencyKey("hospital-issue:" + issueId);
     ledger.setCreatedAt(now);

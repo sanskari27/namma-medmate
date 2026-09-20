@@ -1,23 +1,61 @@
 import { Link } from 'react-router-dom';
 import { ROUTES } from '@/libs/constants/routes.const';
 import { HOSPITAL_BILLING_CONTENT } from '../../HospitalBillingScreen.content';
-import type { PageStatus, SaveTarget } from '../../HospitalBillingScreen.utils';
+import {
+  billingAlertCopy,
+  type BillingView,
+  type PageStatus,
+  type SaveTarget,
+} from '../../HospitalBillingScreen.utils';
+
+function successCopy(saveTarget: SaveTarget): string {
+  if (saveTarget === 'prices') {
+    return HOSPITAL_BILLING_CONTENT.pricesSaved;
+  }
+  if (saveTarget === 'return') {
+    return HOSPITAL_BILLING_CONTENT.stockReturned;
+  }
+  if (saveTarget === 'payment') {
+    return HOSPITAL_BILLING_CONTENT.paymentPosted;
+  }
+  if (saveTarget === 'reminder') {
+    return HOSPITAL_BILLING_CONTENT.reminderSent;
+  }
+  if (saveTarget === 'statement') {
+    return HOSPITAL_BILLING_CONTENT.exportReady;
+  }
+  return HOSPITAL_BILLING_CONTENT.accountSaved;
+}
+
+function loadingCopy(view: BillingView): string {
+  if (view === 'stock') {
+    return HOSPITAL_BILLING_CONTENT.loadingStock;
+  }
+  if (view === 'statement') {
+    return HOSPITAL_BILLING_CONTENT.loadingStatement;
+  }
+  return HOSPITAL_BILLING_CONTENT.loading;
+}
 
 export function HospitalBillingStatusBanner({
   status,
   saveTarget,
+  errorCode,
+  view,
   onDismiss,
   onRetry,
 }: {
   status: PageStatus;
   saveTarget: SaveTarget;
+  errorCode: string | null;
+  view: BillingView;
   onDismiss: () => void;
   onRetry: () => void;
 }) {
   if (status === 'loading') {
     return (
       <div className="hb-loading" role="status">
-        Loading hospital billing…
+        {loadingCopy(view)}
       </div>
     );
   }
@@ -52,9 +90,7 @@ export function HospitalBillingStatusBanner({
   if (status === 'validation') {
     return (
       <div className="hb-banner" data-tone="alert" role="alert">
-        {saveTarget === 'prices'
-          ? HOSPITAL_BILLING_CONTENT.validationPrices
-          : HOSPITAL_BILLING_CONTENT.validationAccount}
+        {billingAlertCopy(status, saveTarget, errorCode)}
       </div>
     );
   }
@@ -95,9 +131,7 @@ export function HospitalBillingStatusBanner({
   if (status === 'success') {
     return (
       <div className="hb-banner" data-tone="ok" role="status">
-        {saveTarget === 'prices'
-          ? HOSPITAL_BILLING_CONTENT.pricesSaved
-          : HOSPITAL_BILLING_CONTENT.accountSaved}{' '}
+        {successCopy(saveTarget)}{' '}
         <button type="button" className="hb-link" onClick={onDismiss}>
           {HOSPITAL_BILLING_CONTENT.dismiss}
         </button>

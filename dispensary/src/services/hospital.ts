@@ -513,3 +513,138 @@ export async function downloadHospitalIssuePdf(issueId: string): Promise<Blob> {
   });
   return data;
 }
+
+export interface HospitalWardStockItem {
+  wardId: string;
+  wardName: string;
+  productId: string;
+  productName: string;
+  sku: string;
+  quantity: number;
+  creditPricePaise: number;
+  valuePaise: number;
+}
+
+export interface HospitalWardStockList {
+  items: HospitalWardStockItem[];
+}
+
+export interface HospitalReturnLineInput {
+  productId: string;
+  quantity: number;
+}
+
+export interface HospitalReturnInput {
+  issueId: string;
+  idempotencyKey: string;
+  lines: HospitalReturnLineInput[];
+}
+
+export interface HospitalReturnRecord {
+  id: string;
+  issueId: string;
+  invoiceNumber: string;
+  wardId: string;
+  wardName: string;
+  creditPaise: number;
+  occurredAt: string;
+  lines: Array<{
+    id: string;
+    productId: string;
+    productName: string;
+    quantity: number;
+    amountPaise: number;
+  }>;
+}
+
+export interface HospitalStatementLine {
+  occurredAt: string;
+  kind: string;
+  particulars: string;
+  debitPaise: number;
+  creditPaise: number;
+  balancePaise: number;
+}
+
+export interface HospitalStatementAging {
+  d0_30: number;
+  d31_60: number;
+  d61_90: number;
+  d90Plus: number;
+  overduePaise: number;
+  oldestDaysPastDue: number;
+}
+
+export interface HospitalStatement {
+  openingPaise: number;
+  suppliedPaise: number;
+  creditsPaise: number;
+  closingPaise: number;
+  balancePaise: number;
+  accountVersion: number;
+  institutionName: string;
+  ageing: HospitalStatementAging;
+  lines: HospitalStatementLine[];
+}
+
+export interface HospitalPaymentInput {
+  amountPaise: number;
+  mode: string;
+  reference?: string | null;
+  idempotencyKey: string;
+  expectedAccountVersion?: number | null;
+}
+
+export interface HospitalPaymentRecord {
+  id: string;
+  amountPaise: number;
+  mode: string;
+  reference: string | null;
+  balancePaise: number;
+  accountVersion: number;
+  occurredAt: string;
+}
+
+export interface HospitalReminderResult {
+  sent: boolean;
+  replayed: boolean;
+}
+
+export async function getHospitalWardStock(): Promise<HospitalWardStockList> {
+  const { data } = await apiClient.get<HospitalWardStockList>(API.HOSPITAL_WARD_STOCK);
+  return data;
+}
+
+export async function createHospitalReturn(input: HospitalReturnInput): Promise<HospitalReturnRecord> {
+  const { data } = await apiClient.post<HospitalReturnRecord>(API.HOSPITAL_RETURNS, input);
+  return data;
+}
+
+export async function getHospitalStatement(params?: {
+  from?: string;
+  to?: string;
+  includePatient?: boolean;
+}): Promise<HospitalStatement> {
+  const { data } = await apiClient.get<HospitalStatement>(API.HOSPITAL_STATEMENT, { params });
+  return data;
+}
+
+export async function downloadHospitalStatement(format: 'csv' | 'pdf'): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(API.HOSPITAL_STATEMENT_EXPORT, {
+    params: { format },
+    responseType: 'blob',
+  });
+  return data;
+}
+
+export async function recordHospitalPayment(
+  input: HospitalPaymentInput,
+): Promise<HospitalPaymentRecord> {
+  const { data } = await apiClient.post<HospitalPaymentRecord>(API.HOSPITAL_PAYMENTS, input);
+  return data;
+}
+
+export async function sendHospitalReminder(): Promise<HospitalReminderResult> {
+  const { data } = await apiClient.post<HospitalReminderResult>(API.HOSPITAL_PAYMENT_REMINDER);
+  return data;
+}

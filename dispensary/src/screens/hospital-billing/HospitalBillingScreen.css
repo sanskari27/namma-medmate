@@ -122,3 +122,84 @@
   text-decoration: underline;
   margin-left: 6px;
 }
+
+.hb-tabs {
+  display: inline-flex;
+  margin-top: 10px;
+  overflow: hidden;
+  border: 1px solid var(--hb-line);
+  border-radius: 8px;
+}
+
+.hb-tab {
+  padding: 6px 12px;
+  font-size: 13px;
+  color: var(--hb-muted);
+  background: var(--hb-paper);
+  border: 0;
+  border-right: 1px solid var(--hb-line);
+}
+
+.hb-tab:last-child {
+  border-right: 0;
+}
+
+.hb-tab[aria-selected='true'] {
+  background: #e7f3e4;
+  color: var(--hb-ink);
+  font-weight: 600;
+}
+
+.hb-ageing {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 8px;
+}
+
+.hb-ageing dt {
+  font-size: 11px;
+  color: var(--hb-muted);
+}
+
+.hb-ageing dd {
+  margin: 0;
+  font-family: ui-monospace, monospace;
+  font-size: 13px;
+}
+
+.hb-empty {
+  margin: 0;
+  padding: 24px 14px;
+  text-align: center;
+  color: var(--hb-muted);
+}
+
+.hb-check {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.hb-dialog label {
+  display: block;
+  margin-bottom: 4px;
+  font-size: 12px;
+}
+
+.hb-dialog select,
+.hb-dialog input {
+  width: 100%;
+  min-height: 36px;
+  padding: 6px 10px;
+  border: 1px solid var(--hb-line);
+  border-radius: 6px;
+  background: var(--hb-paper);
+}
+
+.hb-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+}

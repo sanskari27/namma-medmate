@@ -1,0 +1,1 @@
+export { HospitalStatementTable } from './HospitalStatementTable';

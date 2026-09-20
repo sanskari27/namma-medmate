@@ -3,6 +3,8 @@ package com.nammamedmate.server.domain;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Instant;
+import java.time.LocalDate;
 import org.springframework.http.HttpStatus;
 
 public final class HospitalPolicy {
@@ -22,6 +24,14 @@ public final class HospitalPolicy {
       "Insurance/TPA admissions need insurer name and policy number.";
   public static final String PHARMACIST_CODE = "pharmacist";
   public static final String INVENTORY_CODE = "inventory";
+  public static final String ACCOUNTANT_CODE = "accountant";
+  public static final String OVER_RETURN = "OVER_RETURN";
+  public static final String OVER_RETURN_MESSAGE =
+      "Cannot return more than the ward still holds from this hospital invoice.";
+  public static final String OVERPAYMENT = "OVERPAYMENT";
+  public static final String OVERPAYMENT_MESSAGE = "Payment is more than the hospital still owes.";
+  public static final String NOTHING_DUE = "NOTHING_DUE";
+  public static final String NOTHING_DUE_MESSAGE = "The hospital account has nothing overdue.";
   public static final String STALE_STATE = "STALE_STATE";
   public static final String STALE_STATE_MESSAGE = "This indent is no longer in that state.";
   public static final String LINES_REQUIRED = "LINES_REQUIRED";
@@ -95,6 +105,23 @@ public final class HospitalPolicy {
       return;
     }
     throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Forbidden");
+  }
+
+  public static void requireStockReader(
+      AppUserRole role, boolean accountantDesk, boolean inventoryAssigned, boolean hasHospital) {
+    requireHospitalModule(hasHospital);
+    if (role == AppUserRole.pharmacy_owner) {
+      return;
+    }
+    if (role == AppUserRole.pharmacy_staff && (accountantDesk || inventoryAssigned)) {
+      return;
+    }
+    throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Forbidden");
+  }
+
+  public static void requireReturnWriter(
+      AppUserRole role, boolean accountantDesk, boolean inventoryAssigned, boolean hasHospital) {
+    requireStockReader(role, accountantDesk, inventoryAssigned, hasHospital);
   }
 
   public static String formatIndent(int nextValue) {
@@ -364,5 +391,53 @@ public final class HospitalPolicy {
   public static ApiException accountRequired() {
     return new ApiException(
         HttpStatus.UNPROCESSABLE_ENTITY, ACCOUNT_REQUIRED, ACCOUNT_REQUIRED_MESSAGE);
+  }
+
+  public static LocalDate dueOn(HospitalCreditTerms terms, Instant issuedAt) {
+    LocalDate issued = AgingPolicy.istDate(issuedAt);
+    if (terms == null || terms == HospitalCreditTerms.ON_DEMAND) {
+      return issued;
+    }
+    return switch (terms) {
+      case NET_15 -> issued.plusDays(15);
+      case NET_30 -> issued.plusDays(30);
+      case NET_45 -> issued.plusDays(45);
+      case ON_DEMAND -> issued;
+    };
+  }
+
+  public static void assertReturnQty(
+      BigDecimal requested, BigDecimal remainingOnIssue, BigDecimal wardOnHand) {
+    if (requested == null || requested.compareTo(BigDecimal.ZERO) <= 0) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    if (remainingOnIssue == null
+        || wardOnHand == null
+        || requested.compareTo(remainingOnIssue) > 0
+        || requested.compareTo(wardOnHand) > 0) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, OVER_RETURN, OVER_RETURN_MESSAGE);
+    }
+  }
+
+  public static void assertPayment(long amountPaise, long balancePaise) {
+    if (amountPaise <= 0L) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    if (amountPaise > balancePaise) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, OVERPAYMENT, OVERPAYMENT_MESSAGE);
+    }
+  }
+
+  public static void assertReminderDue(long overduePaise) {
+    if (overduePaise <= 0L) {
+      throw new ApiException(HttpStatus.UNPROCESSABLE_ENTITY, NOTHING_DUE, NOTHING_DUE_MESSAGE);
+    }
+  }
+
+  public static String requirePaymentMode(String mode) {
+    if (mode == null || mode.isBlank() || mode.trim().length() > 64) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    return mode.trim().toUpperCase();
   }
 }

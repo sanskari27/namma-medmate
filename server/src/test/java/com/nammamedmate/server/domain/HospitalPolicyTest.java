@@ -4,6 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 import static org.assertj.core.api.Assertions.assertThatThrownBy;
 
 import com.nammamedmate.server.shared.exception.ApiException;
+import java.math.BigDecimal;
+import java.time.Instant;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -219,5 +221,77 @@ class HospitalPolicyTest {
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getStatus())
         .isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
+  @Test
+  void ac04_dueOnUsesIstIssueDateAndNetTerms() {
+    Instant issued = Instant.parse("2026-09-20T18:30:00Z");
+    assertThat(HospitalPolicy.dueOn(HospitalCreditTerms.ON_DEMAND, issued))
+        .isEqualTo(java.time.LocalDate.of(2026, 9, 21));
+    assertThat(HospitalPolicy.dueOn(HospitalCreditTerms.NET_15, issued))
+        .isEqualTo(java.time.LocalDate.of(2026, 10, 6));
+    assertThat(HospitalPolicy.dueOn(HospitalCreditTerms.NET_30, issued))
+        .isEqualTo(java.time.LocalDate.of(2026, 10, 21));
+    assertThat(HospitalPolicy.dueOn(HospitalCreditTerms.NET_45, issued))
+        .isEqualTo(java.time.LocalDate.of(2026, 11, 5));
+  }
+
+  @Test
+  void ac02_overReturnRejected() {
+    HospitalPolicy.assertReturnQty(new BigDecimal("2"), new BigDecimal("2"), new BigDecimal("5"));
+    assertThatThrownBy(
+            () ->
+                HospitalPolicy.assertReturnQty(
+                    new BigDecimal("3"), new BigDecimal("2"), new BigDecimal("5")))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.OVER_RETURN);
+    assertThatThrownBy(
+            () ->
+                HospitalPolicy.assertReturnQty(
+                    new BigDecimal("2"), new BigDecimal("5"), new BigDecimal("1")))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.OVER_RETURN);
+  }
+
+  @Test
+  void ac04_overpaymentRejected() {
+    HospitalPolicy.assertPayment(5_000L, 18_000L);
+    assertThatThrownBy(() -> HospitalPolicy.assertPayment(20_000L, 18_000L))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.OVERPAYMENT);
+  }
+
+  @Test
+  void ac04_reminderRequiresOverduePaise() {
+    HospitalPolicy.assertReminderDue(1L);
+    assertThatThrownBy(() -> HospitalPolicy.assertReminderDue(0L))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.NOTHING_DUE);
+  }
+
+  @Test
+  void ac01_stockReaderAllowsOwnerAccountantInventory() {
+    HospitalPolicy.requireStockReader(AppUserRole.pharmacy_owner, false, false, true);
+    HospitalPolicy.requireStockReader(AppUserRole.pharmacy_staff, true, false, true);
+    HospitalPolicy.requireStockReader(AppUserRole.pharmacy_staff, false, true, true);
+  }
+
+  @Test
+  void ac05_stockReaderBlocksPharmacistAndCashier() {
+    assertThatThrownBy(
+            () -> HospitalPolicy.requireStockReader(AppUserRole.pharmacy_staff, false, false, true))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.FORBIDDEN);
+    assertThatThrownBy(
+            () ->
+                HospitalPolicy.requireReturnWriter(AppUserRole.pharmacy_staff, false, false, true))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.FORBIDDEN);
   }
 }
