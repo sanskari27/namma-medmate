@@ -3,8 +3,12 @@ package com.nammamedmate.server.domain;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.ZoneId;
+import java.util.Locale;
+import java.util.UUID;
 import org.springframework.http.HttpStatus;
 
 public final class HospitalPolicy {
@@ -53,6 +57,18 @@ public final class HospitalPolicy {
   public static final String UHID_REQUIRED_MESSAGE = "Patient refill needs an admitted patient ID.";
   public static final String ACCOUNT_REQUIRED_MESSAGE =
       "Set up the hospital bill-to account before issuing to a ward.";
+  public static final ZoneId IST = ZoneId.of("Asia/Kolkata");
+  public static final int MAX_REGISTER_RANGE_DAYS = 366;
+  public static final int MAX_REGISTER_EXPORT_ROWS = 10_000;
+  public static final int DEFAULT_REGISTER_WINDOW_DAYS = 30;
+  public static final String RANGE_UNSUPPORTED = "RANGE_UNSUPPORTED";
+  public static final String EXPORT_TOO_LARGE = "EXPORT_TOO_LARGE";
+  public static final String NO_ACTIVE_BRANCH = "NO_ACTIVE_BRANCH";
+  public static final String NO_ACTIVE_BRANCH_MESSAGE =
+      "Select an outlet before opening the patient sales register.";
+  public static final String SALES_REGISTER_EXPORT_ACTION = "HOSPITAL_SALES_REGISTER_EXPORT";
+  public static final String PAID = "PAID";
+  public static final String UNPAID = "UNPAID";
 
   private HospitalPolicy() {}
 
@@ -511,5 +527,111 @@ public final class HospitalPolicy {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
     return mode.trim().toUpperCase();
+  }
+
+  public static void requireSalesRegisterReader(boolean hasHospital, boolean hasReporting) {
+    if (!hasHospital && !hasReporting) {
+      throw new ApiException(HttpStatus.FORBIDDEN, "FORBIDDEN", "Forbidden");
+    }
+  }
+
+  public static LocalDate[] resolveRegisterWindow(LocalDate from, LocalDate to, Instant now) {
+    LocalDate today = now.atZone(IST).toLocalDate();
+    if (from == null && to == null) {
+      return new LocalDate[] {today.minusDays(DEFAULT_REGISTER_WINDOW_DAYS), today};
+    }
+    if (from == null || to == null) {
+      throw shape();
+    }
+    if (from.isAfter(to)) {
+      throw shape();
+    }
+    if (Duration.between(from.atStartOfDay(IST).toInstant(), to.atStartOfDay(IST).toInstant())
+            .toDays()
+        > MAX_REGISTER_RANGE_DAYS) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          RANGE_UNSUPPORTED,
+          "Choose a date range of 366 days or less.");
+    }
+    return new LocalDate[] {from, to};
+  }
+
+  public static Instant registerStart(LocalDate from) {
+    return from.atStartOfDay(IST).toInstant();
+  }
+
+  public static Instant registerEndExclusive(LocalDate to) {
+    return to.plusDays(1).atStartOfDay(IST).toInstant();
+  }
+
+  public static InvoiceSaleSource parseRegisterSource(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    try {
+      return InvoiceSaleSource.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+    } catch (RuntimeException ex) {
+      throw shape();
+    }
+  }
+
+  public static PaymentMode parseRegisterPaymentMode(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    try {
+      return PaymentMode.valueOf(raw.trim().toUpperCase(Locale.ROOT));
+    } catch (RuntimeException ex) {
+      throw shape();
+    }
+  }
+
+  public static String parsePaidFilter(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    String value = raw.trim().toUpperCase(Locale.ROOT);
+    if (PAID.equals(value) || UNPAID.equals(value)) {
+      return value;
+    }
+    throw shape();
+  }
+
+  public static String requireRegisterExportFormat(String format) {
+    String kind = format == null || format.isBlank() ? "" : format.trim().toLowerCase(Locale.ROOT);
+    if ("csv".equals(kind) || "pdf".equals(kind)) {
+      return kind;
+    }
+    throw shape();
+  }
+
+  public static void requireRegisterExportSize(int rows) {
+    if (rows > MAX_REGISTER_EXPORT_ROWS) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          EXPORT_TOO_LARGE,
+          "Narrow the date range. This outlet's register is too large to export in one file.");
+    }
+  }
+
+  public static UUID parseOptionalUuid(String raw) {
+    if (raw == null || raw.isBlank()) {
+      return null;
+    }
+    try {
+      return UUID.fromString(raw.trim());
+    } catch (IllegalArgumentException ex) {
+      throw shape();
+    }
+  }
+
+  public static ApiException noActiveBranch() {
+    return new ApiException(
+        HttpStatus.UNPROCESSABLE_ENTITY, NO_ACTIVE_BRANCH, NO_ACTIVE_BRANCH_MESSAGE);
+  }
+
+  private static ApiException shape() {
+    return new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
   }
 }

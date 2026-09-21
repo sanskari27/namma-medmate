@@ -1,0 +1,1 @@
+export { HospitalSalesRegisterFilters } from './HospitalSalesRegisterFilters';

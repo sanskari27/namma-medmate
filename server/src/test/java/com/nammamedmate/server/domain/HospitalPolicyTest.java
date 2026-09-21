@@ -6,6 +6,7 @@ import static org.assertj.core.api.Assertions.assertThatThrownBy;
 import com.nammamedmate.server.shared.exception.ApiException;
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDate;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 
@@ -329,5 +330,76 @@ class HospitalPolicyTest {
         .isInstanceOf(ApiException.class)
         .extracting(ex -> ((ApiException) ex).getStatus())
         .isEqualTo(HttpStatus.CONFLICT);
+  }
+
+  @Test
+  void ac05_salesRegisterReaderAllowsHospitalOrReporting() {
+    HospitalPolicy.requireSalesRegisterReader(true, false);
+    HospitalPolicy.requireSalesRegisterReader(false, true);
+    assertThatThrownBy(() -> HospitalPolicy.requireSalesRegisterReader(false, false))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.FORBIDDEN);
+  }
+
+  @Test
+  void ac03_registerWindowIstBoundsAndPartialRejected() {
+    Instant now = Instant.parse("2026-09-21T06:00:00Z");
+    LocalDate today = LocalDate.of(2026, 9, 21);
+    LocalDate[] defaults = HospitalPolicy.resolveRegisterWindow(null, null, now);
+    assertThat(defaults[0]).isEqualTo(today.minusDays(30));
+    assertThat(defaults[1]).isEqualTo(today);
+    LocalDate[] explicit = HospitalPolicy.resolveRegisterWindow(today, today, now);
+    assertThat(HospitalPolicy.registerStart(explicit[0]))
+        .isEqualTo(Instant.parse("2026-09-20T18:30:00Z"));
+    assertThat(HospitalPolicy.registerEndExclusive(explicit[1]))
+        .isEqualTo(Instant.parse("2026-09-21T18:30:00Z"));
+    assertThatThrownBy(() -> HospitalPolicy.resolveRegisterWindow(today, null, now))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThatThrownBy(() -> HospitalPolicy.resolveRegisterWindow(today.plusDays(1), today, now))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThatThrownBy(() -> HospitalPolicy.resolveRegisterWindow(today.minusDays(367), today, now))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.RANGE_UNSUPPORTED);
+  }
+
+  @Test
+  void ac02_registerFilterParsersRejectUnknown() {
+    assertThat(HospitalPolicy.parseRegisterSource("ward")).isEqualTo(InvoiceSaleSource.WARD);
+    assertThat(HospitalPolicy.parseRegisterPaymentMode("insurance_tpa"))
+        .isEqualTo(PaymentMode.INSURANCE_TPA);
+    assertThat(HospitalPolicy.parsePaidFilter("unpaid")).isEqualTo(HospitalPolicy.UNPAID);
+    assertThatThrownBy(() -> HospitalPolicy.parseRegisterSource("ONLINE"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThatThrownBy(() -> HospitalPolicy.parseRegisterPaymentMode("CHEQUE"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    assertThatThrownBy(() -> HospitalPolicy.parsePaidFilter("maybe"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+  }
+
+  @Test
+  void ac04_registerExportFormatAndSize() {
+    assertThat(HospitalPolicy.requireRegisterExportFormat("CSV")).isEqualTo("csv");
+    assertThat(HospitalPolicy.requireRegisterExportFormat("pdf")).isEqualTo("pdf");
+    assertThatThrownBy(() -> HospitalPolicy.requireRegisterExportFormat("xlsx"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.BAD_REQUEST);
+    HospitalPolicy.requireRegisterExportSize(10);
+    assertThatThrownBy(() -> HospitalPolicy.requireRegisterExportSize(10_001))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.EXPORT_TOO_LARGE);
   }
 }

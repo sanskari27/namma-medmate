@@ -642,6 +642,77 @@ export async function downloadHospitalStatement(format: 'csv' | 'pdf'): Promise<
   return data;
 }
 
+export type HospitalSalesRegisterSource = 'OPD_RX' | 'COUNTER' | 'WARD' | 'EMERGENCY' | 'ONLINE';
+
+export type HospitalSalesRegisterQuery = {
+  from?: string;
+  to?: string;
+  source?: string;
+  paymentMode?: string;
+  paid?: string;
+  insurer?: string;
+  wardId?: string;
+  q?: string;
+};
+
+export interface HospitalSalesRegisterTile {
+  source: HospitalSalesRegisterSource | string;
+  count: number;
+  revenuePaise: number;
+}
+
+export interface HospitalSalesRegisterTotals {
+  count: number;
+  revenuePaise: number;
+  paidPaise: number;
+  unpaidPaise: number;
+  insurancePaise: number;
+}
+
+export interface HospitalSalesRegisterRow {
+  id: string;
+  invoiceNumber: string;
+  completedAt: string | null;
+  saleSource: string;
+  uhid: string | null;
+  wardId: string | null;
+  wardName: string | null;
+  patientName: string | null;
+  phone: string | null;
+  paymentModes: string[];
+  insurerName: string | null;
+  totalPaise: number;
+  amountPaidPaise: number;
+  amountDuePaise: number;
+  insurancePaise: number;
+}
+
+export interface HospitalSalesRegister {
+  tiles: HospitalSalesRegisterTile[];
+  totals: HospitalSalesRegisterTotals;
+  items: HospitalSalesRegisterRow[];
+}
+
+export async function getHospitalSalesRegister(
+  params?: HospitalSalesRegisterQuery,
+): Promise<HospitalSalesRegister> {
+  const { data } = await apiClient.get<HospitalSalesRegister>(API.HOSPITAL_SALES_REGISTER, {
+    params,
+  });
+  return data;
+}
+
+export async function downloadHospitalSalesRegister(
+  format: 'csv' | 'pdf',
+  params?: HospitalSalesRegisterQuery,
+): Promise<Blob> {
+  const { data } = await apiClient.get<Blob>(API.HOSPITAL_SALES_REGISTER_EXPORT, {
+    params: { ...params, format },
+    responseType: 'blob',
+  });
+  return data;
+}
+
 export async function recordHospitalPayment(
   input: HospitalPaymentInput,
 ): Promise<HospitalPaymentRecord> {

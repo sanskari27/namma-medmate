@@ -7,6 +7,7 @@ export function isHospitalNavPath(path: string): boolean {
     path === '/hospital-billing' ||
     path === '/hospital-wards' ||
     path === '/hospital-patients' ||
+    path === '/hospital-sales' ||
     path === '/hospital-departments' ||
     path === '/hospital-doctors' ||
     path === '/hospital-indents' ||

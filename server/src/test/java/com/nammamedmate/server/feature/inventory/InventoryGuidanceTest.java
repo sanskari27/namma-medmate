@@ -163,7 +163,15 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
     Fixture fx = seed("ac02");
     UUID productId = createBatchedProduct(fx.cookie(), "SKU-NEAR", "Near Med", null, null, null);
     receive(
-        fx.cookie(), productId, "LOT-NEAR", "2026-01-01", "2026-09-20", 1500, "5", "recv-near", 0);
+        fx.cookie(),
+        productId,
+        "LOT-NEAR",
+        "2026-01-01",
+        LocalDate.now().plusDays(10).toString(),
+        1500,
+        "5",
+        "recv-near",
+        0);
 
     MvcResult batches =
         mockMvc

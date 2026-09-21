@@ -45,6 +45,7 @@ import HospitalDepartmentsScreen from '@/screens/hospital-departments/HospitalDe
 import HospitalDoctorsScreen from '@/screens/hospital-doctors/HospitalDoctorsScreen';
 import HospitalWardsScreen from '@/screens/hospital-wards/HospitalWardsScreen';
 import HospitalPatientsScreen from '@/screens/hospital-patients/HospitalPatientsScreen';
+import HospitalSalesRegisterScreen from '@/screens/hospital-sales-register/HospitalSalesRegisterScreen';
 import HospitalIndentsScreen from '@/screens/hospital-indents/HospitalIndentsScreen';
 import HospitalIssuesScreen from '@/screens/hospital-issues/HospitalIssuesScreen';
 import { ROUTES } from '@/libs/constants/routes.const';
@@ -78,6 +79,7 @@ const router = createBrowserRouter([
           { path: ROUTES.CAMPAIGNS, element: <CampaignsScreen /> },
           { path: ROUTES.HOSPITAL_WARDS, element: <HospitalWardsScreen /> },
           { path: ROUTES.HOSPITAL_PATIENTS, element: <HospitalPatientsScreen /> },
+          { path: ROUTES.HOSPITAL_SALES_REGISTER, element: <HospitalSalesRegisterScreen /> },
           { path: ROUTES.HOSPITAL_INDENTS, element: <HospitalIndentsScreen /> },
           { path: ROUTES.HOSPITAL_ISSUES, element: <HospitalIssuesScreen /> },
           { path: ROUTES.HOSPITAL_BILLING, element: <HospitalBillingScreen /> },

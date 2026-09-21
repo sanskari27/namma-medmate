@@ -66,6 +66,8 @@ export const API = {
   HOSPITAL_RETURNS: '/api/v1/hospital/returns',
   HOSPITAL_STATEMENT: '/api/v1/hospital/statement',
   HOSPITAL_STATEMENT_EXPORT: '/api/v1/hospital/statement/export',
+  HOSPITAL_SALES_REGISTER: '/api/v1/hospital/sales-register',
+  HOSPITAL_SALES_REGISTER_EXPORT: '/api/v1/hospital/sales-register/export',
   HOSPITAL_PAYMENTS: '/api/v1/hospital/payments',
   HOSPITAL_PAYMENT_REMINDER: '/api/v1/hospital/payments/reminder',
   ME: '/api/v1/auth/me',
