@@ -1,0 +1,1 @@
+export { HospitalPatientsDischargeDialog } from './HospitalPatientsDischargeDialog';

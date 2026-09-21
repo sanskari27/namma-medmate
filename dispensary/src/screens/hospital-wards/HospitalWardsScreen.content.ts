@@ -14,6 +14,7 @@ export const HOSPITAL_WARDS_CONTENT = {
   tpaIncomplete: 'Insurance/TPA needs insurer name and policy number.',
   occupiedHeaderLabel: 'Occupied bed',
   billMedicines: 'Bill medicines',
+  finalBillAndDischarge: 'Final bill & discharge',
   patientNameLabel: 'Patient name',
   uhidLabel: 'Patient ID / UHID',
   phoneLabel: 'Phone',

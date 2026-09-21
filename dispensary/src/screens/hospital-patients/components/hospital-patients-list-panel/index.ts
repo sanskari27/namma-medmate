@@ -1,0 +1,1 @@
+export { HospitalPatientsListPanel } from './HospitalPatientsListPanel';

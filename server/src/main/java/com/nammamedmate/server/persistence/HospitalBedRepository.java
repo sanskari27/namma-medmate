@@ -40,4 +40,22 @@ public interface HospitalBedRepository extends JpaRepository<HospitalBed, UUID> 
       @Param("tenantId") UUID tenantId,
       @Param("branchId") UUID branchId,
       @Param("now") java.time.Instant now);
+
+  @Modifying(clearAutomatically = true, flushAutomatically = true)
+  @Query(
+      """
+      update HospitalBed b
+      set b.occupancyStatus = com.nammamedmate.server.domain.HospitalBedOccupancy.FREE,
+          b.version = b.version + 1,
+          b.updatedAt = :now
+      where b.id = :bedId
+        and b.tenantId = :tenantId
+        and b.branchId = :branchId
+        and b.occupancyStatus = com.nammamedmate.server.domain.HospitalBedOccupancy.OCCUPIED
+      """)
+  int freeIfOccupied(
+      @Param("bedId") UUID bedId,
+      @Param("tenantId") UUID tenantId,
+      @Param("branchId") UUID branchId,
+      @Param("now") java.time.Instant now);
 }

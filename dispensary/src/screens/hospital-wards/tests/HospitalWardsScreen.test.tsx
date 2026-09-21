@@ -410,6 +410,8 @@ describe('HospitalWardsScreen', () => {
     await user.click(occupied);
     const bill = screen.getByRole('link', { name: 'Bill medicines' });
     expect(bill).toHaveAttribute('href', '/pos?saleSource=WARD&admissionId=a1');
+    const discharge = screen.getByRole('link', { name: 'Final bill & discharge' });
+    expect(discharge).toHaveAttribute('href', '/hospital-patients?admissionId=a1');
     bill.focus();
     expect(bill).toHaveFocus();
     await user.click(screen.getByRole('button', { name: 'Dismiss' }));

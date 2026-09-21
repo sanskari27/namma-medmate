@@ -71,6 +71,9 @@ public class HospitalAdmission {
   @Column(name = "admitted_at", nullable = false)
   private Instant admittedAt;
 
+  @Column(name = "discharged_at")
+  private Instant dischargedAt;
+
   @Column(nullable = false)
   private long version;
 

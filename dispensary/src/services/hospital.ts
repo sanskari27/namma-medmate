@@ -653,3 +653,138 @@ export async function sendHospitalReminder(): Promise<HospitalReminderResult> {
   const { data } = await apiClient.post<HospitalReminderResult>(API.HOSPITAL_PAYMENT_REMINDER);
   return data;
 }
+
+export type HospitalActivePatientKind = 'ADMISSION' | 'CASUALTY';
+export type HospitalActivePatientView = 'unsettled' | 'all';
+export type HospitalPatientSettleMode = 'CASH' | 'UPI' | 'CARD' | 'INSURANCE_TPA';
+
+export interface HospitalActivePatient {
+  kind: HospitalActivePatientKind;
+  admissionId: string | null;
+  uhid: string;
+  patientName: string;
+  wardName: string | null;
+  locationLabel: string;
+  unpaidPaise: number;
+  settledPaise: number;
+  billCount: number;
+  status: HospitalAdmissionStatus | null;
+  version: number;
+}
+
+export interface HospitalActivePatientInvoice {
+  id: string;
+  invoiceNumber: string;
+  completedAt: string | null;
+  saleSource: string;
+  itemCount: number;
+  paymentLabel: string;
+  status: string;
+  totalPaise: number;
+  amountDuePaise: number;
+  amountPaidPaise: number;
+  insurerName: string | null;
+  policyNumber: string | null;
+}
+
+export interface HospitalActivePatientDetail {
+  kind: HospitalActivePatientKind;
+  admissionId: string | null;
+  uhid: string;
+  patientName: string;
+  wardName: string | null;
+  bedLabel: string | null;
+  locationLabel: string;
+  status: HospitalAdmissionStatus | null;
+  admittedAt: string | null;
+  dischargedAt: string | null;
+  version: number;
+  unpaidPaise: number;
+  settledPaise: number;
+  billCount: number;
+  invoices: HospitalActivePatientInvoice[];
+}
+
+export interface HospitalActivePatientList {
+  items: HospitalActivePatient[];
+}
+
+export type HospitalPatientSettleInput = {
+  expectedVersion: number;
+  paymentMode: HospitalPatientSettleMode;
+  idempotencyKey: string;
+  insurerName?: string | null;
+  policyNumber?: string | null;
+};
+
+export type HospitalCasualtySettleInput = {
+  uhid: string;
+  paymentMode: HospitalPatientSettleMode;
+  idempotencyKey: string;
+  insurerName?: string | null;
+  policyNumber?: string | null;
+};
+
+export type HospitalAdmissionDischargeInput = {
+  expectedVersion: number;
+  idempotencyKey: string;
+  paymentMode?: HospitalPatientSettleMode | null;
+  insurerName?: string | null;
+  policyNumber?: string | null;
+};
+
+export async function getHospitalActivePatients(params?: {
+  view?: HospitalActivePatientView;
+  q?: string;
+}): Promise<HospitalActivePatientList> {
+  const { data } = await apiClient.get<HospitalActivePatientList>(API.HOSPITAL_ACTIVE_PATIENTS, {
+    params,
+  });
+  return data;
+}
+
+export async function getHospitalActivePatient(admissionId: string): Promise<HospitalActivePatientDetail> {
+  const { data } = await apiClient.get<HospitalActivePatientDetail>(
+    API.hospitalActivePatient(admissionId),
+  );
+  return data;
+}
+
+export async function getHospitalCasualtyPatient(uhid: string): Promise<HospitalActivePatientDetail> {
+  const { data } = await apiClient.get<HospitalActivePatientDetail>(
+    API.hospitalActivePatientCasualty(uhid),
+  );
+  return data;
+}
+
+export async function settleHospitalAdmission(
+  admissionId: string,
+  input: HospitalPatientSettleInput,
+): Promise<HospitalActivePatientDetail> {
+  const { data } = await apiClient.post<HospitalActivePatientDetail>(
+    API.hospitalAdmissionSettle(admissionId),
+    input,
+  );
+  return data;
+}
+
+export async function settleHospitalCasualty(
+  input: HospitalCasualtySettleInput,
+): Promise<HospitalActivePatientDetail> {
+  const { data } = await apiClient.post<HospitalActivePatientDetail>(
+    API.HOSPITAL_CASUALTY_SETTLE,
+    input,
+  );
+  return data;
+}
+
+export async function dischargeHospitalAdmission(
+  admissionId: string,
+  input: HospitalAdmissionDischargeInput,
+): Promise<HospitalActivePatientDetail> {
+  const { data } = await apiClient.post<HospitalActivePatientDetail>(
+    API.hospitalAdmissionDischarge(admissionId),
+    input,
+  );
+  return data;
+}

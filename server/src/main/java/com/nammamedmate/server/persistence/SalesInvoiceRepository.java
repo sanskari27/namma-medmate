@@ -1,5 +1,6 @@
 package com.nammamedmate.server.persistence;
 
+import com.nammamedmate.server.domain.InvoiceSaleSource;
 import com.nammamedmate.server.domain.SalesInvoice;
 import com.nammamedmate.server.domain.SalesInvoiceStatus;
 import jakarta.persistence.LockModeType;
@@ -157,4 +158,23 @@ public interface SalesInvoiceRepository extends JpaRepository<SalesInvoice, UUID
       @Param("survivorId") UUID survivorId,
       @Param("duplicateId") UUID duplicateId,
       @Param("tenantId") UUID tenantId);
+
+  List<SalesInvoice>
+      findAllByTenantIdAndBranchIdAndStatusAndAmountDuePaiseGreaterThanAndSaleSourceIn(
+          UUID tenantId,
+          UUID branchId,
+          SalesInvoiceStatus status,
+          long amountDuePaise,
+          Collection<InvoiceSaleSource> saleSources);
+
+  List<SalesInvoice> findAllByTenantIdAndBranchIdAndAdmissionIdAndStatusOrderByCompletedAtAsc(
+      UUID tenantId, UUID branchId, UUID admissionId, SalesInvoiceStatus status);
+
+  List<SalesInvoice>
+      findAllByTenantIdAndBranchIdAndUhidIgnoreCaseAndSaleSourceAndAdmissionIdIsNullAndStatusOrderByCompletedAtAsc(
+          UUID tenantId,
+          UUID branchId,
+          String uhid,
+          InvoiceSaleSource saleSource,
+          SalesInvoiceStatus status);
 }

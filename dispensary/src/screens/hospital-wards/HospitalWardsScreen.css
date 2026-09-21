@@ -258,6 +258,25 @@
   outline-offset: 2px;
 }
 
+.hw-final-bill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 36px;
+  padding: 0 12px;
+  border-radius: 6px;
+  border: 1px solid var(--color-brand);
+  color: var(--color-brand);
+  font-size: 13px;
+  font-weight: 700;
+  text-decoration: none;
+  background: transparent;
+}
+
+.hw-final-bill:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+}
+
 .hw-occupied-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(160px, 1fr));

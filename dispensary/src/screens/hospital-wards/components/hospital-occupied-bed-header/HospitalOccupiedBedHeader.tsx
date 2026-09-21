@@ -28,6 +28,12 @@ export function HospitalOccupiedBedHeader({ admission, onClose }: Props) {
           >
             {HOSPITAL_WARDS_CONTENT.billMedicines}
           </Link>
+          <Link
+            className="hw-final-bill"
+            to={`${ROUTES.HOSPITAL_PATIENTS}?admissionId=${admission.id}`}
+          >
+            {HOSPITAL_WARDS_CONTENT.finalBillAndDischarge}
+          </Link>
           <button type="button" className="text-sm text-brand underline" onClick={onClose}>
             {HOSPITAL_WARDS_CONTENT.dismiss}
           </button>

@@ -632,6 +632,18 @@ public class SalesInvoiceService {
       throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
     }
     String key = requireIdempotencyKey(command.idempotencyKey());
+    SalesInvoice peek =
+        salesInvoiceRepository
+            .findByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
+            .orElseThrow(SalesInvoiceService::notFound);
+    if (peek.getStatus() != SalesInvoiceStatus.COMPLETED && peek.getAdmissionId() != null) {
+      HospitalAdmission stay =
+          hospitalAdmissionRepository
+              .lockByIdAndTenantIdAndBranchId(
+                  peek.getAdmissionId(), peek.getTenantId(), peek.getBranchId())
+              .orElseThrow(SalesInvoiceService::notFound);
+      InvoiceHospitalSalePolicy.assertActiveWardAdmission(stay, peek.getWardId());
+    }
     SalesInvoice invoice =
         salesInvoiceRepository
             .lockByIdAndTenantIdAndBranchId(id, ctx.tenantId(), ctx.branchId())
@@ -683,6 +695,8 @@ public class SalesInvoiceService {
         invoice.getUhid(),
         invoice.getWardId(),
         invoice.getAdmissionId());
+    Instant now = clock.instant();
+    touchWardAdmission(invoice, now);
     if (insuranceUsed) {
       invoice.setInsurerName(InvoiceHospitalSalePolicy.trimToNull(command.insurerName()));
       invoice.setPolicyNumber(InvoiceHospitalSalePolicy.trimToNull(command.policyNumber()));
@@ -710,7 +724,6 @@ public class SalesInvoiceService {
           invoice.getId(),
           "sale:" + invoice.getId());
     }
-    Instant now = clock.instant();
     int order = 0;
     for (InvoicePaymentPolicy.Part part : allocation.parts()) {
       SalesInvoicePayment row = new SalesInvoicePayment();
@@ -857,7 +870,7 @@ public class SalesInvoiceService {
     if (admissionId != null) {
       admission =
           hospitalAdmissionRepository
-              .findByIdAndTenantIdAndBranchId(
+              .lockByIdAndTenantIdAndBranchId(
                   admissionId, invoice.getTenantId(), invoice.getBranchId())
               .orElseThrow(SalesInvoiceService::notFound);
     } else if (source == InvoiceSaleSource.WARD && resolvedUhid != null) {
@@ -865,6 +878,11 @@ public class SalesInvoiceService {
           hospitalAdmissionRepository
               .findByTenantIdAndBranchIdAndUhidIgnoreCase(
                   invoice.getTenantId(), invoice.getBranchId(), resolvedUhid)
+              .orElseThrow(SalesInvoiceService::notFound);
+      admission =
+          hospitalAdmissionRepository
+              .lockByIdAndTenantIdAndBranchId(
+                  admission.getId(), invoice.getTenantId(), invoice.getBranchId())
               .orElseThrow(SalesInvoiceService::notFound);
     }
     if (source == InvoiceSaleSource.WARD) {
@@ -883,6 +901,21 @@ public class SalesInvoiceService {
     invoice.setUhid(resolvedUhid);
     invoice.setWardId(resolvedWardId);
     invoice.setAdmissionId(admissionId);
+  }
+
+  private void touchWardAdmission(SalesInvoice invoice, Instant now) {
+    if (invoice.getSaleSource() != InvoiceSaleSource.WARD || invoice.getAdmissionId() == null) {
+      return;
+    }
+    HospitalAdmission admission =
+        hospitalAdmissionRepository
+            .lockByIdAndTenantIdAndBranchId(
+                invoice.getAdmissionId(), invoice.getTenantId(), invoice.getBranchId())
+            .orElseThrow(SalesInvoiceService::notFound);
+    InvoiceHospitalSalePolicy.assertActiveWardAdmission(admission, invoice.getWardId());
+    admission.setVersion(admission.getVersion() + 1);
+    admission.setUpdatedAt(now);
+    hospitalAdmissionRepository.save(admission);
   }
 
   private List<SalesInvoiceLine> replaceLines(

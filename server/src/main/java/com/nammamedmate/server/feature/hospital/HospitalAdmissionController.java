@@ -3,6 +3,8 @@ package com.nammamedmate.server.feature.hospital;
 import com.nammamedmate.server.application.hospital.HospitalAdmissionCommand;
 import com.nammamedmate.server.application.hospital.HospitalAdmissionService;
 import com.nammamedmate.server.application.hospital.HospitalAdmissionView;
+import com.nammamedmate.server.application.hospital.HospitalPatientSettleCommand;
+import com.nammamedmate.server.application.hospital.HospitalPatientSettlementService;
 import com.nammamedmate.server.infrastructure.security.AuthPrincipal;
 import com.nammamedmate.server.shared.web.ApiResponse;
 import jakarta.validation.Valid;
@@ -26,9 +28,13 @@ import org.springframework.web.bind.annotation.RestController;
 public class HospitalAdmissionController {
 
   private final HospitalAdmissionService hospitalAdmissionService;
+  private final HospitalPatientSettlementService hospitalPatientSettlementService;
 
-  public HospitalAdmissionController(HospitalAdmissionService hospitalAdmissionService) {
+  public HospitalAdmissionController(
+      HospitalAdmissionService hospitalAdmissionService,
+      HospitalPatientSettlementService hospitalPatientSettlementService) {
     this.hospitalAdmissionService = hospitalAdmissionService;
+    this.hospitalPatientSettlementService = hospitalPatientSettlementService;
   }
 
   @GetMapping("/next-uhid")
@@ -84,6 +90,63 @@ public class HospitalAdmissionController {
                     request.policyNumber()))));
   }
 
+  @PostMapping("/casualty/settle")
+  public ApiResponse<HospitalActivePatientController.DetailResponse> settleCasualty(
+      Authentication authentication, @Valid @RequestBody CasualtySettleRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        HospitalActivePatientController.toDetail(
+            hospitalPatientSettlementService.settleCasualty(
+                principal,
+                new HospitalPatientSettleCommand(
+                    null,
+                    request.paymentMode(),
+                    request.idempotencyKey(),
+                    request.insurerName(),
+                    request.policyNumber(),
+                    request.uhid()))));
+  }
+
+  @PostMapping("/{admissionId}/settle")
+  public ApiResponse<HospitalActivePatientController.DetailResponse> settle(
+      Authentication authentication,
+      @PathVariable UUID admissionId,
+      @Valid @RequestBody SettleRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        HospitalActivePatientController.toDetail(
+            hospitalPatientSettlementService.settleAdmission(
+                principal,
+                admissionId,
+                new HospitalPatientSettleCommand(
+                    request.expectedVersion(),
+                    request.paymentMode(),
+                    request.idempotencyKey(),
+                    request.insurerName(),
+                    request.policyNumber(),
+                    null))));
+  }
+
+  @PostMapping("/{admissionId}/discharge")
+  public ApiResponse<HospitalActivePatientController.DetailResponse> discharge(
+      Authentication authentication,
+      @PathVariable UUID admissionId,
+      @Valid @RequestBody DischargeRequest request) {
+    AuthPrincipal principal = (AuthPrincipal) authentication.getPrincipal();
+    return ApiResponse.ok(
+        HospitalActivePatientController.toDetail(
+            hospitalPatientSettlementService.discharge(
+                principal,
+                admissionId,
+                new HospitalPatientSettleCommand(
+                    request.expectedVersion(),
+                    request.paymentMode(),
+                    request.idempotencyKey(),
+                    request.insurerName(),
+                    request.policyNumber(),
+                    null))));
+  }
+
   private static AdmissionResponse toResponse(HospitalAdmissionView view) {
     return new AdmissionResponse(
         view.id(),
@@ -123,6 +186,27 @@ public class HospitalAdmissionController {
       UUID attendingDoctorId,
       @Size(max = 500) String diagnosis,
       @NotBlank String payerType,
+      @Size(max = 200) String insurerName,
+      @Size(max = 64) String policyNumber) {}
+
+  public record SettleRequest(
+      @NotNull Long expectedVersion,
+      @NotBlank @Size(max = 16) String paymentMode,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @Size(max = 200) String insurerName,
+      @Size(max = 64) String policyNumber) {}
+
+  public record CasualtySettleRequest(
+      @NotBlank @Size(max = 32) String uhid,
+      @NotBlank @Size(max = 16) String paymentMode,
+      @NotBlank @Size(max = 128) String idempotencyKey,
+      @Size(max = 200) String insurerName,
+      @Size(max = 64) String policyNumber) {}
+
+  public record DischargeRequest(
+      @NotNull Long expectedVersion,
+      @Size(max = 16) String paymentMode,
+      @NotBlank @Size(max = 128) String idempotencyKey,
       @Size(max = 200) String insurerName,
       @Size(max = 64) String policyNumber) {}
 

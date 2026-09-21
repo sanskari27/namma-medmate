@@ -490,6 +490,50 @@ public class CustomerCreditService {
     return toView(account, ledgerEntries(tenantId, customerId));
   }
 
+  @Transactional
+  public void settleAttributed(
+      AuthPrincipal principal,
+      UUID tenantId,
+      UUID customerId,
+      long amountPaise,
+      UUID invoiceId,
+      String mode,
+      String idempotencyKey) {
+    requireCustomer(customerId, tenantId);
+    if (amountPaise <= 0L) {
+      return;
+    }
+    String normalizedMode = requireMode(mode);
+    String normalizedKey = requireIdempotencyKey(idempotencyKey);
+    CustomerCreditView replay = replayIfPresent(tenantId, customerId, normalizedKey, amountPaise);
+    if (replay != null) {
+      return;
+    }
+    Instant now = clock.instant();
+    CustomerCreditAccount account = lockOrCreate(tenantId, customerId, now);
+    long take = Math.min(amountPaise, Math.max(0L, account.getBalancePaise()));
+    if (take <= 0L) {
+      return;
+    }
+    account.setBalancePaise(account.getBalancePaise() - take);
+    account.setVersion(account.getVersion() + 1);
+    account.setUpdatedAt(now);
+    accountRepository.save(account);
+    appendLedger(
+        account,
+        CustomerCreditLedgerType.SETTLEMENT,
+        take,
+        account.getBalancePaise(),
+        invoiceId,
+        normalizedMode,
+        null,
+        normalizedKey,
+        principal.userId(),
+        now);
+    loyaltyService.earnOnSettlement(principal, tenantId, customerId, take, normalizedKey);
+    creditDueScanner.releaseIfSettled(account);
+  }
+
   private CustomerCreditView replayIfPresent(
       UUID tenantId, UUID customerId, String idempotencyKey, long amountPaise) {
     return ledgerRepository

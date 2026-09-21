@@ -34,6 +34,16 @@ public final class HospitalPolicy {
   public static final String NOTHING_DUE_MESSAGE = "The hospital account has nothing overdue.";
   public static final String STALE_STATE = "STALE_STATE";
   public static final String STALE_STATE_MESSAGE = "This indent is no longer in that state.";
+  public static final String ADMISSION_STALE_MESSAGE =
+      "This stay was updated. Reload and try again.";
+  public static final String OUTSTANDING_BILLS = "OUTSTANDING_BILLS";
+  public static final String OUTSTANDING_BILLS_MESSAGE =
+      "Settle unpaid patient bills before discharge, or include settlement in this request.";
+  public static final String INVALID_SETTLEMENT_MODE = "INVALID_SETTLEMENT_MODE";
+  public static final String INVALID_SETTLEMENT_MODE_MESSAGE =
+      "Settle with cash, UPI, card, or Insurance/TPA.";
+  public static final String NOTHING_TO_SETTLE = "NOTHING_TO_SETTLE";
+  public static final String NOTHING_TO_SETTLE_MESSAGE = "There are no unpaid patient bills.";
   public static final String LINES_REQUIRED = "LINES_REQUIRED";
   public static final String LINES_REQUIRED_MESSAGE = "Add at least one medicine line.";
   public static final String CREDIT_LIMIT = "CREDIT_LIMIT";
@@ -159,6 +169,68 @@ public final class HospitalPolicy {
 
   public static ApiException staleState() {
     return new ApiException(HttpStatus.CONFLICT, STALE_STATE, STALE_STATE_MESSAGE);
+  }
+
+  public static ApiException admissionStale() {
+    return new ApiException(HttpStatus.CONFLICT, STALE_STATE, ADMISSION_STALE_MESSAGE);
+  }
+
+  public static void assertAdmissionVersion(long actual, Long expected) {
+    if (expected == null) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    if (actual != expected) {
+      throw admissionStale();
+    }
+  }
+
+  public static void assertNoOutstanding(long unpaidPaise, boolean settleIncluded) {
+    if (unpaidPaise > 0L && !settleIncluded) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, OUTSTANDING_BILLS, OUTSTANDING_BILLS_MESSAGE);
+    }
+  }
+
+  public static void assertHasUnpaid(long unpaidPaise) {
+    if (unpaidPaise <= 0L) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY, NOTHING_TO_SETTLE, NOTHING_TO_SETTLE_MESSAGE);
+    }
+  }
+
+  public static PaymentMode requireSettleMode(String raw) {
+    if (raw == null || raw.isBlank()) {
+      throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
+    }
+    PaymentMode mode;
+    try {
+      mode = PaymentMode.valueOf(raw.trim().toUpperCase());
+    } catch (RuntimeException ex) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          INVALID_SETTLEMENT_MODE,
+          INVALID_SETTLEMENT_MODE_MESSAGE);
+    }
+    if (mode != PaymentMode.CASH
+        && mode != PaymentMode.UPI
+        && mode != PaymentMode.CARD
+        && mode != PaymentMode.INSURANCE_TPA) {
+      throw new ApiException(
+          HttpStatus.UNPROCESSABLE_ENTITY,
+          INVALID_SETTLEMENT_MODE,
+          INVALID_SETTLEMENT_MODE_MESSAGE);
+    }
+    return mode;
+  }
+
+  public static HospitalActivePatientView parseActivePatientView(String raw) {
+    if (raw == null || raw.isBlank() || "unsettled".equalsIgnoreCase(raw.trim())) {
+      return HospitalActivePatientView.UNSETTLED;
+    }
+    if ("all".equalsIgnoreCase(raw.trim())) {
+      return HospitalActivePatientView.ALL;
+    }
+    throw new ApiException(HttpStatus.BAD_REQUEST, "VALIDATION_ERROR", "Invalid request");
   }
 
   public static void requirePositiveCapacity(int capacity) {

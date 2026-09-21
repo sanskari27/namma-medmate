@@ -48,6 +48,13 @@ export const API = {
   HOSPITAL_ADMISSIONS: '/api/v1/hospital/admissions',
   HOSPITAL_ADMISSIONS_NEXT_UHID: '/api/v1/hospital/admissions/next-uhid',
   hospitalAdmission: (id: string) => `/api/v1/hospital/admissions/${id}`,
+  hospitalAdmissionSettle: (id: string) => `/api/v1/hospital/admissions/${id}/settle`,
+  hospitalAdmissionDischarge: (id: string) => `/api/v1/hospital/admissions/${id}/discharge`,
+  HOSPITAL_CASUALTY_SETTLE: '/api/v1/hospital/admissions/casualty/settle',
+  HOSPITAL_ACTIVE_PATIENTS: '/api/v1/hospital/active-patients',
+  hospitalActivePatient: (id: string) => `/api/v1/hospital/active-patients/${id}`,
+  hospitalActivePatientCasualty: (uhid: string) =>
+    `/api/v1/hospital/active-patients/casualty/${encodeURIComponent(uhid)}`,
   HOSPITAL_INDENTS: '/api/v1/hospital/indents',
   hospitalIndent: (id: string) => `/api/v1/hospital/indents/${id}`,
   hospitalIndentApprove: (id: string) => `/api/v1/hospital/indents/${id}/approve`,

@@ -294,4 +294,40 @@ class HospitalPolicyTest {
         .extracting(ex -> ((ApiException) ex).getStatus())
         .isEqualTo(HttpStatus.FORBIDDEN);
   }
+
+  @Test
+  void ac02_settleModeAllowsCashUpiCardAndTpa() {
+    assertThat(HospitalPolicy.requireSettleMode("cash")).isEqualTo(PaymentMode.CASH);
+    assertThat(HospitalPolicy.requireSettleMode("UPI")).isEqualTo(PaymentMode.UPI);
+    assertThat(HospitalPolicy.requireSettleMode("CARD")).isEqualTo(PaymentMode.CARD);
+    assertThat(HospitalPolicy.requireSettleMode("INSURANCE_TPA"))
+        .isEqualTo(PaymentMode.INSURANCE_TPA);
+    assertThatThrownBy(() -> HospitalPolicy.requireSettleMode("CREDIT"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.INVALID_SETTLEMENT_MODE);
+    assertThatThrownBy(() -> HospitalPolicy.requireSettleMode("NEFT"))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.INVALID_SETTLEMENT_MODE);
+  }
+
+  @Test
+  void ac03_outstandingBillsBlocksDischarge() {
+    assertThatThrownBy(() -> HospitalPolicy.assertNoOutstanding(1L, false))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getCode())
+        .isEqualTo(HospitalPolicy.OUTSTANDING_BILLS);
+    HospitalPolicy.assertNoOutstanding(0L, false);
+    HospitalPolicy.assertNoOutstanding(1L, true);
+  }
+
+  @Test
+  void ac05_admissionExpectedVersionConflicts() {
+    HospitalPolicy.assertAdmissionVersion(3L, 3L);
+    assertThatThrownBy(() -> HospitalPolicy.assertAdmissionVersion(2L, 3L))
+        .isInstanceOf(ApiException.class)
+        .extracting(ex -> ((ApiException) ex).getStatus())
+        .isEqualTo(HttpStatus.CONFLICT);
+  }
 }
