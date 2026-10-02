@@ -20,12 +20,12 @@ variable "admin_ssh_cidr" {
 
 variable "ec2_instance_type" {
   type    = string
-  default = "t3.medium"
+  default = "t3.small"
 }
 
 variable "db_instance_class" {
   type    = string
-  default = "db.t4g.small"
+  default = "db.t4g.micro"
 }
 
 variable "db_name" {
