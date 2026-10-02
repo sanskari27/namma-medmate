@@ -13,7 +13,6 @@ class LocalEnvironmentGuardTest {
     LocalEnvironmentGuard guard = new LocalEnvironmentGuard();
     ReflectionTestUtils.setField(
         guard, "databaseUrl", "jdbc:postgresql://foo.rds.amazonaws.com:5432/nammamedmate");
-    ReflectionTestUtils.setField(guard, "redisHost", "localhost");
     ReflectionTestUtils.setField(guard, "filesBucket", "");
 
     assertThatThrownBy(guard::failIfPointingAtProd)
@@ -26,7 +25,6 @@ class LocalEnvironmentGuardTest {
     LocalEnvironmentGuard guard = new LocalEnvironmentGuard();
     ReflectionTestUtils.setField(
         guard, "databaseUrl", "jdbc:postgresql://localhost:25432/nammamedmate");
-    ReflectionTestUtils.setField(guard, "redisHost", "localhost");
     ReflectionTestUtils.setField(guard, "filesBucket", "namma-medmate-prod-files");
 
     assertThatThrownBy(guard::failIfPointingAtProd)

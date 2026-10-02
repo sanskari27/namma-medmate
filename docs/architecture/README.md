@@ -9,7 +9,6 @@ files and source code win if this document becomes stale.
 dispensary/ --\
                +-- HTTP /api/v1 --> server/ --> PostgreSQL 16
 admin/ --------/                       |
-                                       +--> Redis 7
                                        +--> external adapters
 ```
 
@@ -52,7 +51,7 @@ Live schema head is **V64** (V1–V64 sequential; never edit an applied file).
   untrusted.
 - Secrets and personal/medical data are not logged.
 
-Spring Security, BCrypt, JJWT dependencies, PostgreSQL, Redis, Flyway, and the
+Spring Security, BCrypt, JJWT dependencies, PostgreSQL, Flyway, and the
 base tenancy migration exist. JWT issuance/filtering, tenant context, and product
 features are still implementation work; agents must not describe scaffolding as
 complete.
@@ -105,9 +104,9 @@ src/
 
 ## Environments and gates
 
-- Local: `compose.yaml`, PostgreSQL `localhost:25432`, Redis `localhost:16379`.
-- Production: `compose.prod.yaml` on EC2 with private RDS, ElastiCache, and private S3 for evidence files (`ap-south-1`).
-- The Spring `local` profile must never target RDS, ElastiCache, or S3.
+- Local: `compose.yaml`, PostgreSQL `localhost:25432`.
+- Production: `compose.prod.yaml` on EC2 with private RDS and private S3 for evidence files (`ap-south-1`).
+- The Spring `local` profile must never target RDS or S3.
 
 The implementer runs every listed gate for the story **once** before verify.
 Independent review cites that output and must not re-run these commands:

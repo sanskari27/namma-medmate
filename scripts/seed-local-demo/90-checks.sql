@@ -7,6 +7,10 @@ DECLARE
     v_products int;
     v_customers int;
     v_mismatch int;
+    v_wards int;
+    v_active int;
+    v_issues int;
+    v_hosp_inv int;
 BEGIN
     SELECT COUNT(*) INTO v_products
     FROM product
@@ -55,8 +59,45 @@ BEGIN
         RAISE EXCEPTION 'demo seed: % stock balances do not match last movement', v_mismatch;
     END IF;
 
-    RAISE NOTICE 'demo seed ok: products=% customers=% completed_invoices=%',
-        v_products, v_customers, v_completed;
+    SELECT COUNT(*) INTO v_wards
+    FROM hospital_ward
+    WHERE tenant_id = '11111111-1111-1111-1111-111111111111';
+
+    SELECT COUNT(*) INTO v_active
+    FROM hospital_admission
+    WHERE tenant_id = '11111111-1111-1111-1111-111111111111'
+      AND status = 'ACTIVE';
+
+    SELECT COUNT(*) INTO v_issues
+    FROM hospital_issue
+    WHERE tenant_id = '11111111-1111-1111-1111-111111111111';
+
+    SELECT COUNT(*) INTO v_hosp_inv
+    FROM sales_invoice
+    WHERE tenant_id = '11111111-1111-1111-1111-111111111111'
+      AND sale_source IN ('WARD', 'OPD_RX', 'EMERGENCY');
+
+    IF NOT EXISTS (
+        SELECT 1 FROM hospital_credit_account
+        WHERE tenant_id = '11111111-1111-1111-1111-111111111111'
+    ) THEN
+        RAISE EXCEPTION 'demo seed: hospital credit account missing';
+    END IF;
+    IF v_wards < 6 THEN
+        RAISE EXCEPTION 'demo seed: expected 6+ hospital wards, got %', v_wards;
+    END IF;
+    IF v_active < 10 THEN
+        RAISE EXCEPTION 'demo seed: expected 10+ active admissions, got %', v_active;
+    END IF;
+    IF v_issues < 5 THEN
+        RAISE EXCEPTION 'demo seed: expected 5+ ward issues, got %', v_issues;
+    END IF;
+    IF v_hosp_inv < 20 THEN
+        RAISE EXCEPTION 'demo seed: expected 20+ hospital POS bills, got %', v_hosp_inv;
+    END IF;
+
+    RAISE NOTICE 'demo seed ok: products=% customers=% completed_invoices=% wards=% active_ipd=% ws_issues=% hosp_pos=%',
+        v_products, v_customers, v_completed, v_wards, v_active, v_issues, v_hosp_inv;
 END $$;
 
 DROP FUNCTION IF EXISTS local_demo_uuid(text, integer);

@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Host-run local stack: Compose Postgres + Redis, Spring + Vite on the host.
+# Host-run local stack: Compose Postgres, Spring + Vite on the host.
 # Vite HMR is live. Spring DevTools restarts when the IDE/Maven writes classes.
 set -euo pipefail
 
@@ -22,8 +22,6 @@ if [[ -f .env ]]; then
 fi
 
 export SPRING_PROFILES_ACTIVE="${SPRING_PROFILES_ACTIVE:-local}"
-export REDIS_HOST="${REDIS_HOST:-localhost}"
-export REDIS_PORT="${REDIS_PORT:-16379}"
 export JWT_SECRET="${JWT_SECRET:-$JWT_FALLBACK}"
 export VITE_API_BASE_URL="${VITE_API_BASE_URL:-http://localhost:8080}"
 
@@ -53,8 +51,8 @@ ensure_npm() {
 log "Stopping containerized apps if they hold 8080/5173/5174"
 $COMPOSE -f "$COMPOSE_FILE" stop server dispensary admin >/dev/null 2>&1 || true
 
-log "Starting Postgres + Redis"
-$COMPOSE -f "$COMPOSE_FILE" up -d postgres redis
+log "Starting Postgres"
+$COMPOSE -f "$COMPOSE_FILE" up -d postgres
 
 log "Waiting for Postgres"
 for _ in $(seq 1 60); do
@@ -72,6 +70,6 @@ ensure_npm admin
 (cd admin && prefix admin npm run dev) &
 
 log "API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174"
-log "Ctrl-C stops the apps; Postgres/Redis stay up (make down to stop them)"
+log "Ctrl-C stops the apps; Postgres stays up (make down to stop it)"
 
 wait

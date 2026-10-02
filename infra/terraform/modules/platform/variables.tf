@@ -38,11 +38,6 @@ variable "db_username" {
   default = "nammamedmate"
 }
 
-variable "redis_node_type" {
-  type    = string
-  default = "cache.t4g.micro"
-}
-
 variable "skip_final_snapshot" {
   type    = bool
   default = false

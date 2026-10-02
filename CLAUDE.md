@@ -2,11 +2,11 @@
 
 Namma MedMate is a multi-tenant Indian pharmacy ERP and platform SaaS.
 
-- `server/`: Java 17, Spring Boot 3.4.4, Maven, PostgreSQL/Flyway, Redis.
+- `server/`: Java 17, Spring Boot 3.4.4, Maven, PostgreSQL/Flyway.
 - `dispensary/`: React 19 + TypeScript + Vite + Redux Toolkit for pharmacy staff.
 - `admin/`: the same independent frontend stack for MASTER/platform staff.
-- Local orchestration uses Docker Compose; production uses EC2, RDS,
-  ElastiCache, and Terraform.
+- Local orchestration uses Docker Compose; production uses EC2, RDS, and
+  Terraform.
 
 The applications use their own committed build files and dependency managers.
 Follow [`docs/architecture/README.md`](docs/architecture/README.md).

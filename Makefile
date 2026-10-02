@@ -26,10 +26,10 @@ flyway-fix: ## Fix local Flyway checksum mismatch (ARGS=status|repair|replay)
 	./scripts/flyway-local-fix.sh $(ARGS)
 
 .PHONY: deps dev up down logs
-deps: ## Start local Postgres + Redis
-	$(COMPOSE) -f compose.yaml up -d postgres redis
+deps: ## Start local Postgres
+	$(COMPOSE) -f compose.yaml up -d postgres
 
-dev: ## Postgres/Redis in Compose; APIs and SPAs on host with hot reload
+dev: ## Postgres in Compose; APIs and SPAs on host with hot reload
 	./scripts/dev.sh
 
 up: ## Build and start full local stack

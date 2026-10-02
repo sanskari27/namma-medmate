@@ -38,6 +38,7 @@ psql -v ON_ERROR_STOP=1 -h "$PGHOST" -p "$PGPORT" -U "$PGUSER" -d "$PGDATABASE" 
   -f "$ROOT/scripts/seed-local-demo/40-stock.sql" \
   -f "$ROOT/scripts/seed-local-demo/50-procurement.sql" \
   -f "$ROOT/scripts/seed-local-demo/60-sales.sql" \
+  -f "$ROOT/scripts/seed-local-demo/65-hospital.sql" \
   -f "$ROOT/scripts/seed-local-demo/70-finance-comms.sql" \
   -f "$ROOT/scripts/seed-local-demo/80-hq.sql" \
   -f "$ROOT/scripts/seed-local-demo/90-checks.sql"

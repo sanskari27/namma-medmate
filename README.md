@@ -14,7 +14,7 @@
 cp .env.example .env
 make dev
 # API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174
-# Postgres/Redis in Compose; Spring + Vite on the host (Vite HMR, Java DevTools restart)
+# Postgres in Compose; Spring + Vite on the host (Vite HMR, Java DevTools restart)
 ```
 
 Containerized stack (rebuilds images — slower): `make up`.
@@ -57,7 +57,7 @@ See [`scripts/clone-prod-db.env.example`](scripts/clone-prod-db.env.example).
 | **Clone Prod DB to S3** | Manual | `pg_dump` to the dumps bucket |
 | **Feature Tag** | Push `feature/**` | Force-updates the `feature` tag for a later manual deploy |
 
-Terraform provisions EC2 + RDS + ElastiCache and seeds SSM. Redeploy after an SSM change so compose picks it up.
+Terraform provisions EC2 + RDS and seeds SSM. Redeploy after an SSM change so compose picks it up.
 
 Host Nginx TLS: [`deploy/HOST_NGINX.md`](deploy/HOST_NGINX.md).
 
@@ -85,6 +85,5 @@ open product choices remain blocked in
 |---|-------|------|
 | Compose | `compose.yaml` | `compose.prod.yaml` (EC2 only) |
 | Postgres | Docker :25432 | RDS (private) |
-| Redis | Docker :16379 | ElastiCache |
 
 **Never point the local Spring profile at RDS** — guards fail fast if misconfigured.

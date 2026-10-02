@@ -197,7 +197,7 @@ main() {
     rm -f "$dump_file"
   fi
 
-  log "Done (${stamp}). Redis and file storage are not cloned."
+  log "Done (${stamp}). File storage is not cloned."
 }
 
 main "$@"

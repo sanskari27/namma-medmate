@@ -130,25 +130,6 @@ resource "aws_security_group" "rds" {
   tags = { Name = "${local.name}-rds-sg" }
 }
 
-resource "aws_security_group" "redis" {
-  name        = "${local.name}-redis"
-  description = "ElastiCache Redis"
-  vpc_id      = aws_vpc.this.id
-  ingress {
-    from_port       = 6379
-    to_port         = 6379
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ec2.id]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = { Name = "${local.name}-redis-sg" }
-}
-
 resource "random_password" "db" {
   length  = 32
   special = false
@@ -178,30 +159,6 @@ resource "aws_db_instance" "this" {
   final_snapshot_identifier = var.skip_final_snapshot ? null : "${local.name}-final"
   backup_retention_period   = 7
   tags                      = { Name = "${local.name}-rds" }
-}
-
-resource "aws_elasticache_subnet_group" "this" {
-  name       = "${local.name}-redis"
-  subnet_ids = aws_subnet.private[*].id
-}
-
-resource "aws_elasticache_replication_group" "this" {
-  replication_group_id       = "${local.name}-redis"
-  description                = "${local.name} redis"
-  engine                     = "redis"
-  engine_version             = "7.1"
-  node_type                  = var.redis_node_type
-  num_cache_clusters         = 1
-  port                       = 6379
-  parameter_group_name       = "default.redis7"
-  subnet_group_name          = aws_elasticache_subnet_group.this.name
-  security_group_ids         = [aws_security_group.redis.id]
-  automatic_failover_enabled = false
-  # Cluster API cannot enable transit encryption for Redis; replication group can.
-  # preferred keeps existing unencrypted Spring clients working (Redis unused by sessions).
-  transit_encryption_enabled = true
-  transit_encryption_mode    = "preferred"
-  tags                       = { Name = "${local.name}-redis" }
 }
 
 resource "aws_s3_bucket" "files" {
@@ -421,8 +378,6 @@ resource "aws_ssm_parameter" "compose_env" {
     "DATABASE_URL=jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}",
     "DATABASE_USERNAME=${var.db_username}",
     "DATABASE_PASSWORD=${random_password.db.result}",
-    "REDIS_HOST=${aws_elasticache_replication_group.this.primary_endpoint_address}",
-    "REDIS_PORT=6379",
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
     "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com",

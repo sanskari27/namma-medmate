@@ -2,7 +2,7 @@
 
 INSERT INTO expense (
     id, tenant_id, branch_id, category_id, category_code, category_label, amount_paise,
-    occurred_on, notes, idempotency_key, version, created_by, created_at, updated_at, status
+    occurred_on, notes, expense_no, idempotency_key, version, created_by, created_at, updated_at, status
 )
 SELECT
     local_demo_uuid('expense', n),
@@ -24,6 +24,7 @@ SELECT
     END,
     DATE '2026-05-01' + ((n - 1) * 2),
     'Local demo spend ' || n::text,
+    'EXP-' || lpad((1000 + n)::text, 4, '0'),
     'demo-exp-' || n::text,
     0,
     d.accountant_id,

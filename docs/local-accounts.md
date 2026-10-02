@@ -21,9 +21,14 @@ The pharmacy users belong to tenant `11111111-1111-1111-1111-111111111111`
 `tenant_id`. The Verification Agent is a platform sub-account created by MASTER.
 
 Local Varshmaan is on **PRO** after `make seed-local` so loyalty, kiosk, analytics,
-custom reports, GST/P&L, and stockist dues are entitled. Outlets: Indiranagar
-(`BR01`, default), Koramangala (`BR02`), and a kiosk (`BR03`). HQ also has extra
-demo pharmacies (pending KYC, suspended, expired, mixed plans) for admin queues.
+custom reports, GST/P&L, stockist dues, and hospital pharmacy are entitled. Outlets:
+Indiranagar (`BR01`, default — IPD wards, ward issues, hospital POS), Koramangala
+(`BR02`, empty day-care ward), and a kiosk (`BR03`). HQ also has extra demo
+pharmacies (pending KYC, suspended, expired, mixed plans) for admin queues.
+
+Hospital demo (OWNER, Indiranagar): credit account **Varshmaan Medical Centre**,
+occupied beds, pending/approved indents, overdue ward invoices, unpaid IPD bills
+on Active Patients, and WARD / OPD / Emergency rows on the sales register.
 
 Staff passwords are reset by the owner on **Staff accounts**: select the
 staff row, then open the temp-password dialog. There is no `/staff-password`
