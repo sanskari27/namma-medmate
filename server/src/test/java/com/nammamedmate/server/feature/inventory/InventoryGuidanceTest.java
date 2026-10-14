@@ -124,9 +124,28 @@ class InventoryGuidanceTest extends AbstractIntegrationTest {
   void ac01_fefoSuggestedButNonFefoValidBatchMayBeIssued() throws Exception {
     Fixture fx = seed("ac01");
     UUID productId = createBatchedProduct(fx.cookie(), "SKU-FEFO", "Fefo Med", null, null, null);
+    LocalDate today = LocalDate.now(java.time.ZoneOffset.UTC);
 
-    receive(fx.cookie(), productId, "LOT-EARLY", "2026-01-01", "2026-09-25", 1000, "10", "r1", 0);
-    receive(fx.cookie(), productId, "LOT-LATE", "2026-02-01", "2027-06-30", 2000, "10", "r2", 0);
+    receive(
+        fx.cookie(),
+        productId,
+        "LOT-EARLY",
+        "2026-01-01",
+        today.plusDays(40).toString(),
+        1000,
+        "10",
+        "r1",
+        0);
+    receive(
+        fx.cookie(),
+        productId,
+        "LOT-LATE",
+        "2026-02-01",
+        today.plusDays(200).toString(),
+        2000,
+        "10",
+        "r2",
+        0);
 
     MvcResult batches =
         mockMvc
