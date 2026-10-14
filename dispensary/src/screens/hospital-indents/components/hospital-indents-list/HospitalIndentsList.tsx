@@ -64,12 +64,14 @@ export function HospitalIndentsList({
               aria-selected={selectedId === indent.id}
               onClick={() => onSelect(indent)}
             >
-              <span>{indent.indentNumber}</span>
+              <span className="hi-id">{indent.indentNumber}</span>
               <span>
                 {wardBedLabel(indent)} · {patientOrNote(indent)}
               </span>
               <span>{indent.requestedBy}</span>
-              <span>{statusLabel(indent.status)}</span>
+              <span className="hi-status" data-status={indent.status}>
+                {statusLabel(indent.status)}
+              </span>
             </button>
           ))}
         </>

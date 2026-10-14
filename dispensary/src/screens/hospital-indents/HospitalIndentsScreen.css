@@ -47,6 +47,7 @@
   border: 1px solid var(--color-line);
   border-radius: 8px;
   padding: 10px 12px;
+  background: var(--color-surface);
 }
 
 .hi-count strong {
@@ -75,6 +76,7 @@
   display: flex;
   flex-direction: column;
   overflow: hidden;
+  background: var(--color-surface);
 }
 
 .hi-panel-head {
@@ -87,15 +89,28 @@
 }
 
 .hi-filter {
-  display: flex;
+  display: inline-flex;
   flex-wrap: wrap;
-  gap: 6px;
+  gap: 2px;
+  padding: 3px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  background: var(--color-canvas);
+}
+
+.hi-filter button {
+  border: 0;
+  border-radius: 6px;
+  padding: 4px 10px;
+  background: transparent;
+  color: var(--color-muted);
+  font-size: 13px;
 }
 
 .hi-filter button[aria-pressed='true'] {
-  background: var(--color-brand-soft);
-  border-color: var(--color-brand);
+  background: var(--color-surface);
   color: var(--color-brand);
+  outline: 1px solid var(--color-line);
 }
 
 .hi-row {
@@ -115,8 +130,49 @@
   border-bottom: none;
 }
 
-.hi-row[aria-selected='true'] {
+.hi-row:hover:not(.hi-row-head) {
+  background: var(--color-canvas);
+}
+
+.hi-row[aria-selected='true'],
+.hi-row[aria-selected='true']:hover {
   background: var(--color-brand-soft);
+  box-shadow: inset 3px 0 0 var(--color-brand);
+}
+
+.hi-id {
+  font-family: var(--font-mono, ui-monospace, monospace);
+  font-size: 13px;
+  font-variant-numeric: tabular-nums;
+}
+
+.hi-status {
+  justify-self: start;
+  width: fit-content;
+  padding: 2px 8px;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-canvas);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.hi-status[data-status='PENDING'] {
+  color: var(--color-warn);
+  border-color: var(--color-warn);
+  background: #fff8eb;
+}
+
+.hi-status[data-status='APPROVED'] {
+  color: var(--color-brand);
+  border-color: var(--color-brand);
+  background: var(--color-brand-soft);
+}
+
+.hi-status[data-status='REJECTED'] {
+  color: var(--color-danger);
+  border-color: var(--color-danger);
+  background: #feecec;
 }
 
 .hi-row-head {
@@ -131,6 +187,40 @@
   display: flex;
   flex-direction: column;
   gap: 12px;
+}
+
+.hi-detail-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+
+.hi-detail-head .hi-id {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 600;
+}
+
+.hi-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+  margin: 0;
+}
+
+.hi-meta div {
+  min-width: 0;
+}
+
+.hi-meta dt {
+  font-size: 12px;
+  color: var(--color-muted);
+}
+
+.hi-meta dd {
+  margin: 2px 0 0;
+  font-size: 14px;
 }
 
 .hi-lines {
@@ -152,13 +242,111 @@
   gap: 8px;
 }
 
+.hi-actions a {
+  display: inline-flex;
+  align-items: center;
+  height: 40px;
+  padding: 0 16px;
+  border-radius: 6px;
+  background: var(--color-brand);
+  color: var(--color-surface);
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+}
+
 .hi-empty {
   padding: 24px 14px;
   color: var(--color-muted);
 }
 
+.hi-banner button {
+  margin-left: 8px;
+  border: 0;
+  background: transparent;
+  color: var(--color-brand);
+  font-weight: 600;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.hi-form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin-top: 14px;
+}
+
+.hi-fieldset {
+  margin: 0;
+  padding: 10px 12px 12px;
+  border: 1px solid var(--color-line);
+  border-radius: 8px;
+  display: grid;
+  gap: 10px;
+}
+
+.hi-fieldset legend {
+  padding: 0 4px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--color-muted);
+}
+
+.hi-fieldset label {
+  display: block;
+  margin-bottom: 4px;
+}
+
+.hi-pair,
+.hi-line-editor {
+  display: grid;
+  gap: 10px;
+}
+
+.hi-pair {
+  grid-template-columns: 1fr 1fr;
+}
+
+.hi-line-editor {
+  grid-template-columns: 1.4fr 0.7fr;
+}
+
+.hi-dialog .hi-banner {
+  margin-top: 12px;
+}
+
+.hi-line-editor {
+  padding: 8px;
+  border-radius: 6px;
+  background: var(--color-canvas);
+}
+
+.hi-field {
+  height: 2.5rem;
+  width: 100%;
+  border: 1px solid var(--color-line);
+  border-radius: 6px;
+  background: var(--color-surface);
+  padding: 0 0.75rem;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+}
+
+.hi-dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid var(--color-line);
+}
+
 @media (max-width: 960px) {
-  .hi-board {
+  .hi-board,
+  .hi-meta,
+  .hi-pair,
+  .hi-line-editor {
     grid-template-columns: 1fr;
   }
 

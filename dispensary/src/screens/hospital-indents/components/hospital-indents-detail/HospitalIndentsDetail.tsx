@@ -29,16 +29,26 @@ export function HospitalIndentsDetail({
   return (
     <section className="hi-panel" aria-label={HOSPITAL_INDENTS_CONTENT.detailLabel}>
       <div className="hi-detail">
-        <div>
-          <h2 className="font-serif text-lg text-ink">{indent.indentNumber}</h2>
-          <p className="text-sm text-muted">
-            {wardBedLabel(indent)} · {patientOrNote(indent)}
-          </p>
-          <p className="text-sm text-muted">
-            {HOSPITAL_INDENTS_CONTENT.requestedByLabel}: {indent.requestedBy}
-          </p>
-          <p className="text-sm text-muted">Status: {statusLabel(indent.status)}</p>
+        <div className="hi-detail-head">
+          <h2 className="hi-id">{indent.indentNumber}</h2>
+          <span className="hi-status" data-status={indent.status}>
+            {statusLabel(indent.status)}
+          </span>
         </div>
+        <dl className="hi-meta">
+          <div>
+            <dt>{HOSPITAL_INDENTS_CONTENT.wardLabel}</dt>
+            <dd>{wardBedLabel(indent)}</dd>
+          </div>
+          <div>
+            <dt>{HOSPITAL_INDENTS_CONTENT.patientLabel}</dt>
+            <dd>{patientOrNote(indent)}</dd>
+          </div>
+          <div>
+            <dt>{HOSPITAL_INDENTS_CONTENT.requestedByLabel}</dt>
+            <dd>{indent.requestedBy}</dd>
+          </div>
+        </dl>
 
         <div className="hi-lines">
           <div className="hi-line-row hi-row-head" aria-hidden="true">

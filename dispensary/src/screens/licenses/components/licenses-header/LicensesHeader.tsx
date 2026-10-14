@@ -1,11 +1,21 @@
 import { Plus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectLicensesDue, startCreate, licenseSelected } from '../../store';
+import type { LicenseDocType } from '@/services/licenses';
+import { selectLicensesDue, selectLicensesItems, startCreate, licenseSelected } from '../../store';
 import { formatIstDate, typeLabel } from '../../LicensesScreen.utils';
+
+const LICENCE_TYPES: LicenseDocType[] = [
+  'DRUG_LICENSE',
+  'GST',
+  'FSSAI',
+  'PHARMACIST_REGISTRATION',
+];
 
 export function LicensesHeader({ denied }: { denied: boolean }) {
   const dispatch = useDispatch();
   const due = useSelector(selectLicensesDue);
+  const items = useSelector(selectLicensesItems);
+  const allFiled = LICENCE_TYPES.every((type) => items.some((row) => row.docType === type));
   return (
     <>
       <div className="lc-toolbar">
@@ -14,7 +24,7 @@ export function LicensesHeader({ denied }: { denied: boolean }) {
           <span className="lc-muted">Drug, GST, FSSAI and pharmacist papers for this pharmacy</span>
         </div>
         <div className="lc-toolbar-spacer" />
-        {denied ? null : (
+        {denied || allFiled ? null : (
           <button type="button" className="lc-btn lc-btn-primary" onClick={() => dispatch(startCreate())}>
             <Plus size={16} /> Add licence
           </button>

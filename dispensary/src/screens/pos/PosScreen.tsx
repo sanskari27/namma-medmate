@@ -53,7 +53,10 @@ export default function PosScreen() {
   }
 
   return (
-    <div className="pos" aria-label={POS_CONTENT.regionLabel}>
+    <div
+      className={step === 'cart' ? 'pos pos-fit' : 'pos'}
+      aria-label={POS_CONTENT.regionLabel}
+    >
       <PosStatusBanner
         status={status}
         statusId={statusId}

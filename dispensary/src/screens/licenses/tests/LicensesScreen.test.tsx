@@ -202,5 +202,21 @@ describe('pharmacy licences', () => {
     await waitFor(() => expect(createMock).toHaveBeenCalled());
     expect(await screen.findByRole('status')).toHaveTextContent('Licence filed.');
     expect(screen.getByText('KA-DL-100')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add licence' })).toBeInTheDocument();
+  });
+
+  it('hides add when every licence type is already on file', async () => {
+    const types = ['DRUG_LICENSE', 'GST', 'FSSAI', 'PHARMACIST_REGISTRATION'] as const;
+    listMock.mockResolvedValue({
+      items: types.map((docType, index) => ({
+        ...sample,
+        id: `lic-${index}`,
+        docType,
+        licenseNumber: `N-${index}`,
+      })),
+    });
+    renderPage();
+    expect(await screen.findByText('N-0')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Add licence' })).not.toBeInTheDocument();
   });
 });

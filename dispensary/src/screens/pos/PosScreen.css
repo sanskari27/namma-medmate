@@ -444,6 +444,55 @@
   overflow: hidden;
 }
 
+/* Counter fills the shell; the bill scrolls on its own. */
+@media (min-width: 981px) {
+  .pos-fit {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    overflow: hidden;
+    padding-bottom: 0;
+  }
+
+  .pos-fit .pos-main {
+    flex: 1 1 auto;
+    min-height: 0;
+    align-items: stretch;
+    grid-template-rows: minmax(0, 1fr);
+  }
+
+  .pos-fit .pos-grid,
+  .pos-fit .pos-cart {
+    min-height: 0;
+    overflow-y: auto;
+  }
+
+  .pos-fit .pos-grid {
+    align-content: start;
+  }
+
+  .pos-fit .pos-cart {
+    position: static;
+  }
+
+  .pos-fit .pos-cart-head {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    background: var(--pos-paper);
+  }
+
+  .pos-fit .pos-cart-body {
+    flex: none;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pos-fit .pos-cart-footer {
+    margin-top: auto;
+  }
+}
+
 .pos-cart-head {
   display: flex;
   align-items: center;
