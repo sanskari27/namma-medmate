@@ -196,7 +196,7 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(ownerCookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_SUSPENDED"))
         .andExpect(jsonPath("$.message").value("This pharmacy is suspended."));
 
     mockMvc
@@ -208,7 +208,7 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/tenants/" + tenant.getId() + "/kyc").cookie(ownerCookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"));
+        .andExpect(jsonPath("$.code").value("TENANT_SUSPENDED"));
 
     Tenant row = tenantRepository.findById(tenant.getId()).orElseThrow();
     assertThat(row.getDeletedAt()).isNull();
@@ -219,7 +219,7 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(ownerCookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_EXPIRED"))
         .andExpect(jsonPath("$.message").value("This pharmacy subscription has expired."));
 
     row.setStatus(TenantStatus.TERMINATED);
@@ -227,7 +227,7 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(ownerCookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_TERMINATED"))
         .andExpect(jsonPath("$.message").value("This pharmacy has been terminated."));
     assertThat(tenantRepository.findById(tenant.getId()).orElseThrow().getDeletedAt()).isNull();
   }
@@ -246,7 +246,7 @@ class TenantLifecycleTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(ownerCookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_TERMINATED"))
         .andExpect(jsonPath("$.message").value("This pharmacy has been terminated."));
 
     mockMvc

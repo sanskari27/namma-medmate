@@ -208,7 +208,7 @@ class MedicationSafetyRollbackTest extends AbstractIntegrationTest {
                         + warningKey
                         + "\"],\"reason\":\"\"}"))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("REVIEW_REASON_REQUIRED"));
     assertThat(auditEventRepository.count()).isEqualTo(before);
   }
 

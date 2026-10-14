@@ -151,12 +151,12 @@ class TenantRegistrationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/users").cookie(cookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"));
+        .andExpect(jsonPath("$.code").value("TENANT_VERIFICATION_REQUIRED"));
 
     mockMvc
         .perform(get("/api/v1/roles").cookie(cookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"));
+        .andExpect(jsonPath("$.code").value("TENANT_VERIFICATION_REQUIRED"));
   }
 
   @Test
@@ -227,7 +227,7 @@ class TenantRegistrationTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/approvals").cookie(cookie))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"));
+        .andExpect(jsonPath("$.code").value("TENANT_VERIFICATION_REQUIRED"));
   }
 
   @Test

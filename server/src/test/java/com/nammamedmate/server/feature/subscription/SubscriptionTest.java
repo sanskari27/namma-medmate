@@ -302,7 +302,7 @@ class SubscriptionTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(owner))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_EXPIRED"))
         .andExpect(jsonPath("$.message").value("This pharmacy subscription has expired."));
   }
 
@@ -344,7 +344,7 @@ class SubscriptionTest extends AbstractIntegrationTest {
     mockMvc
         .perform(get("/api/v1/notifications").cookie(owner))
         .andExpect(status().isForbidden())
-        .andExpect(jsonPath("$.code").value("TENANT_LOCKED"))
+        .andExpect(jsonPath("$.code").value("TENANT_EXPIRED"))
         .andExpect(jsonPath("$.message").value("This pharmacy subscription has expired."));
 
     Cookie laterOwner = login("owner@job-later.local");

@@ -15,7 +15,12 @@ import { apiClient } from '@/services/axios';
 const errorToast = vi.mocked(toast.error);
 const promiseToast = vi.mocked(toast.promise);
 
-function httpError(config: InternalAxiosRequestConfig, status: number, message: string, code: string) {
+function httpError(
+  config: InternalAxiosRequestConfig,
+  status: number,
+  message: string,
+  code: string,
+) {
   return Promise.reject(
     new axios.AxiosError(
       `Request failed with status code ${status}`,
@@ -42,19 +47,19 @@ describe('api error toasts', () => {
     promiseToast.mockClear();
   });
 
-  it('toasts the server message and still rejects', async () => {
+  it('toasts a plain message and still rejects', async () => {
     apiClient.defaults.adapter = (config) => httpError(config, 409, 'Batch is closed', 'CONFLICT');
 
     await expect(apiClient.get('/api/v1/batches')).rejects.toMatchObject({
-      message: 'Batch is closed',
+      message: 'Someone else updated this. Refresh the page and try again.',
       status: 409,
       code: 'CONFLICT',
     });
 
     expect(errorToast).toHaveBeenCalledWith(
-      'Batch is closed',
+      'Someone else updated this. Refresh the page and try again.',
       expect.objectContaining({
-        id: 'Batch is closed',
+        id: 'Someone else updated this. Refresh the page and try again.',
         ariaProps: { role: 'alert', 'aria-live': 'assertive' },
       }),
     );
@@ -65,12 +70,12 @@ describe('api error toasts', () => {
       Promise.reject(new axios.AxiosError('Network Error', axios.AxiosError.ERR_NETWORK));
 
     await expect(apiClient.get('/api/v1/batches')).rejects.toMatchObject({
-      message: 'Could not reach the server',
+      message: 'Could not connect. Check your internet and try again.',
       code: 'NETWORK',
     });
     expect(errorToast).toHaveBeenCalledWith(
-      'Could not reach the server',
-      expect.objectContaining({ id: 'Could not reach the server' }),
+      'Could not connect. Check your internet and try again.',
+      expect.objectContaining({ id: 'Could not connect. Check your internet and try again.' }),
     );
   });
 
@@ -95,13 +100,18 @@ describe('api error toasts', () => {
       caught = error;
     }
 
-    expect(caught).toMatchObject({ message: 'Drawer is short', code: 'VALIDATION' });
+    expect(caught).toMatchObject({
+      message: 'Some details are missing or wrong. Check the form and try again.',
+      code: 'VALIDATION',
+    });
     expect(errorToast).not.toHaveBeenCalled();
     expect(promiseToast).toHaveBeenCalledTimes(1);
     const messages = promiseToast.mock.calls[0][1];
     expect(typeof messages.error).toBe('function');
     if (typeof messages.error === 'function') {
-      expect(messages.error(caught)).toBe('Drawer is short');
+      expect(messages.error(caught)).toBe(
+        'Some details are missing or wrong. Check the form and try again.',
+      );
     }
   });
 });

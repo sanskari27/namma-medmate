@@ -31,6 +31,8 @@ public class MedicationSafetyService {
 
   public static final String ACK_ACTION = "MEDICATION_SAFETY_ACKNOWLEDGE";
   public static final String UNLINKED_CUSTOMER_CODE = "UNLINKED_CUSTOMER";
+  public static final String SAFETY_WARNINGS_CHANGED = "SAFETY_WARNINGS_CHANGED";
+  public static final String REVIEW_REASON_REQUIRED = "REVIEW_REASON_REQUIRED";
 
   private final CustomerRepository customerRepository;
   private final ProductRepository productRepository;
@@ -90,7 +92,7 @@ public class MedicationSafetyService {
     if (!expectedKeys.equals(providedKeys)) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY,
-          "VALIDATION_ERROR",
+          SAFETY_WARNINGS_CHANGED,
           "Warning keys must match the current draft evaluation.");
     }
     Instant now = Instant.now(clock);
@@ -118,7 +120,7 @@ public class MedicationSafetyService {
       if (!providedKeys.isEmpty()) {
         throw new ApiException(
             HttpStatus.UNPROCESSABLE_ENTITY,
-            "VALIDATION_ERROR",
+            SAFETY_WARNINGS_CHANGED,
             "Warning keys must match the current draft evaluation.");
       }
       return new MedicationSafetyClearedView(true);
@@ -140,7 +142,7 @@ public class MedicationSafetyService {
     if (!expectedKeys.equals(providedKeys)) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY,
-          "VALIDATION_ERROR",
+          SAFETY_WARNINGS_CHANGED,
           "Warning keys must match the current draft evaluation.");
     }
     Instant now = Instant.now(clock);
@@ -319,7 +321,7 @@ public class MedicationSafetyService {
     if (reason == null || reason.isBlank()) {
       throw new ApiException(
           HttpStatus.UNPROCESSABLE_ENTITY,
-          "VALIDATION_ERROR",
+          REVIEW_REASON_REQUIRED,
           "A review reason is required before continuing.");
     }
     return reason.trim();

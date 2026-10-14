@@ -73,7 +73,7 @@ class SalesInvoiceSafetyCompleteTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(completeJson(1, TOTAL, "safe-nr-c", List.of(warningKey), null)))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("REVIEW_REASON_REQUIRED"));
 
     assertThat(salesInvoiceRepository.findById(invoiceId).orElseThrow().getStatus())
         .isEqualTo(SalesInvoiceStatus.DRAFT);
@@ -94,7 +94,7 @@ class SalesInvoiceSafetyCompleteTest extends AbstractIntegrationTest {
                 .content(
                     completeJson(1, TOTAL, "safe-ky-c", List.of("stale-warning-key"), "Reviewed")))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("SAFETY_WARNINGS_CHANGED"));
 
     assertThat(salesInvoiceRepository.findById(invoiceId).orElseThrow().getStatus())
         .isEqualTo(SalesInvoiceStatus.DRAFT);

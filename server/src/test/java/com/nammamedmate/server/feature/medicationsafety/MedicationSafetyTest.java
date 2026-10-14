@@ -332,7 +332,7 @@ class MedicationSafetyTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(acknowledgeJson(customerA, List.of(productA), List.of(warningKey), "  ")))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("REVIEW_REASON_REQUIRED"));
     assertThat(auditEventRepository.count()).isEqualTo(auditsBefore);
 
     mockMvc
@@ -353,7 +353,7 @@ class MedicationSafetyTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assertJson(null, List.of(productA), List.of(warningKey), "Reviewed")))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("SAFETY_WARNINGS_CHANGED"));
 
     mockMvc
         .perform(
@@ -362,7 +362,7 @@ class MedicationSafetyTest extends AbstractIntegrationTest {
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(assertJson(customerA, List.of(productA), List.of(warningKey), null)))
         .andExpect(status().isUnprocessableEntity())
-        .andExpect(jsonPath("$.code").value("VALIDATION_ERROR"));
+        .andExpect(jsonPath("$.code").value("REVIEW_REASON_REQUIRED"));
   }
 
   private UUID createCustomer(Cookie cookie, String name, String phone, String allergies)

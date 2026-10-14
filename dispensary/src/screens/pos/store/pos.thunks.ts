@@ -1047,13 +1047,19 @@ export const collectPayment = createAsyncThunk<
           hint: POS_CONTENT.safety.needCustomer,
         });
       }
-      if (error.status === 422 && (error.message ?? '').includes('Warning keys')) {
+      if (
+        error.code === 'SAFETY_WARNINGS_CHANGED' ||
+        (error.status === 422 && /warning keys/i.test(error.message ?? ''))
+      ) {
         return rejectWithValue({
           status: 'conflict',
           hint: POS_CONTENT.status.conflict,
         });
       }
-      if (error.status === 422 && (error.message ?? '').includes('review reason')) {
+      if (
+        error.code === 'REVIEW_REASON_REQUIRED' ||
+        (error.status === 422 && (error.message ?? '').includes('review reason'))
+      ) {
         return rejectWithValue({
           status: 'validation',
           hint: POS_CONTENT.safety.needReason,

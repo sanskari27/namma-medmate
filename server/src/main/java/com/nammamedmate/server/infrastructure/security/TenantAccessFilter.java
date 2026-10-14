@@ -18,7 +18,10 @@ import org.springframework.web.filter.OncePerRequestFilter;
 
 public class TenantAccessFilter extends OncePerRequestFilter {
 
-  static final String TENANT_LOCKED_CODE = "TENANT_LOCKED";
+  static final String TENANT_VERIFICATION_REQUIRED = "TENANT_VERIFICATION_REQUIRED";
+  static final String TENANT_SUSPENDED = "TENANT_SUSPENDED";
+  static final String TENANT_EXPIRED = "TENANT_EXPIRED";
+  static final String TENANT_TERMINATED = "TENANT_TERMINATED";
   static final String VERIFICATION_LOCKED_MESSAGE =
       "This pharmacy is locked until verification and KYC are complete.";
   static final String SUSPENDED_LOCKED_MESSAGE = "This pharmacy is suspended.";
@@ -53,7 +56,7 @@ public class TenantAccessFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
         return;
       }
-      writeLocked(response, TERMINATED_LOCKED_MESSAGE);
+      writeLocked(response, TENANT_TERMINATED, TERMINATED_LOCKED_MESSAGE);
       return;
     }
     TenantStatus status = tenant.getStatus();
@@ -66,23 +69,32 @@ public class TenantAccessFilter extends OncePerRequestFilter {
         filterChain.doFilter(request, response);
         return;
       }
-      writeLocked(response, VERIFICATION_LOCKED_MESSAGE);
+      writeLocked(response, TENANT_VERIFICATION_REQUIRED, VERIFICATION_LOCKED_MESSAGE);
       return;
     }
     if (status == TenantStatus.SUSPENDED
         || status == TenantStatus.EXPIRED
         || status == TenantStatus.TERMINATED) {
-      writeLocked(response, lockedMessage(status));
+      writeLocked(response, lockedCode(status), lockedMessage(status));
       return;
     }
     filterChain.doFilter(request, response);
   }
 
-  private void writeLocked(HttpServletResponse response, String message) throws IOException {
+  private void writeLocked(HttpServletResponse response, String code, String message)
+      throws IOException {
     response.setStatus(HttpStatus.FORBIDDEN.value());
     response.setContentType(MediaType.APPLICATION_JSON_VALUE);
-    objectMapper.writeValue(
-        response.getOutputStream(), ApiResponse.error(TENANT_LOCKED_CODE, message));
+    objectMapper.writeValue(response.getOutputStream(), ApiResponse.error(code, message));
+  }
+
+  private static String lockedCode(TenantStatus status) {
+    return switch (status) {
+      case SUSPENDED -> TENANT_SUSPENDED;
+      case EXPIRED -> TENANT_EXPIRED;
+      case TERMINATED -> TENANT_TERMINATED;
+      default -> TENANT_VERIFICATION_REQUIRED;
+    };
   }
 
   private static String lockedMessage(TenantStatus status) {
