@@ -2,6 +2,7 @@ FROM docker.io/library/node:22-bookworm-slim AS build
 WORKDIR /app
 ARG VITE_API_BASE_URL
 ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
+ENV NODE_OPTIONS="--max-old-space-size=512"
 COPY package.json package-lock.json ./
 RUN npm ci --no-audit --no-fund
 COPY . .

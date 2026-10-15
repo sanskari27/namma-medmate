@@ -34,10 +34,28 @@ jobs:
         env:
           AWS_REGION: ap-south-1
         run: ./scripts/pull-prod-env.sh .env
+      - name: Ensure swap
+        run: |
+          set -euo pipefail
+          if ! swapon --show | grep -q .; then
+            if [ ! -f /swapfile ]; then
+              sudo fallocate -l 2G /swapfile
+              sudo chmod 600 /swapfile
+              sudo mkswap /swapfile
+            fi
+            sudo swapon /swapfile
+          fi
+          free -m
       - name: Build and restart
         run: |
           set -euo pipefail
-          if ! docker compose -f compose.prod.yaml up -d --build --wait server dispensary admin; then
+          # t3.small has 2 GiB. A parallel Maven build plus two Vite builds
+          # exhausts RAM and wedges the guest, which takes the runner offline.
+          export COMPOSE_PARALLEL_LIMIT=1
+          docker compose -f compose.prod.yaml build server
+          docker compose -f compose.prod.yaml build dispensary
+          docker compose -f compose.prod.yaml build admin
+          if ! docker compose -f compose.prod.yaml up -d --wait server dispensary admin; then
             docker compose -f compose.prod.yaml logs --tail=200 server dispensary admin
             exit 1
           fi
