@@ -1,6 +1,7 @@
 # syntax=docker/dockerfile:1.4
 FROM docker.io/library/maven:3.9.9-eclipse-temurin-17-noble AS build
 WORKDIR /app
+ENV MAVEN_OPTS="-Xmx768m"
 COPY pom.xml .
 RUN mvn -q -B dependency:go-offline
 COPY src src
