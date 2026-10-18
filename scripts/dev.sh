@@ -48,8 +48,8 @@ ensure_npm() {
   fi
 }
 
-log "Stopping containerized apps if they hold 8080/5173/5174"
-$COMPOSE -f "$COMPOSE_FILE" stop server dispensary admin >/dev/null 2>&1 || true
+log "Stopping containerized apps if they hold 8080/5173/5174/3200"
+$COMPOSE -f "$COMPOSE_FILE" stop server dispensary admin website >/dev/null 2>&1 || true
 
 log "Starting Postgres"
 $COMPOSE -f "$COMPOSE_FILE" up -d postgres
@@ -64,12 +64,14 @@ done
 
 ensure_npm dispensary
 ensure_npm admin
+ensure_npm medmate-website
 
 (cd server && prefix server ./mvnw spring-boot:run -Dspring-boot.run.profiles=local) &
 (cd dispensary && prefix dispensary npm run dev) &
 (cd admin && prefix admin npm run dev) &
+(cd medmate-website && prefix website npm run dev) &
 
-log "API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174"
+log "API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174  |  website http://localhost:3200"
 log "Ctrl-C stops the apps; Postgres stays up (make down to stop it)"
 
 wait

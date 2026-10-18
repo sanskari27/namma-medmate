@@ -1,0 +1,61 @@
+{
+  "updated": "2026-10-04",
+  "note": "Compliance overrides applied on top of catalogue.json by src/lib/catalogue.ts. The D2C app (../MedMate-D2C-App) keeps an identical copy. Conservative until a pharmacist reviews every product's schedule against current CDSCO lists. See MedMate_Website_Compliance_Review.docx.",
+  "rx": [
+    "ab64",
+    "ab69",
+    "ab70",
+    "ab71",
+    "ab74",
+    "ab75",
+    "ab76",
+    "ab77",
+    "ab79",
+    "ab80",
+    "ab81",
+    "ab82",
+    "ab83",
+    "ab84",
+    "ab85",
+    "p3",
+    "p6",
+    "p14",
+    "p15"
+  ],
+  "hiddenCategories": [
+    "injection"
+  ],
+  "hidden": {
+    "controlled": [
+      "ab77",
+      "DRS263004",
+      "DRS211706"
+    ],
+    "diseaseClaims": [
+      "DR141788",
+      "DR147030",
+      "DR007542",
+      "DR039178",
+      "DR057919",
+      "DR119952",
+      "DR001826",
+      "DR077859",
+      "DR038323",
+      "DR080153",
+      "DR071065"
+    ],
+    "foodPendingFssai": [
+      "DR001835",
+      "DR058420",
+      "DR117712",
+      "DR117728",
+      "DR123007",
+      "DR148091",
+      "DR116826",
+      "DR149676",
+      "p22",
+      "p42",
+      "p51"
+    ]
+  }
+}

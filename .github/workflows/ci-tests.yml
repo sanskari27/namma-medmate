@@ -63,6 +63,22 @@ jobs:
           VITE_API_BASE_URL: https://api.nammamedmate.com
         run: npm ci && npm run lint && npm run test -- --run && npm run build
 
+  website-checks:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+          cache-dependency-path: medmate-website/package-lock.json
+      - name: Website build
+        working-directory: medmate-website
+        env:
+          SITE_URL: https://medmatepharmacy.com
+        run: npm ci && npm run build
+
   meta:
     runs-on: ubuntu-latest
     timeout-minutes: 5
@@ -78,7 +94,7 @@ jobs:
           node scripts/validate-requirements.mjs
 
   ci-ok:
-    needs: [server-tests, dispensary-checks, admin-checks, meta]
+    needs: [server-tests, dispensary-checks, admin-checks, website-checks, meta]
     if: always()
     runs-on: ubuntu-latest
     steps:
@@ -88,5 +104,6 @@ jobs:
           [[ "${{ needs.server-tests.result }}" == success ]]
           [[ "${{ needs.dispensary-checks.result }}" == success ]]
           [[ "${{ needs.admin-checks.result }}" == success ]]
+          [[ "${{ needs.website-checks.result }}" == success ]]
           [[ "${{ needs.meta.result }}" == success ]]
           echo "CI OK"

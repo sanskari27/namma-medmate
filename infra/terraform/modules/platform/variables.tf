@@ -130,3 +130,9 @@ variable "dns_zone_name" {
   type    = string
   default = "nammamedmate.com"
 }
+
+variable "pharmacy_dns_zone_name" {
+  type        = string
+  description = "Public hosted zone for the marketing site. Nameservers are delegated from the registrar."
+  default     = "medmatepharmacy.com"
+}

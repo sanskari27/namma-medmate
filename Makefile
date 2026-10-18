@@ -6,6 +6,7 @@ SHELL := /usr/bin/env bash
 SERVER := server
 DISPENSARY := dispensary
 ADMIN := admin
+WEBSITE := medmate-website
 
 CONTAINER_RUNTIME ?= $(shell command -v podman >/dev/null 2>&1 && echo podman || echo docker)
 COMPOSE           ?= $(CONTAINER_RUNTIME) compose
@@ -45,7 +46,7 @@ logs: ## Follow compose logs (ARGS=server)
 seed-local: ## Load local login accounts + demo operational data (Postgres :25432)
 	./scripts/seed-local.sh
 
-.PHONY: backend dispensary admin
+.PHONY: backend dispensary admin website
 backend: deps ## Run Spring Boot on host (local profile)
 	cd $(SERVER) && ./mvnw spring-boot:run -Dspring-boot.run.profiles=local
 
@@ -54,6 +55,9 @@ dispensary: ## Run dispensary Vite dev server
 
 admin: ## Run admin Vite dev server
 	cd $(ADMIN) && npm run dev
+
+website: ## Run the public Next.js site (http://localhost:3200)
+	cd $(WEBSITE) && npm run dev
 
 .PHONY: build build-server test test-server
 build: build-server ## Build backend JAR

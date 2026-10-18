@@ -14,6 +14,8 @@ server/target/
 # Node
 node_modules/
 dist/
+.next/
+out/
 *.tsbuildinfo
 coverage/
 .npm
@@ -43,3 +45,5 @@ logs/
 
 # OS
 Thumbs.db
+
+medmate-website/out

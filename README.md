@@ -7,13 +7,14 @@
 | [`server/`](server/) | API | Multi-tenant Spring Boot backend |
 | [`dispensary/`](dispensary/) | Pharmacy staff | POS, inventory, procurement, invoices, Rx |
 | [`admin/`](admin/) | Platform operators | KYC, subscriptions, tenant administration |
+| [`medmate-website/`](medmate-website/) | Public | medmatepharmacy.com |
 
 ## Quick start (local)
 
 ```bash
 cp .env.example .env
 make dev
-# API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174
+# API http://localhost:8080  |  dispensary http://localhost:5173  |  admin http://localhost:5174  |  website http://localhost:3200
 # Postgres in Compose; Spring + Vite on the host (Vite HMR, Java DevTools restart)
 ```
 
@@ -34,6 +35,7 @@ make deps
 make backend    # terminal 1
 make dispensary # terminal 2
 make admin      # terminal 3
+make website    # terminal 4 — http://localhost:3200
 ```
 
 ## Prod → local database (one-way)
@@ -51,8 +53,8 @@ See [`scripts/clone-prod-db.env.example`](scripts/clone-prod-db.env.example).
 
 | Workflow | When | What |
 |---|---|---|
-| **CI Tests** | Every PR to `main`, and again on a `main` push before release | Server `spotless:check test`; dispensary + admin `lint` + test + Vite build (`VITE_API_BASE_URL=https://api.nammamedmate.com`); `make compose-config`; requirements validator |
-| **Main deploy** | Push to `main` (after CI) or **Run workflow** | Cuts `vN` (empty tag) or redeploys an existing tag; EC2 rebuilds **server + dispensary + admin** images, waits for health, curls API `:18080`, pharmacy `:10080`, admin `:10081` |
+| **CI Tests** | Every PR to `main`, and again on a `main` push before release | Server `spotless:check test`; dispensary + admin `lint` + test + Vite build (`VITE_API_BASE_URL=https://api.nammamedmate.com`); website Next static build (`SITE_URL=https://medmatepharmacy.com`, no tests); `make compose-config`; requirements validator |
+| **Main deploy** | Push to `main` (after CI) or **Run workflow** | Cuts `vN` (empty tag) or redeploys an existing tag; EC2 rebuilds **server + dispensary + admin + website** images, waits for health, curls API `:18080`, pharmacy `:10080`, admin `:10081`, website `:10082` |
 | **Prod env (SSM)** | Manual | `set` / `unset` / `keys` on `/namma-medmate-prod/compose.env` |
 | **Clone Prod DB to S3** | Manual | `pg_dump` to the dumps bucket |
 | **Feature Tag** | Push `feature/**` | Force-updates the `feature` tag for a later manual deploy |

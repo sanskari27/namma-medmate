@@ -10,11 +10,13 @@ dispensary/ --\
                +-- HTTP /api/v1 --> server/ --> PostgreSQL 16
 admin/ --------/                       |
                                        +--> external adapters
+medmate-website/  public Next.js site (medmatepharmacy.com), no API
 ```
 
 - `server/`: Java 17, Spring Boot 3.4.4, Maven.
 - `dispensary/`: independent React 19 + TypeScript + Vite 6 npm app for pharmacy staff.
 - `admin/`: independent React 19 + TypeScript + Vite 6 npm app for MASTER/platform staff.
+- `medmate-website/`: independent static Next.js site (`output: "export"`) for medmatepharmacy.com. No test suite. Build with `SITE_URL=https://medmatepharmacy.com`.
 - `infra/terraform/`: AWS production infrastructure.
 - Each application uses only its committed build files and dependency manager;
   no shared package workspace or generated client workspace exists.
@@ -105,7 +107,7 @@ src/
 ## Environments and gates
 
 - Local: `compose.yaml`, PostgreSQL `localhost:25432`.
-- Production: `compose.prod.yaml` on EC2 with private RDS and private S3 for evidence files (`ap-south-1`).
+- Production: `compose.prod.yaml` on EC2 with private RDS and private S3 for evidence files (`ap-south-1`). Host Nginx also serves `medmatepharmacy.com` from the website container.
 - The Spring `local` profile must never target RDS or S3.
 
 The implementer runs every listed gate for the story **once** before verify.
@@ -115,5 +117,6 @@ Independent review cites that output and must not re-run these commands:
 cd server && ./mvnw spotless:check test
 cd dispensary && npm run lint && npm run test -- --run && npm run build
 cd admin && npm run lint && npm run test -- --run && npm run build
+cd medmate-website && SITE_URL=https://medmatepharmacy.com npm run build
 make compose-config
 ```

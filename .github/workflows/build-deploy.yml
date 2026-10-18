@@ -52,11 +52,14 @@ jobs:
           # t3.small has 2 GiB. A parallel Maven build plus two Vite builds
           # exhausts RAM and wedges the guest, which takes the runner offline.
           export COMPOSE_PARALLEL_LIMIT=1
+          # One-time bootstrap container used before this service existed in compose.
+          docker rm -f medmate-website >/dev/null 2>&1 || true
           docker compose -f compose.prod.yaml build server
           docker compose -f compose.prod.yaml build dispensary
           docker compose -f compose.prod.yaml build admin
-          if ! docker compose -f compose.prod.yaml up -d --wait server dispensary admin; then
-            docker compose -f compose.prod.yaml logs --tail=200 server dispensary admin
+          docker compose -f compose.prod.yaml build website
+          if ! docker compose -f compose.prod.yaml up -d --wait server dispensary admin website; then
+            docker compose -f compose.prod.yaml logs --tail=200 server dispensary admin website
             exit 1
           fi
       - name: Check API and SPAs
@@ -65,5 +68,6 @@ jobs:
           curl -fsS http://127.0.0.1:18080/actuator/health
           curl -fsS -o /dev/null http://127.0.0.1:10080/
           curl -fsS -o /dev/null http://127.0.0.1:10081/
+          curl -fsS -o /dev/null http://127.0.0.1:10082/
       - name: Refresh host TLS / Nginx
         run: sudo ./scripts/setup-prod-tls.sh

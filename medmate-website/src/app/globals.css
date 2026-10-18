@@ -1,0 +1,146 @@
+@import "tailwindcss";
+
+/* MedMate brand tokens (same as the customer app; see brand/MedMate_Logo_Brand_Sheet.pdf) */
+@theme {
+  --color-forest: #1b3d29;
+  --color-green: #2f7d52;
+  --color-gold: #d9a648;
+  --color-mint: #8fd4a8;
+  --color-green-700: #256b46;
+  --color-mint-300: #bde5cb;
+  --color-mint-200: #d9f0e1;
+  --color-mint-100: #e9f6ee;
+  --color-mint-50: #f4fbf6;
+  --color-surface: #ffffff;
+  --color-gold-ink: #855b0c;
+  --color-gold-200: #f2d996;
+  --color-gold-100: #faedc9;
+  --color-gold-50: #fdf8ea;
+  --color-ink: #14201a;
+  --color-ink-2: #3b4842;
+  --color-muted: #65726b;
+  --color-faint: #9aa59f;
+  --color-line-2: #d5ddd8;
+  --color-line: #e7ece9;
+  --color-surface-3: #edf2ef;
+  --color-surface-2: #f5f8f6;
+  --color-red: #c2392d;
+  --color-red-bg: #fcece9;
+
+  --font-sans: var(--font-outfit), system-ui, sans-serif;
+
+  --shadow-sh1: 0 1px 3px rgb(20 32 26 / 0.06);
+  --shadow-sh2: 0 3px 10px rgb(20 32 26 / 0.1);
+  --shadow-sh3: 0 8px 24px rgb(20 32 26 / 0.16);
+
+  --ease-settle: cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+html { scroll-behavior: smooth; }
+body {
+  background: var(--color-surface);
+  color: var(--color-ink);
+  font-family: var(--font-sans);
+  font-weight: 400;
+  font-size: 16px;
+  line-height: 1.6;
+}
+button { cursor: pointer; }
+:focus-visible { outline: 3px solid var(--color-mint-300); outline-offset: 2px; border-radius: 6px; }
+
+/* Desktop type scale (the app's t-* scale, stepped up for a wide screen) */
+.d-hero { font-weight: 700; font-size: clamp(36px, 4.6vw, 60px); line-height: 1.04; letter-spacing: -0.035em; }
+.d-h1 { font-weight: 700; font-size: clamp(30px, 3.4vw, 44px); line-height: 1.1; letter-spacing: -0.03em; }
+.d-h2 { font-weight: 700; font-size: clamp(26px, 2.6vw, 36px); line-height: 1.12; letter-spacing: -0.025em; }
+.d-h3 { font-weight: 700; font-size: 20px; line-height: 1.25; letter-spacing: -0.015em; }
+.d-lead { font-weight: 400; font-size: clamp(17px, 1.4vw, 19px); line-height: 1.55; }
+.d-eyebrow { font-weight: 700; font-size: 12px; line-height: 16px; letter-spacing: 0.1em; text-transform: uppercase; }
+.d-tag { font-weight: 800; font-size: 11px; line-height: 16px; }
+.d-btn { font-weight: 700; font-size: 16px; line-height: 20px; }
+.d-caption { font-weight: 500; font-size: 13px; line-height: 18px; }
+
+.brand-zone { background: linear-gradient(180deg, var(--color-forest) 0%, var(--color-green-700) 100%); }
+.tint-zone { background: linear-gradient(180deg, #fff 0%, var(--color-mint-200) 100%); }
+/* Brand tint behind every product image (founder rule: never plain white). Photos multiply onto it. */
+.art-bg { background: linear-gradient(180deg, var(--color-mint-50) 0%, var(--color-mint-200) 100%); }
+.hero-glow { background: radial-gradient(60% 60% at 70% 40%, rgb(217 166 72 / 0.18) 0%, transparent 70%); }
+
+.press { transition: transform 120ms var(--ease-settle), background-color 200ms var(--ease-settle), color 200ms var(--ease-settle), border-color 200ms var(--ease-settle), box-shadow 200ms var(--ease-settle); }
+.press:active { transform: scale(0.98); }
+.lift { transition: transform 200ms var(--ease-settle), box-shadow 200ms var(--ease-settle); }
+.lift:hover { transform: translateY(-3px); box-shadow: var(--shadow-sh2); }
+
+/* Long-form text (medicine details, blog) */
+.prose-mm p:not(.not-prose *) { margin: 0 0 14px; color: var(--color-ink-2); }
+.prose-mm h2 { font-weight: 700; font-size: clamp(21px, 5.6vw, 24px); line-height: 1.25; letter-spacing: -0.02em; margin: 36px 0 12px; color: var(--color-ink); }
+.prose-mm h3 { font-weight: 700; font-size: 18px; line-height: 1.3; margin: 24px 0 8px; color: var(--color-ink); }
+.prose-mm ul:not(.not-prose *) { margin: 0 0 14px; padding-left: 20px; list-style: disc; color: var(--color-ink-2); }
+.prose-mm li { margin: 4px 0; }
+.prose-mm li::marker { color: var(--color-green); }
+.prose-mm strong { color: var(--color-ink); font-weight: 600; }
+.prose-mm a { color: var(--color-green-700); font-weight: 600; text-decoration: underline; text-underline-offset: 3px; }
+
+details > summary { list-style: none; }
+details > summary::-webkit-details-marker { display: none; }
+details[open] .chev { transform: rotate(180deg); }
+
+@keyframes rise { from { transform: translateY(16px); opacity: 0; } to { transform: none; opacity: 1; } }
+@keyframes fade { from { opacity: 0; } to { opacity: 1; } }
+@keyframes sheet { from { transform: translateY(100%); } to { transform: none; } }
+@keyframes float { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-8px); } }
+.anim-rise { animation: rise 320ms var(--ease-settle); }
+.anim-fade { animation: fade 200ms var(--ease-settle); }
+.anim-float { animation: float 5s ease-in-out infinite; }
+.anim-sheet { animation: sheet 300ms var(--ease-settle); }
+@keyframes cap-in { from { opacity: 0; transform: translateY(3px); filter: blur(2px); } to { opacity: 1; transform: none; filter: none; } }
+@keyframes dot-pulse { 0%, 100% { box-shadow: 0 0 0 0 rgba(47, 125, 82, 0.45); } 60% { box-shadow: 0 0 0 4px rgba(47, 125, 82, 0); } }
+.anim-cap { animation: cap-in 380ms var(--ease-settle) both; }
+.anim-dot { animation: dot-pulse 1.6s ease-in-out infinite; }
+/* Delivery scene: ambient motion (SVG units, so px here are scene units) */
+@keyframes ds-cloud { from { transform: translateX(-60px); } to { transform: translateX(calc(var(--w) * 1px + 60px)); } }
+@keyframes ds-sway { 0%, 100% { transform: rotate(-1.1deg); } 50% { transform: rotate(1.1deg); } }
+@keyframes ds-glow { 0%, 100% { opacity: 0.45; } 50% { opacity: 0.88; } }
+.ds-cloud { animation: ds-cloud linear infinite; }
+.ds-sway { transform-box: fill-box; transform-origin: 50% 100%; animation: ds-sway 7s ease-in-out infinite; }
+.ds-glow { animation: ds-glow 2.6s ease-in-out infinite; }
+.anim-sheet::backdrop { animation: fade 200ms var(--ease-settle); }
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .anim-rise, .anim-fade, .anim-float, .anim-sheet, .anim-sheet::backdrop, .anim-cap, .anim-dot, .ds-cloud, .ds-sway, .ds-glow { animation: none; }
+  .lift:hover { transform: none; }
+}
+
+.no-scrollbar::-webkit-scrollbar { display: none; }
+.no-scrollbar { scrollbar-width: none; }
+
+/* ---------- Phone layout ---------- */
+html { -webkit-text-size-adjust: 100%; }
+body { overflow-x: clip; }
+/* Horizontal snap row on phones (categories, products, feature cards); a normal grid from the sm breakpoint. */
+@media (max-width: 639.9px) {
+  .snap-row { display: flex; overflow-x: auto; scroll-snap-type: x mandatory; margin-inline: -16px; padding-inline: 16px; scroll-padding-inline: 16px; -webkit-overflow-scrolling: touch; scrollbar-width: none; overscroll-behavior-x: contain; }
+  .snap-row::-webkit-scrollbar { display: none; }
+  .snap-row > * { flex: 0 0 auto; scroll-snap-align: start; }
+  .snap-row::after { content: ""; flex: 0 0 4px; }
+  .lift:hover { transform: none; box-shadow: none; }
+}
+@media (min-width: 640px) { .snap-row { display: grid; } }
+.pb-safe { padding-bottom: env(safe-area-inset-bottom, 0px); }
+
+/* ---------- Phone typography and shape (second pass) ---------- */
+@media (max-width: 639.9px) {
+  body { font-size: 15px; line-height: 1.55; }
+  input, select, textarea { font-size: 16px; }
+  .d-hero { font-size: 32px; line-height: 1.08; letter-spacing: -0.03em; }
+  .d-h1 { font-size: 28px; }
+  .d-h2 { font-size: 24px; }
+  .d-lead { font-size: 16px; line-height: 1.5; }
+  .d-eyebrow { font-size: 13px; line-height: 18px; letter-spacing: 0.08em; }
+  /* Brand-green sections: paragraphs in near-white for contrast in daylight */
+  .brand-zone p.text-mint-200, .bg-forest p.text-mint-200, .brand-zone span.text-mint-200 { color: rgb(255 255 255 / 0.9); }
+  /* One radius for cards, one for controls */
+  .rounded-3xl { border-radius: 16px; }
+  /* Pill lists: 44px tap targets */
+  .pill-list a, .pill-list button { min-height: 44px; display: inline-flex; align-items: center; }
+  .pill-list { gap: 8px; }
+}

@@ -1,0 +1,31 @@
+{
+  "name": "medmateindia-website",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev --webpack --port 3200",
+    "build": "next build",
+    "start": "npx serve out -l 3200",
+    "images": "python3 scripts/make-images.py",
+    "pincodes": "python3 scripts/build-pincodes.py"
+  },
+  "dependencies": {
+    "next": "16.3.8",
+    "qrcode": "^1.5.4",
+    "react": "19.2.8",
+    "react-dom": "19.2.8"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4",
+    "@types/node": "^20",
+    "@types/qrcode": "^1.5.5",
+    "@types/react": "^19",
+    "@types/react-dom": "^19",
+    "tailwindcss": "^4",
+    "typescript": "^5"
+  },
+  "description": "MedMate India website (medmateindia.netlify.app): static Next.js site with all code, data and assets.",
+  "engines": {
+    "node": ">=20"
+  }
+}

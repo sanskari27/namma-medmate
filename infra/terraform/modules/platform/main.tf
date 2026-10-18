@@ -303,8 +303,13 @@ EOF
 }
 
 resource "aws_instance" "app" {
-  ami                    = data.aws_ami.ubuntu.id
-  instance_type          = var.ec2_instance_type
+  ami           = data.aws_ami.ubuntu.id
+  instance_type = var.ec2_instance_type
+  lifecycle {
+    # most_recent AMI drifts whenever Ubuntu publishes an image. Replacing
+    # this instance would take production down.
+    ignore_changes = [ami]
+  }
   subnet_id              = aws_subnet.public.id
   vpc_security_group_ids = [aws_security_group.ec2.id]
   iam_instance_profile   = aws_iam_instance_profile.ec2.name
@@ -313,7 +318,7 @@ resource "aws_instance" "app" {
     http_tokens                 = "required"
     http_put_response_hop_limit = 2
   }
-  user_data              = local.user_data
+  user_data = local.user_data
   root_block_device {
     volume_size = 40
     volume_type = "gp3"
@@ -353,6 +358,28 @@ resource "aws_route53_record" "admin" {
   name    = "admin.${var.dns_zone_name}"
   type    = "A"
   ttl     = 60
+  records = [aws_eip.app.public_ip]
+}
+
+resource "aws_route53_zone" "pharmacy_site" {
+  name    = var.pharmacy_dns_zone_name
+  comment = "Public site medmate-website"
+  tags    = { Name = var.pharmacy_dns_zone_name }
+}
+
+resource "aws_route53_record" "pharmacy_site_apex" {
+  zone_id = aws_route53_zone.pharmacy_site.zone_id
+  name    = var.pharmacy_dns_zone_name
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.app.public_ip]
+}
+
+resource "aws_route53_record" "pharmacy_site_www" {
+  zone_id = aws_route53_zone.pharmacy_site.zone_id
+  name    = "www.${var.pharmacy_dns_zone_name}"
+  type    = "A"
+  ttl     = 300
   records = [aws_eip.app.public_ip]
 }
 

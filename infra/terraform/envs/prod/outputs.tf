@@ -13,3 +13,8 @@ output "rds_endpoint" {
 output "ssm_compose_env_parameter" {
   value = module.platform.ssm_compose_env_parameter
 }
+
+output "pharmacy_nameservers" {
+  description = "Set these at GoDaddy for medmatepharmacy.com"
+  value       = module.platform.pharmacy_nameservers
+}

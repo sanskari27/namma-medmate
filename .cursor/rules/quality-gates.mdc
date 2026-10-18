@@ -16,6 +16,7 @@ Do not start Maven and the SPA test suite at the same time.
 - Server: `cd server && ./mvnw spotless:check test`.
 - Dispensary: `cd dispensary && npm run lint && npm run test -- --run && npm run build`.
 - Admin: `cd admin && npm run lint && npm run test -- --run && npm run build`.
+- Website: `cd medmate-website && SITE_URL=https://medmatepharmacy.com npm run build`.
 - Compose/deployment: `make compose-config`.
 - Requirements metadata: `node --test scripts/validate-requirements.test.mjs`
   then `node scripts/validate-requirements.mjs`.

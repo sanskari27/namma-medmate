@@ -1,0 +1,2766 @@
+{
+ "560001": [
+  {
+   "name": "Bangalore ",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore GPO"
+  },
+  {
+   "name": "Bangalore Bazaar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "CMM Court Complex",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Dr. Ambedkar Veedhi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "HighCourt",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Legislators Home",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Mahatma Gandhi Road",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Rajbhavan (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Vasanthanagar",
+   "district": "Bangalore",
+   "block": "NA",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Vidhana Soudha",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560002": [
+  {
+   "name": "Bangalore City",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Bangalore Corporation Building",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560003": [
+  {
+   "name": "Malleswaram",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Palace Guttahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Swimming Pool Extn",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Vyalikaval Extn",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560004": [
+  {
+   "name": "Basavanagudi",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Mavalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Pampamahakavi Road",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Thyagarajnagar",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560005": [
+  {
+   "name": "Fraser Town",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560006": [
+  {
+   "name": "J.C.Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Training Command IAF",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560007": [
+  {
+   "name": "Agram",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Air Force Hospital",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560008": [
+  {
+   "name": "H.A.L II Stage",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Hulsur Bazaar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560009": [
+  {
+   "name": "Bangalore Dist Offices Bldg",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "K. G. Road",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560010": [
+  {
+   "name": "Industrial Estate (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Rajajinagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Rajajinagar IVth Block",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560011": [
+  {
+   "name": "Jayangar III Block",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Madhavan Park",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560012": [
+  {
+   "name": "Science Institute",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560013": [
+  {
+   "name": "Jalahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560014": [
+  {
+   "name": "Jalahalli East",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560015": [
+  {
+   "name": "Jalahalli West",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560016": [
+  {
+   "name": "Doorvaninagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Krishnarajapuram R S",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Ramamurthy Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560017": [
+  {
+   "name": "NAL",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Vimanapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560018": [
+  {
+   "name": "Chamrajpet (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560019": [
+  {
+   "name": "Gaviopuram Extension",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560020": [
+  {
+   "name": "Seshadripuram",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560021": [
+  {
+   "name": "Gayathrinagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Srirampuram",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560022": [
+  {
+   "name": "Yeshwanthpur Bazar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Yeswanthpura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560023": [
+  {
+   "name": "Magadi Road",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560024": [
+  {
+   "name": "Anandnagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "H.A. Farm",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Hebbal Kempapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560025": [
+  {
+   "name": "Bangalore Sub Foreign Post",
+   "district": "Bangalore",
+   "block": "NA",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "CMP Centre And School",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Museum Road",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Richmond Town",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560026": [
+  {
+   "name": "Deepanjalinagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Governmemnt Electric Factory",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560027": [
+  {
+   "name": "Sampangiramnagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Shanthinagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Wilson Garden",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560028": [
+  {
+   "name": "Tyagrajnagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560029": [
+  {
+   "name": "Dharmaram College",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Tavarekere",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560030": [
+  {
+   "name": "Adugodi",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560032": [
+  {
+   "name": "P&T Col. Kavalbyrasandra",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "R T Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560033": [
+  {
+   "name": "Maruthi Sevanagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560034": [
+  {
+   "name": "Agara",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Koramangala",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Koramangala I Block",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "St. John's Medical College",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560035": [
+  {
+   "name": "Carmelram",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560036": [
+  {
+   "name": "Devasandra",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Krishnarajapuram",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560037": [
+  {
+   "name": "Doddanekkundi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kundalahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Marathahalli Colony",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Rameshnagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560038": [
+  {
+   "name": "Indiranagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560039": [
+  {
+   "name": "Nayandahalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560040": [
+  {
+   "name": "Chandra Lay Out",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Vijayanagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Vijayanagar East",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560041": [
+  {
+   "name": "Jayanagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Tilaknagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560042": [
+  {
+   "name": "Sivan Chetty Gardens",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560043": [
+  {
+   "name": "Banaswadi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Horamavu",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Jalavayuvihar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kalyananagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560045": [
+  {
+   "name": "Arabic College",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Venkateshapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560046": [
+  {
+   "name": "Benson Town",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Jayamahal Road",
+   "district": "Bangalore",
+   "block": "NA",
+   "division": "Bangalore East"
+  }
+ ],
+ "560047": [
+  {
+   "name": "Austin Town",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Viveknagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  }
+ ],
+ "560048": [
+  {
+   "name": "Hoodi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Mahadevapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560049": [
+  {
+   "name": "Bhattarahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Bidrahalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Mundur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Virgonagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560050": [
+  {
+   "name": "Ashoknagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Banashankari",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Dasarahalli(Srinagar)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "State Bank Of Mysore Colony",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560051": [
+  {
+   "name": "H.K.P. Road",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560052": [
+  {
+   "name": "Vasanthnagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore North"
+  }
+ ],
+ "560053": [
+  {
+   "name": "Chickpet",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560054": [
+  {
+   "name": "Mathikere",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Msrit",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Sri Chowdeshwari",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560055": [
+  {
+   "name": "Malleswaram West",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560056": [
+  {
+   "name": "Bnagalore Viswavidalaya",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Mallathahalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560057": [
+  {
+   "name": "Peenya Dasarahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560058": [
+  {
+   "name": "Laggere",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Peenya I Stage",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Peenya Small Industries",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560059": [
+  {
+   "name": "Rv Niketan",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560060": [
+  {
+   "name": "Chudenapura",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kengeri",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Sulikere",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560061": [
+  {
+   "name": "Chikkalasandra",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Subramanyapura",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560062": [
+  {
+   "name": "Doddakallasandra",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Konanakunte",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560063": [
+  {
+   "name": "A F Station Yelahanka",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "BSF Campus Yelahanka",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560064": [
+  {
+   "name": "Attur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "CRPF Campus Yelahanka",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Jakkur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Rajanakunte",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Singanayakanahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Yelahanka",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Yelahanka Satellite Town",
+   "district": "Bangalore",
+   "block": "NA",
+   "division": "Bangalore East"
+  }
+ ],
+ "560065": [
+  {
+   "name": "G.K.V.K.",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560066": [
+  {
+   "name": "EPIP",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Whitefield",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  }
+ ],
+ "560067": [
+  {
+   "name": "Devanagundi",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kadugodi",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kadugodi Extention SO",
+   "district": "Bangalore",
+   "block": "Banglore",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kalkunte",
+   "district": "Bangalore Rural",
+   "block": "Hosakote",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kannamangala",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Medimallasandra",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Naduvathi",
+   "district": "Bangalore Rural",
+   "block": "Hosakote",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Samethanahalli",
+   "district": "Bangalore Rural",
+   "block": "Hosakote",
+   "division": "Bangalore East"
+  }
+ ],
+ "560068": [
+  {
+   "name": "Begur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Bommanahalli (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Madivala",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Singasandra",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560069": [
+  {
+   "name": "Jayangar East S.O",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560070": [
+  {
+   "name": "B Sk II Stage",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Jayanagar West",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Padmanabhnagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Tyagrajnagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560071": [
+  {
+   "name": "Domlur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560072": [
+  {
+   "name": "Nagarbhavi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560073": [
+  {
+   "name": "Bagalgunte",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Chikkabidarkal",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Nagasandra (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Nelakadiranahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560074": [
+  {
+   "name": "Kumbalagodu",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kumbalgodu Gollahalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Ramohalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560075": [
+  {
+   "name": "Jeevanbhimanagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "New Thippasandra",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560076": [
+  {
+   "name": "Bannerghatta Road",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Hulimavu",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Hulimavu",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "JP Nagar VIII phase",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Mico Layout",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Mount St Joseph",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560077": [
+  {
+   "name": "Doddagubbi",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Dr. Shivarama Karanth Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kothanur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560078": [
+  {
+   "name": "J P Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "JP Nagar III Phase",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kumaraswamy Layout",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Yelachenahalli",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560079": [
+  {
+   "name": "Basaveshwaranagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "K H B Colony",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Kamakshipalya",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560080": [
+  {
+   "name": "Sadashivanagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560081": [
+  {
+   "name": "Chandapura",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560082": [
+  {
+   "name": "Bolare",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kagalipura",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Somanhalli",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Taralu",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Thataguni",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Thattekuppe",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Udaypura",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560083": [
+  {
+   "name": "Bannerghatta",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Gottigere",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kalkere",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Ragihalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Sakalavara",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560084": [
+  {
+   "name": "Lingarajapuram",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "St. Thomas Town",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560085": [
+  {
+   "name": "Banashankari III Stage",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Girinagar (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kathriguppe",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560086": [
+  {
+   "name": "Mahalakshmipuram Layout",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "West of Chord Road II stage",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560087": [
+  {
+   "name": "Gunjur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Muthusandra",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Vartur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  }
+ ],
+ "560088": [
+  {
+   "name": "Hessarghatta",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560089": [
+  {
+   "name": "Byatha",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Hessarghatta Lake",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Kakolu",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Shivakote",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560090": [
+  {
+   "name": "Chikkabanavara",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Silvepura",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Tarabanahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560091": [
+  {
+   "name": "Bapagrama",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Herohalli",
+   "district": "Bangalore",
+   "block": "Bangalore north",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Kodigehalli",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  },
+  {
+   "name": "Viswaneedam",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560092": [
+  {
+   "name": "Amruthahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Byatarayanapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Kodigehalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Sahakaranagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560093": [
+  {
+   "name": "C.V.Raman Nagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560094": [
+  {
+   "name": "ISRO Anthariksha Bhavan",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "R.M.V. Extension II Stage",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore East"
+  }
+ ],
+ "560095": [
+  {
+   "name": "Koramangala VI Bk",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560096": [
+  {
+   "name": "Nandinilayout",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560097": [
+  {
+   "name": "Vidyaranyapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560098": [
+  {
+   "name": "Rajarajeshwarinagar",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560099": [
+  {
+   "name": "Bommasandra Industrial Estate",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Chandapura",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Huskur",
+   "district": "Bangalore Rural",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Muthanallur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560100": [
+  {
+   "name": "Electronics City",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Wipro Limited",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560102": [
+  {
+   "name": "HSR Layout",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560103": [
+  {
+   "name": "Bellandur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  },
+  {
+   "name": "Panathur",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore East"
+  }
+ ],
+ "560104": [
+  {
+   "name": "Hampinagar",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560105": [
+  {
+   "name": "Haragadde",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Hennagara",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Hulimangala",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Jigani",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  },
+  {
+   "name": "Kallubalu",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Bangalore South"
+  }
+ ],
+ "560107": [
+  {
+   "name": "Achitnagar",
+   "district": "Bangalore Rural",
+   "block": "Bangalore North",
+   "division": "Bangalore West"
+  }
+ ],
+ "560108": [
+  {
+   "name": "Anjanapura",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560109": [
+  {
+   "name": "Thalaghattapura",
+   "district": "Bangalore",
+   "block": "Bangalore South",
+   "division": "Bangalore South"
+  }
+ ],
+ "560110": [
+  {
+   "name": "Ullalu Upanagar",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore South"
+  }
+ ],
+ "560112": [
+  {
+   "name": "Kodigehalli",
+   "district": "Bangalore",
+   "block": "Bangalore",
+   "division": "Bangalore West"
+  }
+ ],
+ "560300": [
+  {
+   "name": "Bangalore International Airport",
+   "district": "Bangalore",
+   "block": "NA",
+   "division": "Bangalore East"
+  }
+ ],
+ "562106": [
+  {
+   "name": "Anekal",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Bestamaranahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Byagadadenahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Guddanahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Indalavadi",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Marsur",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Samandur",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Sidihoskote",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Thammanayakanahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Vanakanahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  }
+ ],
+ "562107": [
+  {
+   "name": "Attibele",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Bidaraguppe",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mayasandra",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Neralur",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Yadavanahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  }
+ ],
+ "562109": [
+  {
+   "name": "Bidadi",
+   "district": "Ramanagar",
+   "block": "Ramanagara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Byramangala",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Ganakal",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hejjala",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hosur",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Ittmadu",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "K.Karenahalli",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kanchugaranahalli",
+   "district": "Ramanagar",
+   "block": "Ramanagar",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Manchanayakanahalli",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Manchegowdanapalya",
+   "district": "Ramanagar",
+   "block": "Ramangara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Shanumangala",
+   "district": "Ramanagar",
+   "block": "Ramanagara",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Uragapura",
+   "district": "Ramanagar",
+   "block": "Ramanagara",
+   "division": "Channapatna"
+  }
+ ],
+ "562110": [
+  {
+   "name": "Alurduddanahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Anneshwara",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Aradeshanahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Devanahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Doddasanne",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hegganahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanhalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Jalige",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kannamangala",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kundana",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Sadahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanhalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Uganavadi",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Vishwanathapura",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Yeliyur",
+   "district": "Bangalore Rural",
+   "block": "Devanhalli",
+   "division": "Channapatna"
+  }
+ ],
+ "562114": [
+  {
+   "name": "Doddagattiganabbe",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Doddanallala",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hasigala",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hoskote",
+   "district": "Bangalore Rural",
+   "block": "Hosakote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hoskote Indl. Area",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Jadigenahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Jodidasarahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kattigenahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kembliganahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kollathur",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kumbalahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Lakkondanahalli",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mugabala",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Vagata Agrahara",
+   "district": "Bangalore Rural",
+   "block": "Hoskote",
+   "division": "Channapatna"
+  }
+ ],
+ "562123": [
+  {
+   "name": "Arasinakunte",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Budihal",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Gollahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Honnasandra",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Jakkanahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Madalakote",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mahadevapura",
+   "district": "Bangalore Rural",
+   "block": "Nelamagala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mallarabanavadi",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mandigere",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mylanahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Nelamangala",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Teppadabeguru",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Yentiganahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  }
+ ],
+ "562125": [
+  {
+   "name": "Dommasandra",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Handenahalli",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kugur",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Neriga",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Sarjapura",
+   "district": "Bangalore",
+   "block": "Anekal",
+   "division": "Channapatna"
+  }
+ ],
+ "562130": [
+  {
+   "name": "Chikkanahalli",
+   "district": "Bangalore",
+   "block": "Bgsouth",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Chunchanakuppe",
+   "district": "Bangalore",
+   "block": "Bg South",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kadabagere",
+   "district": "Bangalore",
+   "block": "Nla & Bgsouth",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kithanahalli",
+   "district": "Bangalore Rural",
+   "block": "Bg South",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Soladevanahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Sondekoppa",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Tavarekere (Bangalore)",
+   "district": "Bangalore",
+   "block": "Bangaloresouth",
+   "division": "Channapatna"
+  }
+ ],
+ "562149": [
+  {
+   "name": "Bagalur (Bangalore)",
+   "district": "Bangalore",
+   "block": "Banglorenorth",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Bandikodigehalli",
+   "district": "Bangalore",
+   "block": "Bgnorth",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kannur",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  }
+ ],
+ "562157": [
+  {
+   "name": "Bettahalsur",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Chikkajala",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Doddajala",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hunasamaranahalli",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Tarahunise",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Vidyanagara",
+   "district": "Bangalore",
+   "block": "Bg North",
+   "division": "Channapatna"
+  }
+ ],
+ "562162": [
+  {
+   "name": "Aluru",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Dasanapura",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hullegowdanahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Huskur",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Lakshmipura",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Madanayakanahalli",
+   "district": "Bangalore",
+   "block": "Bangalore North",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Madavara",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Makali",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mathahalli",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Shivanapura",
+   "district": "Bangalore Rural",
+   "block": "Nelamangala",
+   "division": "Channapatna"
+  }
+ ],
+ "562163": [
+  {
+   "name": "Arakere",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Basettihalli",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Doddatumkur",
+   "district": "Bangalore Rural",
+   "block": "Dodballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Konnagatta",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "NAGADENAHALLI",
+   "district": "Bangalore Rural",
+   "block": "Doddabllapur",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Shivapura",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Veerapura",
+   "district": "Bangalore Rural",
+   "block": "Doddaballpura",
+   "division": "Channapatna"
+  }
+ ],
+ "562164": [
+  {
+   "name": "Avathi",
+   "district": "Bangalore",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Bidalur",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Bijjawara",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Karahalli",
+   "district": "Bangalore Rural",
+   "block": "Devanhalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Koira",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Venkatagirikote",
+   "district": "Bangalore Rural",
+   "block": "Devanahalli",
+   "division": "Channapatna"
+  }
+ ],
+ "562101": [
+  {
+   "name": "Ajjavara",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Avalagurki",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Chickballapur",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Chickballapur Mandy Bazarr",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Dibbur",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Gangrekalve",
+   "district": "Kolar",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Gerehalli",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Gundlagurki",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Jathavara",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Kanganahalli",
+   "district": "Chikkaballapur",
+   "block": "Chik Ballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Kethenahalli",
+   "district": "Chikkaballapur",
+   "block": "Chik Ballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Manchenabele",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Maralakunte",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Muddenahalli",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Nandi Hills",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Patrenahalli",
+   "district": "Chikkaballapur",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Subbarayanpet",
+   "district": "Chikkaballapur",
+   "block": "Chik Ballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Town Hall Sqaure",
+   "district": "Chikkaballapur",
+   "block": "Chik Ballapur",
+   "division": "Kolar"
+  }
+ ],
+ "562102": [
+  {
+   "name": "Bhakthrahalli",
+   "district": "Kolar",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Cheemangala",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Hemaranahalli",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Jangamkote",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Keshavara",
+   "district": "Kolar",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Malamachanahalli",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Mallur",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Melur (Kolar)",
+   "district": "Kolar",
+   "block": "Chickballapur",
+   "division": "Kolar"
+  },
+  {
+   "name": "Nagamangala",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Venkatapura",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  }
+ ],
+ "562105": [
+  {
+   "name": "Ablodu",
+   "district": "Chikkaballapur",
+   "block": "Sidlghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Anemadagu",
+   "district": "Kolar",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Basettihalli",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Devaramallur",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Dibburhalli",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Kothnur",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Kundlagurki",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Pallicherlu",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Sidlagatta Bazar",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Sidlaghatta",
+   "district": "Kolar",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  },
+  {
+   "name": "Thippenahalli",
+   "district": "Chikkaballapur",
+   "block": "Sidlaghatta",
+   "division": "Kolar"
+  }
+ ],
+ "561203": [
+  {
+   "name": "Antharahalli",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Arallumallige",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Dodballapura",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Dodballapura Bazar",
+   "district": "Bangalore Rural",
+   "block": "Dod Ballapur",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Gundamgere",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hanabe",
+   "district": "Bangalore Rural",
+   "block": "Dodballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Hosahalli",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kanasavadi",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kannamangala",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kodigehalli",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Kongadiyappa Road",
+   "district": "Bangalore Rural",
+   "block": "Dod Ballapur",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Mallathahalli",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Rajaghatta",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Sri Subramanyaghati",
+   "district": "Bangalore Rural",
+   "block": "Dod Ballapur",
+   "division": "Channapatna"
+  },
+  {
+   "name": "Tippur",
+   "district": "Bangalore Rural",
+   "block": "Doddaballapura",
+   "division": "Channapatna"
+  }
+ ]
+}

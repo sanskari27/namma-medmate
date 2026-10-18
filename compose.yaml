@@ -1,7 +1,7 @@
 # Local development — Namma MedMate (pharmacy ERP + CRM).
 # Run: make dev (fast, hot reload)  OR  make up (container images)
 #
-# Ports: Postgres 25432, API 8080, dispensary 5173, admin 5174
+# Ports: Postgres 25432, API 8080, dispensary 5173, admin 5174, website 3200
 # Server DATABASE_URL is hardcoded to compose postgres — never RDS on local.
 
 name: ${COMPOSE_PROJECT_NAME:-namma-medmate-local}
@@ -89,6 +89,14 @@ services:
     depends_on:
       server:
         condition: service_healthy
+
+  website:
+    build:
+      context: ./medmate-website
+      dockerfile: Dockerfile.dev
+    restart: unless-stopped
+    ports:
+      - '3200:3200'
 
 volumes:
   postgres_data: {}

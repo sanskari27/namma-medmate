@@ -1,0 +1,608 @@
+{
+"560001": [
+"Bangalore",
+"Bangalore Bazaar",
+"Dr. Ambedkar Veedhi",
+"HighCourt",
+"Mahatma Gandhi Road",
+"Rajbhavan",
+"Vasanthanagar",
+"Vidhana Soudha"
+],
+"560002": [
+"Bangalore City"
+],
+"560003": [
+"Malleswaram",
+"Palace Guttahalli",
+"Swimming Pool Extn",
+"Vyalikaval Extn"
+],
+"560004": [
+"Basavanagudi",
+"Mavalli",
+"Pampamahakavi Road",
+"Thyagarajnagar"
+],
+"560005": [
+"Frazer Town"
+],
+"560006": [
+"J.C.Nagar",
+"Training Command IAF"
+],
+"560007": [
+"Agram",
+"Air Force Hospital"
+],
+"560008": [
+"H.A.L II Stage",
+"Hulsur Bazaar"
+],
+"560009": [
+"K. G. Road"
+],
+"560010": [
+"Industrial Estate",
+"Rajajinagar",
+"Rajajinagar IVth Block"
+],
+"560011": [
+"Jayanagar III Block",
+"Madhavan Park"
+],
+"560012": [
+"Science Institute"
+],
+"560013": [
+"Jalahalli"
+],
+"560014": [
+"Jalahalli East"
+],
+"560015": [
+"Jalahalli West"
+],
+"560016": [
+"Doorvaninagar",
+"Krishnarajapuram R S",
+"Ramamurthy Nagar"
+],
+"560017": [
+"Nal",
+"Vimanapura"
+],
+"560018": [
+"Chamrajpet"
+],
+"560019": [
+"Gaviopuram Extension"
+],
+"560020": [
+"Seshadripuram"
+],
+"560021": [
+"Gayathrinagar",
+"Srirampuram"
+],
+"560022": [
+"Yeshwanthpur Bazar",
+"Yeswanthpura"
+],
+"560023": [
+"Magadi Road"
+],
+"560024": [
+"Anandnagar",
+"H.A. Farm",
+"Hebbal Kempapura"
+],
+"560025": [
+"CMP Centre And School",
+"Museum Road",
+"Richmond Town"
+],
+"560026": [
+"Deepanjalinagar",
+"Government Electric Factory"
+],
+"560027": [
+"Sampangiramnagar",
+"Shanthinagar",
+"Wilson Garden"
+],
+"560028": [
+"Thyagarajanagar"
+],
+"560029": [
+"Dharmaram College",
+"Tavarekere"
+],
+"560030": [
+"Adugodi"
+],
+"560032": [
+"P&T Col. Kavalbyrasandra",
+"R T Nagar"
+],
+"560033": [
+"Maruthi Sevanagar"
+],
+"560034": [
+"Agara",
+"Koramangala",
+"Koramangala I Block",
+"St. John's Medical College"
+],
+"560035": [
+"Carmelram"
+],
+"560036": [
+"Devasandra",
+"Krishnarajapuram"
+],
+"560037": [
+"Doddanekkundi",
+"Kundalahalli",
+"Marathahalli Colony",
+"Rameshnagar"
+],
+"560038": [
+"Indiranagar"
+],
+"560039": [
+"Nayandahalli"
+],
+"560040": [
+"Chandra Layout",
+"Vijayanagar",
+"Vijayanagar East"
+],
+"560041": [
+"Jayanagar",
+"Tilaknagar"
+],
+"560042": [
+"Sivan Chetty Gardens"
+],
+"560043": [
+"Banaswadi",
+"Horamavu",
+"Jalavayuvihar",
+"Kalyananagar"
+],
+"560045": [
+"Arabic College",
+"Venkateshapura"
+],
+"560046": [
+"Benson Town",
+"Jayamahal Road"
+],
+"560047": [
+"Austin Town",
+"Viveknagar"
+],
+"560048": [
+"Hoodi",
+"Mahadevapura"
+],
+"560049": [
+"Bhattarahalli",
+"Bidrahalli",
+"Mundur",
+"Virgonagar"
+],
+"560050": [
+"Ashoknagar",
+"Banashankari",
+"Dasarahalli(Srinagar)",
+"State Bank Of Mysore Colony"
+],
+"560051": [
+"H.K.P. Road"
+],
+"560052": [
+"Vasanth Nagar"
+],
+"560053": [
+"Chickpet"
+],
+"560054": [
+"Mathikere",
+"Msrit",
+"Sri Chowdeshwari"
+],
+"560055": [
+"Malleswaram West"
+],
+"560056": [
+"Bangalore Vishwavidyalaya",
+"Mallathahalli"
+],
+"560057": [
+"Peenya Dasarahalli"
+],
+"560058": [
+"Laggere",
+"Peenya I Stage",
+"Peenya Small Industries"
+],
+"560059": [
+"Rv Niketan"
+],
+"560060": [
+"Chudenapura",
+"Kengeri",
+"Sulikere"
+],
+"560061": [
+"Chikkalasandra",
+"Subramanyapura"
+],
+"560062": [
+"Doddakallasandra",
+"Konanakunte"
+],
+"560063": [
+"A F Station Yelahanka",
+"BSF Campus Yelahanka"
+],
+"560064": [
+"Attur",
+"CRPF Campus Yelahanka",
+"Jakkur",
+"Rajanakunte",
+"Singanayakanahalli",
+"Yelahanka",
+"Yelahanka Satellite Town"
+],
+"560065": [
+"G.K.V.K."
+],
+"560066": [
+"Epip",
+"Whitefield"
+],
+"560067": [
+"Devanagundi",
+"Kadugodi",
+"Kadugodi Extention",
+"Kalkunte",
+"Kannamangala",
+"Medimallasandra",
+"Naduvathi",
+"Samethanahalli"
+],
+"560068": [
+"Begur",
+"Bommanahalli",
+"Madivala",
+"Singasandra"
+],
+"560069": [
+"Jayanagar East"
+],
+"560070": [
+"B Sk II Stage",
+"Jayanagar West",
+"Padmanabhanagar",
+"Thyagarajanagar"
+],
+"560071": [
+"Domlur"
+],
+"560072": [
+"Nagarbhavi"
+],
+"560073": [
+"Bagalgunte",
+"Chikkabidarkal",
+"Nagasandra",
+"Nelakadiranahalli"
+],
+"560074": [
+"Kumbalagodu",
+"Kumbalgodu Gollahalli",
+"Ramohalli"
+],
+"560075": [
+"Jeevanbhimanagar",
+"New Thippasandra"
+],
+"560076": [
+"Bannerghatta Road",
+"Hulimavu",
+"JP Nagar VIII phase",
+"Mico Layout",
+"Mount St Joseph"
+],
+"560077": [
+"Doddagubbi",
+"Dr. Shivarama Karanth Nagar",
+"Kothanur"
+],
+"560078": [
+"J P Nagar",
+"JP Nagar III Phase",
+"Kumaraswamy Layout",
+"Yelachenahalli"
+],
+"560079": [
+"Basaveshwaranagar",
+"K H B Colony",
+"Kamakshipalya"
+],
+"560080": [
+"Sadashivanagar"
+],
+"560081": [
+"Chandapura"
+],
+"560082": [
+"Bolare",
+"Kagalipura",
+"Somanhalli",
+"Taralu",
+"Thataguni",
+"Thattekuppe",
+"Udaypura"
+],
+"560083": [
+"Bannerghatta",
+"Gottigere",
+"Kalkere",
+"Ragihalli",
+"Sakalavara"
+],
+"560084": [
+"Lingarajapuram",
+"St. Thomas Town"
+],
+"560085": [
+"Banashankari III Stage",
+"Girinagar",
+"Kathriguppe"
+],
+"560086": [
+"Mahalakshmipuram Layout",
+"West of Chord Road II stage"
+],
+"560087": [
+"Gunjur",
+"Muthusandra",
+"Vartur"
+],
+"560088": [
+"Hessarghatta"
+],
+"560089": [
+"Byatha",
+"Hessarghatta Lake",
+"Kakolu",
+"Shivakote"
+],
+"560090": [
+"Chikkabanavara",
+"Silvepura",
+"Tarabanahalli"
+],
+"560091": [
+"Bapagrama",
+"Herohalli",
+"Kodigehalli",
+"Viswaneedam"
+],
+"560092": [
+"Amruthahalli",
+"Byatarayanapura",
+"Kodigehalli",
+"Sahakaranagar"
+],
+"560093": [
+"C.V.Raman Nagar"
+],
+"560094": [
+"ISRO Anthariksha Bhavan",
+"R.M.V. Extension II Stage"
+],
+"560095": [
+"Koramangala VI Bk"
+],
+"560096": [
+"Nandini Layout"
+],
+"560097": [
+"Vidyaranyapura"
+],
+"560098": [
+"Rajarajeshwarinagar"
+],
+"560099": [
+"Bommasandra Industrial Estate",
+"Chandapura",
+"Huskur",
+"Muthanallur"
+],
+"560100": [
+"Electronics City",
+"Wipro Limited"
+],
+"560102": [
+"HSR Layout"
+],
+"560103": [
+"Bellandur",
+"Panathur"
+],
+"560104": [
+"Hampinagar"
+],
+"560105": [
+"Haragadde",
+"Hennagara",
+"Hulimangala",
+"Jigani",
+"Kallubalu"
+],
+"560107": [
+"Achitnagar"
+],
+"560108": [
+"Anjanapura"
+],
+"560109": [
+"Thalaghattapura"
+],
+"560110": [
+"Ullalu Upanagar"
+],
+"560112": [
+"Kodigehalli"
+],
+"561203": [
+"Antharahalli",
+"Arallumallige",
+"Dodballapura",
+"Dodballapura Bazar",
+"Gundamgere",
+"Hanabe",
+"Hosahalli",
+"Kanasavadi",
+"Kannamangala",
+"Kodigehalli",
+"Kongadiyappa Road",
+"Mallathahalli",
+"Rajaghatta",
+"Sri Subramanyaghati",
+"Tippur"
+],
+"562106": [
+"Anekal",
+"Bestamaranahalli",
+"Byagadadenahalli",
+"Guddanahalli",
+"Indalavadi",
+"Marsur",
+"Samandur",
+"Sidihoskote",
+"Thammanayakanahalli",
+"Vanakanahalli"
+],
+"562107": [
+"Attibele",
+"Bidaraguppe",
+"Mayasandra",
+"Neralur",
+"Yadavanahalli"
+],
+"562109": [
+"Bidadi",
+"Byramangala",
+"Ganakal",
+"Hejjala",
+"Hosur",
+"Ittmadu",
+"K.Karenahalli",
+"Kanchugaranahalli",
+"Manchanayakanahalli",
+"Manchegowdanapalya",
+"Shanumangala",
+"Uragapura"
+],
+"562110": [
+"Alurduddanahalli",
+"Anneshwara",
+"Aradeshanahalli",
+"Devanahalli",
+"Doddasanne",
+"Hegganahalli",
+"Jalige",
+"Kannamangala",
+"Kundana",
+"Sadahalli",
+"Uganavadi",
+"Vishwanathapura",
+"Yeliyur"
+],
+"562114": [
+"Doddagattiganabbe",
+"Doddanallala",
+"Hasigala",
+"Hoskote",
+"Hoskote Indl. Area",
+"Jadigenahalli",
+"Jodidasarahalli",
+"Kattigenahalli",
+"Kembliganahalli",
+"Kollathur",
+"Kumbalahalli",
+"Lakkondanahalli",
+"Mugabala",
+"Vagata Agrahara"
+],
+"562123": [
+"Arasinakunte",
+"Budihal",
+"Gollahalli",
+"Honnasandra",
+"Jakkanahalli",
+"Madalakote",
+"Mahadevapura",
+"Mallarabanavadi",
+"Mandigere",
+"Mylanahalli",
+"Nelamangala",
+"Teppadabeguru",
+"Yentiganahalli"
+],
+"562125": [
+"Dommasandra",
+"Handenahalli",
+"Kugur",
+"Neriga",
+"Sarjapura"
+],
+"562130": [
+"Chikkanahalli",
+"Chunchanakuppe",
+"Kadabagere",
+"Kithanahalli",
+"Soladevanahalli",
+"Sondekoppa",
+"Tavarekere"
+],
+"562149": [
+"Bagalur",
+"Bandikodigehalli",
+"Kannur"
+],
+"562157": [
+"Bettahalsur",
+"Chikkajala",
+"Doddajala",
+"Hunasamaranahalli",
+"Tarahunise",
+"Vidyanagara"
+],
+"562162": [
+"Aluru",
+"Dasanapura",
+"Hullegowdanahalli",
+"Huskur",
+"Lakshmipura",
+"Madanayakanahalli",
+"Madavara",
+"Makali",
+"Mathahalli",
+"Shivanapura"
+],
+"562164": [
+"Avathi",
+"Bidalur",
+"Bijjawara",
+"Karahalli",
+"Koira",
+"Venkatagirikote"
+]
+}

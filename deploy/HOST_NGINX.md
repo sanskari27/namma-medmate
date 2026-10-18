@@ -1,4 +1,4 @@
-# Host Nginx for production (3 vhosts)
+# Host Nginx for production
 
 TLS and routing on the host. Compose publishes loopback only:
 
@@ -7,12 +7,14 @@ TLS and routing on the host. Compose publishes loopback only:
 | API | `127.0.0.1:18080` | server:8080 |
 | Dispensary ERP | `127.0.0.1:10080` | dispensary:3000 |
 | Admin CRM | `127.0.0.1:10081` | admin:3000 |
+| Public site | `127.0.0.1:10082` | website:3000 |
 
 ## DNS
 
 - `api.nammamedmate.com`
 - `pharmacy.nammamedmate.com`
 - `admin.nammamedmate.com`
+- `medmatepharmacy.com` and `www.medmatepharmacy.com` (own certificate, `infra/nginx/medmate-website.conf`)
 
 ## Upstreams
 

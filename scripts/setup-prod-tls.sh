@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
-# Install/refresh host Nginx + Let's Encrypt certs for api/pharmacy/admin.
+# Install/refresh host Nginx + Let's Encrypt certs for api/pharmacy/admin
+# and the public site (medmatepharmacy.com).
 # Run on the prod EC2 host from the repo checkout (as root).
 set -euo pipefail
 
@@ -7,6 +8,10 @@ ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EMAIL="${CERTBOT_EMAIL:-ops@nammamedmate.com}"
 CERT_NAME="${CERTBOT_CERT_NAME:-namma-medmate}"
 DOMAINS=(api.nammamedmate.com pharmacy.nammamedmate.com admin.nammamedmate.com)
+WEBSITE_CERT="${WEBSITE_CERTBOT_CERT_NAME:-medmate-pharmacy}"
+WEBSITE_DOMAINS=(medmatepharmacy.com www.medmatepharmacy.com)
+WEBSITE_HTTP="${ROOT}/infra/nginx/medmate-website.http.conf"
+WEBSITE_TLS="${ROOT}/infra/nginx/medmate-website.conf"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "run as root (sudo)" >&2
@@ -52,6 +57,29 @@ fi
 
 install -m 644 "$TLS_CONF" /etc/nginx/sites-available/namma-medmate.conf
 ln -sfn /etc/nginx/sites-available/namma-medmate.conf /etc/nginx/sites-enabled/namma-medmate.conf
+
+if [[ -f "/etc/letsencrypt/live/${WEBSITE_CERT}/fullchain.pem" ]]; then
+  install -m 644 "$WEBSITE_TLS" /etc/nginx/sites-available/medmate-website.conf
+else
+  install -m 644 "$WEBSITE_HTTP" /etc/nginx/sites-available/medmate-website.conf
+fi
+ln -sfn /etc/nginx/sites-available/medmate-website.conf /etc/nginx/sites-enabled/medmate-website.conf
 nginx -t
 systemctl reload nginx
 echo "TLS ready for ${DOMAINS[*]} (cert ${CERT_NAME})"
+
+if [[ ! -f "/etc/letsencrypt/live/${WEBSITE_CERT}/fullchain.pem" ]]; then
+  if certbot certonly --webroot -w /var/www/certbot \
+    --non-interactive --agree-tos -m "$EMAIL" \
+    --cert-name "$WEBSITE_CERT" \
+    $(printf -- '-d %s ' "${WEBSITE_DOMAINS[@]}"); then
+    install -m 644 "$WEBSITE_TLS" /etc/nginx/sites-available/medmate-website.conf
+    ln -sfn /etc/nginx/sites-available/medmate-website.conf /etc/nginx/sites-enabled/medmate-website.conf
+    nginx -t
+    systemctl reload nginx
+    echo "TLS ready for ${WEBSITE_DOMAINS[*]} (cert ${WEBSITE_CERT})"
+  else
+    echo "WARNING: certificate not issued for ${WEBSITE_DOMAINS[*]}." >&2
+    echo "At GoDaddy, set medmatepharmacy.com nameservers to the Route 53 hosted zone, then re-run this script." >&2
+  fi
+fi
