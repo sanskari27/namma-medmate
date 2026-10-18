@@ -1,11 +1,13 @@
 "use client";
 
-// Waitlist sign-up (Netlify Forms, form name "waitlist"). Plain HTML so it works without JavaScript and is
-// detected by Netlify at deploy. Used in the phone hero, on Home, /download, /premium and inside the "get the app" dialog.
+// Waitlist sign-up. Posts to the Spring API, then the thank-you page. Used in the phone hero, on Home,
+// /download, /premium and inside the "get the app" dialog.
+import { useState, type FormEvent } from "react";
 import { useLang, useT } from "./lang";
 import { PremiumNote } from "./premium-note";
 import { Icon } from "./ui";
 import { OFFER_ID } from "@/lib/premium";
+import { API_BASE_URL } from "@/lib/site";
 
 type Props = { source: string; dark?: boolean; compact?: boolean; note?: boolean; claim?: boolean };
 
@@ -18,14 +20,52 @@ const GENDERS = [["female", "g.female"], ["male", "g.male"], ["other", "g.other"
 export function WaitlistForm({ source, dark, compact, note = true, claim }: Props) {
   const t = useT();
   const { lang } = useLang();
+  const [error, setError] = useState("");
+  const [pending, setPending] = useState(false);
   const field = `h-12 w-full rounded-xl border-[1.5px] px-3.5 text-[16px] outline-none focus:ring-[3px] ${dark ? "border-white/30 bg-white/10 text-white placeholder:text-mint-300 focus:border-gold focus:ring-gold/30" : "border-line-2 bg-surface text-ink placeholder:text-faint focus:border-green focus:ring-mint-200"}`;
   const label = `d-caption font-semibold ${dark ? "text-mint-200" : "text-ink-2"}`;
   const wide = compact ? "" : "sm:col-span-2";
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault();
+    const form = e.currentTarget;
+    const data = new FormData(form);
+    const honeypot = String(data.get("company-website") ?? "");
+    if (honeypot.trim()) {
+      rememberSignup(String(data.get("pincode") ?? ""), lang);
+      window.location.assign("/waitlist/thanks");
+      return;
+    }
+    setPending(true);
+    setError("");
+    try {
+      const res = await fetch(`${API_BASE_URL}/api/v1/waitlist`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name: String(data.get("name") ?? "").trim(),
+          phone: String(data.get("phone") ?? "").trim(),
+          pincode: String(data.get("pincode") ?? "").trim(),
+          age: Number(data.get("age")),
+          gender: String(data.get("gender") ?? ""),
+          consent: data.get("consent") === "on",
+          source,
+          lang,
+          offer: OFFER_ID,
+          companyWebsite: honeypot,
+        }),
+      });
+      if (!res.ok) throw new Error("waitlist");
+      rememberSignup(String(data.get("pincode") ?? ""), lang);
+      window.location.assign("/waitlist/thanks");
+    } catch {
+      setPending(false);
+      setError(t("wait.error"));
+    }
+  }
+
   return (
-    <form name="waitlist" method="POST" action="/waitlist/thanks" data-netlify="true" netlify-honeypot="company-website" data-waitlist
-      onSubmit={(e) => rememberSignup((e.currentTarget.elements.namedItem("pincode") as HTMLInputElement)?.value ?? "", lang)}
-      className={`grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
-      <input type="hidden" name="form-name" value="waitlist" />
+    <form name="waitlist" data-waitlist onSubmit={onSubmit} className={`grid gap-3 ${compact ? "" : "sm:grid-cols-2"}`}>
       <input type="hidden" name="source" value={source} />
       <input type="hidden" name="lang" value={lang} />
       <input type="hidden" name="offer" value={OFFER_ID} />
@@ -53,7 +93,8 @@ export function WaitlistForm({ source, dark, compact, note = true, claim }: Prop
         <input type="checkbox" name="consent" required className="mt-0.5 size-5 shrink-0 accent-[var(--color-green)]" />
         <span className={`d-caption ${dark ? "text-mint-200" : "text-ink-2"}`}>{t("quick.consent")} <a href="/privacy" className={`font-semibold underline ${dark ? "text-white" : "text-green-700"}`}>{t("wait.privacy")}</a>.</span>
       </label>
-      <button type="submit" className={`press d-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 ${wide} ${dark ? "bg-gold text-forest hover:bg-gold-200" : "bg-green text-white hover:bg-green-700"}`}>
+      {error ? <p role="alert" className={`d-caption ${wide} ${dark ? "text-gold" : "text-green-700"}`}>{error}</p> : null}
+      <button type="submit" disabled={pending} className={`press d-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl px-5 ${wide} ${dark ? "bg-gold text-forest hover:bg-gold-200" : "bg-green text-white hover:bg-green-700"} disabled:opacity-60`}>
         {claim ? <><Icon name="star" size={18} fill />{t("premium.cta")}</> : t("wait.button")}
       </button>
     </form>

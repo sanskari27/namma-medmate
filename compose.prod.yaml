@@ -72,6 +72,7 @@ services:
       dockerfile: Dockerfile
       args:
         SITE_URL: ${WEBSITE_SITE_URL:-https://medmatepharmacy.com}
+        NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.nammamedmate.com}
     image: ${NAMMA_WEBSITE_IMAGE:-namma-medmate-website:prod}
     restart: unless-stopped
     ports:

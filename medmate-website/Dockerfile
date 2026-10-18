@@ -1,7 +1,9 @@
 FROM docker.io/library/node:22-bookworm-slim AS build
 WORKDIR /app
 ARG SITE_URL=https://medmatepharmacy.com
+ARG NEXT_PUBLIC_API_BASE_URL=https://api.nammamedmate.com
 ENV SITE_URL=$SITE_URL
+ENV NEXT_PUBLIC_API_BASE_URL=$NEXT_PUBLIC_API_BASE_URL
 ENV NEXT_TELEMETRY_DISABLED=1
 ENV NODE_OPTIONS="--max-old-space-size=768"
 COPY package.json package-lock.json ./

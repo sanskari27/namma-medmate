@@ -16,6 +16,7 @@ export const ROUTES = {
   WORKFLOWS: '/workflows',
   SIGN_OFFS: '/sign-offs',
   ACTIVITY: '/activity',
+  WAITLIST: '/waitlist',
   PRINCIPAL_REQUESTS: '/principal-requests',
 } as const;
 
@@ -43,6 +44,7 @@ export const NAV_ITEMS = [
   { label: 'Workflow desks', path: ROUTES.WORKFLOWS, masterOnly: true, modules: [] as const },
   { label: 'HQ sign-offs', path: ROUTES.SIGN_OFFS, masterOnly: true, modules: [] as const },
   { label: 'Platform activity', path: ROUTES.ACTIVITY, masterOnly: true, modules: [] as const },
+  { label: 'Waitlist', path: ROUTES.WAITLIST, masterOnly: true, modules: [] as const },
   {
     label: 'Principal requests',
     path: ROUTES.PRINCIPAL_REQUESTS,

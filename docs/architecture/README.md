@@ -10,13 +10,13 @@ dispensary/ --\
                +-- HTTP /api/v1 --> server/ --> PostgreSQL 16
 admin/ --------/                       |
                                        +--> external adapters
-medmate-website/  public Next.js site (medmatepharmacy.com), no API
+medmate-website/  public Next.js site; waitlist POST /api/v1/waitlist
 ```
 
 - `server/`: Java 17, Spring Boot 3.4.4, Maven.
 - `dispensary/`: independent React 19 + TypeScript + Vite 6 npm app for pharmacy staff.
 - `admin/`: independent React 19 + TypeScript + Vite 6 npm app for MASTER/platform staff.
-- `medmate-website/`: independent static Next.js site (`output: "export"`) for medmatepharmacy.com. No test suite. Build with `SITE_URL=https://medmatepharmacy.com`.
+- `medmate-website/`: independent static Next.js site (`output: "export"`) for medmatepharmacy.com. No test suite. Build with `SITE_URL=https://medmatepharmacy.com`. The waitlist form posts to `POST /api/v1/waitlist`. Contact and pharmacy-partner forms stay on Netlify.
 - `infra/terraform/`: AWS production infrastructure.
 - Each application uses only its committed build files and dependency manager;
   no shared package workspace or generated client workspace exists.
@@ -39,7 +39,7 @@ The existing ArchUnit test enforces layer access. Controllers call application
 services, never repositories. Application writes own transaction boundaries.
 Repositories encode tenant and branch scope. HTTP DTOs are records and responses
 use `ApiResponse<T>`. New schema always uses the next immutable Flyway migration.
-Live schema head is **V64** (V1–V64 sequential; never edit an applied file).
+Live schema head is **V76** (V1–V76 sequential; never edit an applied file).
 
 ## Security and isolation
 

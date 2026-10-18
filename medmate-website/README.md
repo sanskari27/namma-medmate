@@ -4,7 +4,7 @@ The complete source for **https://medmateindia.netlify.app**, the main MedMate w
 
 The D2C customer app is a separate project in `../MedMate-D2C-App`.
 
-In this repository the same static site is the public site for **https://medmatepharmacy.com**. Production builds set `SITE_URL=https://medmatepharmacy.com`, serve `out/` from the EC2 website container (`127.0.0.1:10082`), and Route 53 points the domain at that host. The waitlist, contact, and pharmacy-partner forms are Netlify forms (`data-netlify`); they are not stored by the EC2 host.
+In this repository the same static site is the public site for **https://medmatepharmacy.com**. Production builds set `SITE_URL=https://medmatepharmacy.com`, serve `out/` from the EC2 website container (`127.0.0.1:10082`), and Route 53 points the domain at that host. The waitlist form posts to the Spring API (`NEXT_PUBLIC_API_BASE_URL`, default `https://api.nammamedmate.com` in production). Contact and pharmacy-partner stay Netlify forms (`data-netlify`).
 
 It is a static Next.js 16 site. `npm run build` turns it into plain HTML pages in `out/` (about 440 pages), which any static host can serve.
 
@@ -38,7 +38,7 @@ npm install
 npm run dev
 ```
 
-Then open http://localhost:3200. Forms do not submit locally; they only work on Netlify.
+Then open http://localhost:3200. The waitlist posts to `http://localhost:8080` unless `NEXT_PUBLIC_API_BASE_URL` is set. Contact and pharmacy-partner still submit only on Netlify.
 
 ## Build
 
@@ -52,6 +52,7 @@ Other build-time settings (all optional):
 
 | Variable | Purpose |
 |---|---|
+| `NEXT_PUBLIC_API_BASE_URL` | Spring API for waitlist sign-ups. Default `http://localhost:8080`. Production images use `https://api.nammamedmate.com`. |
 | `NEXT_PUBLIC_APP_URL` | The customer app. Default `https://medmate-india.netlify.app`. |
 | `NEXT_PUBLIC_PLAY_URL`, `NEXT_PUBLIC_IOS_URL` | Store links. Empty shows "Coming soon". |
 
@@ -65,7 +66,7 @@ npx netlify-cli deploy --prod --no-build --dir out --site c2f42f53-0791-4e46-8e3
 
 Build first (above). `--no-build` uploads the finished `out/` folder as it is. Without it, the Netlify CLI rebuilds the site itself, which can lose `SITE_URL`.
 
-To start a brand-new Netlify site instead: create the site, turn on **Form detection** (Forms settings), set **Visitor access** to Public, then deploy as above with its id. The forms (`waitlist`, `contact`, `pharmacy-partner`) are detected on the first deploy; every waitlist sign-up, including the phone hero, uses `waitlist` (name, phone, pincode, age 18+, gender, consent; `waitlist-quick` is retired since 16 Oct 2026 and only holds older sign-ups); submissions appear under Forms, where you can set up email notifications.
+To start a brand-new Netlify site instead: create the site, turn on **Form detection** (Forms settings), set **Visitor access** to Public, then deploy as above with its id. Contact and pharmacy-partner are detected on the first deploy. Waitlist sign-ups are stored by the API and listed in the admin Waitlist screen, not under Netlify Forms.
 
 ## Common changes
 

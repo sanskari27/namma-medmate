@@ -94,7 +94,8 @@ public class SecurityConfig {
 
   @Bean
   public CorsConfigurationSource corsConfigurationSource(
-      @Value("${app.security.cors.allowed-origins:http://localhost:5173,http://localhost:5174}")
+      @Value(
+              "${app.security.cors.allowed-origins:http://localhost:5173,http://localhost:5174,http://localhost:3200,http://127.0.0.1:3200,https://medmatepharmacy.com}")
           String allowedOriginsCsv) {
     List<String> origins =
         Arrays.stream(allowedOriginsCsv.split(","))
@@ -152,6 +153,8 @@ public class SecurityConfig {
                     .permitAll()
                     .requestMatchers(
                         HttpMethod.POST, "/api/v1/subscriptions/payments/cashfree/callback")
+                    .permitAll()
+                    .requestMatchers(HttpMethod.POST, "/api/v1/waitlist")
                     .permitAll()
                     .anyRequest()
                     .authenticated())

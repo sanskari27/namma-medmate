@@ -7,6 +7,7 @@ import {
   CreditCard,
   FileClock,
   FileWarning,
+  ListChecks,
   GitBranch,
   Headset,
   KeyRound,
@@ -48,6 +49,7 @@ const NAV_ICONS: Record<(typeof NAV_ITEMS)[number]['path'], LucideIcon> = {
   [ROUTES.WORKFLOWS]: GitBranch,
   [ROUTES.SIGN_OFFS]: ClipboardCheck,
   [ROUTES.ACTIVITY]: FileClock,
+  [ROUTES.WAITLIST]: ListChecks,
   [ROUTES.PRINCIPAL_REQUESTS]: Shield,
   [ROUTES.OPERATOR_PASSWORD]: KeyRound,
 };
