@@ -407,7 +407,7 @@ resource "aws_ssm_parameter" "compose_env" {
     "DATABASE_PASSWORD=${random_password.db.result}",
     "JWT_SECRET=${random_password.jwt.result}",
     "SPRING_PROFILES_ACTIVE=prod",
-    "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com",
+    "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com,https://medmatepharmacy.com",
     "NMM_FILES_BUCKET=${aws_s3_bucket.files.bucket}",
     "NMM_FILES_REGION=${var.aws_region}",
     "AWS_REGION=${var.aws_region}",
