@@ -187,6 +187,48 @@ describe('pharmacy licences', () => {
     );
   });
 
+  it('hides add when drug, GST, FSSAI, and pharmacist papers are on file', async () => {
+    listMock.mockResolvedValue({
+      items: [
+        sample,
+        { ...sample, id: 'lic-gst', docType: 'GST', scope: 'BRANCH', branchId: 'b1', licenseNumber: '29GST' },
+        { ...sample, id: 'lic-fssai', docType: 'FSSAI', scope: 'BRANCH', branchId: 'b1', licenseNumber: 'FSSAI-1' },
+        {
+          ...sample,
+          id: 'lic-ph',
+          docType: 'PHARMACIST_REGISTRATION',
+          scope: 'STAFF',
+          staffUserId: 'chem-1',
+          licenseNumber: 'KA-PH-1',
+        },
+      ],
+    });
+    renderPage();
+    expect(await screen.findByText('KA-DL-100')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Add licence/i })).not.toBeInTheDocument();
+    expect(screen.getByText('Select a licence to renew.')).toBeInTheDocument();
+  });
+
+  it('keeps add when a tracked licence type is still missing', async () => {
+    listMock.mockResolvedValue({
+      items: [
+        sample,
+        { ...sample, id: 'lic-gst', docType: 'GST', licenseNumber: '29GST' },
+        {
+          ...sample,
+          id: 'lic-ph',
+          docType: 'PHARMACIST_REGISTRATION',
+          scope: 'STAFF',
+          staffUserId: 'chem-1',
+          licenseNumber: 'KA-PH-1',
+        },
+      ],
+    });
+    renderPage();
+    expect(await screen.findByText('KA-DL-100')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Add licence' })).toBeInTheDocument();
+  });
+
   it('success: file a drug licence', async () => {
     const user = userEvent.setup();
     listMock.mockResolvedValueOnce({ items: [] }).mockResolvedValue({ items: [sample] });

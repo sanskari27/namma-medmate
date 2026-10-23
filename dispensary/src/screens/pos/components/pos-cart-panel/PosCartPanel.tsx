@@ -105,6 +105,7 @@ export function PosCartPanel() {
         )}
       </div>
       <div className="pos-cart-footer">
+        <div className="pos-cart-footer-scroll">
         {customerChosen ? (
           <div className="pos-customer-row">
             <div>
@@ -238,6 +239,7 @@ export function PosCartPanel() {
         ) : null}
 
         <PosOfferPanel />
+        </div>
 
         <button
           type="button"

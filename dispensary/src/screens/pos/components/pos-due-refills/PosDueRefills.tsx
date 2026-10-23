@@ -21,7 +21,7 @@ export function PosDueRefills() {
   if (items.length === 0) return null;
 
   return (
-    <div className="border border-line bg-surface px-3 py-2 text-sm" aria-label="Due refills">
+    <div className="pos-due-refills border border-line bg-surface px-3 py-2 text-sm" aria-label="Due refills">
       <p className="font-mono text-[11px] tracking-wide text-muted">Due refills ({items.length})</p>
       <ul className="mt-1 grid gap-0.5">
         {items.slice(0, 3).map((row) => (

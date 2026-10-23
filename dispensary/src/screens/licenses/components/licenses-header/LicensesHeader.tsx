@@ -1,11 +1,18 @@
 import { Plus } from 'lucide-react';
 import { useDispatch, useSelector } from 'react-redux';
-import { selectLicensesDue, startCreate, licenseSelected } from '../../store';
-import { formatIstDate, typeLabel } from '../../LicensesScreen.utils';
+import { canFileAnotherLicense, formatIstDate, typeLabel } from '../../LicensesScreen.utils';
+import {
+  licenseSelected,
+  selectLicensesDue,
+  selectLicensesItems,
+  startCreate,
+} from '../../store';
 
 export function LicensesHeader({ denied }: { denied: boolean }) {
   const dispatch = useDispatch();
   const due = useSelector(selectLicensesDue);
+  const items = useSelector(selectLicensesItems);
+  const canAdd = !denied && canFileAnotherLicense(items);
   return (
     <>
       <div className="lc-toolbar">
@@ -14,11 +21,11 @@ export function LicensesHeader({ denied }: { denied: boolean }) {
           <span className="lc-muted">Drug, GST, FSSAI and pharmacist papers for this pharmacy</span>
         </div>
         <div className="lc-toolbar-spacer" />
-        {denied ? null : (
+        {canAdd ? (
           <button type="button" className="lc-btn lc-btn-primary" onClick={() => dispatch(startCreate())}>
             <Plus size={16} /> Add licence
           </button>
-        )}
+        ) : null}
       </div>
       {due.length > 0 ? (
         <div className="lc-card lc-card-pad" style={{ borderColor: '#f0c9b8', background: '#feecec' }}>

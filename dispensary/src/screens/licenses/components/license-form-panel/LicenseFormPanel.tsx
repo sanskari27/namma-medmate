@@ -3,6 +3,7 @@ import type { AppDispatch } from '@/store';
 import { LicenseDateFields } from '../license-date-fields';
 import { LicenseEvidenceFields } from '../license-evidence-fields';
 import { LicenseIdentityFields } from '../license-identity-fields';
+import { canFileAnotherLicense } from '../../LicensesScreen.utils';
 import {
   formPatched,
   saveLicense,
@@ -10,6 +11,7 @@ import {
   selectLicensesBusy,
   selectLicensesCreating,
   selectLicensesForm,
+  selectLicensesItems,
   selectLicensesSelected,
   selectLicensesStaff,
 } from '../../store';
@@ -21,12 +23,16 @@ export function LicenseFormPanel() {
   const selected = useSelector(selectLicensesSelected);
   const branches = useSelector(selectLicensesBranches);
   const staff = useSelector(selectLicensesStaff);
+  const items = useSelector(selectLicensesItems);
   const busy = useSelector(selectLicensesBusy);
+  const canAdd = canFileAnotherLicense(items);
 
   if (!creating && !selected) {
     return (
       <div className="lc-card lc-card-pad">
-        <p className="lc-muted">Select a licence or add a new paper.</p>
+        <p className="lc-muted">
+          {canAdd ? 'Select a licence or add a new paper.' : 'Select a licence to renew.'}
+        </p>
       </div>
     );
   }

@@ -53,7 +53,7 @@ export default function PosScreen() {
   }
 
   return (
-    <div className="pos" aria-label={POS_CONTENT.regionLabel}>
+    <div className="pos" data-step={step} aria-label={POS_CONTENT.regionLabel}>
       <PosStatusBanner
         status={status}
         statusId={statusId}

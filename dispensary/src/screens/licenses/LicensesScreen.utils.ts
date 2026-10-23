@@ -1,5 +1,5 @@
 import { AlertCircle, CheckCircle2, WifiOff } from 'lucide-react';
-import type { LicenseDocType, LicenseScope } from '@/services/licenses';
+import type { ComplianceLicense, LicenseDocType, LicenseScope } from '@/services/licenses';
 
 export type PageStatus =
   'loading' | 'empty' | 'validation' | 'denied' | 'conflict' | 'failure' | 'success' | null;
@@ -110,6 +110,17 @@ export function formValid(form: FormState, creating: boolean): boolean {
     return false;
   }
   return true;
+}
+
+const TRACKED_LICENCES: LicenseDocType[] = [
+  'DRUG_LICENSE',
+  'GST',
+  'FSSAI',
+  'PHARMACIST_REGISTRATION',
+];
+
+export function canFileAnotherLicense(items: Pick<ComplianceLicense, 'docType'>[]): boolean {
+  return TRACKED_LICENCES.some((docType) => !items.some((row) => row.docType === docType));
 }
 
 export function typeLabel(type: LicenseDocType): string {
