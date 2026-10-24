@@ -6,12 +6,6 @@ on:
       tag:
         required: true
         type: string
-  workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Git tag to deploy (e.g. v14 or feature)'
-        required: true
-        type: string
 
 permissions:
   contents: read
@@ -24,7 +18,7 @@ jobs:
   deploy:
     runs-on: [self-hosted, deploy-prod]
     environment: production
-    timeout-minutes: 25
+    timeout-minutes: 45
     steps:
       - uses: actions/checkout@v4
         with:
@@ -52,11 +46,14 @@ jobs:
           export COMPOSE_PARALLEL_LIMIT=1
           docker rm -f medmate-website >/dev/null 2>&1 || true
           docker compose -f compose.prod.yaml build website
-          if ! docker compose -f compose.prod.yaml up -d --wait website; then
-            docker compose -f compose.prod.yaml logs --tail=200 website
+          docker compose -f compose.prod.yaml build pharmacy
+          if ! docker compose -f compose.prod.yaml up -d --wait website pharmacy; then
+            docker compose -f compose.prod.yaml logs --tail=200 website pharmacy
             exit 1
           fi
       - name: Check website
         run: curl -fsS -o /dev/null http://127.0.0.1:10082/
+      - name: Check pharmacy
+        run: curl -fsS -o /dev/null http://127.0.0.1:10083/
       - name: Refresh host TLS / Nginx
         run: sudo ./scripts/setup-prod-tls.sh

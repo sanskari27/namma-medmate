@@ -49,14 +49,8 @@ jobs:
     timeout-minutes: 5
     steps:
       - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-      - name: Compose + requirements
-        run: |
-          make compose-config
-          node --test scripts/validate-requirements.test.mjs
-          node scripts/validate-requirements.mjs
+      - name: Compose
+        run: make compose-config
 
   ci-ok:
     needs: [pharmacy-checks, website-checks, meta]

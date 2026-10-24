@@ -119,14 +119,14 @@ changed or session end.
 
 The shortest path to done is the right path.
 
-## Namma MedMate overlay
+## Namma Pharmacy overlay
 
-Architecture, story TDD, tenant/branch isolation, and quality gates still
+`namma-pharmacy` architecture, the backend roadmap, and quality gates still
 win. Ponytail shrinks the implementation, not the contract.
 
-- Reuse existing helpers, JUnit/Vitest suites, Maven/npm gates, and Flyway
-  migrations. Do not add Python self-checks, new build systems, shared
-  packages, or extra dependencies.
-- Story work still needs failing tests first and the listed target gates.
-- "ONE runnable check" means one focused test in the app's existing stack.
-- Do not skip validation, security, accessibility, or tenant/branch scope.
+- Reuse `src/app/data.ts`, `src/app/lib/`, and the Next.js app. Do not add a
+  second application, database framework, shared package, or test framework.
+- A backend slice still needs one focused check first and the listed gates.
+- "ONE runnable check" means one test in the pharmacy app's existing toolchain.
+- Do not skip validation, pharmacy scope, paise, idempotent stock writes, or
+  accessibility.

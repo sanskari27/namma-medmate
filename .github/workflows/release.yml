@@ -4,24 +4,18 @@ on:
   push:
     branches: [main]
   workflow_dispatch:
-    inputs:
-      tag:
-        description: 'Optional existing tag to deploy (leave empty to cut a new release after CI)'
-        required: false
-        type: string
-        default: ''
 
 permissions:
   contents: write
 
 jobs:
   ci:
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
+    if: github.ref == 'refs/heads/main'
     uses: ./.github/workflows/ci-tests.yml
 
   release:
     needs: ci
-    if: ${{ github.event_name != 'workflow_dispatch' || inputs.tag == '' }}
+    if: github.ref == 'refs/heads/main' && needs.ci.result == 'success'
     runs-on: ubuntu-latest
     outputs:
       tag: ${{ steps.version.outputs.tag }}
@@ -42,8 +36,8 @@ jobs:
 
   deploy:
     needs: [ci, release]
-    if: ${{ always() && !cancelled() && (needs.release.result == 'success' || (github.event_name == 'workflow_dispatch' && inputs.tag != '')) }}
+    if: github.ref == 'refs/heads/main' && needs.ci.result == 'success' && needs.release.result == 'success'
     uses: ./.github/workflows/build-deploy.yml
     with:
-      tag: ${{ needs.release.outputs.tag || inputs.tag }}
+      tag: ${{ needs.release.outputs.tag }}
     secrets: inherit

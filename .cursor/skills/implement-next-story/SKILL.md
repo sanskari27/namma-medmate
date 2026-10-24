@@ -1,18 +1,12 @@
 ---
 name: implement-next-story
-description: Select and complete the first dependency-ready vertical story from the Namma MedMate tracker.
+description: Select and complete the first dependency-ready Namma Pharmacy backend slice from the delivery roadmap.
 ---
 
-# Implement next story
+# Implement next pharmacy slice
 
-1. Read `docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md` and
-   `DECISIONS.md`.
-2. Stop if any row is already `in_progress`; report its ID.
-3. In tracker order, select the first `ready` row whose dependencies are all
-   `done` and whose decisions are closed or absent.
-4. Follow the `implement-story` skill for that exact ID **in this agent**.
-   Apply `spring-story` and/or `react-story` from `apps` here. Do not spawn
-   `story-implementer` or `requirement-orchestrator` (nested implement
-   subagents stall and reload the same skills).
-5. Complete only one story per invocation. The only nested agent is
-   `story-verifier`, spawned once after listed gates succeed.
+1. Read `docs/backend/delivery-roadmap.md`.
+2. Stop if any row is `in_progress`; report its ID.
+3. Select the first row whose status is `ready`, or `pending` with every dependency `done`.
+4. Follow `implement-story` for that ID in this agent. Do not spawn `story-implementer`.
+5. Complete one slice. The only nested agent is `story-verifier`, spawned once after the listed gates succeed.

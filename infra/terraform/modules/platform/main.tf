@@ -240,6 +240,19 @@ resource "aws_route53_record" "pharmacy_site_www" {
   records = [aws_eip.app.public_ip]
 }
 
+data "aws_route53_zone" "namma" {
+  name         = "nammamedmate.com."
+  private_zone = false
+}
+
+resource "aws_route53_record" "pharmacy_app" {
+  zone_id = data.aws_route53_zone.namma.zone_id
+  name    = "pharmacy.nammamedmate.com"
+  type    = "A"
+  ttl     = 300
+  records = [aws_eip.app.public_ip]
+}
+
 resource "aws_ssm_parameter" "compose_env" {
   name        = "/${local.name}/compose.env"
   description = "Production compose .env for Namma MedMate"

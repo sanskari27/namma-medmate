@@ -14,3 +14,8 @@ output "pharmacy_nameservers" {
   description = "Set these at GoDaddy for medmatepharmacy.com"
   value       = module.platform.pharmacy_nameservers
 }
+
+output "pharmacy_app_fqdn" {
+  description = "Pharmacy dashboard hostname in the existing nammamedmate.com zone"
+  value       = module.platform.pharmacy_app_fqdn
+}

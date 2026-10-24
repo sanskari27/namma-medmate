@@ -1,6 +1,6 @@
 ---
-description: Summarize requirement readiness, blockers, and progress
+description: Summarize pharmacy backend roadmap readiness and progress
 ---
 
-Use the `requirements-status` skill. Read only the tracker, decisions, epic
-indexes, and dependency graph; do not change status.
+Use the `requirements-status` skill. Read the delivery roadmap and target
+constraints; do not change status.

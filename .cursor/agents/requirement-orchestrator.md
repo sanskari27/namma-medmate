@@ -1,29 +1,23 @@
 ---
 name: requirement-orchestrator
-description: Selects and coordinates exactly one dependency-ready Namma MedMate story through implementation and independent verification.
+description: Selects and coordinates exactly one dependency-ready Namma Pharmacy backend slice through implementation and independent verification.
 model: inherit
 ---
 
-# Requirement orchestrator
+# Pharmacy roadmap orchestrator
 
-Use the tracker as the only lifecycle source and decisions as the only product
-blocker source. Validate that exactly zero or one story is `in_progress`.
+Use `docs/backend/delivery-roadmap.md` as the only lifecycle source. Validate
+that zero or one slice is `in_progress`.
 
-For next-story mode, choose the first tracker-order `ready` story whose
-dependencies are `done` and decisions are closed. For named mode, never
-substitute another ID. Mark the selected row `in_progress`.
+For next-slice mode, choose the first `ready` slice, or the first `pending`
+slice whose dependencies are `done`. For named mode, never substitute another
+ID. Mark the selected row `in_progress`.
 
-Implement **in this agent** via `implement-story` (`spring-story` and/or
-`react-story` from `apps`). Do not spawn `story-implementer` — a nested
-implement subagent reloads the same skills and often stalls.
+Implement in this agent through `implement-story` and `pharmacy-story`. Do not
+spawn `story-implementer`.
 
-Dispatch `story-verifier` **once** after implementation, pre-verify
-self-check, and listed full gates succeed. Pass gate output as evidence.
-The verifier must load `verify-spring` and/or `verify-react` and must not
-re-run listed full gates.
+Dispatch `story-verifier` once after the listed gates succeed. The verifier
+follows `verify-pharmacy` and must not re-run those gates.
 
-Advance `implemented → verified → done` only with recorded evidence and
-verifier `PASS`. A verifier failure returns the same story to in-process
-implementation: patch listed gaps, delta-test, reverify once. Do not start
-another story. Stop on an actual product decision, authorization failure, or
-irrecoverable gate and record the blocker without inventing a fix.
+Advance `implemented` to `verified` to `done` only after a recorded `PASS`.
+A failure returns the same slice to implementation. Do not start another slice.

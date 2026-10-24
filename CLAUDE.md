@@ -1,16 +1,18 @@
 # Namma MedMate project brief
 
-Namma MedMate is an Indian pharmacy product.
+`namma-pharmacy/` is the product. It is a Next.js pharmacy dashboard.
+Local development serves it at `http://localhost:3000/`.
 
-- `namma-pharmacy/`: Next.js pharmacy dashboard. Local dev serves it at
-  `http://localhost:3000/`.
-- `medmate-website/`: static Next.js public site for medmatepharmacy.com.
-  No test suite.
-- Local site container: `make up` (port 3200). Production website uses EC2
-  and Terraform.
+`medmate-website/` is the secondary public site for medmatepharmacy.com.
+It has no test suite. Locally, `make website` serves it at
+`http://localhost:3200`. Production serves it from the same EC2 host.
 
-Each app uses its own committed build files and dependency manager.
-Follow [`docs/architecture/README.md`](docs/architecture/README.md).
+The pharmacy dashboard deploys to `https://pharmacy.nammamedmate.com` only
+after checks pass on `main`. Its MVP stores data in browser state. Planned
+internal APIs live under Next.js `/api/v1` and are documented, not implemented.
+
+Each app keeps its own build files and lockfile.
+Follow [`docs/README.md`](docs/README.md).
 
 ## Commands
 

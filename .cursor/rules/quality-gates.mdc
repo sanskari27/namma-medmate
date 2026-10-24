@@ -16,3 +16,4 @@ Run each listed target **once**, **sequentially**, before calling the work done.
 - Compose: `make compose-config`.
 
 Do not mark the change done while a listed full gate is red.
+The pharmacy check is the product gate. The website and Compose checks protect the shared release.

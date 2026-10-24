@@ -1,17 +1,16 @@
 # Namma MedMate
 
-Pharmacy dashboard and public site.
+`namma-pharmacy` is the pharmacy dashboard. `medmate-website` is the public site.
 
-| App | Audience | Purpose |
-|-----|----------|---------|
-| [`namma-pharmacy/`](namma-pharmacy/) | Pharmacy staff | Dashboard at `/` |
-| [`medmate-website/`](medmate-website/) | Public | medmatepharmacy.com |
-
-## Local
+| App | Audience | Local | Production |
+|-----|----------|-------|------------|
+| [`namma-pharmacy/`](namma-pharmacy/) | Pharmacy staff | http://localhost:3000/ | https://pharmacy.nammamedmate.com |
+| [`medmate-website/`](medmate-website/) | Public | http://localhost:3200 | https://medmatepharmacy.com |
 
 ```bash
 make dev
-# http://localhost:3000/
 ```
 
-Public site: `make website` → http://localhost:3200
+The dashboard MVP keeps its data in the browser. The planned internal API is
+documented in [`docs/backend/api-catalog.md`](docs/backend/api-catalog.md).
+See [`docs/README.md`](docs/README.md).

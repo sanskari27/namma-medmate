@@ -1,14 +1,10 @@
 #!/usr/bin/env bash
-# Install/refresh host Nginx + Let's Encrypt for medmatepharmacy.com.
+# Install/refresh host Nginx + Let's Encrypt for the public site and pharmacy app.
 # Run on the prod EC2 host from the repo checkout (as root).
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/.." && pwd)"
 EMAIL="${CERTBOT_EMAIL:-ops@nammamedmate.com}"
-WEBSITE_CERT="${WEBSITE_CERTBOT_CERT_NAME:-medmate-pharmacy}"
-WEBSITE_DOMAINS=(medmatepharmacy.com www.medmatepharmacy.com)
-WEBSITE_HTTP="${ROOT}/infra/nginx/medmate-website.http.conf"
-WEBSITE_TLS="${ROOT}/infra/nginx/medmate-website.conf"
 
 if [[ "$(id -u)" -ne 0 ]]; then
   echo "run as root (sudo)" >&2
@@ -35,28 +31,59 @@ if [[ ! -f /etc/letsencrypt/ssl-dhparams.pem ]]; then
   openssl dhparam -dsaparam -out /etc/letsencrypt/ssl-dhparams.pem 2048
 fi
 
-if [[ -f "/etc/letsencrypt/live/${WEBSITE_CERT}/fullchain.pem" ]]; then
-  install -m 644 "$WEBSITE_TLS" /etc/nginx/sites-available/medmate-website.conf
-else
-  install -m 644 "$WEBSITE_HTTP" /etc/nginx/sites-available/medmate-website.conf
-fi
-ln -sfn /etc/nginx/sites-available/medmate-website.conf /etc/nginx/sites-enabled/medmate-website.conf
+install_site() {
+  local cert="$1" conf_name="$2" http="$3" tls="$4"
+  if [[ -f "/etc/letsencrypt/live/${cert}/fullchain.pem" ]]; then
+    install -m 644 "$tls" "/etc/nginx/sites-available/${conf_name}"
+  else
+    install -m 644 "$http" "/etc/nginx/sites-available/${conf_name}"
+  fi
+  ln -sfn "/etc/nginx/sites-available/${conf_name}" "/etc/nginx/sites-enabled/${conf_name}"
+}
+
+issue_site() {
+  local cert="$1" conf_name="$2" http="$3" tls="$4"
+  shift 4
+  local domains=("$@")
+  if [[ -f "/etc/letsencrypt/live/${cert}/fullchain.pem" ]]; then
+    return 0
+  fi
+  if certbot certonly --webroot -w /var/www/certbot \
+    --non-interactive --agree-tos -m "$EMAIL" \
+    --cert-name "$cert" \
+    $(printf -- '-d %s ' "${domains[@]}"); then
+    install -m 644 "$tls" "/etc/nginx/sites-available/${conf_name}"
+    ln -sfn "/etc/nginx/sites-available/${conf_name}" "/etc/nginx/sites-enabled/${conf_name}"
+    echo "TLS ready for ${domains[*]} (cert ${cert})"
+  else
+    echo "WARNING: certificate not issued for ${domains[*]}." >&2
+    echo "Confirm the DNS A record reaches this host, then re-run this script." >&2
+  fi
+}
+
+install_site \
+  "${WEBSITE_CERTBOT_CERT_NAME:-medmate-pharmacy}" medmate-website.conf \
+  "${ROOT}/infra/nginx/medmate-website.http.conf" \
+  "${ROOT}/infra/nginx/medmate-website.conf"
+install_site \
+  "${PHARMACY_CERTBOT_CERT_NAME:-namma-pharmacy}" pharmacy.conf \
+  "${ROOT}/infra/nginx/pharmacy.http.conf" \
+  "${ROOT}/infra/nginx/pharmacy.conf"
+
 nginx -t
 systemctl enable --now nginx
 systemctl reload nginx
 
-if [[ ! -f "/etc/letsencrypt/live/${WEBSITE_CERT}/fullchain.pem" ]]; then
-  if certbot certonly --webroot -w /var/www/certbot \
-    --non-interactive --agree-tos -m "$EMAIL" \
-    --cert-name "$WEBSITE_CERT" \
-    $(printf -- '-d %s ' "${WEBSITE_DOMAINS[@]}"); then
-    install -m 644 "$WEBSITE_TLS" /etc/nginx/sites-available/medmate-website.conf
-    ln -sfn /etc/nginx/sites-available/medmate-website.conf /etc/nginx/sites-enabled/medmate-website.conf
-    nginx -t
-    systemctl reload nginx
-    echo "TLS ready for ${WEBSITE_DOMAINS[*]} (cert ${WEBSITE_CERT})"
-  else
-    echo "WARNING: certificate not issued for ${WEBSITE_DOMAINS[*]}." >&2
-    echo "At GoDaddy, set medmatepharmacy.com nameservers to the Route 53 hosted zone, then re-run this script." >&2
-  fi
-fi
+issue_site \
+  "${WEBSITE_CERTBOT_CERT_NAME:-medmate-pharmacy}" medmate-website.conf \
+  "${ROOT}/infra/nginx/medmate-website.http.conf" \
+  "${ROOT}/infra/nginx/medmate-website.conf" \
+  medmatepharmacy.com www.medmatepharmacy.com
+issue_site \
+  "${PHARMACY_CERTBOT_CERT_NAME:-namma-pharmacy}" pharmacy.conf \
+  "${ROOT}/infra/nginx/pharmacy.http.conf" \
+  "${ROOT}/infra/nginx/pharmacy.conf" \
+  pharmacy.nammamedmate.com
+
+nginx -t
+systemctl reload nginx

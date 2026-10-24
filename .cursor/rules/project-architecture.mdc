@@ -5,12 +5,12 @@ alwaysApply: true
 
 # Project architecture
 
-- Runtime/build truth wins: `namma-pharmacy/package.json`,
-  `medmate-website/package.json`, Compose, Makefile, and CI.
-- `namma-pharmacy/` is the Next.js pharmacy dashboard. It is served at `/`.
+- Runtime truth wins: `namma-pharmacy/package.json`, Compose, Makefile, and CI.
+  `medmate-website/package.json` wins only for the public site.
+- `namma-pharmacy/` is the Next.js pharmacy product, served at `/` locally and
+  at `pharmacy.nammamedmate.com` in production.
 - `medmate-website/` is the public site for medmatepharmacy.com.
-- Do not introduce build systems, package workspaces, shared packages, or
-  generated clients that are absent from the runtime/build source of truth.
+- Current pharmacy data is client state. New backend behavior is an internal
+  Next.js `/api/v1` route in `namma-pharmacy`, mapped by `docs/backend/`.
+- Do not add a second app, package workspace, shared package, or generated client.
 - Read `docs/architecture/README.md` before implementation.
-- Product notes in `docs/requirements/` describe the previous ERP. New pharmacy
-  behavior lives in `namma-pharmacy/`.

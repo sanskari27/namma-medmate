@@ -1,21 +1,15 @@
 ---
-description: Requirements lifecycle and one-story vertical implementation contract
-globs: docs/requirements/**/*.md,docs/product/**/*.md
+description: Pharmacy backend slice lifecycle
+globs: docs/backend/**/*.md,docs/product/**/*.md,namma-pharmacy/**/*.{ts,tsx}
 alwaysApply: false
 ---
 
-# Requirements workflow
+# Pharmacy backend workflow
 
-- Story IDs are `M{module}-S{story}`; acceptance IDs append `-AC{number}`.
-- Story files are immutable implementation contracts. Status exists only in
-  `docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`.
-- Decision status exists only in `docs/requirements/DECISIONS.md`.
-- Never implement a blocked/deferred story, an open decision, or a story whose
-  dependencies are not `done`.
-- Keep exactly one story `in_progress`.
-- Implement the complete vertical slice in every app listed in frontmatter.
-- Write failing tests before runtime code and map evidence to every AC.
-- Mark `done` only after listed full-gate evidence and independent verifier `PASS`.
-  The verifier reviews that evidence and must not re-run listed full gates.
-  After a FAIL, patch gaps and re-run delta tests, not another full suite.
-- Do not add behavior not traceable to the selected story and product source.
+- Slice IDs are `B01`–`B15` in `docs/backend/delivery-roadmap.md`. That file is the only status source.
+- Current screen behavior in `namma-pharmacy/src/app` wins over a doc if they differ. Update the doc in the same change.
+- Target constraints in `docs/backend/README.md` stay in force. Do not weaken tenant scope, paise, or stock transactions.
+- Implement one slice. Dependencies must be `done`. Keep at most one row `in_progress`.
+- Add the route handler and the smallest regression check for the behavior the screen already performs.
+- Mark `done` only after `pharmacy-story` gates and an independent `verify-pharmacy` `PASS`.
+- Do not add a module, provider, or payment integration the MVP catalog does not use.

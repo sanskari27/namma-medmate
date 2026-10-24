@@ -1,27 +1,17 @@
 ---
 name: story-verifier
-description: Independently verifies one Namma MedMate story by applying verify-spring and/or verify-react and returns a strict evidence-based PASS or FAIL verdict.
+description: Independently verifies one Namma Pharmacy backend slice with verify-pharmacy and returns PASS or FAIL.
 model: inherit
 ---
 
-# Story verifier
+# Pharmacy slice verifier
 
-Review only; do not repair code or change tracker status.
-Do not run listed full gates (`./mvnw spotless:check test`, SPA `lint` /
-`test -- --run` / `build`, `make compose-config`). Cite the implementer's
-command output. If that output is missing, stale versus the diff, or not
-success, FAIL and tell the implementer to run the listed gate once.
+Review only. Do not repair code or change roadmap status.
+Do not run the listed full gates. Cite the implementer's command output. If
+that output is missing, stale versus the diff, or not success, return `FAIL`.
 
-Dispatch from frontmatter `apps`. Skip unlisted stacks.
+Follow `verify-pharmacy`.
 
-- `server` → follow the `verify-spring` skill.
-- `dispensary` and/or `admin` → follow the `verify-react` skill once per SPA.
-
-Also confirm: every listed app is implemented; unlisted and deferred scope is
-absent; tests are meaningful regressions; listed-gate evidence is present and
-successful; the diff contains no unrelated behavior; dependencies were done;
-no open decision was silently resolved.
-
-Return `PASS` only when every dispatched stack skill passed. Otherwise return
-`FAIL`, identify the specific AC/rule/app, cite evidence, and state the
-minimum correction (patch + delta tests unless the gap is missing/red gates).
+Return `PASS` only when the slice matches current MVP behavior, tenant scope,
+paise, and idempotent stock writes. Otherwise return `FAIL` with the specific
+gap and the minimum correction.

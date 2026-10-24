@@ -17,3 +17,7 @@ output "pharmacy_zone_id" {
 output "pharmacy_nameservers" {
   value = aws_route53_zone.pharmacy_site.name_servers
 }
+
+output "pharmacy_app_fqdn" {
+  value = aws_route53_record.pharmacy_app.fqdn
+}
