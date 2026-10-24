@@ -1,1 +1,0 @@
-export { KioskSuccess } from './KioskSuccess';

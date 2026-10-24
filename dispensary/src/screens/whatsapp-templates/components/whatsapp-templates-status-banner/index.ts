@@ -1,1 +1,0 @@
-export { WhatsappTemplatesStatusBanner } from './WhatsappTemplatesStatusBanner';

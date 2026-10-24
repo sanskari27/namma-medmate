@@ -14,24 +14,7 @@ permissions:
   contents: read
 
 jobs:
-  server-tests:
-    runs-on: ubuntu-latest
-    timeout-minutes: 20
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-java@v4
-        with:
-          java-version: '17'
-          distribution: temurin
-          cache: maven
-          cache-dependency-path: server/pom.xml
-      - name: Server listed gate
-        working-directory: server
-        env:
-          TESTCONTAINERS_RYUK_DISABLED: 'true'
-        run: chmod +x mvnw && ./mvnw -B spotless:check test
-
-  dispensary-checks:
+  pharmacy-checks:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     steps:
@@ -40,28 +23,10 @@ jobs:
         with:
           node-version: '22'
           cache: npm
-          cache-dependency-path: dispensary/package-lock.json
-      - name: Dispensary listed gate
-        working-directory: dispensary
-        env:
-          VITE_API_BASE_URL: https://api.nammamedmate.com
-        run: npm ci && npm run lint && npm run test -- --run && npm run build
-
-  admin-checks:
-    runs-on: ubuntu-latest
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-          cache: npm
-          cache-dependency-path: admin/package-lock.json
-      - name: Admin listed gate
-        working-directory: admin
-        env:
-          VITE_API_BASE_URL: https://api.nammamedmate.com
-        run: npm ci && npm run lint && npm run test -- --run && npm run build
+          cache-dependency-path: namma-pharmacy/package-lock.json
+      - name: Pharmacy dashboard
+        working-directory: namma-pharmacy
+        run: npm ci && npm run typecheck && npm run build
 
   website-checks:
     runs-on: ubuntu-latest
@@ -94,16 +59,14 @@ jobs:
           node scripts/validate-requirements.mjs
 
   ci-ok:
-    needs: [server-tests, dispensary-checks, admin-checks, website-checks, meta]
+    needs: [pharmacy-checks, website-checks, meta]
     if: always()
     runs-on: ubuntu-latest
     steps:
       - name: Require listed gates
         run: |
           set -euo pipefail
-          [[ "${{ needs.server-tests.result }}" == success ]]
-          [[ "${{ needs.dispensary-checks.result }}" == success ]]
-          [[ "${{ needs.admin-checks.result }}" == success ]]
+          [[ "${{ needs.pharmacy-checks.result }}" == success ]]
           [[ "${{ needs.website-checks.result }}" == success ]]
           [[ "${{ needs.meta.result }}" == success ]]
           echo "CI OK"

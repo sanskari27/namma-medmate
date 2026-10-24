@@ -1,1 +1,0 @@
-export { HospitalIndentsCountsStrip } from './HospitalIndentsCountsStrip';

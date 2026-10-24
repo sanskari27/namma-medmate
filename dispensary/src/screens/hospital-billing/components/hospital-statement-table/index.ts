@@ -1,1 +1,0 @@
-export { HospitalStatementTable } from './HospitalStatementTable';

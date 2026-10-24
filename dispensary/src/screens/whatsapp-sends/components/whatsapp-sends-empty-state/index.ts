@@ -1,1 +1,0 @@
-export { WhatsappSendsEmptyState } from './WhatsappSendsEmptyState';

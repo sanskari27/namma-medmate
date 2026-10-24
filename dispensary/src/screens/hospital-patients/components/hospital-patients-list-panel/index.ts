@@ -1,1 +1,0 @@
-export { HospitalPatientsListPanel } from './HospitalPatientsListPanel';

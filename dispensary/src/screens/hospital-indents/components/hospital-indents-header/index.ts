@@ -1,1 +1,0 @@
-export { HospitalIndentsHeader } from './HospitalIndentsHeader';

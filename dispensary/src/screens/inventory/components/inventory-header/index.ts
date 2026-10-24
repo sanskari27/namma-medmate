@@ -1,1 +1,0 @@
-export { InventoryHeader } from './InventoryHeader';

@@ -1,1 +1,0 @@
-export { WhatsappTemplatesEmptyState } from './WhatsappTemplatesEmptyState';

@@ -1,1 +1,0 @@
-export { InventoryFilterTabs } from './InventoryFilterTabs';

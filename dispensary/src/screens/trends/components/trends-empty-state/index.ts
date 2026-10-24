@@ -1,1 +1,0 @@
-export { TrendsEmptyState } from './TrendsEmptyState';

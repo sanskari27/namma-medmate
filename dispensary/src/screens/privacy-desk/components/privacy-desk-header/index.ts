@@ -1,1 +1,0 @@
-export { PrivacyDeskHeader } from './PrivacyDeskHeader';

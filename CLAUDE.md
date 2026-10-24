@@ -1,51 +1,22 @@
 # Namma MedMate project brief
 
-Namma MedMate is a multi-tenant Indian pharmacy ERP and platform SaaS.
+Namma MedMate is an Indian pharmacy product.
 
-- `server/`: Java 17, Spring Boot 3.4.4, Maven, PostgreSQL/Flyway.
-- `dispensary/`: React 19 + TypeScript + Vite + Redux Toolkit for pharmacy staff.
-- `admin/`: the same independent frontend stack for MASTER/platform staff.
-- `medmate-website/`: static Next.js public site for medmatepharmacy.com. No test suite.
-- Local orchestration uses Docker Compose; production uses EC2, RDS, and
-  Terraform.
+- `namma-pharmacy/`: Next.js pharmacy dashboard. Local dev serves it at
+  `http://localhost:3000/`.
+- `medmate-website/`: static Next.js public site for medmatepharmacy.com.
+  No test suite.
+- Local site container: `make up` (port 3200). Production website uses EC2
+  and Terraform.
 
-The applications use their own committed build files and dependency managers.
+Each app uses its own committed build files and dependency manager.
 Follow [`docs/architecture/README.md`](docs/architecture/README.md).
-
-## Product and implementation sources
-
-- Product intent: [`docs/product/`](docs/product/).
-- Module epics and vertical stories: [`docs/requirements/`](docs/requirements/).
-- Only status source:
-  [`docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md`](docs/requirements/AGENT-REQUIREMENT-IMPLEMENTATION.md).
-- Unresolved product choices:
-  [`docs/requirements/DECISIONS.md`](docs/requirements/DECISIONS.md).
-
-Implement one dependency-ready story across every app named in its frontmatter.
-Write failing tests first. Never implement a blocked/deferred story, silently
-answer an open decision, or mark `done` without independent verification.
-
-## Invariants
-
-- Backend flow is `feature → application → persistence + domain`.
-- Controllers never call repositories; writes are transactional.
-- Every pharmacy query includes `tenant_id`; branch-owned data also includes
-  `branch_id`.
-- APIs use `/api/v1` and `ApiResponse<T>`.
-- Money is integer paise; persisted time is UTC and displayed in IST.
-- Add a new immutable Flyway migration for schema changes.
-- Frontends use their configured axios service; server authorization remains
-  authoritative.
 
 ## Commands
 
 ```text
-/implement-next-story
-/implement-story M1-S01
-/verify-story M1-S01
-/requirements-status
+make dev
 ```
 
-Local stack: `make dev` (API 8080, dispensary 5173, admin 5174). Never point the
-local Spring profile at RDS. Local login accounts:
-[`docs/local-accounts.md`](docs/local-accounts.md).
+Pharmacy dashboard: `http://localhost:3000/`.
+Public site: `make website` → `http://localhost:3200`.

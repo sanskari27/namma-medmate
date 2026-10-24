@@ -1,1 +1,0 @@
-export { PurchasesDeliveryDialog } from './PurchasesDeliveryDialog';

@@ -1,1 +1,0 @@
-export { WhatsappProviderStatusBanner } from './WhatsappProviderStatusBanner';

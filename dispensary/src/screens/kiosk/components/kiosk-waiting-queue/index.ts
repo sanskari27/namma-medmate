@@ -1,1 +1,0 @@
-export { KioskWaitingQueue } from './KioskWaitingQueue';

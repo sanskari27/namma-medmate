@@ -1,1 +1,0 @@
-export { HospitalAdmitIdentityFields } from './HospitalAdmitIdentityFields';

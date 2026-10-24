@@ -1,1 +1,0 @@
-export { KioskProductGrid } from './KioskProductGrid';

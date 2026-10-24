@@ -1,1 +1,0 @@
-export { LicenceExpiryStatusBanner } from './LicenceExpiryStatusBanner';

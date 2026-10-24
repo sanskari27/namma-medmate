@@ -1,1 +1,0 @@
-export { HospitalIssueCreateDialog } from './HospitalIssueCreateDialog';

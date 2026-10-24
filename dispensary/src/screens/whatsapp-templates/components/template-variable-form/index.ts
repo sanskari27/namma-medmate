@@ -1,1 +1,0 @@
-export { TemplateVariableForm } from './TemplateVariableForm';

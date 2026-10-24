@@ -1,1 +1,0 @@
-export { InventoryToolbar } from './InventoryToolbar';

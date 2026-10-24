@@ -1,1 +1,0 @@
-export { WhatsappProviderEmptyState } from './WhatsappProviderEmptyState';

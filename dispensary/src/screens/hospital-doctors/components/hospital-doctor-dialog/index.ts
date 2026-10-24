@@ -1,1 +1,0 @@
-export { HospitalDoctorDialog } from './HospitalDoctorDialog';

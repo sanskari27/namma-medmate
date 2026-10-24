@@ -1,1 +1,0 @@
-export { ControlledRegisterList } from './ControlledRegisterList';

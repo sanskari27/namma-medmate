@@ -1,1 +1,0 @@
-export { PurchasesRow } from './PurchasesRow';

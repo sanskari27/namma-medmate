@@ -1,1 +1,0 @@
-export { HospitalIssuesList } from './HospitalIssuesList';

@@ -1,1 +1,0 @@
-export { AccountShortcuts } from './AccountShortcuts';

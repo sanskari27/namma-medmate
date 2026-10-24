@@ -1,1 +1,0 @@
-export { KycEvidenceList } from './KycEvidenceList';

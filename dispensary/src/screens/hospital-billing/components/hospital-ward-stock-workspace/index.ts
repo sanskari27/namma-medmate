@@ -1,1 +1,0 @@
-export { HospitalWardStockWorkspace } from './HospitalWardStockWorkspace';

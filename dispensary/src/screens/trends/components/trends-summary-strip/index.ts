@@ -1,1 +1,0 @@
-export { TrendsSummaryStrip } from './TrendsSummaryStrip';

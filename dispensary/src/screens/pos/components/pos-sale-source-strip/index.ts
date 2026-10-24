@@ -1,1 +1,0 @@
-export { PosSaleSourceStrip } from './PosSaleSourceStrip';

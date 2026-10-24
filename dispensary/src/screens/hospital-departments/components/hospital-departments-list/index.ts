@@ -1,1 +1,0 @@
-export { HospitalDepartmentsList } from './HospitalDepartmentsList';

@@ -1,71 +1,9 @@
 # Production — EC2 only. .env is pulled from SSM at deploy (scripts/pull-prod-env.sh).
-# Loopback ports for host Nginx: API 18080, dispensary 10080, admin 10081, website 10082
+# Loopback port for host Nginx: website 10082
 
 name: ${COMPOSE_PROJECT_NAME:-namma-medmate-prod}
 
 services:
-  server:
-    build:
-      context: ./server
-      dockerfile: Dockerfile
-    image: ${NAMMA_SERVER_IMAGE:-namma-medmate-server:prod}
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:18080:8080'
-    env_file:
-      - path: .env
-        required: false
-    environment:
-      SPRING_PROFILES_ACTIVE: prod
-      NMM_FILES_BUCKET: ${NMM_FILES_BUCKET:-}
-      AWS_REGION: ${AWS_REGION:-ap-south-1}
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:8080/actuator/health >/dev/null || exit 1']
-      interval: 30s
-      timeout: 5s
-      retries: 5
-      start_period: 90s
-
-  dispensary:
-    build:
-      context: ./dispensary
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.nammamedmate.com}
-    image: ${NAMMA_DISPENSARY_IMAGE:-namma-medmate-dispensary:prod}
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:10080:3000'
-    depends_on:
-      server:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3000/ >/dev/null || exit 1']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
-  admin:
-    build:
-      context: ./admin
-      dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: ${VITE_API_BASE_URL:-https://api.nammamedmate.com}
-    image: ${NAMMA_ADMIN_IMAGE:-namma-medmate-admin:prod}
-    restart: unless-stopped
-    ports:
-      - '127.0.0.1:10081:3000'
-    depends_on:
-      server:
-        condition: service_healthy
-    healthcheck:
-      test: ['CMD-SHELL', 'curl -fsS http://127.0.0.1:3000/ >/dev/null || exit 1']
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-
   website:
     build:
       context: ./medmate-website

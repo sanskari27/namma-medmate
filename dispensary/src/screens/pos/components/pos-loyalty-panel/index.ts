@@ -1,1 +1,0 @@
-export { PosLoyaltyPanel } from './PosLoyaltyPanel';

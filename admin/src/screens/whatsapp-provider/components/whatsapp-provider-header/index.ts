@@ -1,1 +1,0 @@
-export { WhatsappProviderHeader } from './WhatsappProviderHeader';

@@ -1,1 +1,0 @@
-export { OffersGrid } from './OffersGrid';

@@ -1,1 +1,0 @@
-export { StockTakeHistory } from './StockTakeHistory';

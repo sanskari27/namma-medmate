@@ -1,1 +1,0 @@
-export { OffersToolbar } from './OffersToolbar';

@@ -1,1 +1,0 @@
-export { DashboardAccountantDesk } from './DashboardAccountantDesk';

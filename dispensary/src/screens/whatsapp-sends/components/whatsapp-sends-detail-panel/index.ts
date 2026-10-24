@@ -1,1 +1,0 @@
-export { WhatsappSendsDetailPanel } from './WhatsappSendsDetailPanel';

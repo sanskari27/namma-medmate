@@ -1,1 +1,0 @@
-export { ExpensesFooter } from './ExpensesFooter';

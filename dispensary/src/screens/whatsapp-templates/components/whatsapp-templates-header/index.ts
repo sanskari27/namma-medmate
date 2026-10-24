@@ -1,1 +1,0 @@
-export { WhatsappTemplatesHeader } from './WhatsappTemplatesHeader';

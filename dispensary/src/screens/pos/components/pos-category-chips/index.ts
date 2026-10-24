@@ -1,1 +1,0 @@
-export { PosCategoryChips } from './PosCategoryChips';

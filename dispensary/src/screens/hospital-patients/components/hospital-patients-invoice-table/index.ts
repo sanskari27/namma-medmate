@@ -1,1 +1,0 @@
-export { HospitalPatientsInvoiceTable } from './HospitalPatientsInvoiceTable';

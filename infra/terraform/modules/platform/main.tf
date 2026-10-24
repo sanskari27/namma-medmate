@@ -5,10 +5,6 @@ terraform {
       source  = "hashicorp/aws"
       version = "~> 5.0"
     }
-    random = {
-      source  = "hashicorp/random"
-      version = "~> 3.6"
-    }
   }
 }
 
@@ -19,8 +15,6 @@ provider "aws" {
 data "aws_availability_zones" "available" {
   state = "available"
 }
-
-data "aws_caller_identity" "current" {}
 
 locals {
   name = var.project_name
@@ -111,90 +105,6 @@ resource "aws_security_group" "ec2" {
   tags = { Name = "${local.name}-ec2-sg" }
 }
 
-resource "aws_security_group" "rds" {
-  name        = "${local.name}-rds"
-  description = "RDS Postgres"
-  vpc_id      = aws_vpc.this.id
-  ingress {
-    from_port       = 5432
-    to_port         = 5432
-    protocol        = "tcp"
-    security_groups = [aws_security_group.ec2.id]
-  }
-  egress {
-    from_port   = 0
-    to_port     = 0
-    protocol    = "-1"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-  tags = { Name = "${local.name}-rds-sg" }
-}
-
-resource "random_password" "db" {
-  length  = 32
-  special = false
-}
-
-resource "aws_db_subnet_group" "this" {
-  name       = "${local.name}-db"
-  subnet_ids = aws_subnet.private[*].id
-  tags       = { Name = "${local.name}-db-subnet" }
-}
-
-resource "aws_db_instance" "this" {
-  identifier                = "${local.name}-postgres"
-  engine                    = "postgres"
-  engine_version            = "16"
-  instance_class            = var.db_instance_class
-  allocated_storage         = 20
-  db_name                   = var.db_name
-  username                  = var.db_username
-  password                  = random_password.db.result
-  db_subnet_group_name      = aws_db_subnet_group.this.name
-  vpc_security_group_ids    = [aws_security_group.rds.id]
-  publicly_accessible       = false
-  storage_encrypted         = true
-  skip_final_snapshot       = var.skip_final_snapshot
-  deletion_protection       = true
-  final_snapshot_identifier = var.skip_final_snapshot ? null : "${local.name}-final"
-  backup_retention_period   = 7
-  tags                      = { Name = "${local.name}-rds" }
-}
-
-resource "aws_s3_bucket" "files" {
-  bucket = "${local.name}-files-${data.aws_caller_identity.current.account_id}"
-  tags   = { Name = "${local.name}-files" }
-}
-
-resource "aws_s3_bucket_versioning" "files" {
-  bucket = aws_s3_bucket.files.id
-  versioning_configuration { status = "Enabled" }
-}
-
-resource "aws_s3_bucket_server_side_encryption_configuration" "files" {
-  bucket = aws_s3_bucket.files.id
-  rule {
-    apply_server_side_encryption_by_default {
-      sse_algorithm = "AES256"
-    }
-  }
-}
-
-resource "aws_s3_bucket_public_access_block" "files" {
-  bucket                  = aws_s3_bucket.files.id
-  block_public_acls       = true
-  block_public_policy     = true
-  ignore_public_acls      = true
-  restrict_public_buckets = true
-}
-
-resource "aws_s3_bucket_ownership_controls" "files" {
-  bucket = aws_s3_bucket.files.id
-  rule {
-    object_ownership = "BucketOwnerEnforced"
-  }
-}
-
 resource "aws_iam_role" "ec2" {
   name = "${local.name}-ec2-role"
   assume_role_policy = jsonencode({
@@ -225,30 +135,6 @@ resource "aws_iam_role_policy" "compose_env" {
       ]
       Resource = aws_ssm_parameter.compose_env.arn
     }]
-  })
-}
-
-resource "aws_iam_role_policy" "files" {
-  name = "${local.name}-files"
-  role = aws_iam_role.ec2.id
-  policy = jsonencode({
-    Version = "2012-10-17"
-    Statement = [
-      {
-        Effect = "Allow"
-        Action = [
-          "s3:GetObject",
-          "s3:PutObject",
-          "s3:DeleteObject",
-        ]
-        Resource = "${aws_s3_bucket.files.arn}/*"
-      },
-      {
-        Effect   = "Allow"
-        Action   = ["s3:ListBucket"]
-        Resource = aws_s3_bucket.files.arn
-      }
-    ]
   })
 }
 
@@ -332,35 +218,6 @@ resource "aws_eip" "app" {
   tags     = { Name = "${local.name}-eip" }
 }
 
-data "aws_route53_zone" "app" {
-  name         = var.dns_zone_name
-  private_zone = false
-}
-
-resource "aws_route53_record" "api" {
-  zone_id = data.aws_route53_zone.app.zone_id
-  name    = "api.${var.dns_zone_name}"
-  type    = "A"
-  ttl     = 60
-  records = [aws_eip.app.public_ip]
-}
-
-resource "aws_route53_record" "pharmacy" {
-  zone_id = data.aws_route53_zone.app.zone_id
-  name    = "pharmacy.${var.dns_zone_name}"
-  type    = "A"
-  ttl     = 60
-  records = [aws_eip.app.public_ip]
-}
-
-resource "aws_route53_record" "admin" {
-  zone_id = data.aws_route53_zone.app.zone_id
-  name    = "admin.${var.dns_zone_name}"
-  type    = "A"
-  ttl     = 60
-  records = [aws_eip.app.public_ip]
-}
-
 resource "aws_route53_zone" "pharmacy_site" {
   name    = var.pharmacy_dns_zone_name
   comment = "Public site medmate-website"
@@ -383,51 +240,12 @@ resource "aws_route53_record" "pharmacy_site_www" {
   records = [aws_eip.app.public_ip]
 }
 
-resource "aws_secretsmanager_secret" "db" {
-  name = "${local.name}/db-password"
-}
-
-resource "aws_secretsmanager_secret_version" "db" {
-  secret_id     = aws_secretsmanager_secret.db.id
-  secret_string = random_password.db.result
-}
-
-resource "random_password" "jwt" {
-  length  = 64
-  special = false
-}
-
 resource "aws_ssm_parameter" "compose_env" {
   name        = "/${local.name}/compose.env"
   description = "Production compose .env for Namma MedMate"
   type        = "SecureString"
-  value = join("\n", [
-    "DATABASE_URL=jdbc:postgresql://${aws_db_instance.this.address}:5432/${var.db_name}",
-    "DATABASE_USERNAME=${var.db_username}",
-    "DATABASE_PASSWORD=${random_password.db.result}",
-    "JWT_SECRET=${random_password.jwt.result}",
-    "SPRING_PROFILES_ACTIVE=prod",
-    "CORS_ALLOWED_ORIGINS=https://pharmacy.nammamedmate.com,https://admin.nammamedmate.com,https://medmatepharmacy.com",
-    "NMM_FILES_BUCKET=${aws_s3_bucket.files.bucket}",
-    "NMM_FILES_REGION=${var.aws_region}",
-    "AWS_REGION=${var.aws_region}",
-    "VITE_API_BASE_URL=https://api.nammamedmate.com",
-    "RESEND_API_KEY=${var.resend_api_key}",
-    "RESEND_WEBHOOK_SECRET=${var.resend_webhook_secret}",
-    "RESEND_FROM=${var.resend_from}",
-    "CASHFREE_CLIENT_ID=${var.cashfree_client_id}",
-    "CASHFREE_CLIENT_SECRET=${var.cashfree_client_secret}",
-    "CASHFREE_WEBHOOK_SECRET=${var.cashfree_webhook_secret}",
-    "CASHFREE_ENV=${var.cashfree_env}",
-    "CASHFREE_RETURN_URL=${var.cashfree_return_url}",
-    "PASSWORD_RESET_DISPENSARY_URL=${var.password_reset_dispensary_url}",
-    "PASSWORD_RESET_ADMIN_URL=${var.password_reset_admin_url}",
-    "EMAIL_VERIFICATION_DISPENSARY_URL=${var.email_verification_dispensary_url}",
-    "META_WHATSAPP_TOKEN=${var.meta_whatsapp_token}",
-    "META_WHATSAPP_PHONE_NUMBER_ID=${var.meta_whatsapp_phone_number_id}",
-    "META_WHATSAPP_WABA_ID=${var.meta_whatsapp_waba_id}",
-    "META_WHATSAPP_DISPLAY_NUMBER=${var.meta_whatsapp_display_number}",
-  ])
+  # Live value is kept. ignore_changes stops a later apply from wiping the site env.
+  value = "WEBSITE_SITE_URL=https://medmatepharmacy.com"
 
   lifecycle {
     ignore_changes = [value]

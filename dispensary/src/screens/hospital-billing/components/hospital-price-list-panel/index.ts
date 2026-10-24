@@ -1,1 +1,0 @@
-export { HospitalPriceListPanel } from './HospitalPriceListPanel';

@@ -1,1 +1,0 @@
-export { PosTenderFields } from './PosTenderFields';

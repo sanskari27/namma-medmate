@@ -1,1 +1,0 @@
-export { PrincipalRequestsHeader } from './PrincipalRequestsHeader';

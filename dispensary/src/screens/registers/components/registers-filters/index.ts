@@ -1,1 +1,0 @@
-export { RegistersFilters } from './RegistersFilters';

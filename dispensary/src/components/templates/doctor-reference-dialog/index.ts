@@ -1,1 +1,0 @@
-export { DoctorReferenceDialog } from './DoctorReferenceDialog';

@@ -1,1 +1,0 @@
-export { PurchasesSummary } from './PurchasesSummary';

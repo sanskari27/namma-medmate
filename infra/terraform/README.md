@@ -1,10 +1,8 @@
 # Terraform — prod only
 
-Hosts:
-- `api.nammamedmate.com` → Spring API (`127.0.0.1:18080`)
-- `pharmacy.nammamedmate.com` → dispensary SPA (`127.0.0.1:10080`)
-- `admin.nammamedmate.com` → admin SPA (`127.0.0.1:10081`)
-- `medmatepharmacy.com` and `www.medmatepharmacy.com` → public site (`127.0.0.1:10082`)
+The public site is `medmatepharmacy.com` and `www.medmatepharmacy.com` (`127.0.0.1:10082`), on the existing EC2 host.
+
+The Postgres instance, pharmacy file bucket, database secret, and `api` / `pharmacy` / `admin` DNS records are not in this module.
 
 `medmatepharmacy.com` is its own Route 53 public hosted zone. After apply, set the zone's name servers on the domain at GoDaddy (`terraform output pharmacy_nameservers`). TLS for that domain is a separate Let's Encrypt certificate, issued by `scripts/setup-prod-tls.sh` once the nameservers answer.
 
@@ -13,13 +11,9 @@ Hosts:
 3. **Prod**: `cd infra/terraform/envs/prod && cp terraform.tfvars.example terraform.tfvars` — set `admin_ssh_cidr` to your `/32`. Do not open SSH to the world. Prefer SSM Session Manager.
 4. `terraform init && terraform plan && terraform apply`
 5. On the EC2 host (SSM): install the GitHub runner with `scripts/install-github-runner.sh`, then push to `main` (workflow **Main deploy**) or run it manually.
-6. First deploy runs `scripts/setup-prod-tls.sh` for Let's Encrypt on the ERP hostnames and, once GoDaddy delegates `medmatepharmacy.com`, on the public site.
+6. Deploy runs `scripts/setup-prod-tls.sh` for Let's Encrypt on `medmatepharmacy.com` once GoDaddy delegates that domain.
 
 Outputs include EC2 instance ID (SSM tunnel) and `ssm_compose_env_parameter`.
-The first apply seeds `/namma-medmate-prod/compose.env` (including HTTPS
-password-reset and verify-email URLs, and Meta WhatsApp keys when the tfvars
-are set); later applies leave that value alone (`ignore_changes`). After that,
-add/update/remove keys with the **Prod env (SSM)** workflow or
-`./scripts/update-prod-env.sh`. Existing blobs that predate those email URL or
-`META_WHATSAPP_*` keys need a one-time `set`. Deploy pulls the blob with
-`./scripts/pull-prod-env.sh`.
+`/namma-medmate-prod/compose.env` is left as-is on later applies (`ignore_changes`).
+Change it with the **Prod env (SSM)** workflow or `./scripts/update-prod-env.sh`.
+Deploy pulls it with `./scripts/pull-prod-env.sh`.

@@ -1,1 +1,0 @@
-export { CreditPaymentsTable } from './CreditPaymentsTable';

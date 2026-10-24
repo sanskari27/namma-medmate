@@ -1,1 +1,0 @@
-export { InventoryFormPanel } from './InventoryFormPanel';

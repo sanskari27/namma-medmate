@@ -1,1 +1,0 @@
-export { CustomerLoyaltySection } from './CustomerLoyaltySection';

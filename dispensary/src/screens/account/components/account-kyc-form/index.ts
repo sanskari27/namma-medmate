@@ -1,1 +1,0 @@
-export { AccountKycForm } from './AccountKycForm';

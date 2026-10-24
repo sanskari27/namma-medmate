@@ -1,1 +1,0 @@
-export { PrivacyDeskForm } from './PrivacyDeskForm';

@@ -1,1 +1,0 @@
-export { PosToolbar } from './PosToolbar';

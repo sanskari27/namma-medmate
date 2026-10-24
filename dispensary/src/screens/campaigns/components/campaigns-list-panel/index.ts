@@ -1,1 +1,0 @@
-export { CampaignsListPanel } from './CampaignsListPanel';

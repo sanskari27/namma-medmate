@@ -1,1 +1,0 @@
-export { RegistersTable } from './RegistersTable';

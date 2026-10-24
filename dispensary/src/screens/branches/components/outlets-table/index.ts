@@ -1,1 +1,0 @@
-export { OutletsTable } from './OutletsTable';

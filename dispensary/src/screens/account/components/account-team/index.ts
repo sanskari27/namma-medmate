@@ -1,1 +1,0 @@
-export { AccountTeam } from './AccountTeam';

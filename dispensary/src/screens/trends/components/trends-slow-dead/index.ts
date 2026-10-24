@@ -1,1 +1,0 @@
-export { TrendsSlowDead } from './TrendsSlowDead';

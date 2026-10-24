@@ -1,1 +1,0 @@
-export { HospitalAdmitStayFields } from './HospitalAdmitStayFields';

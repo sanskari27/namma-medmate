@@ -1,1 +1,0 @@
-export { TrendsFrequency } from './TrendsFrequency';

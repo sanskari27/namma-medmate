@@ -1,1 +1,0 @@
-export { HospitalPatientsDrawer } from './HospitalPatientsDrawer';

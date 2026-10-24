@@ -1,1 +1,0 @@
-export { HospitalDepartmentsStatusBanner } from './HospitalDepartmentsStatusBanner';
