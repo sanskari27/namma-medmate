@@ -1,13 +1,27 @@
-# Local development — public site container.
-# Pharmacy dashboard runs on the host: cd namma-pharmacy && npm run dev
+# Local development — pharmacy dashboard on the host, Postgres and the public site in Compose.
 
 name: ${COMPOSE_PROJECT_NAME:-namma-medmate-local}
 
 services:
+  postgres:
+    image: docker.io/library/postgres:16-alpine
+    environment:
+      POSTGRES_USER: pharmacy
+      POSTGRES_PASSWORD: pharmacy
+      POSTGRES_DB: pharmacy
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U pharmacy -d pharmacy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
   website:
     build:
       context: ./medmate-website
       dockerfile: Dockerfile.dev
     restart: unless-stopped
     ports:
-      - '3200:3200'
+      - "3200:3200"
+

@@ -1,0 +1,201 @@
+import {
+  DEFAULT_INVOICE_SETTINGS, DEFAULT_KIOSK, DEFAULT_PROFILE, DEFAULT_SUBSCRIPTION,
+  EXPENSE_CATEGORIES, SEED_ADVISORS, SEED_CA_SHARES, SEED_EMPLOYEES, SEED_INVENTORY,
+  SEED_OFFERS, SEED_PURCHASE_ORDERS, SEED_PURCHASES, SEED_RX, SEED_SALES, SEED_SUPPLIERS,
+  SEED_SUPPLY, SEED_USERS, Advisor, BankAccount, CAShare, CreditPayment, Employee,
+  Expense, InvProduct, InvoiceSettings, KioskConfig, Offer, PharmacyProfile, Purchase,
+  PurchaseOrder, Sale, StaffUser, Subscription, Supplier,   seedHistory, resolveSeedCreditPayments, resolveSeedExpenses, distinctRacks, SupplyEntry,
+} from "../app/data";
+import { CrmData, EMPTY_CRM } from "../app/lib/crm";
+import {
+  Admission, Department, DoctorProfile, SEED_DEPARTMENTS, SEED_DOCTORS, SEED_WARDS, TpaClaim, Ward, WardIndent,
+  resolveSeedAdmissions, resolveSeedClaims, resolveSeedIndents,
+} from "../app/lib/hospital";
+import {
+  DEFAULT_HOSPITAL_ACCOUNT, HospitalAccount, HospitalPayment, PriceRule, WardSupply,
+  resolveSeedHospitalPayments, resolveSeedSupplies,
+} from "../app/lib/hospitalAccount";
+import type { BusinessType } from "./types";
+
+export type { BusinessType } from "./types";
+
+export type Ticket = { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number };
+
+export type Seq = {
+  inv: number; rx: number; grn: number; prod: number; po: number; ca: number; user: number;
+  adv: number; supplier: number; supply: number; exp: number; emp: number; credit: number;
+  crm: number; doc: number; ward: number; adm: number; ws: number; wr: number; hp: number; ticket: number;
+};
+
+export type PharmacyState = {
+  profile: PharmacyProfile;
+  invoiceSettings: InvoiceSettings;
+  kiosk: KioskConfig;
+  subscription: Subscription;
+  bankAccount: BankAccount | null;
+  setupComplete: boolean;
+  businessType: BusinessType;
+  seq: Seq;
+  inventory: InvProduct[];
+  racks: string[];
+  sales: Sale[];
+  prescriptions: import("../app/data").Prescription[];
+  offers: Offer[];
+  purchases: Purchase[];
+  suppliers: Supplier[];
+  supplyList: SupplyEntry[];
+  purchaseOrders: PurchaseOrder[];
+  expenses: Expense[];
+  expenseCategories: string[];
+  employees: Employee[];
+  users: StaffUser[];
+  creditPayments: CreditPayment[];
+  crm: CrmData;
+  advisors: Advisor[];
+  caShares: CAShare[];
+  wards: Ward[];
+  admissions: Admission[];
+  wardIndents: WardIndent[];
+  tpaClaims: TpaClaim[];
+  doctors: DoctorProfile[];
+  hospitalAccount: HospitalAccount;
+  hospitalPriceRules: Record<string, PriceRule>;
+  wardSupplies: WardSupply[];
+  hospitalPayments: HospitalPayment[];
+  tickets: Ticket[];
+};
+
+const ZERO_SEQ: Seq = {
+  inv: 1000, rx: 1000, grn: 1000, prod: 1000, po: 1000, ca: 1000, user: 1,
+  adv: 1000, supplier: 1000, supply: 1000, exp: 1000, emp: 0, credit: 1000,
+  crm: 0, doc: 0, ward: 0, adm: 1000, ws: 1000, wr: 1000, hp: 1000, ticket: 8841,
+};
+
+export function emptyState(input: { name?: string; phone: string; businessType: BusinessType }): PharmacyState {
+  const name = input.name?.trim() || (input.businessType === "hospital" ? "Hospital Pharmacy" : "My Pharmacy");
+  const profile: PharmacyProfile = {
+    ...DEFAULT_PROFILE,
+    name,
+    tagline: "",
+    logo: undefined,
+    phone: input.phone,
+    email: "",
+    address: "",
+    city: "",
+    state: "",
+    pincode: "",
+    gstin: "",
+    pan: "",
+    dlNo: "",
+    fssai: "",
+    signature: undefined,
+    extraDetails: [],
+    pharmacist: "",
+  };
+  return {
+    profile,
+    invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS, stamp: undefined },
+    kiosk: { ...DEFAULT_KIOSK, displayName: name, pin: "" },
+    subscription: { ...DEFAULT_SUBSCRIPTION, since: new Date().toISOString().slice(0, 10), renewsOn: "—" },
+    bankAccount: null,
+    setupComplete: false,
+    businessType: input.businessType,
+    seq: { ...ZERO_SEQ },
+    inventory: [],
+    racks: [],
+    sales: [],
+    prescriptions: [],
+    offers: [],
+    purchases: [],
+    suppliers: [],
+    supplyList: [],
+    purchaseOrders: [],
+    expenses: [],
+    expenseCategories: [...EXPENSE_CATEGORIES],
+    employees: [],
+    users: [],
+    creditPayments: [],
+    crm: { ...EMPTY_CRM, meta: {}, campaigns: [], feedbacks: [], reminders: [], redemptions: [] },
+    advisors: [],
+    caShares: [],
+    wards: [],
+    admissions: [],
+    wardIndents: [],
+    tpaClaims: [],
+    doctors: [],
+    hospitalAccount: {
+      ...DEFAULT_HOSPITAL_ACCOUNT,
+      name: input.businessType === "hospital" ? name : DEFAULT_HOSPITAL_ACCOUNT.name,
+      gstin: "",
+      contact: "",
+      phone: "",
+      email: "",
+      creditLimit: 0,
+      discountPct: 0,
+    },
+    hospitalPriceRules: {},
+    wardSupplies: [],
+    hospitalPayments: [],
+    tickets: [],
+  };
+}
+
+export function demoState(now: number, businessType: BusinessType): PharmacyState {
+  const sales: Sale[] = SEED_SALES.map((s) => {
+    const { minsAgo, ...rest } = s;
+    const createdAt = now - minsAgo * 60000;
+    return { ...rest, createdAt, history: seedHistory(rest.channel, rest.status, createdAt, now) };
+  });
+  return {
+    profile: { ...DEFAULT_PROFILE },
+    invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS },
+    kiosk: { ...DEFAULT_KIOSK },
+    subscription: { ...DEFAULT_SUBSCRIPTION },
+    bankAccount: null,
+    setupComplete: true,
+    businessType,
+    seq: {
+      inv: 2607, rx: 200, grn: 3103, prod: 900, po: 512, ca: 204, user: 4,
+      adv: 2, supplier: 3, supply: 22, exp: 1008, emp: 5, credit: 1001,
+      crm: 1, doc: 6, ward: 6, adm: 1008, ws: 1007, wr: 300, hp: 501, ticket: 8841,
+    },
+    inventory: structuredClone(SEED_INVENTORY),
+    racks: distinctRacks(SEED_INVENTORY),
+    sales,
+    prescriptions: SEED_RX.map((r) => {
+      const { minsAgo, approvedMinsAgo, dispensedMinsAgo, rejectedMinsAgo, ...rest } = r;
+      const at = (m?: number) => (m != null ? now - m * 60000 : undefined);
+      return { ...rest, uploadedAt: now - minsAgo * 60000, approvedAt: at(approvedMinsAgo), dispensedAt: at(dispensedMinsAgo), rejectedAt: at(rejectedMinsAgo) };
+    }),
+    offers: structuredClone(SEED_OFFERS),
+    purchases: SEED_PURCHASES.map((p) => { const { minsAgo, ...rest } = p; return { ...rest, createdAt: now - minsAgo * 60000 }; }),
+    suppliers: structuredClone(SEED_SUPPLIERS),
+    supplyList: structuredClone(SEED_SUPPLY),
+    purchaseOrders: SEED_PURCHASE_ORDERS.map((p) => { const { minsAgo, ...rest } = p; return { ...rest, createdAt: now - minsAgo * 60000 }; }),
+    expenses: resolveSeedExpenses(now),
+    expenseCategories: [...EXPENSE_CATEGORIES],
+    employees: structuredClone(SEED_EMPLOYEES),
+    users: structuredClone(SEED_USERS),
+    creditPayments: resolveSeedCreditPayments(now),
+    crm: { ...EMPTY_CRM, meta: {}, campaigns: [], feedbacks: [], reminders: [], redemptions: [] },
+    advisors: structuredClone(SEED_ADVISORS),
+    caShares: SEED_CA_SHARES.map((s) => { const { minsAgo, ...rest } = s; return { ...rest, createdAt: now - minsAgo * 60000 }; }),
+    wards: structuredClone(SEED_WARDS),
+    admissions: resolveSeedAdmissions(now),
+    wardIndents: resolveSeedIndents(now),
+    tpaClaims: resolveSeedClaims(now),
+    doctors: structuredClone(SEED_DOCTORS),
+    hospitalAccount: { ...DEFAULT_HOSPITAL_ACCOUNT },
+    hospitalPriceRules: {},
+    wardSupplies: resolveSeedSupplies(now),
+    hospitalPayments: resolveSeedHospitalPayments(now),
+    tickets: [{ id: "TKT-8841", subject: "GST rate wrong on one product", category: "Billing", status: "Resolved", createdAt: now - 2 * 86400000 }],
+  };
+}
+
+export const DEPARTMENTS: Department[] = SEED_DEPARTMENTS;
+
+export function bump(state: PharmacyState, key: keyof Seq): number {
+  state.seq[key] += 1;
+  return state.seq[key];
+}

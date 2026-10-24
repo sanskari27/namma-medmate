@@ -20,20 +20,14 @@ const CHANNELS = [
   { ic: IconDoc, t: "Help centre", s: "Guides, videos & FAQs", action: "Browse" },
 ];
 
-type Ticket = { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number };
-
 export default function SupportScreen() {
-  const { now, toast } = usePharma();
+  const { now, toast, tickets, raiseTicket } = usePharma();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
-  const [tickets, setTickets] = useState<Ticket[]>([
-    { id: "TKT-8841", subject: "GST rate wrong on one product", category: "Billing", status: "Resolved", createdAt: now - 2 * 86400000 },
-  ]);
   const [show, setShow] = useState(false);
-  const seq = tickets.length + 8842;
 
   const raise = (subject: string, category: string) => {
-    setTickets((t) => [{ id: "TKT-" + seq, subject, category, status: "Open", createdAt: Date.now() }, ...t]);
-    setShow(false); toast("Ticket " + "TKT-" + seq + " raised");
+    raiseTicket(subject, category);
+    setShow(false);
   };
 
   return (

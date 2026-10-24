@@ -22,9 +22,9 @@ export default function PackOrder({ saleId, onClose }: { saleId: string; onClose
   const lines = sale.fulfillment?.lines ?? [];
   const prodOf = (id: string) => inventory.find((p) => p.id === id);
 
-  const doScan = () => {
+  const doScan = async () => {
     const code = scan.trim(); if (!code) return;
-    const r = scanPackLine(saleId, code);
+    const r = await scanPackLine(saleId, code);
     if (r) toast(`${r.name} · batch ${r.batchNo} · ${r.scanned}/${r.qty}`);
     setScan("");
   };

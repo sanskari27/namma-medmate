@@ -1,5 +1,6 @@
 "use client";
 import { useState, useRef, useEffect } from "react";
+import { api } from "../lib/api";
 import { usePharma, BusinessType } from "../pharmaState";
 import { IconArrowRight, IconCheck, IconStore, IconRx, IconReports, IconReceipt, IconGlobe, IconChart, IconHospital } from "./Icon";
 
@@ -32,7 +33,7 @@ function Mark() {
 }
 
 export default function Onboarding() {
-  const { signIn } = usePharma();
+  const { signIn, toast } = usePharma();
   const [phase, setPhase] = useState<Phase>("intro");
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState<BusinessType>("pharmacy");
@@ -40,7 +41,8 @@ export default function Onboarding() {
   const [otpSent, setOtpSent] = useState(false);
   const [otp, setOtp] = useState("");
   const [name, setName] = useState("");
-  const DEMO_OTP = "123456";
+  const [devOtp, setDevOtp] = useState(false);
+  const demoCode = process.env.NODE_ENV !== "production" ? "123456" : "";
   const otpRef = useRef<HTMLInputElement>(null);
 
   // auto-advance the intro carousel
@@ -52,8 +54,19 @@ export default function Onboarding() {
   useEffect(() => { if (otpSent) otpRef.current?.focus(); }, [otpSent]);
 
   const phoneOk = phone.replace(/\D/g, "").length >= 10;
-  const sendOtp = () => { if (phoneOk) setOtpSent(true); };
-  const verify = () => { if (otp.replace(/\D/g, "").length === 6) signIn(type, name); };
+  const sendOtp = async () => {
+    if (!phoneOk) return;
+    try {
+      const res = await api<{ delivery?: string }>("/auth/otp/send", { method: "POST", body: { phone } });
+      setOtpSent(true);
+      setDevOtp(res.delivery === "dev");
+    } catch (err) { toast(err instanceof Error ? err.message : "Could not send OTP"); }
+  };
+  const verify = async () => {
+    if (otp.replace(/\D/g, "").length !== 6) return;
+    try { await signIn(type, name, phone, otp); }
+    catch (err) { toast(err instanceof Error ? err.message : "Could not sign in"); }
+  };
   const tt = TYPES.find((x) => x.key === type)!;
 
   return (
@@ -133,7 +146,7 @@ export default function Onboarding() {
                   <div className="pd-field"><label>6-digit OTP</label>
                     <input ref={otpRef} className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="••••••" onKeyDown={(e) => e.key === "Enter" && verify()} />
                   </div>
-                  <div className="pd-ob-demo">Demo OTP: <b>{DEMO_OTP}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(DEMO_OTP)}>Auto-fill</button></div>
+                  {devOtp && demoCode ? <div className="pd-ob-demo">Demo OTP: <b>{demoCode}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
                   <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== 6} onClick={verify}><IconCheck size={16} /> Verify &amp; log in</button>
                   <button className="pd-ob-link" onClick={() => { setOtpSent(false); setOtp(""); }}>← Change number</button>
                 </>

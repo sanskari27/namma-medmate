@@ -264,3 +264,137 @@ resource "aws_ssm_parameter" "compose_env" {
     ignore_changes = [value]
   }
 }
+
+resource "aws_security_group" "rds" {
+  name        = "${local.name}-rds"
+  description = "Postgres from the app host only"
+  vpc_id      = aws_vpc.this.id
+  ingress {
+    from_port       = 5432
+    to_port         = 5432
+    protocol        = "tcp"
+    security_groups = [aws_security_group.ec2.id]
+  }
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+  }
+  tags = { Name = "${local.name}-rds-sg" }
+}
+
+resource "aws_db_subnet_group" "pharmacy" {
+  name       = "${local.name}-pharmacy"
+  subnet_ids = aws_subnet.private[*].id
+  tags       = { Name = "${local.name}-pharmacy-db" }
+}
+
+resource "aws_db_instance" "pharmacy" {
+  identifier                 = "${local.name}-pharmacy"
+  engine                     = "postgres"
+  engine_version             = "16"
+  instance_class             = "db.t4g.micro"
+  allocated_storage          = 20
+  db_name                    = "pharmacy"
+  username                   = "pharmacy"
+  manage_master_user_password = true
+  db_subnet_group_name       = aws_db_subnet_group.pharmacy.name
+  vpc_security_group_ids     = [aws_security_group.rds.id]
+  publicly_accessible        = false
+  storage_encrypted          = true
+  deletion_protection        = true
+  skip_final_snapshot        = false
+  final_snapshot_identifier  = "${local.name}-pharmacy-final"
+  tags                       = { Name = "${local.name}-pharmacy" }
+}
+
+resource "aws_s3_bucket" "files" {
+  bucket = "${local.name}-pharmacy-files"
+  tags   = { Name = "${local.name}-pharmacy-files" }
+}
+
+resource "aws_s3_bucket_public_access_block" "files" {
+  bucket                  = aws_s3_bucket.files.id
+  block_public_acls       = true
+  block_public_policy     = true
+  ignore_public_acls      = true
+  restrict_public_buckets = true
+}
+
+resource "aws_iam_role" "cognito_sms" {
+  name = "${local.name}-cognito-sms"
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect    = "Allow"
+      Principal = { Service = "cognito-idp.amazonaws.com" }
+      Action    = "sts:AssumeRole"
+      Condition = { StringEquals = { "sts:ExternalId" = "${local.name}-cognito-sms" } }
+    }]
+  })
+}
+
+resource "aws_iam_role_policy" "cognito_sms" {
+  name = "${local.name}-cognito-sms"
+  role = aws_iam_role.cognito_sms.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = ["sns:Publish"]
+      Resource = "*"
+    }]
+  })
+}
+
+resource "aws_cognito_user_pool" "pharmacy" {
+  name = "${local.name}-pharmacy"
+  username_attributes      = ["phone_number"]
+  auto_verified_attributes = ["phone_number"]
+  sms_configuration {
+    external_id    = "${local.name}-cognito-sms"
+    sns_caller_arn = aws_iam_role.cognito_sms.arn
+  }
+  sign_in_policy {
+    allowed_first_auth_factors = ["PASSWORD", "SMS_OTP"]
+  }
+  tags = { Name = "${local.name}-pharmacy" }
+}
+
+resource "aws_cognito_user_pool_client" "pharmacy" {
+  name            = "${local.name}-pharmacy"
+  user_pool_id    = aws_cognito_user_pool.pharmacy.id
+  generate_secret = true
+  explicit_auth_flows = ["ALLOW_USER_AUTH", "ALLOW_REFRESH_TOKEN_AUTH"]
+}
+
+resource "aws_iam_role_policy" "pharmacy_runtime" {
+  name = "${local.name}-pharmacy-runtime"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["s3:GetObject", "s3:PutObject", "s3:DeleteObject"]
+        Resource = "${aws_s3_bucket.files.arn}/*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "cognito-idp:AdminCreateUser",
+          "cognito-idp:AdminGetUser",
+          "cognito-idp:InitiateAuth",
+          "cognito-idp:RespondToAuthChallenge",
+        ]
+        Resource = aws_cognito_user_pool.pharmacy.arn
+      },
+      {
+        Effect   = "Allow"
+        Action   = ["secretsmanager:GetSecretValue"]
+        Resource = aws_db_instance.pharmacy.master_user_secret[0].secret_arn
+      }
+    ]
+  })
+}

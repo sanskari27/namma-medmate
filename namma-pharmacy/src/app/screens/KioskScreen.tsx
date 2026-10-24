@@ -92,7 +92,7 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
   const packQty = (id: string) => cart.find((x) => x.productId === id && !x.loose)?.qty ?? 0;
   const looseQty = (id: string) => cart.find((x) => x.productId === id && x.loose)?.qty ?? 0;
 
-  const place = () => { const s = placeKioskOrder(cart, pay); if (s) { setDone(s.id); setCart([]); } };
+  const place = async () => { const s = await placeKioskOrder(cart, pay); if (s) { setDone(s.id); setCart([]); } };
 
   return (
     <div className="pd-modal-wrap" onClick={onClose} style={{ padding: 0 }}>

@@ -21,3 +21,23 @@ output "pharmacy_nameservers" {
 output "pharmacy_app_fqdn" {
   value = aws_route53_record.pharmacy_app.fqdn
 }
+
+output "rds_endpoint" {
+  value = aws_db_instance.pharmacy.address
+}
+
+output "rds_secret_arn" {
+  value = aws_db_instance.pharmacy.master_user_secret[0].secret_arn
+}
+
+output "cognito_user_pool_id" {
+  value = aws_cognito_user_pool.pharmacy.id
+}
+
+output "cognito_client_id" {
+  value = aws_cognito_user_pool_client.pharmacy.id
+}
+
+output "files_bucket" {
+  value = aws_s3_bucket.files.bucket
+}

@@ -195,11 +195,14 @@ export function exportDaybookCsv(days: { day: string; sales: number; purch: numb
 // ════════════════════════════════════════════════════════════════
 const cell = (c: string | number | undefined, col: RCol) =>
   typeof c === "number" && col.money ? "Rs " + Math.round(c).toLocaleString("en-IN") : String(c ?? "");
-export function exportCatalogCsv(title: string, res: ReportResult, r: RangeLite, now: number) {
+export function catalogCsvText(res: ReportResult): string {
   const head = res.columns.map((c) => c.label);
   const body = res.rows.map((row) => row.map((c) => (typeof c === "number" ? Math.round(c) : c)));
   const all = res.totals ? [head, ...body, res.totals.map((c) => (typeof c === "number" ? Math.round(c) : c))] : [head, ...body];
-  download(new Blob(["﻿" + toCsv(all as (string | number)[][])], { type: "text/csv;charset=utf-8;" }), `${slug(title)}-${slug(r.label)}-${stamp(now)}.csv`);
+  return "\uFEFF" + toCsv(all as (string | number)[][]);
+}
+export function exportCatalogCsv(title: string, res: ReportResult, r: RangeLite, now: number) {
+  download(new Blob([catalogCsvText(res)], { type: "text/csv;charset=utf-8;" }), `${slug(title)}-${slug(r.label)}-${stamp(now)}.csv`);
 }
 export function exportCatalogPdf(title: string, res: ReportResult, profile: PharmacyProfile, r: RangeLite, now: number) {
   // size each column to its content, then clamp very wide tables to fit the page

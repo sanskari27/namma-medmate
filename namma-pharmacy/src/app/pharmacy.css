@@ -368,7 +368,7 @@
 .pd-x:hover { background: var(--wash); }
 
 /* ── store setup wizard ─────────────────────────────────────── */
-.pd-setup { position: fixed; inset: 0; z-index: 90; padding: 24px; overflow-y: auto; display: flex; align-items: center; justify-content: center;
+.pd-setup { position: fixed; inset: 0; z-index: 90; padding: 24px; overflow-y: auto; display: flex; align-items: center; justify-content: center; flex-direction: column;
   background: radial-gradient(ellipse 60% 50% at 50% 0%, rgba(143,212,168,.18), transparent 60%), linear-gradient(135deg, #10301d, #0c2516); }
 .pd-setup-card { width: 100%; max-width: 800px; background: var(--paper); border-radius: 20px; box-shadow: var(--sh-lg); display: flex; flex-direction: column; max-height: 92vh; overflow: hidden; }
 .pd-setup-head { padding: 18px 26px 14px; border-bottom: 1px solid var(--line); }

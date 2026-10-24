@@ -105,8 +105,8 @@ function PurchaseModal({ onClose }: { onClose: () => void }) {
   const supplier = suppliers.find((s) => s.id === supplierId) ?? suppliers[0];
   const valid = invoiceNo.trim() && lines.some((x) => (x.qty + (x.freeQty || 0)) > 0 && x.batchNo.trim() && (x.productId || x.name.trim()));
 
-  const save = () => {
-    const res = receivePurchase({ supplierId, supplierName: supplier?.name ?? "Distributor", invoiceNo, invoiceDate, items: lines });
+  const save = async () => {
+    const res = await receivePurchase({ supplierId, supplierName: supplier?.name ?? "Distributor", invoiceNo, invoiceDate, items: lines });
     if (res) { onClose(); go("inventory"); }
   };
 

@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import { inr } from "../data";
+import { REFERRALS } from "../lib/referrals";
 import { IconGift, IconCheck, IconSend, IconInbox, IconStore, IconCash } from "../components/Icon";
 
 export default function ReferScreen() {
@@ -9,11 +10,7 @@ export default function ReferScreen() {
   const code = profile.name.replace(/[^A-Za-z]/g, "").slice(0, 6).toUpperCase() + "500";
   const [copied, setCopied] = useState(false);
 
-  const referrals = [
-    { name: "Janata Medical Store", area: "Koramangala", status: "Earned", reward: 500 },
-    { name: "HealthFirst Chemist", area: "BTM Layout", status: "Signed up", reward: 0 },
-    { name: "Lakshmi Pharma", area: "JP Nagar", status: "Invited", reward: 0 },
-  ];
+  const referrals = REFERRALS;
   const earned = referrals.filter((r) => r.status === "Earned").reduce((a, r) => a + r.reward, 0);
 
   const copy = () => { try { navigator.clipboard?.writeText(code); } catch {} setCopied(true); toast("Referral code copied"); setTimeout(() => setCopied(false), 1500); };

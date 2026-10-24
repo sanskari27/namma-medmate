@@ -189,13 +189,14 @@ function AdmitModal({ preset, onClose, onAdmitted }: { preset: { wardId: string;
   const pickWard = (id: string) => { setWardId(id); const w = wards.find((x) => x.id === id); const fb = w ? wardBedNos(w).filter((b) => !occupiedBedsOf(admissions, w.id).has(b)) : []; setBed(fb[0] ?? ""); };
   const valid = f.name.trim() && f.patientId.trim() && ward && bed && (f.payerType === "self" || f.insurer);
 
-  const save = () => {
+  const save = async () => {
     if (!valid || !ward) return;
-    const adm = admitPatient({
+    const adm = await admitPatient({
       patientId: f.patientId.trim(), name: f.name.trim(), age: f.age ? Number(f.age) : undefined, gender: f.gender, phone: f.phone.trim(),
       wardId: ward.id, wardName: ward.name, bed, doctor: f.doctor, diagnosis: f.diagnosis,
       payerType: f.payerType, insurer: f.payerType === "insurance" ? f.insurer : undefined, policyNo: f.payerType === "insurance" ? f.policyNo : undefined,
     });
+    if (!adm) return;
     onAdmitted(adm.id);
   };
 
