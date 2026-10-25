@@ -13,7 +13,7 @@ The database, file storage, and `api` / `admin` DNS records are not in this modu
 3. **Prod**: `cd infra/terraform/envs/prod && cp terraform.tfvars.example terraform.tfvars` — set `admin_ssh_cidr` to your `/32`. Do not open SSH to the world. Prefer SSM Session Manager.
 4. `terraform init && terraform plan && terraform apply`
 5. On the EC2 host (SSM): install the GitHub runner with `scripts/install-github-runner.sh`, then push to `main` (workflow **Main deploy**) or run it manually.
-6. Deploy runs `scripts/setup-prod-tls.sh` for Let's Encrypt on `medmatepharmacy.com` and `pharmacy.nammamedmate.com` once those names resolve to the host.
+6. Deploy publishes the `pharmacy.nammamedmate.com` A record, then runs `scripts/setup-prod-tls.sh` for Let's Encrypt on `medmatepharmacy.com` and `pharmacy.nammamedmate.com`. The pharmacy name must stay pointed at this host. The deploy fails unless that HTTPS URL serves the pharmacy dashboard.
 
 Outputs include EC2 instance ID (SSM tunnel) and `ssm_compose_env_parameter`.
 `/namma-medmate-prod/compose.env` is left as-is on later applies (`ignore_changes`).

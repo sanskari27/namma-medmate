@@ -138,6 +138,30 @@ resource "aws_iam_role_policy" "compose_env" {
   })
 }
 
+resource "aws_iam_role_policy" "pharmacy_dns" {
+  name = "${local.name}-pharmacy-dns"
+  role = aws_iam_role.ec2.id
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = ["route53:ListHostedZones", "route53:ListHostedZonesByName"]
+        Resource = "*"
+      },
+      {
+        Effect = "Allow"
+        Action = [
+          "route53:GetHostedZone",
+          "route53:ChangeResourceRecordSets",
+          "route53:ListResourceRecordSets",
+        ]
+        Resource = "arn:aws:route53:::hostedzone/${data.aws_route53_zone.namma.zone_id}"
+      }
+    ]
+  })
+}
+
 resource "aws_iam_instance_profile" "ec2" {
   name = "${local.name}-ec2-profile"
   role = aws_iam_role.ec2.name

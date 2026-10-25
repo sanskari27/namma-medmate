@@ -58,6 +58,7 @@ issue_site() {
   else
     echo "WARNING: certificate not issued for ${domains[*]}." >&2
     echo "Confirm the DNS A record reaches this host, then re-run this script." >&2
+    return 1
   fi
 }
 
@@ -78,7 +79,7 @@ issue_site \
   "${WEBSITE_CERTBOT_CERT_NAME:-medmate-pharmacy}" medmate-website.conf \
   "${ROOT}/infra/nginx/medmate-website.http.conf" \
   "${ROOT}/infra/nginx/medmate-website.conf" \
-  medmatepharmacy.com www.medmatepharmacy.com
+  medmatepharmacy.com www.medmatepharmacy.com || true
 issue_site \
   "${PHARMACY_CERTBOT_CERT_NAME:-namma-pharmacy}" pharmacy.conf \
   "${ROOT}/infra/nginx/pharmacy.http.conf" \

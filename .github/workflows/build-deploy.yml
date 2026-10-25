@@ -55,5 +55,18 @@ jobs:
         run: curl -fsS -o /dev/null http://127.0.0.1:10082/
       - name: Check pharmacy
         run: curl -fsS -o /dev/null http://127.0.0.1:10083/
+      - name: Publish pharmacy DNS
+        env:
+          AWS_REGION: ap-south-1
+        run: ./scripts/publish-pharmacy-dns.sh
       - name: Refresh host TLS / Nginx
         run: sudo ./scripts/setup-prod-tls.sh
+      - name: Check public pharmacy
+        run: |
+          set -euo pipefail
+          test -n "${PHARMACY_PUBLIC_IP}"
+          body=$(curl -fsS --retry 8 --retry-all-errors --retry-delay 2 \
+            --resolve "pharmacy.nammamedmate.com:443:${PHARMACY_PUBLIC_IP}" \
+            https://pharmacy.nammamedmate.com/)
+          grep -q "Pharmacist Dashboard" <<<"$body"
+          echo "https://pharmacy.nammamedmate.com/ is serving the pharmacy dashboard"

@@ -23,9 +23,7 @@ Both containers run on the existing EC2 instance in `ap-south-1`.
 
 Host Nginx proxies the public names. The pharmacy certificate is separate from the website certificate and is installed by `scripts/setup-prod-tls.sh`.
 
-Terraform looks up the existing public hosted zone `nammamedmate.com` and maintains the `pharmacy` A record to the EC2 Elastic IP. The zone must already exist in the same AWS account. Terraform also owns the `medmatepharmacy.com` zone used by the public site.
-
-Apply infrastructure from `infra/terraform/envs/prod`. The deployment workflow does not apply Terraform.
+Before that script runs, deploy upserts the `pharmacy.nammamedmate.com` A record to this host's public IP in the existing public `nammamedmate.com` zone. The zone must already exist in the same AWS account. The EC2 role policy `namma-medmate-prod-pharmacy-dns` allows that upsert. Apply it once from `infra/terraform/envs/prod` if the role does not have it yet. Terraform also defines the same A record and owns the `medmatepharmacy.com` zone. The deployment workflow does not apply Terraform.
 
 ## Runtime configuration
 
@@ -35,7 +33,7 @@ Terraform can create RDS, the Cognito user pool, and the file bucket. Apply it b
 
 ## Health and rollback
 
-Deploy waits until both Compose health checks pass, then requests `http://127.0.0.1:10082/` and `http://127.0.0.1:10083/`. A failed pharmacy start leaves the workflow red and prints the service logs.
+Deploy waits until both Compose health checks pass, then requests `http://127.0.0.1:10082/` and `http://127.0.0.1:10083/`. It then requires `https://pharmacy.nammamedmate.com/` to return the pharmacist dashboard. A failed pharmacy start, missing certificate, or wrong page leaves the workflow red. Pharmacy certificate issuance failure stops the TLS script. The website certificate can still warn and continue.
 
 The previous successful Git tag remains available. Restoring it means running a reviewed deployment of that commit after the same checks. Containers are replaced one service build at a time, and Nginx keeps the public names pointed at the loopback ports.
 
