@@ -45,7 +45,7 @@ export default function WardsScreen() {
       </div>
 
       {tab === "beds" ? (
-        <div className="pd-grid-cards" style={{ marginTop: 16, gridTemplateColumns: "repeat(auto-fill, minmax(360px, 1fr))" }}>
+        <div className="pd-grid-cards" style={{ marginTop: 16 }}>
           {wards.map((w) => {
             const occSet = occupiedBedsOf(admissions, w.id);
             const beds = wardBedNos(w);

@@ -45,7 +45,7 @@ export default function KhataScreen() {
   return (
     <div className="pd-canvas-wide">
       {/* clickable KPI cards */}
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => goDues(false)} title="See who owes you">
           <span className="go"><IconArrowRight size={16} /></span>
           <div className="ic ic-rose"><IconReceipt size={18} /></div><div className="lbl">Total outstanding</div><div className="val">{inr(outstanding)}</div>

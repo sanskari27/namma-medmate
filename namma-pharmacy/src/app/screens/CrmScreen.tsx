@@ -71,7 +71,7 @@ function Overview(s: any) {
 
   return (
     <>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUser size={18} /></div><div className="lbl">Patients</div><div className="val">{patients.length}</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconCheck size={18} /></div><div className="lbl">Active (30d)</div><div className="val">{active}</div></div>
         <div className="pd-stat"><div className="ic ic-rose"><IconAlert size={18} /></div><div className="lbl">At-risk</div><div className="val">{risk.length}</div></div>
@@ -349,7 +349,7 @@ function Analytics(s: any) {
   const campRev = s.crm.campaigns.reduce((a: number, c: Campaign) => a + attributedSales(c, patients, sales), 0);
   return (
     <>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(5,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconRupee size={18} /></div><div className="lbl">Avg lifetime value</div><div className="val">{inr(ltv)}</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconRefresh size={18} /></div><div className="lbl">Retention (repeat)</div><div className="val">{retention}%</div></div>
         <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Churn risk</div><div className="val">{risk.length}</div></div>

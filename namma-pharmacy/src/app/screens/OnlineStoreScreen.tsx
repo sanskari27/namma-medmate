@@ -48,7 +48,7 @@ export default function OnlineStoreScreen() {
         <button className={`pd-switch${profile.storeOpen ? " on" : ""}`} onClick={toggleStoreOpen} style={{ transform: "scale(1.2)" }} aria-label="Toggle store" />
       </div>
 
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconGlobe size={18} /></div><div className="lbl">Live online</div><div className="val">{liveCount}</div><div className="split">visible to customers</div></div>
         <div className="pd-stat"><div className="ic ic-gold"></div><div className="lbl">Hidden</div><div className="val">{hiddenCount}</div><div className="split">counter-only items</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconTag size={18} /></div><div className="lbl">On offer</div><div className="val">{offerCount}</div><div className="split">discounted online</div></div>

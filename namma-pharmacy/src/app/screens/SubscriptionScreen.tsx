@@ -53,7 +53,7 @@ export default function SubscriptionScreen() {
         </div>
       </div>
 
-      <div id="pd-plans" style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
+      <div id="pd-plans" className="pd-plans">
         {PLANS.map((p) => {
           const isCurrent = p.key === subscription.plan && (p.key === "Free" || cycle === subscription.cycle);
           const free = p.key === "Free";

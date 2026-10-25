@@ -22,7 +22,7 @@ export default function OffersScreen() {
       {offers.length === 0 ? (
         <div className="pd-card pd-card-pad"><div className="pd-empty"><div className="em"><IconTag size={30} /></div><h3>No offers yet</h3><p>Create a discount to attract online customers.</p></div></div>
       ) : (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(300px,1fr))", gap: 16 }}>
+        <div className="pd-grid-cards">
           {offers.map((o) => (
             <div className="pd-card" key={o.id} style={{ opacity: o.active ? 1 : 0.62 }}>
               <div className="pd-card-pad">

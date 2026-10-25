@@ -28,7 +28,7 @@ export default function RackMapScreen() {
 
   return (
     <div className="pd-canvas-wide">
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconInventory size={18} /></div><div className="lbl">Racks created</div><div className="val">{groups.length}</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconMap size={18} /></div><div className="lbl">Racks / zones</div><div className="val">{zones.size}</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconPin size={18} /></div><div className="lbl">Medicines mapped</div><div className="val">{inventory.length - unassigned.length}</div></div>
@@ -226,7 +226,7 @@ function MedicineDetailModal({ p, now, onClose }: { p: InvProduct; now: number; 
         </div>
         <div className="pd-modal-body">
           {/* value summary */}
-          <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)", marginBottom: 16 }}>
+          <div className="pd-stats" style={{ marginBottom: 16 }}>
             <div className="pd-stat"><div className="ic ic-green"><IconBox size={18} /></div><div className="lbl">In stock</div><div className="val" style={{ fontSize: 18 }}>{stockLabel(p)}</div></div>
             <div className="pd-stat"><div className="ic ic-gold"><IconUnlock size={18} /></div><div className="lbl">Loose {unitNoun(p)}s</div><div className="val" style={{ fontSize: 18 }}>{looseUnitsOf(p)}</div></div>
             <div className="pd-stat"><div className="ic ic-blue"><IconReceipt size={18} /></div><div className="lbl">Purchase value (cost)</div><div className="val" style={{ fontSize: 18 }}>{inr(buyValue)}</div></div>

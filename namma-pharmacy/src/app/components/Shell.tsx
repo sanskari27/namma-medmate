@@ -198,7 +198,9 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
   const allow = (key: Route) => canSeeRoute(key, me?.role, me?.permissions);
   return (
     <header className="pd-topbar">
-      <button className="pd-menu-btn pd-topbtn pd-no-print" onClick={onMenu} aria-label="Menu">Menu</button>
+      <button className="pd-menu-btn pd-topbtn pd-no-print" onClick={onMenu} aria-label="Menu">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" aria-hidden><path d="M4 7h16M4 12h16M4 17h16" /></svg>
+      </button>
       {canGoBack && (
         <button className="pd-backbtn pd-no-print" onClick={back} aria-label="Go back" title="Back to previous page">
           <IconChevronLeft size={19} />
@@ -212,7 +214,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         <span className="ic"><IconSearch size={17} /></span>
         <input placeholder="Search medicines, orders, invoices…" onFocus={() => go("inventory")} readOnly />
       </div>}
-      {subscription.plan === "Free" && <button className="pd-upgradechip pd-no-print" onClick={() => go("subscription")} title="Unlock premium features"><IconCrown size={14} /> Free plan · Upgrade</button>}
+      {subscription.plan === "Free" && <button className="pd-upgradechip pd-no-print" onClick={() => go("subscription")} title="Unlock premium features"><IconCrown size={14} /> <span>Free plan · Upgrade</span></button>}
       {allow("pos") && <button className="pd-btn pd-btn-primary pd-no-print" onClick={() => go("pos")}>+ New sale</button>}
       {allow("prescriptions") && <button className="pd-topbtn pd-no-print" onClick={() => go("prescriptions")} aria-label="Notifications">
         <IconBell size={19} />

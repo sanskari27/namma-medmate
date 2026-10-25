@@ -41,7 +41,7 @@ export default function UsersScreen() {
 
   return (
     <div className="pd-canvas-wide" style={{ maxWidth: 1040 }}>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team members</div><div className="val">{users.length}</div><div className="split">{activeCount} active</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconKey size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeCount} / {seatLimit === 99 ? "∞" : seatLimit}</div><div className="split">{subscription.plan} plan</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconLock size={18} /></div><div className="lbl">Login enabled</div><div className="val">{withLogin}</div><div className="split">have ID &amp; password</div></div>

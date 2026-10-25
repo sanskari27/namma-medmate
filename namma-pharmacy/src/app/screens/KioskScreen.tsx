@@ -109,7 +109,7 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
               <button className="pd-btn pd-btn-primary pd-btn-lg" style={{ marginTop: 18 }} onClick={() => setDone(null)}>Start new order</button></div>
           </div>
         ) : (
-          <div style={{ flex: 1, display: "grid", gridTemplateColumns: "1fr 320px", overflow: "hidden" }}>
+          <div className="pd-kiosk-split">
             {/* products */}
             <div style={{ overflowY: "auto", padding: 18 }}>
               <div className="pd-pos-cat" style={{ marginBottom: 14 }}>

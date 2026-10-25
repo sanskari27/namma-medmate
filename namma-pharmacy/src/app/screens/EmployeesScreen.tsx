@@ -65,7 +65,7 @@ export default function EmployeesScreen() {
         <button className="pd-btn pd-btn-primary" onClick={() => setEditing("new")}><IconPlus size={16} /> Add Employee</button>
       </div>
 
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team size</div><div className="val">{employees.length}</div><div className="split">{active} active · {employees.length - active} inactive</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconCash size={18} /></div><div className="lbl">Monthly payroll</div><div className="val">{inr(payroll)}</div><div className="split">{inr(payroll * 12)}/yr</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconRupee size={18} /></div><div className="lbl">Avg salary</div><div className="val">{inr(avgSalary)}</div><div className="split">per active staff</div></div>

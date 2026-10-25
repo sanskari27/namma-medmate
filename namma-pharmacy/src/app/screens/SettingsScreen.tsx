@@ -52,7 +52,7 @@ export default function SettingsScreen() {
         <button className={`pd-switch${profile.storeOpen ? " on" : ""}`} style={{ transform: "scale(1.2)" }} onClick={toggleStoreOpen} />
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "1.05fr 1fr", gap: 16, alignItems: "start" }}>
+      <div className="pd-grid-2b" style={{ alignItems: "start" }}>
         {/* ───── LEFT column ───── */}
         <div className="pd-card pd-card-pad">
           {/* logo + name */}
@@ -65,7 +65,7 @@ export default function SettingsScreen() {
               </button>
               {f.logo && <button className="pd-btn pd-btn-sm pd-btn-ghost" style={{ marginTop: 6, width: 92 }} onClick={() => set({ logo: undefined })}>Remove</button>}
             </div>
-            <div style={{ flex: 1 }}>
+            <div style={{ flex: 1, minWidth: 0 }}>
               <div className="pd-field"><label>Business Name *</label><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} /></div>
               <div className="pd-field" style={{ marginTop: 10 }}><label>Tagline</label><input className="pd-input" value={f.tagline} onChange={(e) => set({ tagline: e.target.value })} /></div>
             </div>

@@ -96,7 +96,7 @@ export default function AccountScreen() {
       </div>
 
       {/* KPI overview */}
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => go("subscription")}><span className="go"><IconArrowRight size={16} /></span><div className="ic ic-gold"><IconCrown size={18} /></div><div className="lbl">Plan</div><div className="val">{subscription.plan}</div><div className="split">{isFree ? "free forever" : subscription.status}</div></div>
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => go("users")}><span className="go"><IconArrowRight size={16} /></span><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team members</div><div className="val">{users.length}</div><div className="split">{activeUsers} active</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconWallet size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeUsers} / {seatLimit >= 99 ? "∞" : seatLimit}</div><div className="split">{subscription.plan} plan</div></div>
@@ -186,7 +186,7 @@ export default function AccountScreen() {
 
       {/* quick links */}
       <div className="pd-sec-head" style={{ margin: "22px 0 12px" }}><h2 style={{ fontSize: 16 }}>Account settings</h2></div>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(230px,1fr))", gap: 14 }}>
+      <div className="pd-grid-cards" style={{ gap: 14 }}>
         {links.map((l) => (
           <button key={l.key} className="pd-card pd-card-pad" style={{ textAlign: "left", display: "flex", gap: 12, alignItems: "center" }} onClick={() => go(l.key)}>
             <span style={{ width: 40, height: 40, borderRadius: 10, background: "var(--wash)", color: "var(--mid)", display: "grid", placeItems: "center", flexShrink: 0 }}><l.Icon size={20} /></span>

@@ -82,7 +82,7 @@ export default function PrescriptionsScreen() {
   return (
     <div className="pd-canvas-wide">
       {/* ── KPIs ── */}
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => setTab("pending")} onKeyDown={kpiKey(() => setTab("pending"))} title="Pending queue">
           <span className="go"><IconArrowRight size={16} /></span>
           <div className="ic ic-gold"><IconClock size={18} /></div><div className="lbl">Pending review</div><div className="val">{m.pending.length}</div>

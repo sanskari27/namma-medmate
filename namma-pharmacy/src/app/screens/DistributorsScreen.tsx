@@ -51,7 +51,7 @@ function Directory() {
 
   return (
     <>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-blue"><IconTruck size={18} /></div><div className="lbl">Distributors</div><div className="val">{suppliers.length}</div><div className="split">{activeCount} active</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconBox size={18} /></div><div className="lbl">Products sourced</div><div className="val">{inventory.length}</div><div className="split">across all suppliers</div></div>
         <div className="pd-stat"><div className="ic ic-rose"><IconCard size={18} /></div><div className="lbl">Total outstanding</div><div className="val">{inr(totalOutstanding)}</div><div className="split">payable to distributors</div></div>
@@ -145,7 +145,7 @@ function SupplyList() {
 
   return (
     <>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-blue"><IconReceipt size={18} /></div><div className="lbl">Supply items</div><div className="val">{supplyList.length}</div><div className="split">{supplyList.length - deviceCount} medicines · {deviceCount} devices</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconRefresh size={18} /></div><div className="lbl">Multi-source items</div><div className="val">{multiSourceCount(supplyList)}</div><div className="split">supplied by 2+ distributors</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconStar size={18} /></div><div className="lbl">Preferred set</div><div className="val">{supplyList.filter((e) => e.preferred).length}</div><div className="split">marked best source</div></div>
@@ -247,7 +247,7 @@ function PriceCompare() {
 
   return (
     <>
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-blue"><IconScale size={18} /></div><div className="lbl">Comparable items</div><div className="val">{multiSourceCount(supplyList)}</div><div className="split">supplied by 2+ distributors</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconCash size={18} /></div><div className="lbl">Saving per pack</div><div className="val">{inr2(totalSaving)}</div><div className="split">buying each at its lowest</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconTag size={18} /></div><div className="lbl">Distributors compared</div><div className="val">{suppliers.length}</div><div className="split">across your supply list</div></div>

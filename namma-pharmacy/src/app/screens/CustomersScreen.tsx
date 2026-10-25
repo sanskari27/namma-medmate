@@ -46,7 +46,7 @@ export default function CustomersScreen() {
 
   return (
     <div className="pd-canvas-wide">
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(5,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUser size={18} /></div><div className="lbl">Customers</div><div className="val">{named}</div><div className="split">+ walk-ins</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconCart size={18} /></div><div className="lbl">Lifetime sales</div><div className="val">{inr(totalSpent)}</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconRefresh size={18} /></div><div className="lbl">Repeat customers</div><div className="val">{customers.filter((c) => c.orders.length > 1 && c.key !== "walkin").length}</div></div>

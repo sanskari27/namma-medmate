@@ -191,7 +191,7 @@ function OverviewTab({ outstanding, supplied, returns, received, aging, goTab, o
       </div>
 
       {/* KPIs */}
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => goTab("issue")} onKeyDown={kpiKey(() => goTab("issue"))} title="Ward issues log">
           <span className="go"><IconArrowRight size={16} /></span>
           <div className="ic ic-green"><IconReceipt size={18} /></div><div className="lbl">Ward issues</div><div className="val">{issues.length}</div><div className="split">billed to hospital</div>

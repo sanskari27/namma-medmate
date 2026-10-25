@@ -41,7 +41,7 @@ export default function ReorderScreen() {
 
   return (
     <div className="pd-canvas-wide">
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Items below reorder level</div><div className="val">{low.length}</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconTruck size={18} /></div><div className="lbl">Distributors to order from</div><div className="val">{groups.length}</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconCash size={18} /></div><div className="lbl">Est. savings (best price)</div><div className="val">{inr2(estSavings)}</div><div className="split">vs priciest source · this order</div></div>

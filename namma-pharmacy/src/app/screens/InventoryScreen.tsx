@@ -78,7 +78,7 @@ export default function InventoryScreen() {
 
   return (
     <div className="pd-canvas-wide">
-      <div className="pd-stats" style={{ gridTemplateColumns: "repeat(6,1fr)" }}>
+      <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => goFilter("all")} onKeyDown={kpiKey(() => goFilter("all"))} title="All products">
           <span className="go"><IconArrowRight size={16} /></span>
           <div className="ic ic-green"><IconInventory size={18} /></div><div className="lbl">Total SKUs</div><div className="val">{totalSkus}</div>
@@ -223,7 +223,7 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
           </div>
 
           {/* KPI tiles */}
-          <div className="pd-pt-kpis" style={{ gridTemplateColumns: "repeat(4,1fr)" }}>
+          <div className="pd-pt-kpis" >
             <div className="k"><span className="l">In stock</span><span className="v sm">{stockLabel(p)}</span></div>
             <div className="k"><span className="l">Stock value (cost)</span><span className="v">{inr(costVal)}</span></div>
             <div className="k"><span className="l">Retail value (MRP)</span><span className="v">{inr(mrpVal)}</span></div>
