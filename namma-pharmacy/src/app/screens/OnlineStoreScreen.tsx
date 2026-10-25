@@ -137,7 +137,7 @@ export default function OnlineStoreScreen() {
         </div>
       )}
 
-      {editPrice && <PriceModal product={editPrice} onClose={() => setEditPrice(null)} onSave={(price) => { setOnlinePrice(editPrice.id, price); setEditPrice(null); }} />}
+      {editPrice && <PriceModal product={editPrice} onClose={() => setEditPrice(null)} onSave={async (price) => { const err = await setOnlinePrice(editPrice.id, price); if (!err) setEditPrice(null); }} />}
     </div>
   );
 }
@@ -150,7 +150,7 @@ function PriceModal({ product, onClose, onSave }: { product: InvProduct; onClose
         <div className="pd-modal-head"><h3>Online price · {product.name}</h3><button className="pd-x" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <p className="pd-muted" style={{ fontSize: 13, marginBottom: 14 }}>Printed MRP is <b>{inr(mrpOf(product))}</b>. Set a lower online selling price, or leave blank to sell at MRP.</p>
-          <div className="pd-field"><label>Online selling price (₹)</label><input className="pd-input" type="number" autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder={String(mrpOf(product))} /></div>
+          <div className="pd-field" data-field="amount"><label>Online selling price (₹)</label><input className="pd-input" type="number" autoFocus value={val} onChange={(e) => setVal(e.target.value)} placeholder={String(mrpOf(product))} /></div>
         </div>
         <div className="pd-modal-foot">
           <button className="pd-btn pd-btn-ghost" onClick={() => onSave(undefined)}>Reset to MRP</button>

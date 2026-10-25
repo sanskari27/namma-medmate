@@ -99,7 +99,7 @@ function downloadRegister(rows: Expense[], profile: any, period: any, now: numbe
   else exportCatalogPdf("Expense Transactions", res, profile, range, now);
 }
 
-function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () => void; categories: string[]; addExpense: (e: Omit<Expense, "id" | "number">) => void; now: number }) {
+function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () => void; categories: string[]; addExpense: (e: Omit<Expense, "id" | "number">) => Promise<unknown>; now: number }) {
   const [date, setDate] = useState(ymd(now));
   const [party, setParty] = useState("");
   const [category, setCategory] = useState(categories[0] ?? "Miscellaneous");
@@ -108,11 +108,11 @@ function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () =
   const [gst, setGst] = useState(0);
   const [note, setNote] = useState("");
 
-  const save = () => {
+  const save = async () => {
     if (amount <= 0 || !party.trim()) return;
     const [y, m, d] = date.split("-").map(Number);
-    addExpense({ date: new Date(y, m - 1, d, 12).getTime(), party: party.trim(), category, paymentMode, amount, gst, note: note.trim() || undefined });
-    onClose();
+    const err = await addExpense({ date: new Date(y, m - 1, d, 12).getTime(), party: party.trim(), category, paymentMode, amount, gst, note: note.trim() || undefined });
+    if (!err) onClose();
   };
 
   return (
@@ -133,7 +133,7 @@ function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () =
             </div>
           </div>
           <div className="pd-grid-2">
-            <div className="pd-field"><label>Amount ₹ (incl. GST)</label><input className="pd-input" inputMode="numeric" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value) || 0)} placeholder="0" /></div>
+            <div className="pd-field" data-field="amount"><label>Amount ₹ (incl. GST)</label><input className="pd-input" inputMode="numeric" value={amount || ""} onChange={(e) => setAmount(Number(e.target.value) || 0)} placeholder="0" /></div>
             <div className="pd-field"><label>GST %</label>
               <select className="pd-select" value={gst} onChange={(e) => setGst(Number(e.target.value))}>{[0, 5, 12, 18, 28].map((g) => <option key={g} value={g}>{g}%</option>)}</select>
             </div>

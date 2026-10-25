@@ -116,7 +116,7 @@ export default function EmployeesScreen() {
         <EmployeeForm
           initial={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-          onSave={(data) => { if (editing === "new") addEmployee(data); else updateEmployee(editing.id, data); setEditing(null); }}
+          onSave={async (data) => { const err = editing === "new" ? await addEmployee(data) : await updateEmployee(editing.id, data); if (!err) setEditing(null); }}
           onDelete={editing !== "new" ? () => { removeEmployee(editing.id); setEditing(null); } : undefined}
           now={now}
           onIdCard={editing !== "new" ? () => { setIdCardOf(editing as Employee); setEditing(null); } : undefined}
@@ -174,9 +174,9 @@ function EmployeeForm({ initial, onClose, onSave, onDelete, now, onIdCard }: {
             </div>
           </div>
           <div className="pd-grid-2">
-            <Field label="Full name *"><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Anjali Menon" /></Field>
-            <Field label="Phone *"><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></Field>
-            <Field label="Email"><input className="pd-input" value={f.email ?? ""} onChange={(e) => set({ email: e.target.value })} placeholder="name@pharmacy.in" /></Field>
+            <Field label="Full name *" field="name"><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Anjali Menon" /></Field>
+            <Field label="Phone *" field="phone"><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></Field>
+            <Field label="Email" field="email"><input className="pd-input" value={f.email ?? ""} onChange={(e) => set({ email: e.target.value })} placeholder="name@pharmacy.in" /></Field>
             <Field label="Date of birth"><input className="pd-input" type="date" value={f.dob ?? ""} onChange={(e) => set({ dob: e.target.value })} /></Field>
             <Field label="Blood group"><select className="pd-select" value={f.bloodGroup ?? ""} onChange={(e) => set({ bloodGroup: e.target.value })}><option value="">—</option>{BLOOD_GROUPS.map((b) => <option key={b} value={b}>{b}</option>)}</select></Field>
           </div>
@@ -230,7 +230,7 @@ function EmployeeForm({ initial, onClose, onSave, onDelete, now, onIdCard }: {
             <Field label="Bank name"><input className="pd-input" value={f.bankName ?? ""} onChange={(e) => set({ bankName: e.target.value })} placeholder="e.g. HDFC Bank" /></Field>
             <Field label="Account holder name"><input className="pd-input" value={f.accountName ?? ""} onChange={(e) => set({ accountName: e.target.value })} placeholder="As per bank" /></Field>
             <Field label="Account number"><input className="pd-input" value={f.accountNumber ?? ""} onChange={(e) => set({ accountNumber: e.target.value })} placeholder="Account no." /></Field>
-            <Field label="IFSC"><input className="pd-input" style={ifscBad ? { borderColor: "var(--rose)" } : undefined} value={f.ifsc ?? ""} onChange={(e) => set({ ifsc: e.target.value.toUpperCase() })} placeholder="HDFC0001234" />{ifscBad && <span style={{ fontSize: 11, color: "var(--rose)" }}>Invalid IFSC</span>}</Field>
+            <Field label="IFSC" field="ifsc"><input className="pd-input" style={ifscBad ? { borderColor: "var(--rose)" } : undefined} value={f.ifsc ?? ""} onChange={(e) => set({ ifsc: e.target.value.toUpperCase() })} placeholder="HDFC0001234" />{ifscBad && <span className="pd-field-err">Invalid IFSC</span>}</Field>
             <Field label="UPI ID"><input className="pd-input" value={f.upi ?? ""} onChange={(e) => set({ upi: e.target.value })} placeholder="name@bank" /></Field>
           </div>
 
@@ -255,6 +255,6 @@ function EmployeeForm({ initial, onClose, onSave, onDelete, now, onIdCard }: {
 const Section = ({ title }: { title: string }) => (
   <div style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 13, color: "var(--muted)", textTransform: "uppercase", letterSpacing: ".04em", borderBottom: "1px solid var(--line)", paddingBottom: 6 }}>{title}</div>
 );
-const Field = ({ label, children }: { label: string; children: React.ReactNode }) => (
-  <div className="pd-field"><label>{label}</label>{children}</div>
+const Field = ({ label, children, field }: { label: string; children: React.ReactNode; field?: string }) => (
+  <div className="pd-field" data-field={field}><label>{label}</label>{children}</div>
 );

@@ -117,21 +117,6 @@ export type Department = {
   doctors: Doctor[];
 };
 
-export const SEED_DEPARTMENTS: Department[] = [
-  { id: "DEP-GM", name: "General Medicine", head: "Dr. R. Menon", type: "OPD", emoji: "🩺",
-    doctors: [{ name: "Dr. R. Menon", specialty: "Physician", opdRoom: "OPD-1", phone: "+91 98450 11223" }, { name: "Dr. S. Banerjee", specialty: "Diabetology", opdRoom: "OPD-2" }] },
-  { id: "DEP-SUR", name: "General Surgery", head: "Dr. A. Kapoor", type: "IPD", emoji: "🔪",
-    doctors: [{ name: "Dr. A. Kapoor", specialty: "Laparoscopic Surgeon", opdRoom: "OPD-5" }, { name: "Dr. N. Rao", specialty: "Surgeon" }] },
-  { id: "DEP-PED", name: "Pediatrics", head: "Dr. M. Iyer", type: "OPD", emoji: "🧸",
-    doctors: [{ name: "Dr. M. Iyer", specialty: "Pediatrician", opdRoom: "OPD-3", phone: "+91 98860 33445" }] },
-  { id: "DEP-OBG", name: "Obstetrics & Gynaecology", head: "Dr. P. Sharma", type: "IPD", emoji: "🤰",
-    doctors: [{ name: "Dr. P. Sharma", specialty: "OB-GYN", opdRoom: "OPD-4" }, { name: "Dr. K. Nair", specialty: "Gynaecology" }] },
-  { id: "DEP-CARD", name: "Cardiology", head: "Dr. V. Desai", type: "OPD", emoji: "❤️",
-    doctors: [{ name: "Dr. V. Desai", specialty: "Cardiologist", opdRoom: "OPD-6" }] },
-  { id: "DEP-LAB", name: "Diagnostics & Lab", head: "Dr. T. George", type: "Diagnostic", emoji: "🧪",
-    doctors: [{ name: "Dr. T. George", specialty: "Pathologist" }] },
-];
-
 // ── doctor directory (full profiles, with photo) ────────────────
 export type DoctorStatus = "active" | "on-leave" | "visiting";
 export type DoctorProfile = {

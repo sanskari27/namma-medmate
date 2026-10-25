@@ -8,13 +8,14 @@ import {
 } from "../app/data";
 import { CrmData, EMPTY_CRM } from "../app/lib/crm";
 import {
-  Admission, Department, DoctorProfile, SEED_DEPARTMENTS, SEED_DOCTORS, SEED_WARDS, TpaClaim, Ward, WardIndent,
+  Admission, Department, DoctorProfile, SEED_DOCTORS, SEED_WARDS, TpaClaim, Ward, WardIndent,
   resolveSeedAdmissions, resolveSeedClaims, resolveSeedIndents,
 } from "../app/lib/hospital";
 import {
   DEFAULT_HOSPITAL_ACCOUNT, HospitalAccount, HospitalPayment, PriceRule, WardSupply,
   resolveSeedHospitalPayments, resolveSeedSupplies,
 } from "../app/lib/hospitalAccount";
+import { Referral } from "../app/lib/referrals";
 import type { BusinessType } from "./types";
 
 export type { BusinessType } from "./types";
@@ -25,6 +26,7 @@ export type Seq = {
   inv: number; rx: number; grn: number; prod: number; po: number; ca: number; user: number;
   adv: number; supplier: number; supply: number; exp: number; emp: number; credit: number;
   crm: number; doc: number; ward: number; adm: number; ws: number; wr: number; hp: number; ticket: number;
+  dept: number; referral: number;
 };
 
 export type PharmacyState = {
@@ -58,6 +60,8 @@ export type PharmacyState = {
   wardIndents: WardIndent[];
   tpaClaims: TpaClaim[];
   doctors: DoctorProfile[];
+  departments: Department[];
+  referrals: Referral[];
   hospitalAccount: HospitalAccount;
   hospitalPriceRules: Record<string, PriceRule>;
   wardSupplies: WardSupply[];
@@ -68,7 +72,7 @@ export type PharmacyState = {
 const ZERO_SEQ: Seq = {
   inv: 1000, rx: 1000, grn: 1000, prod: 1000, po: 1000, ca: 1000, user: 1,
   adv: 1000, supplier: 1000, supply: 1000, exp: 1000, emp: 0, credit: 1000,
-  crm: 0, doc: 0, ward: 0, adm: 1000, ws: 1000, wr: 1000, hp: 1000, ticket: 8841,
+  crm: 0, doc: 0, ward: 0, adm: 1000, ws: 1000, wr: 1000, hp: 1000, ticket: 1000, dept: 0, referral: 0,
 };
 
 export function emptyState(input: { name?: string; phone: string; businessType: BusinessType }): PharmacyState {
@@ -94,7 +98,7 @@ export function emptyState(input: { name?: string; phone: string; businessType: 
   };
   return {
     profile,
-    invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS, stamp: undefined },
+    invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS, bankLine: "", stamp: undefined },
     kiosk: { ...DEFAULT_KIOSK, displayName: name, pin: "" },
     subscription: { ...DEFAULT_SUBSCRIPTION, since: new Date().toISOString().slice(0, 10), renewsOn: "—" },
     bankAccount: null,
@@ -123,6 +127,8 @@ export function emptyState(input: { name?: string; phone: string; businessType: 
     wardIndents: [],
     tpaClaims: [],
     doctors: [],
+    departments: [],
+    referrals: [],
     hospitalAccount: {
       ...DEFAULT_HOSPITAL_ACCOUNT,
       name: input.businessType === "hospital" ? name : DEFAULT_HOSPITAL_ACCOUNT.name,
@@ -180,7 +186,7 @@ export function demoState(now: number, businessType: BusinessType): PharmacyStat
     seq: {
       inv: 2607, rx: 200, grn: 3103, prod: 900, po: 512, ca: 204, user: 4,
       adv: 2, supplier: 3, supply: 22, exp: 1008, emp: 5, credit: 1001,
-      crm: 1, doc: 6, ward: 6, adm: 1008, ws: 1007, wr: 300, hp: 501, ticket: 8841,
+      crm: 1, doc: 6, ward: 6, adm: 1008, ws: 1007, wr: 300, hp: 501, ticket: 8841, dept: 0, referral: 0,
     },
     inventory: structuredClone(SEED_INVENTORY),
     racks: distinctRacks(SEED_INVENTORY),
@@ -208,6 +214,8 @@ export function demoState(now: number, businessType: BusinessType): PharmacyStat
     wardIndents: resolveSeedIndents(now),
     tpaClaims: resolveSeedClaims(now),
     doctors: structuredClone(SEED_DOCTORS),
+    departments: [],
+    referrals: [],
     hospitalAccount: { ...DEFAULT_HOSPITAL_ACCOUNT },
     hospitalPriceRules: {},
     wardSupplies: resolveSeedSupplies(now),
@@ -216,9 +224,43 @@ export function demoState(now: number, businessType: BusinessType): PharmacyStat
   }, now);
 }
 
-export const DEPARTMENTS: Department[] = SEED_DEPARTMENTS;
+const PLACEHOLDER_BANK = "HDFC Bank · A/c 50100XXXXXX · IFSC HDFC0000123";
+
+function isDemoStore(state: PharmacyState) {
+  const sale = state.sales?.some((s) => s.id === "INV-2601");
+  const stock = state.inventory?.some((p) => p.id === "p1" && p.name === "Dolo 650");
+  const people = state.users?.some((u) => u.password === "Rajesh@2481") || state.profile?.gstin === "29ABCDE1234F1Z2";
+  return Boolean(sale && stock && people);
+}
+
+/** Drop an untouched sample store and the placeholder bank line. No-op outside production. */
+export function stripDemo(state: PharmacyState, env = process.env.NODE_ENV): boolean {
+  if (env !== "production") return false;
+  let changed = false;
+  if (state.invoiceSettings?.bankLine === PLACEHOLDER_BANK) {
+    state.invoiceSettings.bankLine = "";
+    changed = true;
+  }
+  if (!isDemoStore(state)) return changed;
+  const owner = state.users.find((u) => u.role === "Owner") ?? state.users[0];
+  const phone = owner?.phone || state.profile.phone || "";
+  const next = emptyState({ phone, businessType: state.businessType });
+  next.users = [{
+    id: "u1",
+    name: owner && owner.name !== "Rajesh Kumar" ? owner.name : "Owner",
+    role: "Owner",
+    phone,
+    email: "",
+    active: true,
+    lastActiveMins: 0,
+    pin: "",
+  }];
+  for (const key of Object.keys(state)) delete (state as Record<string, unknown>)[key];
+  Object.assign(state, next);
+  return true;
+}
 
 export function bump(state: PharmacyState, key: keyof Seq): number {
-  state.seq[key] += 1;
+  state.seq[key] = (state.seq[key] || 0) + 1;
   return state.seq[key];
 }

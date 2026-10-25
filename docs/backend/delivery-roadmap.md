@@ -20,6 +20,6 @@ The behavior and paths for each slice are in [api-catalog.md](api-catalog.md). D
 | B10 | done | B01 | Expenses, employees, users | CRUD matches the three screens. User permissions are stored. Enforcement begins here for mutations introduced by this slice; older slices gain checks only when their owning slice is revised. |
 | B11 | done | B01 | Subscription, bank, CA | Plan changes and bank details persist. Verification and CA share keep today's non-sending behavior. |
 | B12 | done | B03, B05, B10 | Reports and exports | All 31 report IDs return the same rows as `runReport` for the same data and date range. CSV export uses the existing export helpers. |
-| B13 | done | B02, B05 | Hospital wards, admissions, doctors, departments | Hospital routes reject a pharmacy session. Ward occupancy blocks deletion. Departments stay read-only. |
+| B13 | done | B02, B05 | Hospital wards, admissions, doctors, departments | Hospital routes reject a pharmacy session. Ward occupancy blocks deletion. Departments persist on the pharmacy document. |
 | B14 | done | B13 | Hospital billing, indents, claims | Issue, return, and settlement move stock or payment state once. Pricing changes require the pricing-unlock step. TPA claim status persists even though no screen calls it yet. |
-| B15 | done | B01 | Support tickets | Tickets persist per pharmacy. Referrals remain the current static content. |
+| B15 | done | B01 | Support tickets | Tickets and referrals persist per pharmacy. |

@@ -290,7 +290,22 @@ function Canvas() {
 
 function Toast() {
   const { toastMsg } = usePharma();
-  return <div className={`pd-toast${toastMsg ? " show" : ""}`}>{toastMsg}</div>;
+  return <div className={`pd-toast${toastMsg ? " show" : ""}`} role="status">{toastMsg}</div>;
+}
+
+function FaultBanner() {
+  const { formFault, clearFault } = usePharma();
+  useEffect(() => {
+    if (!formFault?.field) return;
+    document.querySelector(`[data-field="${formFault.field}"]`)?.scrollIntoView({ block: "center", behavior: "smooth" });
+  }, [formFault]);
+  if (!formFault) return null;
+  return (
+    <div className="pd-form-alert-fixed" role="alert">
+      <span>{formFault.message}</span>
+      <button type="button" onClick={clearFault} aria-label="Dismiss error">×</button>
+    </div>
+  );
 }
 
 function Inner() {
@@ -313,6 +328,16 @@ function Inner() {
           <Canvas />
         </div>
       </div>
+    </div>
+  );
+}
+
+function Frame() {
+  const { formFault } = usePharma();
+  return (
+    <div className="pd-app" data-fault={formFault?.field || ""}>
+      <Inner />
+      <FaultBanner />
       <Toast />
     </div>
   );
@@ -321,7 +346,7 @@ function Inner() {
 export default function Shell() {
   return (
     <PharmaProvider>
-      <Inner />
+      <Frame />
     </PharmaProvider>
   );
 }

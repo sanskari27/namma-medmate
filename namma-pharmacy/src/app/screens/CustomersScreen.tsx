@@ -101,7 +101,7 @@ export default function CustomersScreen() {
 
 function CustomerModal({ c, onClose, onNewSale, sales, creditPayments, recordCreditPayment, profile }: {
   c: Cust; onClose: () => void; onNewSale: () => void; sales: Sale[]; creditPayments: CreditPayment[];
-  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => void; profile: any;
+  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => Promise<unknown>; profile: any;
 }) {
   const isWalkin = c.key === "walkin";
   const cr = isWalkin ? { given: 0, repaid: 0, outstanding: 0 } : customerCredit(c.key, sales, creditPayments);
@@ -119,7 +119,7 @@ function CustomerModal({ c, onClose, onNewSale, sales, creditPayments, recordCre
     if (channel === "wa") window.open(waLink(phone, text), "_blank");
     else window.open(smsLink(phone, text), "_blank");
   };
-  const doRepay = () => { if (amt <= 0) return; recordCreditPayment({ custKey: c.key, custName: c.name, custPhone: phone, amount: Math.min(amt, cr.outstanding || amt), mode }); setRepay(false); };
+  const doRepay = async () => { if (amt <= 0) return; const err = await recordCreditPayment({ custKey: c.key, custName: c.name, custPhone: phone, amount: Math.min(amt, cr.outstanding || amt), mode }); if (!err) setRepay(false); };
 
   return (
     <div className="pd-modal-wrap" onClick={onClose}>
@@ -144,7 +144,7 @@ function CustomerModal({ c, onClose, onNewSale, sales, creditPayments, recordCre
               </div>
               {repay && (
                 <div className="pd-flex" style={{ gap: 8, alignItems: "center", marginBottom: 12, flexWrap: "wrap" }}>
-                  <input className="pd-input" type="number" min={0} value={amt || ""} onChange={(e) => setAmt(Number(e.target.value) || 0)} placeholder="Amount ₹" style={{ width: 120 }} autoFocus />
+                  <input className="pd-input" data-field="amount" type="number" min={0} value={amt || ""} onChange={(e) => setAmt(Number(e.target.value) || 0)} placeholder="Amount ₹" style={{ width: 120 }} autoFocus />
                   <select className="pd-select" value={mode} onChange={(e) => setMode(e.target.value as PayMode)} style={{ width: 110 }}>{SETTLED_MODES.filter((m) => m !== "cod").map((m) => <option key={m} value={m}>{PAY_LABEL[m]}</option>)}</select>
                   <button className="pd-btn pd-btn-primary" disabled={amt <= 0} onClick={doRepay}>Save ₹{Math.round(Math.min(amt, cr.outstanding || amt)).toLocaleString("en-IN")}</button>
                   <button className="pd-btn pd-btn-ghost" onClick={() => setRepay(false)}>Cancel</button>

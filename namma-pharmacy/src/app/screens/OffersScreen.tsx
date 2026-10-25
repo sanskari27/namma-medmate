@@ -49,7 +49,7 @@ export default function OffersScreen() {
         </div>
       )}
 
-      {open && <OfferModal onClose={() => setOpen(false)} onSave={(o) => { addOffer(o); setOpen(false); }} />}
+      {open && <OfferModal onClose={() => setOpen(false)} onSave={async (o) => { const err = await addOffer(o); if (!err) setOpen(false); }} />}
     </div>
   );
 }
@@ -69,7 +69,7 @@ function OfferModal({ onClose, onSave }: { onClose: () => void; onSave: (o: Offe
         <div className="pd-modal-head"><h3>Create offer</h3><button className="pd-x" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Offer title</label><input className="pd-input" value={f.title} onChange={(e) => set({ title: e.target.value })} placeholder="Monsoon Health Sale" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Offer title</label><input className="pd-input" value={f.title} onChange={(e) => set({ title: e.target.value })} placeholder="Monsoon Health Sale" /></div>
             <div className="pd-field"><label>Coupon code</label><input className="pd-input pd-mono" value={f.code} onChange={(e) => set({ code: e.target.value.toUpperCase() })} placeholder="NAMMA25" /></div>
             <div className="pd-field"><label>Discount type</label><select className="pd-select" value={f.type} onChange={(e) => set({ type: e.target.value as OfferType })}><option value="pct">Percentage %</option><option value="flat">Flat ₹</option></select></div>
             <div className="pd-field"><label>{f.type === "pct" ? "Percent off" : "Amount off (₹)"}</label><input className="pd-input" type="number" value={f.value} onChange={(e) => set({ value: Number(e.target.value) || 0 })} /></div>

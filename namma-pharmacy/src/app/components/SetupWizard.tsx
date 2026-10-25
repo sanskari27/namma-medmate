@@ -6,7 +6,7 @@ import {
 } from "../data";
 import {
   IconArrowRight, IconCheck, IconUpload, IconStore, IconReceipt, IconKiosk, IconRupee, IconInventory, IconUsers,
-  IconBox, IconGlobe, IconChart, IconBulb, IconPill, IconFolder, IconSparkle,
+  IconBox, IconGlobe, IconChart, IconBulb, IconFolder, IconSparkle,
 } from "./Icon";
 
 const STEPS = [
@@ -22,16 +22,16 @@ const STEPS = [
 ];
 
 type Draft = PharmacyProfile & {
-  invoicePrefix: string; terms: string; kioskEnabled: boolean; looseDefault: boolean; catalogue: "sample" | "empty";
+  invoicePrefix: string; terms: string; kioskEnabled: boolean; looseDefault: boolean;
 };
 
 export default function SetupWizard() {
-  const { profile, invoiceSettings, kiosk, updateProfile, updateInvoiceSettings, updateKiosk, wipeData, setLooseDefault, completeSetup, toast } = usePharma();
+  const { profile, invoiceSettings, kiosk, updateProfile, updateInvoiceSettings, updateKiosk, setLooseDefault, completeSetup, showFault } = usePharma();
   const [step, setStep] = useState(0);
   const [d, setD] = useState<Draft>({
     ...profile,
     invoicePrefix: invoiceSettings.prefix, terms: invoiceSettings.terms,
-    kioskEnabled: kiosk.enabled, looseDefault: true, catalogue: "sample",
+    kioskEnabled: kiosk.enabled, looseDefault: true,
   });
   const set = (p: Partial<Draft>) => setD((s) => ({ ...s, ...p }));
   const logoRef = useRef<HTMLInputElement>(null);
@@ -45,10 +45,10 @@ export default function SetupWizard() {
   const canNext = step !== 1 || d.name.trim().length > 0;
   const last = step === STEPS.length - 1;
 
-  const finish = () => {
-    if (d.phone.trim() && d.phone.replace(/\D/g, "").length < 10) { toast("Enter a valid mobile number"); return; }
-    if (d.gstin.trim() && !isValidGstin(d.gstin)) { toast("Enter a valid GSTIN"); return; }
-    updateProfile({
+  const finish = async () => {
+    if (d.phone.trim() && d.phone.replace(/\D/g, "").length < 10) { setStep(1); showFault("Enter a valid mobile number"); return; }
+    if (d.gstin.trim() && !isValidGstin(d.gstin)) { setStep(3); showFault("Enter a valid GSTIN"); return; }
+    const err = await updateProfile({
       name: d.name, tagline: d.tagline, logo: d.logo, phone: d.phone, email: d.email,
       address: d.address, city: d.city, state: d.state, pincode: d.pincode,
       gstRegistered: d.gstRegistered, gstin: d.gstin, eInvoicing: d.eInvoicing, pan: d.pan,
@@ -56,9 +56,10 @@ export default function SetupWizard() {
       businessTypes: d.businessTypes, industryType: d.industryType, registrationType: d.registrationType,
       signature: d.signature, pharmacist: d.pharmacist, storeOpen: d.storeOpen,
     });
+    if (err) { if (err.field === "phone") setStep(1); if (err.field === "gstin") setStep(3); return; }
     updateInvoiceSettings({ prefix: d.invoicePrefix, terms: d.terms });
     updateKiosk({ enabled: d.kioskEnabled });
-    if (d.catalogue === "empty") wipeData(); else setLooseDefault(d.looseDefault);
+    setLooseDefault(d.looseDefault);
     completeSetup();
   };
 
@@ -114,7 +115,7 @@ export default function SetupWizard() {
               <div className="pd-form-grid" style={{ marginTop: 14 }}>
                 <div className="pd-field"><label>Registration type</label><select className="pd-select" value={d.registrationType} onChange={(e) => set({ registrationType: e.target.value })}>{REGISTRATION_TYPES.map((r) => <option key={r}>{r}</option>)}</select></div>
                 <div className="pd-field"><label>Industry</label><select className="pd-select" value={d.industryType} onChange={(e) => set({ industryType: e.target.value })}>{INDUSTRY_TYPES.map((i) => <option key={i}>{i}</option>)}</select></div>
-                <div className="pd-field"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
+                <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
                 <div className="pd-field"><label>Email</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} /></div>
               </div>
             </>
@@ -138,7 +139,7 @@ export default function SetupWizard() {
                 </div>
               </div>
               <div className="pd-form-grid" style={{ marginTop: 12 }}>
-                {d.gstRegistered && <div className="pd-field pd-span2"><label>GSTIN</label><input className="pd-input pd-mono" value={d.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
+                {d.gstRegistered && <div className="pd-field pd-span2" data-field="gstin"><label>GSTIN</label><input className="pd-input pd-mono" value={d.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
                 <div className="pd-field"><label>PAN number</label><input className="pd-input pd-mono" value={d.pan} onChange={(e) => set({ pan: e.target.value })} /></div>
                 <div className="pd-field"><label>Drug Licence No. (D.L.)</label><input className="pd-input pd-mono" value={d.dlNo} onChange={(e) => set({ dlNo: e.target.value })} /></div>
                 <div className="pd-field pd-span2"><label>FSSAI Licence No.</label><input className="pd-input pd-mono" value={d.fssai} onChange={(e) => set({ fssai: e.target.value })} /></div>
@@ -181,17 +182,11 @@ export default function SetupWizard() {
           )}
 
           {step === 7 && (
-            <>
-              <div className={`pd-choice${d.catalogue === "sample" ? " on" : ""}`} onClick={() => set({ catalogue: "sample" })}>
-                <span className="em"><IconPill size={18} /></span>
-                <div><div className="t">Start with a sample catalogue</div><div className="s">Loads ~26 common medicines with batches, GST & pricing so you can explore billing right away. Best for trying things out.</div></div>
-              </div>
-              <div className={`pd-choice${d.catalogue === "empty" ? " on" : ""}`} onClick={() => set({ catalogue: "empty" })}>
-                <span className="em"><IconFolder size={18} /></span>
-                <div><div className="t">Start with an empty store</div><div className="s">Begin from scratch — add products manually, or auto-stock by entering a distributor’s purchase bill under <b>Purchases</b>.</div></div>
-              </div>
-              <p className="pd-muted" style={{ fontSize: 12.5, marginTop: 4 }}>You can always import more later via Purchases (distributor billing) or add products one by one.</p>
-            </>
+            <div className="pd-setup-hero">
+              <div className="em"><IconFolder size={28} /></div>
+              <h2>Your catalogue starts empty</h2>
+              <p>Add medicines under Inventory, or enter a distributor bill under Purchases and stock is created from that bill. Nothing is preloaded.</p>
+            </div>
           )}
 
           {step === 8 && (
@@ -210,7 +205,7 @@ export default function SetupWizard() {
                 <div className="r"><span className="k">Online orders</span><span className="v">{d.storeOpen ? "On" : "Off"}</span></div>
                 <div className="r"><span className="k">Kiosk</span><span className="v">{d.kioskEnabled ? "On" : "Off"}</span></div>
                 <div className="r"><span className="k">Loose selling</span><span className="v">{d.looseDefault ? "On" : "Off"}</span></div>
-                <div className="r"><span className="k">Catalogue</span><span className="v">{d.catalogue === "sample" ? "Sample medicines" : "Empty"}</span></div>
+                <div className="r"><span className="k">Catalogue</span><span className="v">Empty — you add stock</span></div>
               </div>
               <div className="pd-card pd-card-pad" style={{ background: "var(--wash2)", marginTop: 16, textAlign: "center" }}>
                 <span style={{ fontSize: 13 }}><IconSparkle size={13} /> You’re all set! Click <b>Finish setup</b> to open your dashboard.</span>

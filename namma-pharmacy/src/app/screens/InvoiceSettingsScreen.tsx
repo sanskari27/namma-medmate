@@ -19,12 +19,16 @@ export default function InvoiceSettingsScreen() {
 
   // a sample sale to preview the invoice live
   const sample = useMemo<Sale>(() => {
-    const pick = (id: string, qty: number) => { const p = inventory.find((x) => x.id === id) ?? inventory[0]; const b = p.batches[0]; return { productId: p.id, name: p.name, batchNo: b?.batchNo ?? "—", expiry: b?.expiry ?? "—", hsn: p.hsn, qty, mrp: mrpOf(p), price: sellPrice(p), gst: p.gst }; };
+    const line = (p: typeof inventory[number] | undefined, qty: number) => {
+      const b = p?.batches[0];
+      return { productId: p?.id ?? "preview", name: p?.name ?? "Preview item", batchNo: b?.batchNo ?? "—", expiry: b?.expiry ?? "—", hsn: p?.hsn ?? "—", qty, mrp: p ? mrpOf(p) : 0, price: p ? sellPrice(p) : 0, gst: p?.gst ?? 0 };
+    };
+    const second = inventory[1];
     return {
       id: cfg.prefix + "PREVIEW", channel: "offline", status: "completed",
-      customer: { name: "Priya Sharma", phone: "+91 99012 33445", doctor: "Dr. Ananya Rao" },
-      items: [pick(inventory[0]?.id ?? "p1", 2), pick(inventory[8]?.id ?? "p9", 1)],
-      discount: 20, payMode: "upi", rx: true, createdAt: Date.now(),
+      customer: { name: "Preview" },
+      items: second ? [line(inventory[0], 1), line(second, 1)] : [line(inventory[0], 1)],
+      discount: 0, payMode: "upi", rx: false, createdAt: Date.now(),
     };
   }, [inventory, cfg.prefix]);
 

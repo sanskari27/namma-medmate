@@ -240,11 +240,41 @@
 /* ── forms ──────────────────────────────────────────────────── */
 .pd-field { display: flex; flex-direction: column; gap: 5px; }
 .pd-field label { font-size: 12px; font-weight: 700; color: var(--ink-2); }
+.pd-field-err { font-size: 12px; font-weight: 700; color: var(--rose); }
+.pd-app { display: contents; }
+.pd-form-alert-fixed { position: fixed; top: 16px; left: 50%; transform: translateX(-50%); z-index: 300; width: min(480px, calc(100% - 32px)); display: flex; align-items: flex-start; gap: 10px; background: var(--rose-bg); color: var(--rose); border: 1px solid #f3c0c0; border-radius: 12px; padding: 12px 14px; font-size: 13.5px; font-weight: 700; box-shadow: var(--sh-lg); }
+.pd-form-alert-fixed button { margin-left: auto; border: 0; background: transparent; color: var(--rose); font-size: 18px; line-height: 1; padding: 0 2px; cursor: pointer; }
+.pd-form-alert { background: var(--rose-bg); color: var(--rose); border: 1px solid #f3c0c0; border-radius: 10px; padding: 10px 12px; font-size: 13px; font-weight: 700; margin-bottom: 12px; }
 .pd-input, .pd-select, .pd-textarea {
   border: 1px solid var(--line-2); border-radius: 9px; padding: 9px 11px; font-size: 13.5px;
   background: #fff; color: var(--ink); outline: none; width: 100%; transition: border-color .14s, box-shadow .14s;
 }
 .pd-input:focus, .pd-select:focus, .pd-textarea:focus { border-color: var(--green); box-shadow: 0 0 0 3px rgba(61,139,96,.12); }
+.pd-app[data-fault="gstin"] [data-field="gstin"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="phone"] [data-field="phone"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="ifsc"] [data-field="ifsc"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="otp"] [data-field="otp"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="email"] [data-field="email"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="amount"] [data-field="amount"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="rack"] [data-field="rack"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="qty"] [data-field="qty"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="doctor"] [data-field="doctor"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="ward"] [data-field="ward"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="invoiceNo"] [data-field="invoiceNo"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="name"] [data-field="name"] :is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="gstin"] [data-field="gstin"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="phone"] [data-field="phone"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="ifsc"] [data-field="ifsc"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="otp"] [data-field="otp"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="email"] [data-field="email"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="amount"] [data-field="amount"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="rack"] [data-field="rack"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="qty"] [data-field="qty"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="doctor"] [data-field="doctor"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="ward"] [data-field="ward"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="invoiceNo"] [data-field="invoiceNo"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="name"] [data-field="name"]:is(.pd-input, .pd-select, .pd-textarea, .pd-qtyinput),
+.pd-app[data-fault="qty"] [data-field="qty"].pd-qty { border-color: var(--rose); box-shadow: 0 0 0 3px rgba(220, 38, 38, .15); }
 .pd-textarea { resize: vertical; min-height: 64px; }
 .pd-form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .pd-form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 14px; }

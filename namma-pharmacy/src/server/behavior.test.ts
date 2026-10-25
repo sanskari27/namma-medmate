@@ -1,10 +1,11 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { fieldFrom } from "../app/lib/formFault";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { findLogin, getPool, insertPharmacy, loadState } from "./db";
-import { cancelOrder, checkoutPos, issueWardSupply, receivePurchase, requireHospital, requirePlan, returnWardSupply, setBatchQty } from "./mutate";
+import { addDepartment, addReferral, cancelOrder, checkoutPos, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, setBatchQty, updateDepartment, updateReferral } from "./mutate";
 import { handle, keepOwner } from "./router";
-import { demoState, emptyState, type PharmacyState } from "./state";
+import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
 
 test("money crosses the API as integer paise and flat offers stay distinct from percents", () => {
   const stored = toPaise({
@@ -165,6 +166,24 @@ test("a ward issue of a missing or short product writes nothing", () => {
   assert.equal(state.wardSupplies.length, 1);
 });
 
+test("production drops an untouched demo store and keeps the owner phone", () => {
+  const demo = demoState(Date.now(), "pharmacy");
+  demo.users[0].phone = "+919000077701";
+  assert.equal(stripDemo(demo, "production"), true);
+  assert.equal(demo.inventory.length, 0);
+  assert.equal(demo.sales.length, 0);
+  assert.equal(demo.profile.gstin, "");
+  assert.equal(demo.profile.name === "Sri Sai Medicals", false);
+  assert.equal(demo.users.some((u) => u.password), false);
+  assert.equal(demo.users[0].phone, "+919000077701");
+
+  const real = emptyState({ phone: "+919000077701", businessType: "pharmacy" });
+  real.inventory = [{ id: "p9", name: "Metformin 500mg", composition: "", manufacturer: "", form: "Tablet", pack: "", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "A1", reorderLevel: 1, online: false, emoji: "", batches: [] }];
+  assert.equal(stripDemo(real, "production"), false);
+  assert.equal(real.inventory.length, 1);
+  assert.equal(stripDemo(demoState(Date.now(), "pharmacy"), "development"), false);
+});
+
 test("a second reset keeps unique user ids", () => {
   const sample = demoState(Date.now(), "pharmacy");
   const owner = { ...sample.users[0], name: "Signed-in owner", phone: "+919000077701" };
@@ -215,6 +234,36 @@ test("a past renewal date locks a paid route and still allows POS", () => {
   assert.doesNotThrow(() => requirePlan(state, "pos"));
 });
 
+test("departments and referrals stay on the pharmacy after create, edit, and delete", () => {
+  const state = emptyState({ phone: "+919000000000", businessType: "hospital" });
+  state.doctors = [{ id: "DR-001", name: "Dr. A", department: "ICU" } as PharmacyState["doctors"][number]];
+  const dep = addDepartment(state, { name: "ICU", head: "Dr. A", type: "IPD", emoji: "🏥" });
+  assert.equal(dep.id, "DEP-1");
+  assert.equal(state.departments[0].name, "ICU");
+  updateDepartment(state, dep.id, { name: "Critical care" });
+  assert.equal(state.departments[0].name, "Critical care");
+  assert.equal(state.doctors[0].department, "Critical care");
+  const ref = addReferral(state, { name: "City Medicals", area: "Jayanagar" });
+  assert.equal(ref.status, "Invited");
+  assert.equal(ref.reward, 0);
+  updateReferral(state, ref.id, { status: "Earned", reward: 500 });
+  assert.equal(state.referrals[0].reward, 500);
+  removeReferral(state, ref.id);
+  removeDepartment(state, dep.id);
+  assert.equal(state.referrals.length, 0);
+  assert.equal(state.departments.length, 0);
+});
+
+test("validation messages name the form field", () => {
+  assert.equal(fieldFrom("Enter a valid GSTIN"), "gstin");
+  assert.equal(fieldFrom("Enter a valid mobile number"), "phone");
+  assert.equal(fieldFrom("Enter a valid IFSC"), "ifsc");
+  assert.equal(fieldFrom("Enter the 6-digit code"), "otp");
+  assert.equal(fieldFrom("Paracetamol does not have enough stock"), "qty");
+  assert.equal(fieldFrom("Amount must be positive"), "amount");
+  assert.equal(fieldFrom("This action needs a paid plan"), undefined);
+});
+
 test("a short OTP returns JSON 400", async () => {
   const res = await handle(new Request("http://localhost/api/v1/auth/otp/verify", {
     method: "POST",
@@ -222,6 +271,7 @@ test("a short OTP returns JSON 400", async () => {
     body: JSON.stringify({ phone: "9000000001", code: "12345" }),
   }));
   assert.equal(res.status, 400);
-  const body = await res.json() as { error: { message: string } };
+  const body = await res.json() as { error: { message: string; field?: string } };
   assert.equal(body.error.message, "Enter the 6-digit code");
+  assert.equal(body.error.field, "otp");
 });

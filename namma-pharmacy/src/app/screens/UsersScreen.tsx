@@ -108,10 +108,10 @@ export default function UsersScreen() {
         <UserModal
           user={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
-          onSave={(payload, id) => {
-            if (id) updateUser(id, payload);
-            else addUser(payload as Omit<StaffUser, "id" | "lastActiveMins">);
-            setEditing(null);
+          onSave={async (payload, id) => {
+            const err = id ? await updateUser(id, payload) : await addUser(payload as Omit<StaffUser, "id" | "lastActiveMins">);
+            if (!err) setEditing(null);
+            return err;
           }}
           onShare={(u) => { setEditing(null); setShare(u); }}
         />
@@ -125,7 +125,7 @@ export default function UsersScreen() {
 function UserModal({ user, onClose, onSave, onShare }: {
   user: StaffUser | null;
   onClose: () => void;
-  onSave: (payload: Partial<StaffUser>, id?: string) => void;
+  onSave: (payload: Partial<StaffUser>, id?: string) => Promise<unknown>;
   onShare: (u: StaffUser) => void;
 }) {
   const isEdit = !!user;
@@ -146,7 +146,7 @@ function UserModal({ user, onClose, onSave, onShare }: {
 
   const canSave = !!(f.name || "").trim();
 
-  const commit = (thenShare: boolean) => {
+  const commit = async (thenShare: boolean) => {
     const payload: Partial<StaffUser> = {
       name: (f.name || "").trim(), role: f.role, phone: f.phone, email: f.email,
       active: f.active ?? true, pin: f.pin || "0000",
@@ -154,7 +154,8 @@ function UserModal({ user, onClose, onSave, onShare }: {
       password: f.password || genPassword(f.name),
       permissions: isOwner ? [...ALL_PERM_KEYS] : perms,
     };
-    onSave(payload, user?.id);
+    const err = await onSave(payload, user?.id);
+    if (err) return;
     if (thenShare) onShare({ ...(user as StaffUser), ...payload, id: user?.id || "tmp", lastActiveMins: user?.lastActiveMins ?? 0 } as StaffUser);
   };
 
@@ -165,11 +166,11 @@ function UserModal({ user, onClose, onSave, onShare }: {
         <div className="pd-modal-body">
           {/* profile */}
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Full name</label><input className="pd-input" value={f.name || ""} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Priya Sharma" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Full name</label><input className="pd-input" value={f.name || ""} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Priya Sharma" /></div>
             <div className="pd-field"><label>Role</label><select className="pd-select" value={f.role} disabled={isEdit && user!.role === "Owner"} onChange={(e) => applyRoleDefaults(e.target.value as UserRole)}>{ROLES.filter((r) => r !== "Owner" || (isEdit && user!.role === "Owner")).map((r) => <option key={r} value={r}>{r}</option>)}</select></div>
             <div className="pd-field"><label>Counter PIN</label><input className="pd-input pd-mono" maxLength={6} value={f.pin || ""} onChange={(e) => set({ pin: e.target.value })} /></div>
-            <div className="pd-field"><label>Phone</label><input className="pd-input" value={f.phone || ""} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 " /></div>
-            <div className="pd-field"><label>Email</label><input className="pd-input" value={f.email || ""} onChange={(e) => set({ email: e.target.value })} /></div>
+            <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={f.phone || ""} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 " /></div>
+            <div className="pd-field" data-field="email"><label>Email</label><input className="pd-input" value={f.email || ""} onChange={(e) => set({ email: e.target.value })} /></div>
           </div>
 
           {/* credentials */}

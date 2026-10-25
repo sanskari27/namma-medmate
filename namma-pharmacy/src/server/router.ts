@@ -7,7 +7,6 @@ import { REPORT_CATALOG, runReport } from "../app/lib/reportCatalog";
 import { catalogCsvText } from "../app/lib/reportExport";
 import { buildInvoicePdf } from "../app/lib/pdf";
 import { fromPaise, reportToPaise, toPaise } from "../app/lib/paise";
-import { REFERRALS } from "../app/lib/referrals";
 import { cognitoConfigured, sendCognitoOtp, verifyCognitoOtp } from "./auth";
 import {
   createSession, destroySession, e164, findLogin, insertPharmacy, loadState, readSession,
@@ -16,7 +15,7 @@ import {
 import { ApiError } from "./errors";
 import { expandFiles, readFile } from "./files";
 import * as m from "./mutate";
-import { DEPARTMENTS, demoState, emptyState, type PharmacyState } from "./state";
+import { demoState, emptyState, type PharmacyState } from "./state";
 import type { BusinessType } from "./types";
 
 const COOKIE = "namma_session";
@@ -208,7 +207,10 @@ const specs: Spec[] = [
   { method: "GET", path: "/hospital/indents", hospital: true, plan: "indents", run: (c) => c.state.wardIndents },
   { method: "PATCH", path: "/hospital/indents/:id", write: true, hospital: true, plan: "indents", run: (c) => m.setIndentStatus(c.state, c.params.id, c.body.status as never) },
   { method: "POST", path: "/hospital/indents/:id/issue", write: true, idem: true, hospital: true, plan: "indents", run: (c) => m.issueIndent(c.state, c.params.id) },
-  { method: "GET", path: "/hospital/departments", hospital: true, plan: "departments", run: () => DEPARTMENTS },
+  { method: "GET", path: "/hospital/departments", hospital: true, plan: "departments", run: (c) => c.state.departments || [] },
+  { method: "POST", path: "/hospital/departments", write: true, hospital: true, plan: "departments", run: (c) => m.addDepartment(c.state, c.body as never) },
+  { method: "PATCH", path: "/hospital/departments/:id", write: true, hospital: true, plan: "departments", run: (c) => m.updateDepartment(c.state, c.params.id, c.body) },
+  { method: "DELETE", path: "/hospital/departments/:id", write: true, hospital: true, plan: "departments", run: (c) => m.removeDepartment(c.state, c.params.id) },
   { method: "GET", path: "/hospital/doctors", hospital: true, plan: "doctors", run: (c) => c.state.doctors },
   { method: "POST", path: "/hospital/doctors", write: true, hospital: true, plan: "doctors", run: (c) => m.addDoctor(c.state, c.body as never) },
   { method: "PATCH", path: "/hospital/doctors/:id", write: true, hospital: true, plan: "doctors", run: (c) => m.updateDoctor(c.state, c.params.id, c.body) },
@@ -224,7 +226,10 @@ const specs: Spec[] = [
   { method: "PATCH", path: "/hospital/tpa-claims/:id", write: true, hospital: true, plan: "hospbill", run: (c) => m.setClaimStatus(c.state, c.params.id, c.body.status as never, c.body.approvedAmount as number | undefined) },
   { method: "GET", path: "/support/tickets", run: (c) => c.state.tickets },
   { method: "POST", path: "/support/tickets", write: true, run: (c) => m.addTicket(c.state, String(c.body.subject || ""), String(c.body.category || "General")) },
-  { method: "GET", path: "/referrals", run: () => REFERRALS },
+  { method: "GET", path: "/referrals", run: (c) => c.state.referrals || [] },
+  { method: "POST", path: "/referrals", write: true, run: (c) => m.addReferral(c.state, c.body as never) },
+  { method: "PATCH", path: "/referrals/:id", write: true, run: (c) => m.updateReferral(c.state, c.params.id, c.body) },
+  { method: "DELETE", path: "/referrals/:id", write: true, run: (c) => m.removeReferral(c.state, c.params.id) },
 ];
 
 function missing(name: string): never {
@@ -317,7 +322,7 @@ export async function handle(req: Request): Promise<Response> {
     const result = await found.spec.run({ req, url, path, body, params: found.params, session, state });
     return send(result);
   } catch (err) {
-    if (err instanceof ApiError) return Response.json({ error: { code: err.code, message: err.message } }, { status: err.status });
+    if (err instanceof ApiError) return Response.json({ error: { code: err.code, message: err.message, field: err.field } }, { status: err.status });
     console.error(err);
     const message = process.env.NODE_ENV === "production" ? "Something went wrong" : (err as Error).message;
     return Response.json({ error: { code: "VALIDATION", message } }, { status: 500 });
@@ -326,7 +331,7 @@ export async function handle(req: Request): Promise<Response> {
 
 async function sendOtp(body: Record<string, unknown>) {
   const phone = e164(String(body.phone || ""));
-  if (phone.replace(/\D/g, "").length < 12) throw new ApiError(400, "VALIDATION", "Enter a 10-digit mobile number");
+  if (phone.replace(/\D/g, "").length < 12) throw new ApiError(400, "VALIDATION", "Enter a 10-digit mobile number", "phone");
   if (!cognitoConfigured()) {
     if (!devAuth()) throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
     return send({ delivery: "dev" });
@@ -339,11 +344,11 @@ async function sendOtp(body: Record<string, unknown>) {
 async function verifyOtp(body: Record<string, unknown>) {
   const phone = e164(String(body.phone || ""));
   const code = String(body.code || "").replace(/\D/g, "");
-  if (code.length !== 6) throw new ApiError(400, "VALIDATION", "Enter the 6-digit code");
+  if (code.length !== 6) throw new ApiError(400, "VALIDATION", "Enter the 6-digit code", "otp");
   const businessType: BusinessType = body.businessType === "hospital" ? "hospital" : "pharmacy";
   if (cognitoConfigured()) {
     const challenge = await takeChallenge(phone);
-    if (!challenge?.cognito_session) throw new ApiError(401, "UNAUTHENTICATED", "Request a new code");
+    if (!challenge?.cognito_session) throw new ApiError(401, "UNAUTHENTICATED", "Request a new code", "otp");
     await verifyCognitoOtp(phone, code, challenge.cognito_session);
   } else if (!devAuth()) {
     throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
@@ -400,7 +405,7 @@ async function unlockPricing(req: Request, body: Record<string, unknown>) {
   const state = await loadState(session.pharmacyId);
   m.requireHospital(state);
   if (!m.checkPricingOtp(session.pricingPin, String(body.code || body.otp || ""), devAuth())) {
-    throw new ApiError(401, "UNAUTHENTICATED", "Incorrect admin OTP");
+    throw new ApiError(401, "UNAUTHENTICATED", "Incorrect admin OTP", "otp");
   }
   await setUnlocked(session.token, true);
   return send({ ok: true });

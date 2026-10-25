@@ -170,7 +170,7 @@ export default function InventoryScreen() {
         </div>
       </div>
 
-      {edit && <ProductModal product={edit} onClose={() => setEdit(null)} onSave={(p) => { updateProduct(p.id, p); setEdit(null); }} />}
+      {edit && <ProductModal product={edit} onClose={() => setEdit(null)} onSave={async (p) => { const err = await updateProduct(p.id, p); if (!err) setEdit(null); }} />}
       {detail && <ProductDetailModal product={inventory.find((x) => x.id === detail.id) ?? detail} sales={sales} now={now} onClose={() => setDetail(null)} onEdit={() => { setEdit(detail); setDetail(null); }} toggleOnline={toggleOnline} toggleLoose={toggleLoose} go={go} />}
     </div>
   );

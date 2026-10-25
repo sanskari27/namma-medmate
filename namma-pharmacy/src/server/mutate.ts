@@ -5,7 +5,8 @@ import {
   routeLocked, todayISO, unitNoun, unitsPerPack, userPerms,
 } from "../app/data";
 import { PatientMeta } from "../app/lib/crm";
-import { Admission, ClaimStatus, DoctorProfile, IndentStatus, Ward } from "../app/lib/hospital";
+import { Admission, ClaimStatus, Department, DoctorProfile, IndentStatus, Ward } from "../app/lib/hospital";
+import { Referral } from "../app/lib/referrals";
 import { HospitalAccount, PriceRule, WardSupply, WardSupplyItem, creditPriceOf } from "../app/lib/hospitalAccount";
 import { fail } from "./errors";
 import { PharmacyState, Ticket, bump } from "./state";
@@ -40,14 +41,14 @@ export function requireHospital(state: PharmacyState) {
   if (state.businessType !== "hospital") fail(403, "FORBIDDEN", "Hospital pharmacy only");
 }
 
-function checkGstin(value: unknown) {
-  if (typeof value === "string" && value.trim() && !isValidGstin(value)) fail(400, "VALIDATION", "Enter a valid GSTIN");
+function checkGstin(value: unknown, field = "gstin") {
+  if (typeof value === "string" && value.trim() && !isValidGstin(value)) fail(400, "VALIDATION", "Enter a valid GSTIN", field);
 }
-function checkPhone(value: unknown) {
-  if (typeof value === "string" && value.trim() && value.replace(/\D/g, "").length < 10) fail(400, "VALIDATION", "Enter a valid mobile number");
+function checkPhone(value: unknown, field = "phone") {
+  if (typeof value === "string" && value.trim() && value.replace(/\D/g, "").length < 10) fail(400, "VALIDATION", "Enter a valid mobile number", field);
 }
-function checkIfsc(value: unknown) {
-  if (typeof value === "string" && value.trim() && !isValidIfsc(value)) fail(400, "VALIDATION", "Enter a valid IFSC");
+function checkIfsc(value: unknown, field = "ifsc") {
+  if (typeof value === "string" && value.trim() && !isValidIfsc(value)) fail(400, "VALIDATION", "Enter a valid IFSC", field);
 }
 function rememberRack(state: PharmacyState, code: string) {
   if (code && !state.racks.includes(code)) state.racks = [...state.racks, code];
@@ -84,7 +85,7 @@ function nextInventory(state: PharmacyState, lines: PosLine[]): InvProduct[] {
     const mine = lines.filter((l) => l.productId === p.id && l.qty > 0);
     if (!mine.length) return p;
     const batches = p.batches.map((b) => ({ ...b }));
-    const unmet = (left: number) => { if (left > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`); };
+    const unmet = (left: number) => { if (left > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`, "qty"); };
     for (const l of mine.filter((x) => !x.loose && x.batchNo)) unmet(takePacks(batches, l.qty, l.batchNo));
     unmet(takePacks(batches, mine.filter((l) => !l.loose && !l.batchNo).reduce((a, l) => a + l.qty, 0)));
     let loose = p.looseUnits ?? 0;
@@ -224,7 +225,7 @@ export function bulkAssignLocation(state: PharmacyState, ids: string[], rack: st
 }
 export function createRack(state: PharmacyState, rack: string) {
   const code = normalizeRack(rack);
-  if (!code) fail(400, "VALIDATION", "Rack code is required");
+  if (!code) fail(400, "VALIDATION", "Rack code is required", "rack");
   if (!state.racks.includes(code)) state.racks = [...state.racks, code];
   return { racks: state.racks, created: code };
 }
@@ -330,7 +331,7 @@ type CheckoutInput = {
 export function checkoutPos(state: PharmacyState, input: CheckoutInput) {
   const customer = input.customer ?? {};
   const resolved = input.lines.map((line) => ({ p: mustProduct(state, line.productId), qty: line.qty, loose: !!line.loose, batchNo: line.batchNo })).filter((x) => x.qty > 0);
-  if (!resolved.length) fail(400, "VALIDATION", "Nothing to bill");
+  if (!resolved.length) fail(400, "VALIDATION", "Nothing to bill", "qty");
   const inventory = nextInventory(state, input.lines);
   const items: SaleItem[] = resolved.map(({ p, qty, loose, batchNo }) => {
     const b = (batchNo && p.batches.find((x) => x.batchNo === batchNo)) || earliestBatch(p);
@@ -529,7 +530,7 @@ export function setDirectOffer(state: PharmacyState, productId: string, type: Of
 }
 
 export function recordCreditPayment(state: PharmacyState, p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) {
-  if (p.amount <= 0) fail(400, "VALIDATION", "Amount must be positive");
+  if (p.amount <= 0) fail(400, "VALIDATION", "Amount must be positive", "amount");
   const row = { ...p, id: "CR-" + bump(state, "credit"), at: Date.now() };
   state.creditPayments = [row, ...state.creditPayments];
   return row;
@@ -581,7 +582,7 @@ export function toggleAutoRenew(state: PharmacyState) {
   return state.subscription;
 }
 export function saveBankAccount(state: PharmacyState, b: Omit<BankAccount, "verified" | "addedOn">) {
-  if (!isValidIfsc(b.ifsc)) fail(400, "VALIDATION", "Enter a valid IFSC");
+  if (!isValidIfsc(b.ifsc)) fail(400, "VALIDATION", "Enter a valid IFSC", "ifsc");
   state.bankAccount = { ...b, ifsc: b.ifsc.trim().toUpperCase(), verified: false, addedOn: todayISO() };
   return state.bankAccount;
 }
@@ -709,6 +710,53 @@ export function setClaimStatus(state: PharmacyState, id: string, status: ClaimSt
   state.tpaClaims = state.tpaClaims.map((c) => (c.id === id ? { ...c, status, approvedAmount: approvedAmount ?? c.approvedAmount } : c));
   return state.tpaClaims.find((c) => c.id === id)!;
 }
+export function addDepartment(state: PharmacyState, d: Omit<Department, "id" | "doctors"> & { doctors?: Department["doctors"] }) {
+  const name = String(d.name || "").trim();
+  if (!name) fail(400, "VALIDATION", "Enter a department name");
+  const row: Department = {
+    id: "DEP-" + bump(state, "dept"),
+    name,
+    head: String(d.head || "").trim(),
+    type: d.type === "IPD" || d.type === "Diagnostic" || d.type === "Support" ? d.type : "OPD",
+    emoji: String(d.emoji || "🏥").trim() || "🏥",
+    doctors: [],
+  };
+  state.departments = [row, ...(state.departments || [])];
+  return row;
+}
+export function updateDepartment(state: PharmacyState, id: string, patch: Partial<Department>) {
+  const prev = (state.departments || []).find((d) => d.id === id);
+  if (!prev) fail(404, "NOT_FOUND", "Department not found");
+  const name = patch.name != null ? String(patch.name).trim() : prev.name;
+  if (!name) fail(400, "VALIDATION", "Enter a department name");
+  if (name !== prev.name) state.doctors = (state.doctors || []).map((doc) => (doc.department === prev.name ? { ...doc, department: name } : doc));
+  const type = patch.type === "IPD" || patch.type === "Diagnostic" || patch.type === "Support" || patch.type === "OPD" ? patch.type : prev.type;
+  state.departments = state.departments.map((d) => (d.id === id ? { ...prev, ...patch, id, name, type, doctors: [] } : d));
+  return state.departments.find((d) => d.id === id)!;
+}
+export function removeDepartment(state: PharmacyState, id: string) {
+  state.departments = (state.departments || []).filter((d) => d.id !== id);
+  return { departments: state.departments };
+}
+export function addReferral(state: PharmacyState, input: { name?: string; area?: string }) {
+  const name = String(input.name || "").trim();
+  if (!name) fail(400, "VALIDATION", "Enter a pharmacy name");
+  const row: Referral = { id: "REF-" + bump(state, "referral"), name, area: String(input.area || "").trim(), status: "Invited", reward: 0 };
+  state.referrals = [row, ...(state.referrals || [])];
+  return row;
+}
+export function updateReferral(state: PharmacyState, id: string, patch: Partial<Referral>) {
+  const prev = (state.referrals || []).find((r) => r.id === id);
+  if (!prev) fail(404, "NOT_FOUND", "Referral not found");
+  const status = patch.status === "Signed up" || patch.status === "Earned" || patch.status === "Invited" ? patch.status : prev.status;
+  const reward = patch.reward != null && Number.isFinite(Number(patch.reward)) ? Math.max(0, Number(patch.reward)) : prev.reward;
+  state.referrals = state.referrals.map((r) => (r.id === id ? { ...prev, name: patch.name != null ? String(patch.name).trim() || prev.name : prev.name, area: patch.area != null ? String(patch.area).trim() : prev.area, status, reward, id } : r));
+  return state.referrals.find((r) => r.id === id)!;
+}
+export function removeReferral(state: PharmacyState, id: string) {
+  state.referrals = (state.referrals || []).filter((r) => r.id !== id);
+  return { referrals: state.referrals };
+}
 export function addDoctor(state: PharmacyState, d: Omit<DoctorProfile, "id">) {
   const row = { ...d, id: "DR-" + String(bump(state, "doc")).padStart(3, "0") };
   state.doctors = [row, ...state.doctors];
@@ -755,13 +803,13 @@ function assertWardStock(state: PharmacyState, items: WardSupplyItem[], dir: 1 |
     if (!p) fail(400, "VALIDATION", "Product not found");
     const batches = held.get(p.id) ?? p.batches.map((b) => ({ ...b }));
     const prefer = it.batchNo && it.batchNo !== "—" ? it.batchNo : undefined;
-    if (takePacks(batches, it.qty, prefer) > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`);
+    if (takePacks(batches, it.qty, prefer) > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`, "qty");
     held.set(p.id, batches);
   }
 }
 function supplyTotal(items: WardSupplyItem[]) { return Math.round(items.reduce((a, it) => a + it.amount, 0) * 100) / 100; }
 export function issueWardSupply(state: PharmacyState, draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) {
-  if (!draft.items.length) fail(400, "VALIDATION", "Nothing to issue");
+  if (!draft.items.length) fail(400, "VALIDATION", "Nothing to issue", "qty");
   assertWardStock(state, draft.items, 1);
   const supply: WardSupply = { ...draft, id: "WS-" + bump(state, "ws"), kind: "issue", total: supplyTotal(draft.items), at: Date.now() };
   moveInventory(state, draft.items, 1);
@@ -770,7 +818,7 @@ export function issueWardSupply(state: PharmacyState, draft: Omit<WardSupply, "i
   return { supply, inventory: state.inventory, wardIndents: state.wardIndents };
 }
 export function returnWardSupply(state: PharmacyState, draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) {
-  if (!draft.items.length) fail(400, "VALIDATION", "Nothing to return");
+  if (!draft.items.length) fail(400, "VALIDATION", "Nothing to return", "qty");
   assertWardStock(state, draft.items, -1);
   const supply: WardSupply = { ...draft, id: "WR-" + bump(state, "wr"), kind: "return", total: supplyTotal(draft.items), at: Date.now() };
   moveInventory(state, draft.items, -1);
@@ -794,7 +842,7 @@ export function issueIndent(state: PharmacyState, indentId: string) {
   return { ok: true as const, ...issueWardSupply(state, { wardId: ind.wardId, wardName: ind.wardName, reason: "floor", items, refDoc: ind.id, indentId: ind.id }) };
 }
 export function recordHospitalPayment(state: PharmacyState, p: { amount: number; mode: PayMode; note?: string }) {
-  if (p.amount <= 0) fail(400, "VALIDATION", "Amount must be positive");
+  if (p.amount <= 0) fail(400, "VALIDATION", "Amount must be positive", "amount");
   const row = { ...p, id: "HP-" + bump(state, "hp"), at: Date.now() };
   state.hospitalPayments = [row, ...state.hospitalPayments];
   return row;

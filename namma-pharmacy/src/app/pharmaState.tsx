@@ -1,38 +1,45 @@
 "use client";
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  SEED_INVENTORY, SEED_SALES, SEED_RX, SEED_OFFERS, DEFAULT_PROFILE, SEED_PURCHASES,
   InvProduct, Sale, SaleItem, Prescription, Offer, OfferType, directOfferId, PharmacyProfile, Batch, BankAccount,
   Purchase, PurchaseItem, DosageForm, Schedule,
   PayMode, PAY_LABEL, Channel, OrderStatus, ONLINE_FLOW, SaleSource,
   Rider, packComplete,
   computeInvoice, InvoiceTotals, billUnit, earliestBatch, stockOf, findScan,
-  distinctRacks, normalizeRack,
-  StaffUser, SEED_USERS, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, routeLocked,
+  normalizeRack,
+  StaffUser, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, routeLocked,
   InvoiceSettings, DEFAULT_INVOICE_SETTINGS, KioskConfig, DEFAULT_KIOSK,
-  Advisor, SEED_ADVISORS, CAShare, SEED_CA_SHARES, isValidGstin,
-  PurchaseOrder, POItem, SEED_PURCHASE_ORDERS, seedHistory,
-  Supplier, SEED_SUPPLIERS,
-  Expense, resolveSeedExpenses, EXPENSE_CATEGORIES,
-  Employee, SEED_EMPLOYEES,
-  CreditPayment, resolveSeedCreditPayments,
+  Advisor, CAShare, isValidGstin,
+  PurchaseOrder, POItem,
+  Supplier,
+  Expense, EXPENSE_CATEGORIES,
+  Employee,
+  CreditPayment,
 } from "./data";
 import {
   CrmData, EMPTY_CRM, Campaign, Feedback, ReminderLog, Redemption, PatientMeta,
 } from "./lib/crm";
+import { SupplyEntry } from "./data";
+import { Referral } from "./lib/referrals";
 import {
-  SupplyEntry, SEED_SUPPLY,
-} from "./data";
-import {
-  Ward, SEED_WARDS, WardIndent, IndentStatus, resolveSeedIndents,
-  Department, SEED_DEPARTMENTS, TpaClaim, ClaimStatus, resolveSeedClaims,
-  DoctorProfile, SEED_DOCTORS, Admission, resolveSeedAdmissions,
+  Ward, WardIndent, IndentStatus, Department, TpaClaim, ClaimStatus, DoctorProfile, Admission,
 } from "./lib/hospital";
 import { api, ApiError } from "./lib/api";
+import { faultOf, SaveFault } from "./lib/formFault";
 import {
-  HospitalAccount, DEFAULT_HOSPITAL_ACCOUNT, WardSupply, WardSupplyItem, HospitalPayment,
-  resolveSeedSupplies, resolveSeedHospitalPayments, creditPriceOf, PriceRule, ADMIN_PRICING_OTP,
+  HospitalAccount, WardSupply, WardSupplyItem, HospitalPayment, creditPriceOf, PriceRule,
 } from "./lib/hospitalAccount";
+
+const BLANK_PROFILE: PharmacyProfile = {
+  name: "", tagline: "", phone: "", email: "", address: "", city: "", state: "", pincode: "",
+  gstRegistered: false, gstin: "", eInvoicing: false, pan: "", dlNo: "", fssai: "",
+  enableTDS: false, enableTCS: false, businessTypes: [], industryType: "Pharmacy & Healthcare",
+  registrationType: "Proprietorship", extraDetails: [], storeOpen: false, pharmacist: "",
+};
+const BLANK_HOSPITAL: HospitalAccount = {
+  name: "", gstin: "", contact: "", phone: "", email: "",
+  creditTerms: "On demand", creditLimit: 0, discountPct: 0, flagRefills: false,
+};
 
 // pharmacy = standalone retail pharmacy · hospital = hospital pharmacy (extra IPD/TPA modules)
 export type BusinessType = "pharmacy" | "hospital";
@@ -63,7 +70,7 @@ type Ctx = {
   signOut: () => void;
   // hospital-pharmacy modules
   wards: Ward[];
-  addWard: (w: Omit<Ward, "id">) => void;
+  addWard: (w: Omit<Ward, "id">) => Promise<SaveFault | null>;
   updateWard: (id: string, patch: Partial<Ward>) => void;
   removeWard: (id: string) => void;
   admissions: Admission[];
@@ -73,10 +80,17 @@ type Ctx = {
   startWardBilling: (a: Admission) => void;   // open POS pre-filled for this admission
   wardIndents: WardIndent[];
   departments: Department[];
+  addDepartment: (d: { name: string; head: string; type: Department["type"]; emoji?: string }) => Promise<SaveFault | null>;
+  updateDepartment: (id: string, patch: Partial<Department>) => Promise<SaveFault | null>;
+  removeDepartment: (id: string) => void;
+  referrals: Referral[];
+  addReferral: (r: { name: string; area?: string }) => Promise<SaveFault | null>;
+  updateReferral: (id: string, patch: Partial<Referral>) => void;
+  removeReferral: (id: string) => void;
   tpaClaims: TpaClaim[];
   doctors: DoctorProfile[];
-  addDoctor: (d: Omit<DoctorProfile, "id">) => void;
-  updateDoctor: (id: string, patch: Partial<DoctorProfile>) => void;
+  addDoctor: (d: Omit<DoctorProfile, "id">) => Promise<SaveFault | null>;
+  updateDoctor: (id: string, patch: Partial<DoctorProfile>) => Promise<SaveFault | null>;
   removeDoctor: (id: string) => void;
   setIndentStatus: (id: string, status: IndentStatus) => void;
   setClaimStatus: (id: string, status: ClaimStatus, approvedAmount?: number) => void;
@@ -92,10 +106,10 @@ type Ctx = {
   unlockPricing: (otp: string) => Promise<boolean>;           // verify admin OTP → unlock
   lockPricing: () => void;
   wardSupplies: WardSupply[];
-  issueWardSupply: (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) => WardSupply | null;
-  returnWardSupply: (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) => WardSupply | null;
+  issueWardSupply: (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) => Promise<WardSupply | null>;
+  returnWardSupply: (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) => Promise<WardSupply | null>;
   hospitalPayments: HospitalPayment[];
-  recordHospitalPayment: (p: Omit<HospitalPayment, "id" | "at">) => void;
+  recordHospitalPayment: (p: Omit<HospitalPayment, "id" | "at">) => Promise<SaveFault | null>;
   billIndentTarget: string | null;                  // indent id to pre-load into Hospital Billing
   openIndentBilling: (indentId: string) => void;    // go to Hospital Billing & bill this indent
   clearBillIndentTarget: () => void;
@@ -121,20 +135,20 @@ type Ctx = {
   now: number;
   // inventory ops
   addProduct: (p: InvProduct) => void;
-  updateProduct: (id: string, patch: Partial<InvProduct>) => void;
+  updateProduct: (id: string, patch: Partial<InvProduct>) => Promise<SaveFault | null>;
   // rack / bin locations
   racks: string[];
-  createRack: (rack: string) => boolean;
+  createRack: (rack: string) => Promise<"added" | "exists" | "failed">;
   removeRack: (rack: string) => void;
-  setProductLocation: (id: string, rack: string, rackAlt?: string) => void;
-  bulkAssignLocation: (ids: string[], rack: string) => void;
+  setProductLocation: (id: string, rack: string, rackAlt?: string) => Promise<SaveFault | null>;
+  bulkAssignLocation: (ids: string[], rack: string) => Promise<SaveFault | null>;
   addBatch: (id: string, batch: InvProduct["batches"][number]) => void;
   setBatchQty: (id: string, batchNo: string, qty: number) => void;
   // purchases / goods-inward — auto-updates stock
   receivePurchase: (draft: { supplierId: string; supplierName: string; invoiceNo: string; invoiceDate: string; items: PurchaseItem[] }) => Promise<Purchase | null>;
   toggleOnline: (id: string) => void;
   toggleLoose: (id: string) => void;
-  setOnlinePrice: (id: string, price: number | undefined) => void;
+  setOnlinePrice: (id: string, price: number | undefined) => Promise<SaveFault | null>;
   setProductOffer: (id: string, offerId: string | undefined) => void;
   // POS / billing
   pos: PosLine[];
@@ -166,7 +180,7 @@ type Ctx = {
   posClear: () => void;
   posTotals: InvoiceTotals;
   posCount: number;
-  checkoutPos: (opts?: { paid?: boolean; ward?: string }) => Sale | null;
+  checkoutPos: (opts?: { paid?: boolean; ward?: string }) => Promise<SaveFault | null>;
   lastInvoice: Sale | null;
   setLastInvoice: (s: Sale | null) => void;
   // orders (online lifecycle)
@@ -184,20 +198,20 @@ type Ctx = {
   rejectRx: (id: string, reason?: string) => void;
   dispenseRx: (id: string) => void;
   // offers
-  addOffer: (o: Offer) => void;
+  addOffer: (o: Offer) => Promise<SaveFault | null>;
   toggleOffer: (id: string) => void;
   removeOffer: (id: string) => void;
   setDirectOffer: (productId: string, type: OfferType, value: number) => void;
   // staff / users
   users: StaffUser[];
-  addUser: (u: Omit<StaffUser, "id" | "lastActiveMins">) => void;
-  updateUser: (id: string, patch: Partial<StaffUser>) => void;
+  addUser: (u: Omit<StaffUser, "id" | "lastActiveMins">) => Promise<SaveFault | null>;
+  updateUser: (id: string, patch: Partial<StaffUser>) => Promise<SaveFault | null>;
   toggleUser: (id: string) => void;
   removeUser: (id: string) => void;
   // subscription
   subscription: Subscription;
-  renewSubscription: () => void;
-  changePlan: (plan: Plan, cycle: BillingCycle) => void;
+  renewSubscription: () => Promise<SaveFault | null>;
+  changePlan: (plan: Plan, cycle: BillingCycle) => Promise<SaveFault | null>;
   toggleAutoRenew: () => void;
   featureLocked: (r: Route) => boolean;    // freemium paywall for premium routes
   // invoice settings
@@ -209,8 +223,8 @@ type Ctx = {
   placeKioskOrder: (lines: { productId: string; qty: number; loose?: boolean }[], pay: PayMode) => Promise<Sale | null>;
   // CA / accountant report sharing
   advisors: Advisor[];
-  addAdvisor: (a: Omit<Advisor, "id">) => void;
-  updateAdvisor: (id: string, patch: Partial<Advisor>) => void;
+  addAdvisor: (a: Omit<Advisor, "id">) => Promise<SaveFault | null>;
+  updateAdvisor: (id: string, patch: Partial<Advisor>) => Promise<SaveFault | null>;
   removeAdvisor: (id: string) => void;
   caShares: CAShare[];
   shareWithCA: (period: string, reports: string[], advisorId: string) => void;
@@ -222,45 +236,44 @@ type Ctx = {
   // distributors / suppliers
   // customer credit (khata)
   creditPayments: CreditPayment[];
-  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => void;
+  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => Promise<SaveFault | null>;
   // CRM
   crm: CrmData;
-  setPatientMeta: (key: string, patch: PatientMeta) => void;
-  addCampaign: (c: Omit<Campaign, "id" | "sentAt">) => void;
-  addFeedback: (f: Omit<Feedback, "id" | "at">) => void;
+  setPatientMeta: (key: string, patch: PatientMeta) => Promise<SaveFault | null>;
+  addCampaign: (c: Omit<Campaign, "id" | "sentAt">) => Promise<SaveFault | null>;
+  addFeedback: (f: Omit<Feedback, "id" | "at">) => Promise<SaveFault | null>;
   logReminder: (r: Omit<ReminderLog, "id" | "at">) => void;
   redeemPoints: (custKey: string, custName: string, points: number) => void;
   // employees (HR records)
   employees: Employee[];
-  addEmployee: (e: Omit<Employee, "id">) => void;
-  updateEmployee: (id: string, patch: Partial<Employee>) => void;
+  addEmployee: (e: Omit<Employee, "id">) => Promise<SaveFault | null>;
+  updateEmployee: (id: string, patch: Partial<Employee>) => Promise<SaveFault | null>;
   removeEmployee: (id: string) => void;
   // expenses
   expenses: Expense[];
   expenseCategories: string[];
-  addExpense: (e: Omit<Expense, "id" | "number">) => void;
+  addExpense: (e: Omit<Expense, "id" | "number">) => Promise<SaveFault | null>;
   updateExpense: (id: string, patch: Partial<Expense>) => void;
   removeExpense: (id: string) => void;
   addExpenseCategory: (name: string) => void;
   suppliers: Supplier[];
-  addSupplier: (s: Omit<Supplier, "id">) => void;
-  updateSupplier: (id: string, patch: Partial<Supplier>) => void;
+  addSupplier: (s: Omit<Supplier, "id">) => Promise<SaveFault | null>;
+  updateSupplier: (id: string, patch: Partial<Supplier>) => Promise<SaveFault | null>;
   removeSupplier: (id: string) => void;
   // distributor supply list (product ↔ distributor with purchase price)
   supplyList: SupplyEntry[];
-  addSupply: (s: Omit<SupplyEntry, "id">) => void;
-  updateSupply: (id: string, patch: Partial<SupplyEntry>) => void;
+  addSupply: (s: Omit<SupplyEntry, "id">) => Promise<SaveFault | null>;
+  updateSupply: (id: string, patch: Partial<SupplyEntry>) => Promise<SaveFault | null>;
   removeSupply: (id: string) => void;
   setPreferredSupply: (id: string) => void;
   // settings
-  updateProfile: (patch: Partial<PharmacyProfile>) => void;
+  updateProfile: (patch: Partial<PharmacyProfile>) => Promise<SaveFault | null>;
   toggleStoreOpen: () => void;
   // payout bank account
   bankAccount: BankAccount | null;
-  saveBankAccount: (b: Omit<BankAccount, "verified" | "addedOn">) => void;
+  saveBankAccount: (b: Omit<BankAccount, "verified" | "addedOn">) => Promise<SaveFault | null>;
   verifyBankAccount: () => void;
   removeBankAccount: () => void;
-  resetDemo: () => void;
   // initial store setup wizard
   setupComplete: boolean;
   startSetup: () => void;
@@ -270,8 +283,11 @@ type Ctx = {
   // ui
   toast: (m: string) => void;
   toastMsg: string | null;
+  formFault: SaveFault | null;
+  showFault: (err: unknown, fallback?: string) => void;
+  clearFault: () => void;
   tickets: { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[];
-  raiseTicket: (subject: string, category: string) => void;
+  raiseTicket: (subject: string, category: string) => Promise<SaveFault | null>;
 };
 
 const PCtx = createContext<Ctx | null>(null);
@@ -289,17 +305,18 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
 
   const [signedIn, setSignedIn] = useState(false);
   const [businessType, setBusinessType] = useState<BusinessType>("pharmacy");
-  const [wards, setWards] = useState<Ward[]>(SEED_WARDS);
-  const [admissions, setAdmissions] = useState<Admission[]>(() => resolveSeedAdmissions(nowRef.current));
-  const [wardIndents, setWardIndents] = useState<WardIndent[]>(() => resolveSeedIndents(nowRef.current));
-  const [departments] = useState<Department[]>(SEED_DEPARTMENTS);
-  const [tpaClaims, setTpaClaims] = useState<TpaClaim[]>(() => resolveSeedClaims(nowRef.current));
-  const [doctors, setDoctors] = useState<DoctorProfile[]>(SEED_DOCTORS);
-  const [hospitalAccount, setHospitalAccount] = useState<HospitalAccount>(DEFAULT_HOSPITAL_ACCOUNT);
+  const [wards, setWards] = useState<Ward[]>([]);
+  const [admissions, setAdmissions] = useState<Admission[]>([]);
+  const [wardIndents, setWardIndents] = useState<WardIndent[]>([]);
+  const [departments, setDepartments] = useState<Department[]>([]);
+  const [referrals, setReferrals] = useState<Referral[]>([]);
+  const [tpaClaims, setTpaClaims] = useState<TpaClaim[]>([]);
+  const [doctors, setDoctors] = useState<DoctorProfile[]>([]);
+  const [hospitalAccount, setHospitalAccount] = useState<HospitalAccount>(BLANK_HOSPITAL);
   const [hospitalPriceRules, setHospitalPriceRules] = useState<Record<string, PriceRule>>({});
   const [pricingUnlocked, setPricingUnlocked] = useState(false);
-  const [wardSupplies, setWardSupplies] = useState<WardSupply[]>(() => resolveSeedSupplies(nowRef.current));
-  const [hospitalPayments, setHospitalPayments] = useState<HospitalPayment[]>(() => resolveSeedHospitalPayments(nowRef.current));
+  const [wardSupplies, setWardSupplies] = useState<WardSupply[]>([]);
+  const [hospitalPayments, setHospitalPayments] = useState<HospitalPayment[]>([]);
   const [billIndentTarget, setBillIndentTarget] = useState<string | null>(null);
 
   const [route, setRoute] = useState<Route>("dashboard");
@@ -310,45 +327,27 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const [canGoBack, setCanGoBack] = useState(false);
   const [invFilter, setInvFilter] = useState<string | null>(null);
   const [reportTarget, setReportTarget] = useState<string | null>(null);
-  const [inventory, setInventory] = useState<InvProduct[]>(SEED_INVENTORY);
-  const [racks, setRacks] = useState<string[]>(() => distinctRacks(SEED_INVENTORY)); // manually-managed rack registry
-  const [sales, setSales] = useState<Sale[]>(() =>
-    SEED_SALES.map((s) => {
-      const { minsAgo, ...rest } = s;
-      const createdAt = nowRef.current - minsAgo * 60000;
-      return { ...rest, createdAt, history: seedHistory(rest.channel, rest.status, createdAt, nowRef.current) };
-    })
-  );
-  const [prescriptions, setPrescriptions] = useState<Prescription[]>(() =>
-    SEED_RX.map((r) => {
-      const { minsAgo, approvedMinsAgo, dispensedMinsAgo, rejectedMinsAgo, ...rest } = r;
-      const at = (m?: number) => (m != null ? nowRef.current - m * 60000 : undefined);
-      return { ...rest, uploadedAt: nowRef.current - minsAgo * 60000, approvedAt: at(approvedMinsAgo), dispensedAt: at(dispensedMinsAgo), rejectedAt: at(rejectedMinsAgo) };
-    })
-  );
-  const [offers, setOffers] = useState<Offer[]>(SEED_OFFERS);
-  const [purchases, setPurchases] = useState<Purchase[]>(() =>
-    SEED_PURCHASES.map((p) => { const { minsAgo, ...rest } = p; return { ...rest, createdAt: nowRef.current - minsAgo * 60000 }; })
-  );
-  const [profile, setProfile] = useState<PharmacyProfile>(DEFAULT_PROFILE);
+  const [inventory, setInventory] = useState<InvProduct[]>([]);
+  const [racks, setRacks] = useState<string[]>([]);
+  const [sales, setSales] = useState<Sale[]>([]);
+  const [prescriptions, setPrescriptions] = useState<Prescription[]>([]);
+  const [offers, setOffers] = useState<Offer[]>([]);
+  const [purchases, setPurchases] = useState<Purchase[]>([]);
+  const [profile, setProfile] = useState<PharmacyProfile>(BLANK_PROFILE);
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
-  const [users, setUsers] = useState<StaffUser[]>(SEED_USERS);
-  const [subscription, setSubscription] = useState<Subscription>(DEFAULT_SUBSCRIPTION);
-  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>(DEFAULT_INVOICE_SETTINGS);
-  const [kiosk, setKiosk] = useState<KioskConfig>(DEFAULT_KIOSK);
-  const [advisors, setAdvisors] = useState<Advisor[]>(SEED_ADVISORS);
-  const [caShares, setCaShares] = useState<CAShare[]>(() =>
-    SEED_CA_SHARES.map((s) => { const { minsAgo, ...rest } = s; return { ...rest, createdAt: nowRef.current - minsAgo * 60000 }; })
-  );
-  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>(() =>
-    SEED_PURCHASE_ORDERS.map((p) => { const { minsAgo, ...rest } = p; return { ...rest, createdAt: nowRef.current - minsAgo * 60000 }; })
-  );
-  const [suppliers, setSuppliers] = useState<Supplier[]>(SEED_SUPPLIERS);
-  const [supplyList, setSupplyList] = useState<SupplyEntry[]>(SEED_SUPPLY);
-  const [expenses, setExpenses] = useState<Expense[]>(() => resolveSeedExpenses(nowRef.current));
+  const [users, setUsers] = useState<StaffUser[]>([]);
+  const [subscription, setSubscription] = useState<Subscription>({ ...DEFAULT_SUBSCRIPTION, since: "" });
+  const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({ ...DEFAULT_INVOICE_SETTINGS, bankLine: "" });
+  const [kiosk, setKiosk] = useState<KioskConfig>({ ...DEFAULT_KIOSK, enabled: false, displayName: "", pin: "", welcome: "" });
+  const [advisors, setAdvisors] = useState<Advisor[]>([]);
+  const [caShares, setCaShares] = useState<CAShare[]>([]);
+  const [purchaseOrders, setPurchaseOrders] = useState<PurchaseOrder[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [supplyList, setSupplyList] = useState<SupplyEntry[]>([]);
+  const [expenses, setExpenses] = useState<Expense[]>([]);
   const [expenseCategories, setExpenseCategories] = useState<string[]>(EXPENSE_CATEGORIES);
-  const [employees, setEmployees] = useState<Employee[]>(SEED_EMPLOYEES);
-  const [creditPayments, setCreditPayments] = useState<CreditPayment[]>(() => resolveSeedCreditPayments(nowRef.current));
+  const [employees, setEmployees] = useState<Employee[]>([]);
+  const [creditPayments, setCreditPayments] = useState<CreditPayment[]>([]);
   const [crm, setCrm] = useState<CrmData>(EMPTY_CRM);
 
   const [pos, setPos] = useState<PosLine[]>([]);
@@ -364,31 +363,33 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const [lastInvoice, setLastInvoice] = useState<Sale | null>(null);
 
   const [toastMsg, setToastMsg] = useState<string | null>(null);
+  const [formFault, setFormFault] = useState<SaveFault | null>(null);
+  const faultRef = useRef<SaveFault | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
   const [tickets, setTickets] = useState<{ id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[]>([]);
   const [me, setMe] = useState<{ id: string; role: string; permissions: string[] } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hydrated, setHydrated] = useState(false);
-  const invSeq = useRef(2607);
-  const rxSeq = useRef(200);
-  const grnSeq = useRef(3103);
-  const prodSeq = useRef(900);
-  const poSeq = useRef(512);
-  const caSeq = useRef(204);
-  const userSeq = useRef(4);
-  const advSeq = useRef(2);
-  const supplierSeq = useRef(3);
-  const supplySeq = useRef(22);
-  const expSeq = useRef(1008);
-  const empSeq = useRef(5);
-  const creditSeq = useRef(1001);
-  const crmSeq = useRef(1);
-  const docSeq = useRef(6);
-  const wardSeq = useRef(6);
-  const admSeq = useRef(1008);
-  const wsSeq = useRef(1007);
-  const wrSeq = useRef(300);
-  const hpSeq = useRef(501);
+  const invSeq = useRef(1000);
+  const rxSeq = useRef(1000);
+  const grnSeq = useRef(1000);
+  const prodSeq = useRef(1000);
+  const poSeq = useRef(1000);
+  const caSeq = useRef(1000);
+  const userSeq = useRef(1);
+  const advSeq = useRef(1000);
+  const supplierSeq = useRef(1000);
+  const supplySeq = useRef(1000);
+  const expSeq = useRef(1000);
+  const empSeq = useRef(0);
+  const creditSeq = useRef(1000);
+  const crmSeq = useRef(0);
+  const docSeq = useRef(0);
+  const wardSeq = useRef(0);
+  const admSeq = useRef(1000);
+  const wsSeq = useRef(1000);
+  const wrSeq = useRef(1000);
+  const hpSeq = useRef(1000);
 
   const scrollCanvasTop = () => { if (typeof document !== "undefined") { const c = document.querySelector(".pd-canvas"); if (c) c.scrollTop = 0; } };
   const go = (r: Route) => {
@@ -398,6 +399,8 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     routeRef.current = r;
     backHandlerRef.current = null;                               // leaving a screen retires its in-screen back handler
     setCanGoBack(true);
+    faultRef.current = null;
+    setFormFault(null);
     setRoute(r);
     scrollCanvasTop();
   };
@@ -442,7 +445,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
         creditPayments: CreditPayment[]; caShares: CAShare[]; wardSupplies: WardSupply[]; hospitalPayments: HospitalPayment[];
         tpaClaims: TpaClaim[]; hospitalPriceRules: Record<string, PriceRule>;
       }>("/session");
-      const [profile, invoice, kioskCfg, inventory, racks, sales, prescriptions, offers, purchases, suppliers, supply, orders, expenses, employees, users, bank, advisors, crmPack, ticketRows] = await Promise.all([
+      const [profile, invoice, kioskCfg, inventory, racks, sales, prescriptions, offers, purchases, suppliers, supply, orders, expenses, employees, users, bank, advisors, crmPack, ticketRows, referralRows] = await Promise.all([
         api<PharmacyProfile>("/pharmacy/profile"),
         api<InvoiceSettings>("/settings/invoice"),
         api<KioskConfig>("/settings/kiosk"),
@@ -462,6 +465,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
         api<Advisor[]>("/advisors"),
         api<{ crm: CrmData }>("/crm/patients"),
         api<{ id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[]>("/support/tickets"),
+        api<Referral[]>("/referrals"),
       ]);
       signedRef.current = true;
       setSignedIn(true);
@@ -479,19 +483,24 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setSales(sales); setPrescriptions(prescriptions); setOffers(offers); setPurchases(purchases);
       setSuppliers(suppliers); setSupplyList(supply); setPurchaseOrders(orders);
       setExpenses(expenses.expenses); setExpenseCategories(expenses.categories); setEmployees(employees); setUsers(users);
-      setBankAccount(bank.bankAccount); setAdvisors(advisors); setCrm(crmPack.crm); setTickets(ticketRows);
+      setBankAccount(bank.bankAccount); setAdvisors(advisors); setCrm(crmPack.crm); setTickets(ticketRows); setReferrals(referralRows || []);
       if (session.businessType === "hospital") {
-        const [wards, admissions, indents, doctors, account] = await Promise.all([
+        const [wards, admissions, indents, doctors, account, departmentRows] = await Promise.all([
           api<Ward[]>("/hospital/wards").catch(() => [] as Ward[]),
           api<Admission[]>("/hospital/admissions").catch(() => [] as Admission[]),
           api<WardIndent[]>("/hospital/indents").catch(() => [] as WardIndent[]),
           api<DoctorProfile[]>("/hospital/doctors").catch(() => [] as DoctorProfile[]),
-          api<HospitalAccount>("/hospital/account").catch(() => DEFAULT_HOSPITAL_ACCOUNT),
+          api<HospitalAccount>("/hospital/account").catch(() => BLANK_HOSPITAL),
+          api<Department[]>("/hospital/departments").catch(() => [] as Department[]),
         ]);
-        setWards(wards); setAdmissions(admissions); setWardIndents(indents); setDoctors(doctors); setHospitalAccount(account);
+        setWards(wards); setAdmissions(admissions); setWardIndents(indents); setDoctors(doctors); setHospitalAccount(account); setDepartments(departmentRows);
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) { signedRef.current = false; setSignedIn(false); }
+      if (err instanceof ApiError && err.status === 401) { signedRef.current = false; setSignedIn(false); return; }
+      if (faultRef.current) return;
+      const fault = faultOf(err, "Could not load the pharmacy");
+      faultRef.current = fault;
+      setFormFault(fault);
     } finally { setHydrated(true); }
   }, []);
   useEffect(() => {
@@ -500,42 +509,47 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
   }, [refresh]);
+  const showFault = (err: unknown, fallback = "Save failed") => {
+    const fault = typeof err === "string" ? faultOf(new Error(err), fallback) : faultOf(err, fallback);
+    faultRef.current = fault;
+    setFormFault(fault);
+  };
+  const clearFault = () => { faultRef.current = null; setFormFault(null); };
   const post = (path: string, method: string, body?: unknown, opts?: { idem?: boolean; pull?: boolean }) => {
-    if (!signedRef.current) return Promise.resolve(null);
+    if (!signedRef.current) { showFault("Sign in required"); return Promise.resolve(null); }
     return api(path, { method, body, idempotency: opts?.idem, pricing: pricingRef.current }).then(async (result) => {
       if (opts?.pull) await refresh();
+      clearFault();
       return result;
     }).catch((err) => {
-      toast(err instanceof Error ? err.message : "Save failed");
+      showFault(err);
       void refresh();
       return null;
     });
   };
+  const ok = (res: unknown, done?: () => void): SaveFault | null => {
+    if (res == null) return faultRef.current ?? { message: "Save failed" };
+    done?.();
+    return null;
+  };
 
   // ── inventory ops ──
   const addProduct = (p: InvProduct) => { void post("/inventory/products", "POST", p, { pull: true }); setInventory((l) => [p, ...l]); };
-  const updateProduct = (id: string, patch: Partial<InvProduct>) => { void post(`/inventory/products/${id}`, "PATCH", patch); setInventory((l) => l.map((p) => (p.id === id ? { ...p, ...patch } : p))); };
+  const updateProduct = async (id: string, patch: Partial<InvProduct>): Promise<SaveFault | null> => {
+    const res = await post(`/inventory/products/${id}`, "PATCH", patch);
+    return ok(res, () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, ...patch } : p))));
+  };
   // rack / bin location: tied to the medicine (not the batch) — set once, persists across restocks
-  const setProductLocation = (id: string, rack: string, rackAlt?: string) => {
+  const setProductLocation = async (id: string, rack: string, rackAlt?: string): Promise<SaveFault | null> =>
+    ok(await post(`/inventory/products/${id}/location`, "PATCH", { rack, rackAlt }, { pull: true }));
+  const bulkAssignLocation = async (ids: string[], rack: string): Promise<SaveFault | null> =>
+    ok(await post("/inventory/location/bulk", "POST", { ids, rack }, { pull: true }));
+  const createRack = async (rack: string): Promise<"added" | "exists" | "failed"> => {
     const code = normalizeRack(rack);
-    void post(`/inventory/products/${id}/location`, "PATCH", { rack, rackAlt });
-    setInventory((l) => l.map((p) => (p.id === id ? { ...p, rack: code, rackAlt: normalizeRack(rackAlt ?? p.rackAlt ?? "") || undefined } : p)));
-    if (code) setRacks((r) => (r.includes(code) ? r : [...r, code]));
-  };
-  const bulkAssignLocation = (ids: string[], rack: string) => {
-    const code = normalizeRack(rack);
-    void post("/inventory/location/bulk", "POST", { ids, rack });
-    setInventory((l) => l.map((p) => (ids.includes(p.id) ? { ...p, rack: code } : p)));
-    if (code) setRacks((r) => (r.includes(code) ? r : [...r, code]));
-  };
-  // manual rack registry — create / remove a rack location (shows even when empty)
-  const createRack = (rack: string): boolean => {
-    const code = normalizeRack(rack);
-    void post("/racks", "POST", { rack: code });
-    if (!code) return false;
-    let added = false;
-    setRacks((r) => { if (r.includes(code)) return r; added = true; return [...r, code]; });
-    return added;
+    if (!code) { showFault("Rack code is required"); return "failed"; }
+    if (racks.includes(code)) return "exists";
+    const res = await post("/racks", "POST", { rack: code }, { pull: true });
+    return res == null ? "failed" : "added";
   };
   const removeRack = (rack: string) => {
     const code = normalizeRack(rack);
@@ -554,7 +568,10 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   };
   const toggleOnline = (id: string) => { void post(`/inventory/products/${id}/online`, "POST", {}, { pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, online: !p.online } : p))); };
   const toggleLoose = (id: string) => { void post(`/inventory/products/${id}/loose`, "POST", {}, { pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, looseAllowed: !(p.looseAllowed ?? true) } : p))); };
-  const setOnlinePrice = (id: string, price: number | undefined) => { void post(`/inventory/products/${id}/online-price`, "PATCH", { price }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, onlinePrice: price } : p))); };
+  const setOnlinePrice = async (id: string, price: number | undefined): Promise<SaveFault | null> => {
+    const res = await post(`/inventory/products/${id}/online-price`, "PATCH", { price });
+    return ok(res, () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, onlinePrice: price } : p))));
+  };
   const setProductOffer = (id: string, offerId: string | undefined) => { void post(`/inventory/products/${id}/offer`, "PATCH", { offerId }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, offerId } : p))); };
 
   // ── deduct stock FEFO when a sale is made ──
@@ -631,21 +648,26 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     [posItems, posDiscountFlat]
   );
 
-  const checkoutPos = (opts?: { paid?: boolean; ward?: string }): Sale | null => {
-    if (posItems.length === 0) return null;
+  const checkoutPos = async (opts?: { paid?: boolean; ward?: string }): Promise<SaveFault | null> => {
+    if (posItems.length === 0) { showFault("Nothing to bill"); return faultRef.current; }
     const payload = {
       lines: pos, customer: posCustomer, discount: posDiscount, discountMode: posDiscountMode, payMode: posPay,
       source: posSource, ward: opts?.ward || posWard, insurer: posInsurer, patientId: posPatientId, rxImage: posRxImage, paid: opts?.paid,
     };
-    void api<{ sale: Sale; prescription: Prescription | null; inventory: InvProduct[] }>("/pos/checkout", { method: "POST", body: payload, idempotency: true }).then((res) => {
+    try {
+      const res = await api<{ sale: Sale; prescription: Prescription | null; inventory: InvProduct[] }>("/pos/checkout", { method: "POST", body: payload, idempotency: true });
       setInventory(res.inventory);
       setSales((list) => [res.sale, ...list.filter((s) => s.id !== res.sale.id)]);
       if (res.prescription) setPrescriptions((list) => [res.prescription!, ...list.filter((p) => p.id !== res.prescription!.id)]);
       setLastInvoice(res.sale);
       posClear();
+      clearFault();
       toast(res.sale.paid ? "Invoice " + res.sale.id + " created" : "Bill " + res.sale.id + " sent to reception · payment pending");
-    }).catch((err) => toast(err instanceof Error ? err.message : "Bill failed"));
-    return null;
+      return null;
+    } catch (err) {
+      showFault(err, "Bill failed");
+      return faultRef.current;
+    }
   };
   // ── online order lifecycle ──
   // add one unit back to a product's batch (manual un-pick / cancellation restock)
@@ -755,7 +777,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ── offers ──
-  const addOffer = (o: Offer) => { void post("/offers", "POST", o, { pull: true }); setOffers((l) => [o, ...l]); };
+  const addOffer = async (o: Offer): Promise<SaveFault | null> => ok(await post("/offers", "POST", o, { pull: true }), () => toast(o.title + " launched"));
   const toggleOffer = (id: string) => { void post(`/offers/${id}/toggle`, "POST", {}, { pull: true }); setOffers((l) => l.map((o) => (o.id === id ? { ...o, active: !o.active } : o))); };
   const removeOffer = (id: string) => { void post(`/offers/${id}`, "DELETE", undefined, { pull: true }); setOffers((l) => l.filter((o) => o.id !== id)); };
   // apply / update / clear a direct per-product offer from the online-store page
@@ -772,12 +794,8 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ── staff / users ──
-  const addUser = (u: Omit<StaffUser, "id" | "lastActiveMins">) => { void post("/users", "POST", u, { pull: true });
-    userSeq.current += 1;
-    setUsers((l) => [...l, { ...u, id: "u" + userSeq.current, lastActiveMins: 0 }]);
-    toast(u.name + " added");
-  };
-  const updateUser = (id: string, patch: Partial<StaffUser>) => { void post(`/users/${id}`, "PATCH", patch); setUsers((l) => l.map((u) => (u.id === id ? { ...u, ...patch } : u))); };
+  const addUser = async (u: Omit<StaffUser, "id" | "lastActiveMins">): Promise<SaveFault | null> => ok(await post("/users", "POST", u, { pull: true }), () => toast(u.name + " added"));
+  const updateUser = async (id: string, patch: Partial<StaffUser>): Promise<SaveFault | null> => ok(await post(`/users/${id}`, "PATCH", patch), () => setUsers((l) => l.map((u) => (u.id === id ? { ...u, ...patch } : u))));
   const toggleUser = (id: string) => { const user = users.find((u) => u.id === id); if (user) void post(`/users/${id}`, "PATCH", { active: !user.active }); setUsers((l) => l.map((u) => (u.id === id ? { ...u, active: !u.active } : u))); };
   const removeUser = (id: string) => { void post(`/users/${id}`, "DELETE"); setUsers((l) => l.filter((u) => u.id !== id)); };
 
@@ -785,16 +803,15 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const addMonths = (iso: string, n: number) => { const d = new Date(iso + "T00:00:00"); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
   const todayISO = () => new Date(nowRef.current).toISOString().slice(0, 10);
   // renew the CURRENT plan/cycle: extend from the later of renewal date or today
-  const renewSubscription = () => { void post("/subscription", "PATCH", { action: "renew" }); setSubscription((s) => {
+  const renewSubscription = async (): Promise<SaveFault | null> => ok(await post("/subscription", "PATCH", { action: "renew" }), () => setSubscription((s) => {
     const base = s.renewsOn > todayISO() ? s.renewsOn : todayISO();
     return { ...s, status: "active", renewsOn: addMonths(base, s.cycle === "annual" ? 12 : 1) };
-  }); };
+  }));
   // upgrade / switch to a plan + billing cycle: starts a fresh term from today
-  const changePlan = (plan: Plan, cycle: BillingCycle) => {
-    void post("/subscription", "PATCH", { plan, cycle });
+  const changePlan = async (plan: Plan, cycle: BillingCycle): Promise<SaveFault | null> => ok(await post("/subscription", "PATCH", { plan, cycle }), () => {
     setSubscription((s) => ({ ...s, plan, cycle, status: "active", renewsOn: addMonths(todayISO(), cycle === "annual" ? 12 : 1) }));
     toast(`${plan} plan activated (${cycle === "annual" ? "annual" : "monthly"})`);
-  };
+  });
   const toggleAutoRenew = () => { void post("/subscription", "PATCH", { action: "toggle" }); setSubscription((s) => ({ ...s, autoRenew: !s.autoRenew })); };
   const featureLocked = (r: Route) => routeLocked(r, subscription);
 
@@ -812,14 +829,14 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       toast("Kiosk order " + res.sale.id + " sent to counter");
       return res.sale;
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Order failed");
+      showFault(err, "Order failed");
       return null;
     }
   };
 
   // ── CA report sharing ──
-  const addAdvisor = (a: Omit<Advisor, "id">) => { void post("/advisors", "POST", a, { pull: true }); advSeq.current += 1; setAdvisors((l) => [...l, { ...a, id: "adv" + advSeq.current }]); toast(a.type + " " + a.name + " added"); };
-  const updateAdvisor = (id: string, patch: Partial<Advisor>) => { void post(`/advisors/${id}`, "PATCH", patch); setAdvisors((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a))); };
+  const addAdvisor = async (a: Omit<Advisor, "id">): Promise<SaveFault | null> => ok(await post("/advisors", "POST", a, { pull: true }), () => toast(a.type + " " + a.name + " added"));
+  const updateAdvisor = async (id: string, patch: Partial<Advisor>): Promise<SaveFault | null> => ok(await post(`/advisors/${id}`, "PATCH", patch), () => setAdvisors((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a))));
   const removeAdvisor = (id: string) => { void post(`/advisors/${id}`, "DELETE"); setAdvisors((l) => l.filter((a) => a.id !== id)); };
   const shareWithCA = (period: string, reports: string[], advisorId: string) => { void post("/ca/shares", "POST", { period, reports, advisorId }, { pull: true });
     const adv = advisors.find((a) => a.id === advisorId) ?? advisors[0];
@@ -839,46 +856,36 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const markPOReceived = (id: string) => { void post(`/purchase-orders/${id}/received`, "POST"); setPurchaseOrders((l) => l.map((p) => (p.id === id ? { ...p, status: "received" } : p))); };
   const setProductSupplier = (id: string, supplierId: string) => { void post(`/inventory/products/${id}/supplier`, "PATCH", { supplierId }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, supplierId } : p))); };
   // ── expenses ──
-  const addExpense = (e: Omit<Expense, "id" | "number">) => { void post("/expenses", "POST", e, { pull: true });
-    expSeq.current += 1; const id = "EXP-" + expSeq.current;
-    setExpenses((l) => [{ ...e, id, number: id }, ...l]);
-    if (e.category && !expenseCategories.includes(e.category)) setExpenseCategories((c) => [...c, e.category]);
-    toast("Expense recorded · ₹" + Math.round(e.amount).toLocaleString("en-IN"));
-  };
+  const addExpense = async (e: Omit<Expense, "id" | "number">): Promise<SaveFault | null> => ok(await post("/expenses", "POST", e, { pull: true }), () => toast("Expense recorded · ₹" + Math.round(e.amount).toLocaleString("en-IN")));
   const updateExpense = (id: string, patch: Partial<Expense>) => { void post(`/expenses/${id}`, "PATCH", patch); setExpenses((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
   const removeExpense = (id: string) => { void post(`/expenses/${id}`, "DELETE"); setExpenses((l) => l.filter((e) => e.id !== id)); toast("Expense deleted"); };
   const addExpenseCategory = (name: string) => { const n = name.trim(); if (n && !expenseCategories.includes(n)) { void post("/expense-categories", "POST", { name: n }); setExpenseCategories((c) => [...c, n]); toast("Category added"); } };
   // ── employees (HR records) ──
-  const addEmployee = (e: Omit<Employee, "id">) => { void post("/employees", "POST", e, { pull: true });
-    empSeq.current += 1; const id = "EMP-" + String(empSeq.current).padStart(3, "0");
-    setEmployees((l) => [...l, { ...e, id }]); toast(e.name + " added");
-  };
-  const updateEmployee = (id: string, patch: Partial<Employee>) => { void post(`/employees/${id}`, "PATCH", patch); setEmployees((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
+  const addEmployee = async (e: Omit<Employee, "id">): Promise<SaveFault | null> => ok(await post("/employees", "POST", e, { pull: true }), () => toast(e.name + " added"));
+  const updateEmployee = async (id: string, patch: Partial<Employee>): Promise<SaveFault | null> => ok(await post(`/employees/${id}`, "PATCH", patch), () => setEmployees((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e))));
   const removeEmployee = (id: string) => { void post(`/employees/${id}`, "DELETE"); setEmployees((l) => l.filter((e) => e.id !== id)); toast("Employee removed"); };
   // ── customer credit (khata) repayments ──
-  const recordCreditPayment = (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => { void post("/credit/payments", "POST", p, { pull: true });
-    if (p.amount <= 0) return;
-    creditSeq.current += 1; const id = "CR-" + creditSeq.current;
-    setCreditPayments((l) => [{ ...p, id, at: Date.now() }, ...l]);
-    toast("Repayment recorded · ₹" + Math.round(p.amount).toLocaleString("en-IN"));
+  const recordCreditPayment = async (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }): Promise<SaveFault | null> => {
+    if (p.amount <= 0) { showFault("Amount must be positive"); return faultRef.current; }
+    return ok(await post("/credit/payments", "POST", p, { pull: true }), () => toast("Repayment recorded · ₹" + Math.round(p.amount).toLocaleString("en-IN")));
   };
   // ── CRM ──
   const crmId = (pfx: string) => { crmSeq.current += 1; return pfx + "-" + crmSeq.current; };
-  const setPatientMeta = (key: string, patch: PatientMeta) => { void post(`/crm/patients/${encodeURIComponent(key)}`, "PATCH", patch); setCrm((c) => ({ ...c, meta: { ...c.meta, [key]: { ...c.meta[key], ...patch } } })); };
-  const addCampaign = (c: Omit<Campaign, "id" | "sentAt">) => { void post("/crm/campaigns", "POST", c, { pull: true }); setCrm((s) => ({ ...s, campaigns: [{ ...c, id: crmId("CMP"), sentAt: Date.now() }, ...s.campaigns] })); toast(`Campaign sent to ${c.reach} customer${c.reach !== 1 ? "s" : ""}`); };
-  const addFeedback = (f: Omit<Feedback, "id" | "at">) => { void post("/crm/feedback", "POST", f, { pull: true }); setCrm((s) => ({ ...s, feedbacks: [{ ...f, id: crmId("FB"), at: Date.now() }, ...s.feedbacks] })); toast("Feedback saved"); };
+  const setPatientMeta = async (key: string, patch: PatientMeta): Promise<SaveFault | null> => ok(await post(`/crm/patients/${encodeURIComponent(key)}`, "PATCH", patch), () => setCrm((c) => ({ ...c, meta: { ...c.meta, [key]: { ...c.meta[key], ...patch } } })));
+  const addCampaign = async (c: Omit<Campaign, "id" | "sentAt">): Promise<SaveFault | null> => ok(await post("/crm/campaigns", "POST", c, { pull: true }), () => toast("Campaign saved"));
+  const addFeedback = async (f: Omit<Feedback, "id" | "at">): Promise<SaveFault | null> => ok(await post("/crm/feedback", "POST", f, { pull: true }), () => toast("Feedback saved"));
   const logReminder = (r: Omit<ReminderLog, "id" | "at">) => { void post("/crm/reminders", "POST", r, { pull: true }); setCrm((s) => ({ ...s, reminders: [{ ...r, id: crmId("RM"), at: Date.now() }, ...s.reminders] })); };
   const redeemPoints = (custKey: string, custName: string, points: number) => { if (points <= 0) return; void post("/crm/redemptions", "POST", { custKey, custName, points }, { pull: true }); setCrm((s) => ({ ...s, redemptions: [{ id: crmId("RD"), custKey, custName, points, value: points, at: Date.now() }, ...s.redemptions] })); toast(`Redeemed ${points} pts · ₹${points} off`); };
   // ── distributors / suppliers ──
-  const addSupplier = (s: Omit<Supplier, "id">) => { void post("/suppliers", "POST", s, { pull: true }); supplierSeq.current += 1; setSuppliers((l) => [...l, { ...s, id: "s" + supplierSeq.current }]); toast(s.name + " added"); };
-  const updateSupplier = (id: string, patch: Partial<Supplier>) => { void post(`/suppliers/${id}`, "PATCH", patch); setSuppliers((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))); };
+  const addSupplier = async (s: Omit<Supplier, "id">): Promise<SaveFault | null> => ok(await post("/suppliers", "POST", s, { pull: true }), () => toast(s.name + " added"));
+  const updateSupplier = async (id: string, patch: Partial<Supplier>): Promise<SaveFault | null> => ok(await post(`/suppliers/${id}`, "PATCH", patch), () => setSuppliers((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))));
   const removeSupplier = (id: string) => { void post(`/suppliers/${id}`, "DELETE", undefined, { pull: true });
     setSuppliers((l) => l.filter((s) => s.id !== id));
     setSupplyList((l) => l.filter((e) => e.supplierId !== id)); // drop its supply rows too
   };
   // ── distributor supply list ──
-  const addSupply = (s: Omit<SupplyEntry, "id">) => { void post("/supply-list", "POST", s, { pull: true }); supplySeq.current += 1; setSupplyList((l) => [...l, { ...s, id: "sl" + supplySeq.current }]); toast("Supply item added"); };
-  const updateSupply = (id: string, patch: Partial<SupplyEntry>) => { void post(`/supply-list/${id}`, "PATCH", patch); setSupplyList((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))); };
+  const addSupply = async (s: Omit<SupplyEntry, "id">): Promise<SaveFault | null> => ok(await post("/supply-list", "POST", s, { pull: true }), () => toast("Supply item added"));
+  const updateSupply = async (id: string, patch: Partial<SupplyEntry>): Promise<SaveFault | null> => ok(await post(`/supply-list/${id}`, "PATCH", patch), () => setSupplyList((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))));
   const removeSupply = (id: string) => { void post(`/supply-list/${id}`, "DELETE"); setSupplyList((l) => l.filter((s) => s.id !== id)); };
   const setPreferredSupply = (id: string) => { void post(`/supply-list/${id}/preferred`, "POST"); return setSupplyList((l) => {
     const target = l.find((s) => s.id === id);
@@ -888,13 +895,30 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ── settings ──
-  const updateProfile = (patch: Partial<PharmacyProfile>) => { setProfile((p) => { const next = { ...p, ...patch }; profileRef.current = next; return next; }); quiet.current = true; window.setTimeout(() => { quiet.current = false; void post("/pharmacy/profile", "PATCH", profileRef.current); }, 400); };
+  const profileWait = useRef<((fault: SaveFault | null) => void)[]>([]);
+  const profileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const updateProfile = (patch: Partial<PharmacyProfile>): Promise<SaveFault | null> => {
+    setProfile((p) => { const next = { ...p, ...patch }; profileRef.current = next; return next; });
+    quiet.current = true;
+    return new Promise((resolve) => {
+      profileWait.current.push(resolve);
+      if (profileTimer.current) clearTimeout(profileTimer.current);
+      profileTimer.current = setTimeout(() => {
+        quiet.current = false;
+        const waiters = profileWait.current;
+        profileWait.current = [];
+        void post("/pharmacy/profile", "PATCH", profileRef.current).then((res) => {
+          const fault = ok(res);
+          waiters.forEach((fn) => fn(fault));
+        });
+      }, 400);
+    });
+  };
   // ── payout bank account ──
-  const saveBankAccount = (b: Omit<BankAccount, "verified" | "addedOn">) => {
-    void post("/bank-account", "PUT", b);
+  const saveBankAccount = async (b: Omit<BankAccount, "verified" | "addedOn">): Promise<SaveFault | null> => ok(await post("/bank-account", "PUT", b), () => {
     setBankAccount({ ...b, verified: false, addedOn: todayISO() });
     toast("Bank account saved — verification pending");
-  };
+  });
   const verifyBankAccount = () => { void post("/bank-account/verify", "POST"); setBankAccount((b) => (b ? { ...b, verified: true } : b)); toast("Bank account verified"); };
   const removeBankAccount = () => { void post("/bank-account", "DELETE"); setBankAccount(null); toast("Bank account removed"); };
   // ── store setup wizard ──
@@ -903,7 +927,6 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const wipeData = () => { void post("/setup/wipe", "POST", undefined, { pull: true }); setInventory([]); setSales([]); setPrescriptions([]); setPurchases([]); setPurchaseOrders([]); setOffers([]); setCaShares([]); setSupplyList([]); };
   const setLooseDefault = (allowed: boolean) => { void post("/inventory/loose-default", "POST", { allowed }, { pull: true }); setInventory((l) => l.map((p) => (p.form === "Tablet" || p.form === "Capsule") ? { ...p, looseAllowed: allowed } : p)); };
   const toggleStoreOpen = () => { void post("/pharmacy/store-open", "POST"); setProfile((p) => ({ ...p, storeOpen: !p.storeOpen })); };
-  const resetDemo = () => { void api("/demo/reset", { method: "POST" }).then(() => refresh()).catch((err) => toast(err instanceof Error ? err.message : "Reset failed")); };
 
   // ── auth / onboarding ──
   const signIn = async (bt: BusinessType, name?: string, phone?: string, code?: string) => {
@@ -927,7 +950,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     toast("Claim " + id + " · " + status);
   };
   // ── wards (hospital setup) ──
-  const addWard = (w: Omit<Ward, "id">) => { void post("/hospital/wards", "POST", w, { pull: true }); wardSeq.current += 1; setWards((l) => [...l, { ...w, id: "W-" + wardSeq.current }]); toast(w.name + " added"); };
+  const addWard = async (w: Omit<Ward, "id">): Promise<SaveFault | null> => ok(await post("/hospital/wards", "POST", w, { pull: true }), () => toast(w.name + " added"));
   const updateWard = (id: string, patch: Partial<Ward>) => { void post(`/hospital/wards/${id}`, "PATCH", patch); setWards((l) => l.map((w) => (w.id === id ? { ...w, ...patch } : w))); };
   const removeWard = (id: string) => {
     if (admissions.some((a) => a.wardId === id && a.status === "admitted")) { toast("Discharge patients before removing this ward"); return; }
@@ -963,7 +986,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const updateHospitalAccount = (patch: Partial<HospitalAccount>) => {
     if (typeof patch.gstin === "string" && patch.gstin.trim() && !isValidGstin(patch.gstin)) {
       if (patch.gstin.trim().length < 15) setHospitalAccount((a) => ({ ...a, gstin: patch.gstin! }));
-      else toast("Enter a valid GSTIN");
+      else showFault("Enter a valid GSTIN");
       return;
     }
     void post("/hospital/account", "PATCH", patch); setHospitalAccount((a) => ({ ...a, ...patch }));
@@ -974,10 +997,11 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       await api("/hospital/pricing/unlock", { method: "POST", body: { code: otp } });
       pricingRef.current = true;
       setPricingUnlocked(true);
+      clearFault();
       toast("Pricing unlocked by admin");
       return true;
     } catch (err) {
-      toast(err instanceof Error ? err.message : "Incorrect admin OTP");
+      showFault(err, "Incorrect admin OTP");
       return false;
     }
   };
@@ -992,39 +1016,13 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     void post("/hospital/pricing/rules", "PATCH", { productId, rule });
     setHospitalPriceRules((m) => { const next = { ...m }; if (!rule || isNaN(rule.value) || rule.value < 0) delete next[productId]; else next[productId] = { mode: rule.mode, value: Math.round(rule.value * 100) / 100 }; return next; });
   };
-  // move pharmacy inventory for a ward supply, per item & per chosen batch:
-  // dir +1 = issue (deduct from the item's batch, FEFO fallback) · dir −1 = return (add back to that batch)
-  const moveInventory = (items: WardSupplyItem[], dir: 1 | -1) => {
-    setInventory((list) => list.map((p) => {
-      const lines = items.filter((it) => it.productId === p.id);
-      if (!lines.length) return p;
-      const batches = p.batches.map((b) => ({ ...b }));
-      const earliestIdx = () => { let bi = -1; batches.forEach((b, i) => { if (b.qty > 0 && (bi < 0 || b.expiry < batches[bi].expiry)) bi = i; }); return bi; };
-      for (const it of lines) {
-        if (dir === 1) {
-          let need = it.qty; const bi = it.batchNo ? batches.findIndex((b) => b.batchNo === it.batchNo) : -1;
-          if (bi >= 0) { const take = Math.min(batches[bi].qty, need); batches[bi].qty -= take; need -= take; }
-          while (need > 0) { const fi = earliestIdx(); if (fi < 0) break; const take = Math.min(batches[fi].qty, need); batches[fi].qty -= take; need -= take; }
-        } else {
-          const bi = it.batchNo ? batches.findIndex((b) => b.batchNo === it.batchNo) : -1;
-          if (bi >= 0) batches[bi].qty += it.qty;
-          else batches.push({ batchNo: it.batchNo || "RET", expiry: it.expiry || "—", qty: it.qty, mrp: it.mrp ?? it.price, ptr: it.price });
-        }
-      }
-      return { ...p, batches };
-    }));
-  };
   const supplyTotal = (items: WardSupplyItem[]) => Math.round(items.reduce((a, it) => a + it.amount, 0) * 100) / 100;
   const rupee = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
-  const issueWardSupply = (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">): WardSupply | null => {
-    if (!draft.items.length) return null;
-    void post("/hospital/ward-supplies/issue", "POST", draft, { idem: true, pull: true });
-    wsSeq.current += 1;
-    const supply: WardSupply = { ...draft, id: "WS-" + wsSeq.current, kind: "issue", total: supplyTotal(draft.items), at: Date.now() };
-    moveInventory(draft.items, 1);
-    setWardSupplies((l) => [supply, ...l]);
-    // a supply raised against a ward indent marks that indent issued + flows the billing back to it
-    if (draft.indentId) setWardIndents((l) => l.map((x) => (x.id === draft.indentId ? { ...x, status: "issued", items: x.items.map((it) => ({ ...it, issued: it.qty })) } : x)));
+  const issueWardSupply = async (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">): Promise<WardSupply | null> => {
+    if (!draft.items.length) { showFault("Nothing to issue"); return null; }
+    const res = await post("/hospital/ward-supplies/issue", "POST", draft, { idem: true, pull: true });
+    if (res == null) return null;
+    const supply: WardSupply = { ...draft, id: "WS", kind: "issue", total: supplyTotal(draft.items), at: Date.now() };
     toast(`Issued to ${draft.wardName} · ${rupee(supply.total)} to hospital a/c`);
     return supply;
   };
@@ -1046,30 +1044,28 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     issueWardSupply({ wardId: ind.wardId, wardName: ind.wardName, reason: "floor", items, refDoc: ind.id, indentId: ind.id });
     return true;
   };
-  const returnWardSupply = (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">): WardSupply | null => {
-    if (!draft.items.length) return null;
-    void post("/hospital/ward-supplies/return", "POST", draft, { idem: true, pull: true });
-    wrSeq.current += 1;
-    const supply: WardSupply = { ...draft, id: "WR-" + wrSeq.current, kind: "return", total: supplyTotal(draft.items), at: Date.now() };
-    moveInventory(draft.items, -1);
-    setWardSupplies((l) => [supply, ...l]);
+  const returnWardSupply = async (draft: Omit<WardSupply, "id" | "kind" | "at" | "total">): Promise<WardSupply | null> => {
+    if (!draft.items.length) { showFault("Nothing to return"); return null; }
+    const res = await post("/hospital/ward-supplies/return", "POST", draft, { idem: true, pull: true });
+    if (res == null) return null;
+    const supply: WardSupply = { ...draft, id: "WR", kind: "return", total: supplyTotal(draft.items), at: Date.now() };
     toast(`Return from ${draft.wardName} · credit note ${rupee(supply.total)}`);
     return supply;
   };
-  const recordHospitalPayment = (p: Omit<HospitalPayment, "id" | "at">) => {
-    if (p.amount <= 0) return;
-    void post("/hospital/payments", "POST", p, { idem: true, pull: true });
-    hpSeq.current += 1;
-    setHospitalPayments((l) => [{ ...p, id: "HP-" + hpSeq.current, at: Date.now() }, ...l]);
-    toast(`Hospital payment ${rupee(p.amount)} recorded`);
+  const recordHospitalPayment = async (p: Omit<HospitalPayment, "id" | "at">): Promise<SaveFault | null> => {
+    if (p.amount <= 0) { showFault("Amount must be positive"); return faultRef.current; }
+    return ok(await post("/hospital/payments", "POST", p, { idem: true, pull: true }), () => toast(`Hospital payment ${rupee(p.amount)} recorded`));
   };
 
   // ── doctor directory ──
-  const addDoctor = (d: Omit<DoctorProfile, "id">) => { void post("/hospital/doctors", "POST", d, { pull: true });
-    docSeq.current += 1; const id = "DR-" + String(docSeq.current).padStart(3, "0");
-    setDoctors((l) => [{ ...d, id }, ...l]); toast(d.name + " added");
-  };
-  const updateDoctor = (id: string, patch: Partial<DoctorProfile>) => { void post(`/hospital/doctors/${id}`, "PATCH", patch); setDoctors((l) => l.map((d) => (d.id === id ? { ...d, ...patch } : d))); };
+  const addDoctor = async (d: Omit<DoctorProfile, "id">): Promise<SaveFault | null> => ok(await post("/hospital/doctors", "POST", d, { pull: true }), () => toast(d.name + " added"));
+  const addDepartment = async (d: { name: string; head: string; type: Department["type"]; emoji?: string }): Promise<SaveFault | null> => ok(await post("/hospital/departments", "POST", d, { pull: true }), () => toast(d.name + " added"));
+  const updateDepartment = async (id: string, patch: Partial<Department>): Promise<SaveFault | null> => ok(await post(`/hospital/departments/${id}`, "PATCH", patch, { pull: true }));
+  const removeDepartment = (id: string) => { void post(`/hospital/departments/${id}`, "DELETE"); setDepartments((l) => l.filter((d) => d.id !== id)); toast("Department removed"); };
+  const addReferral = async (r: { name: string; area?: string }): Promise<SaveFault | null> => ok(await post("/referrals", "POST", r, { pull: true }), () => toast(r.name + " invited"));
+  const updateReferral = (id: string, patch: Partial<Referral>) => { void post(`/referrals/${id}`, "PATCH", patch); setReferrals((l) => l.map((r) => (r.id === id ? { ...r, ...patch } : r))); };
+  const removeReferral = (id: string) => { void post(`/referrals/${id}`, "DELETE"); setReferrals((l) => l.filter((r) => r.id !== id)); toast("Referral removed"); };
+  const updateDoctor = async (id: string, patch: Partial<DoctorProfile>): Promise<SaveFault | null> => ok(await post(`/hospital/doctors/${id}`, "PATCH", patch), () => setDoctors((l) => l.map((d) => (d.id === id ? { ...d, ...patch } : d))));
   const removeDoctor = (id: string) => { void post(`/hospital/doctors/${id}`, "DELETE"); setDoctors((l) => l.filter((d) => d.id !== id)); toast("Doctor removed"); };
 
   // settle a set of in-patient bills together (e.g. at discharge) with one payment mode
@@ -1081,12 +1077,12 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     toast(`Settled ${ids.length} bill${ids.length !== 1 ? "s" : ""} · ${PAY_LABEL[payMode]}`);
   };
 
-  const raiseTicket = (subject: string, category: string) => { void post("/support/tickets", "POST", { subject, category }, { pull: true }); toast("Ticket raised"); };
+  const raiseTicket = async (subject: string, category: string): Promise<SaveFault | null> => ok(await post("/support/tickets", "POST", { subject, category }, { pull: true }), () => toast("Ticket raised"));
 
   const value: Ctx = {
     signedIn, businessType, isHospital: businessType === "hospital", signIn, signOut,
     wards, addWard, updateWard, removeWard, admissions, admitPatient, updateAdmission, dischargePatient, startWardBilling,
-    wardIndents, departments, tpaClaims, doctors, addDoctor, updateDoctor, removeDoctor, setIndentStatus, setClaimStatus, settleBills,
+    wardIndents, departments, addDepartment, updateDepartment, removeDepartment, referrals, addReferral, updateReferral, removeReferral, tpaClaims, doctors, addDoctor, updateDoctor, removeDoctor, setIndentStatus, setClaimStatus, settleBills,
     hospitalAccount, updateHospitalAccount, hospitalPriceRules, setUniformDiscount, setHospitalPriceRule, pricingUnlocked, unlockPricing, lockPricing, wardSupplies, issueWardSupply, returnWardSupply, hospitalPayments, recordHospitalPayment,
     billIndentTarget, openIndentBilling, clearBillIndentTarget, issueIndent,
     route, go, back, canGoBack, registerBack, invFilter, setInvFilter, reportTarget, openReport, setReportTarget,
@@ -1109,10 +1105,10 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     crm, setPatientMeta, addCampaign, addFeedback, logReminder, redeemPoints,
     suppliers, addSupplier, updateSupplier, removeSupplier,
     supplyList, addSupply, updateSupply, removeSupply, setPreferredSupply,
-    updateProfile, toggleStoreOpen, resetDemo,
+    updateProfile, toggleStoreOpen,
     bankAccount, saveBankAccount, verifyBankAccount, removeBankAccount,
     setupComplete, startSetup, completeSetup, wipeData, setLooseDefault,
-    toast, toastMsg, tickets, raiseTicket, me,
+    toast, toastMsg, formFault, showFault, clearFault, tickets, raiseTicket, me,
   };
   if (!hydrated) return <div className="pd-boot">Loading pharmacy…</div>;
   return <PCtx.Provider value={value}>{children}</PCtx.Provider>;

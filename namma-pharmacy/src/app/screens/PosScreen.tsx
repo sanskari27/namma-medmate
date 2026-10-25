@@ -56,8 +56,8 @@ export default function PosScreen() {
   // page-1 (cart) details that must be set before moving to the payment page
   const detailsOk = rxOk && wardOk;
 
-  const doCheckout = () => { if (!okToBill) return; checkoutPos(); setStep("cart"); };
-  const doReception = () => { if (!rxOk || !wardOk || !insurerOk) return; checkoutPos({ paid: false }); setStep("cart"); };
+  const doCheckout = async () => { if (!okToBill) return; const err = await checkoutPos(); if (!err) setStep("cart"); };
+  const doReception = async () => { if (!rxOk || !wardOk || !insurerOk) return; const err = await checkoutPos({ paid: false }); if (!err) setStep("cart"); };
   // if the cart empties (cleared / checked out) drop back to the cart page
   if (step === "pay" && pos.length === 0) setStep("cart");
 
@@ -177,12 +177,12 @@ export default function PosScreen() {
               <div className="pd-bill-sec">
                 <div className="pd-sec-lbl"><IconUser size={12} /> Customer</div>
                 <div className="pd-bill-cust">
-                  <input className="pd-input" placeholder="Name (walk-in)" value={posCustomer.name} onChange={(e) => setPosCustomer({ name: e.target.value })} />
-                  <input className="pd-input" placeholder="Phone" value={posCustomer.phone} onChange={(e) => setPosCustomer({ phone: e.target.value })} inputMode="tel" />
+                  <input className="pd-input" data-field="name" placeholder="Name (walk-in)" value={posCustomer.name} onChange={(e) => setPosCustomer({ name: e.target.value })} />
+                  <input className="pd-input" data-field="phone" placeholder="Phone" value={posCustomer.phone} onChange={(e) => setPosCustomer({ phone: e.target.value })} inputMode="tel" />
                 </div>
                 {hasRx && (
                   <>
-                    <input className={`pd-input${!rxOk ? " pd-input-warn" : ""}`} style={{ marginTop: 8, width: "100%" }} placeholder="Prescribing doctor (required for Rx items)" value={posCustomer.doctor} onChange={(e) => setPosCustomer({ doctor: e.target.value })} />
+                    <input className={`pd-input${!rxOk ? " pd-input-warn" : ""}`} data-field="doctor" style={{ marginTop: 8, width: "100%" }} placeholder="Prescribing doctor (required for Rx items)" value={posCustomer.doctor} onChange={(e) => setPosCustomer({ doctor: e.target.value })} />
                     <div className={`pd-rxhint ${rxOk ? "ok" : "warn"}`}>{rxOk ? <><IconCheck size={12} /> Rx doctor recorded</> : <><IconAlert size={12} /> This bill has Rx-only medicine — enter the doctor</>}</div>
                   </>
                 )}

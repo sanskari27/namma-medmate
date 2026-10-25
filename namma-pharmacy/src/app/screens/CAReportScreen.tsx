@@ -49,7 +49,7 @@ export default function CAReportScreen() {
             <button className="pd-btn pd-btn-primary pd-btn-block" style={{ marginTop: 16 }} disabled={picked.length === 0 || !rec} onClick={() => shareWithCA(period, picked, recipient)}>
               <IconSend size={16} /> Share {picked.length} report{picked.length !== 1 ? "s" : ""}{rec ? ` with ${rec.name.split(" ").slice(-1)[0]}` : ""}
             </button>
-            <p className="pd-muted" style={{ fontSize: 11.5, marginTop: 10 }}>A secure link to the selected reports is emailed to your CA or accountant — they can view & download GSTR-ready data, no login needed.</p>
+            <p className="pd-muted" style={{ fontSize: 11.5, marginTop: 10 }}>This saves the share on your account. It does not email the reports.</p>
           </div>
         </div>
 
@@ -114,7 +114,7 @@ export default function CAReportScreen() {
         </div>
       </div>
 
-      {edit && <AdvisorModal initial={edit} onClose={() => setEdit(null)} onSave={(a, id) => { id ? updateAdvisor(id, a) : addAdvisor(a); setEdit(null); }} />}
+      {edit && <AdvisorModal initial={edit} onClose={() => setEdit(null)} onSave={async (a, id) => { const err = id ? await updateAdvisor(id, a) : await addAdvisor(a); if (!err) setEdit(null); }} />}
     </div>
   );
 }
@@ -136,10 +136,10 @@ function AdvisorModal({ initial, onClose, onSave }: { initial: Advisor | Advisor
             </div>
           </div>
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Name</label><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder={f.type === "CA" ? "CA Sunil Sharma" : "Meena Iyer"} /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Name</label><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder={f.type === "CA" ? "CA Sunil Sharma" : "Meena Iyer"} /></div>
             <div className="pd-field pd-span2"><label>Firm / organisation</label><input className="pd-input" value={f.firm} onChange={(e) => set({ firm: e.target.value })} /></div>
-            <div className="pd-field"><label>Email</label><input className="pd-input" value={f.email} onChange={(e) => set({ email: e.target.value })} /></div>
-            <div className="pd-field"><label>Phone</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
+            <div className="pd-field" data-field="email"><label>Email</label><input className="pd-input" value={f.email} onChange={(e) => set({ email: e.target.value })} /></div>
+            <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
           </div>
         </div>
         <div className="pd-modal-foot">

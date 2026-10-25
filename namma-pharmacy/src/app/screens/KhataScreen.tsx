@@ -170,14 +170,14 @@ export default function KhataScreen() {
 
 function KhataModal({ c, onClose, sales, creditPayments, recordCreditPayment, profile, now, go }: {
   c: CreditCustomer; onClose: () => void; sales: Sale[]; creditPayments: CreditPayment[];
-  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => void; profile: any; now: number; go: (r: any) => void;
+  recordCreditPayment: (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }) => Promise<unknown>; profile: any; now: number; go: (r: any) => void;
 }) {
   const ledger = customerLedger(c.key, sales, creditPayments);
   const aging: CreditAging = creditAging(c.key, sales, creditPayments, now);
   const [repay, setRepay] = useState(c.outstanding > 0);
   const [amt, setAmt] = useState(c.outstanding);
   const [mode, setMode] = useState<PayMode>("cash");
-  const doRepay = () => { if (amt <= 0) return; recordCreditPayment({ custKey: c.key, custName: c.name, custPhone: c.phone, amount: Math.min(amt, c.outstanding || amt), mode }); setRepay(false); };
+  const doRepay = async () => { if (amt <= 0) return; const err = await recordCreditPayment({ custKey: c.key, custName: c.name, custPhone: c.phone, amount: Math.min(amt, c.outstanding || amt), mode }); if (!err) setRepay(false); };
   const collectText = collectMsg(c.name, profile.name, c.outstanding, profile.phone);
   const firstBillAt = Math.min(...ledger.filter((r) => r.kind === "debit").map((r) => r.at), now);
 
@@ -219,7 +219,7 @@ function KhataModal({ c, onClose, sales, creditPayments, recordCreditPayment, pr
                 <button className={`pd-chip${amt === c.outstanding ? " on" : ""}`} onClick={() => setAmt(c.outstanding)}>Full · {inr(c.outstanding)}</button>
               </div>
               <div className="pd-flex" style={{ gap: 8, alignItems: "center", flexWrap: "wrap" }}>
-                <input className="pd-input" type="number" min={0} value={amt || ""} onChange={(e) => setAmt(Number(e.target.value) || 0)} placeholder="Amount ₹" style={{ width: 120 }} autoFocus />
+                <input className="pd-input" data-field="amount" type="number" min={0} value={amt || ""} onChange={(e) => setAmt(Number(e.target.value) || 0)} placeholder="Amount ₹" style={{ width: 120 }} autoFocus />
                 <select className="pd-select" value={mode} onChange={(e) => setMode(e.target.value as PayMode)} style={{ width: 120 }}>{SETTLED_MODES.filter((m) => m !== "cod").map((m) => <option key={m} value={m}>{PAY_LABEL[m]}</option>)}</select>
                 <button className="pd-btn pd-btn-primary" disabled={amt <= 0} onClick={doRepay}><IconCheck size={14} /> Collect {inr(Math.min(amt, c.outstanding || amt))}</button>
                 <button className="pd-btn pd-btn-ghost" onClick={() => setRepay(false)}>Cancel</button>

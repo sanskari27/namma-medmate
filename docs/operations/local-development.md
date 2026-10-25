@@ -8,7 +8,7 @@ make dev
 
 `make dev` starts local Postgres from `compose.yaml` when Docker or Podman is available, then runs `namma-pharmacy` at http://localhost:3000/. `make pharmacy` is the same application.
 
-Sign in with any six-digit code while Cognito is not configured. A new pharmacy starts empty. Settings → Reset asks for confirmation, then loads the development sample store. If a sample staff mobile is already registered to another pharmacy, that person stays in the user list and the number still signs into the pharmacy that owns it. Two browsers signed in as the same phone see the same pharmacy.
+Sign in with any six-digit code while Cognito is not configured. A new pharmacy starts empty. The dashboard does not show a demo reset. Outside production, `POST /api/v1/demo/reset` loads the sample store. If a sample staff mobile is already registered to another pharmacy, that person stays in the user list and the number still signs into the pharmacy that owns it. Two browsers signed in as the same phone see the same pharmacy.
 
 ## Public site
 

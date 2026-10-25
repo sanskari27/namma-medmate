@@ -117,7 +117,7 @@ function PurchaseModal({ onClose }: { onClose: () => void }) {
         <div className="pd-modal-body">
           <div className="pd-form-grid-3" style={{ marginBottom: 18 }}>
             <div className="pd-field"><label>Distributor / supplier</label><select className="pd-select" value={supplierId} onChange={(e) => setSupplierId(e.target.value)}>{suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}</select></div>
-            <div className="pd-field"><label>Invoice no.</label><input className="pd-input" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} placeholder="BPD/26-27/8842" /></div>
+            <div className="pd-field" data-field="invoiceNo"><label>Invoice no.</label><input className="pd-input" value={invoiceNo} onChange={(e) => setInvoiceNo(e.target.value)} placeholder="BPD/26-27/8842" /></div>
             <div className="pd-field"><label>Invoice date</label><input className="pd-input" type="date" value={invoiceDate} onChange={(e) => setInvoiceDate(e.target.value)} /></div>
           </div>
 

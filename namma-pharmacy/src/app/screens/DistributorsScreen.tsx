@@ -106,10 +106,9 @@ function Directory() {
         <DistributorModal
           init={edit ?? undefined}
           onClose={() => { setAdding(false); setEdit(null); }}
-          onSave={(data) => {
-            if (edit) updateSupplier(edit.id, data);
-            else addSupplier(data);
-            setAdding(false); setEdit(null);
+          onSave={async (data) => {
+            const err = edit ? await updateSupplier(edit.id, data) : await addSupplier(data);
+            if (!err) { setAdding(false); setEdit(null); }
           }}
         />
       )}
@@ -210,10 +209,9 @@ function SupplyList() {
         <SupplyModal
           init={edit ?? undefined}
           onClose={() => { setAdding(false); setEdit(null); }}
-          onSave={(data) => {
-            if (edit) updateSupply(edit.id, data);
-            else addSupply(data);
-            setAdding(false); setEdit(null);
+          onSave={async (data) => {
+            const err = edit ? await updateSupply(edit.id, data) : await addSupply(data);
+            if (!err) { setAdding(false); setEdit(null); }
           }}
         />
       )}
@@ -314,7 +312,7 @@ const BLANK_SUP: Omit<Supplier, "id"> = {
 };
 
 function DistributorModal({ init, onClose, onSave }: { init?: Supplier; onClose: () => void; onSave: (d: Omit<Supplier, "id">) => void }) {
-  const { toast } = usePharma();
+  const { showFault } = usePharma();
   const [f, setF] = useState<Omit<Supplier, "id">>(init ? { ...init } : { ...BLANK_SUP });
   const set = (p: Partial<typeof f>) => setF((s) => ({ ...s, ...p }));
   return (
@@ -323,11 +321,11 @@ function DistributorModal({ init, onClose, onSave }: { init?: Supplier; onClose:
         <div className="pd-modal-head"><h3>{init ? "Edit distributor" : "Add distributor"}</h3><button className="pd-x" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Distributor / firm name *</label><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Bengaluru Pharma Distributors" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Distributor / firm name *</label><input className="pd-input" value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Bengaluru Pharma Distributors" /></div>
             <div className="pd-field"><label>Contact person</label><input className="pd-input" value={f.contactPerson || ""} onChange={(e) => set({ contactPerson: e.target.value })} /></div>
-            <div className="pd-field"><label>Phone *</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
-            <div className="pd-field"><label>Email</label><input className="pd-input" value={f.email || ""} onChange={(e) => set({ email: e.target.value })} /></div>
-            <div className="pd-field"><label>GSTIN</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value.toUpperCase() })} placeholder="29ABCDE1234F1Z5" /></div>
+            <div className="pd-field" data-field="phone"><label>Phone *</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
+            <div className="pd-field" data-field="email"><label>Email</label><input className="pd-input" value={f.email || ""} onChange={(e) => set({ email: e.target.value })} /></div>
+            <div className="pd-field" data-field="gstin"><label>GSTIN</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value.toUpperCase() })} placeholder="29ABCDE1234F1Z5" /></div>
             <div className="pd-field"><label>Drug licence no.</label><input className="pd-input pd-mono" value={f.dlNo || ""} onChange={(e) => set({ dlNo: e.target.value.toUpperCase() })} placeholder="KA-W-…" /></div>
             <div className="pd-field pd-span2"><label>Address</label><input className="pd-input" value={f.address || ""} onChange={(e) => set({ address: e.target.value })} /></div>
             <div className="pd-field"><label>City</label><input className="pd-input" value={f.city || ""} onChange={(e) => set({ city: e.target.value })} /></div>
@@ -346,7 +344,7 @@ function DistributorModal({ init, onClose, onSave }: { init?: Supplier; onClose:
         </div>
         <div className="pd-modal-foot">
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="pd-btn pd-btn-primary" disabled={!f.name.trim() || !f.phone.trim()} onClick={() => { if (f.gstin.trim() && !isValidGstin(f.gstin)) { toast("Enter a valid GSTIN"); return; } onSave(f); }}>{init ? "Save changes" : "Add distributor"}</button>
+          <button className="pd-btn pd-btn-primary" disabled={!f.name.trim() || !f.phone.trim()} onClick={() => { if (f.gstin.trim() && !isValidGstin(f.gstin)) { showFault("Enter a valid GSTIN"); return; } onSave(f); }}>{init ? "Save changes" : "Add distributor"}</button>
         </div>
       </div>
     </div>
@@ -382,7 +380,7 @@ function SupplyModal({ init, onClose, onSave }: { init?: SupplyEntry; onClose: (
                 {suppliers.map((s) => <option key={s.id} value={s.id}>{s.name}</option>)}
               </select>
             </div>
-            <div className="pd-field"><label>Purchase price ₹ (per pack) *</label><input className="pd-input" type="number" step="0.01" value={f.purchasePrice || ""} onChange={(e) => set({ purchasePrice: Number(e.target.value) || 0 })} /></div>
+            <div className="pd-field" data-field="amount"><label>Purchase price ₹ (per pack) *</label><input className="pd-input" type="number" step="0.01" value={f.purchasePrice || ""} onChange={(e) => set({ purchasePrice: Number(e.target.value) || 0 })} /></div>
             <div className="pd-field"><label>MRP ₹ (per pack)</label><input className="pd-input" type="number" step="0.01" value={f.mrp ?? ""} onChange={(e) => set({ mrp: e.target.value === "" ? undefined : Number(e.target.value) })} /></div>
             <div className="pd-field"><label>Bonus — buy</label><input className="pd-input" type="number" value={f.bonusBuy ?? ""} onChange={(e) => set({ bonusBuy: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="e.g. 10" /></div>
             <div className="pd-field"><label>… get free</label><input className="pd-input" type="number" value={f.bonusFree ?? ""} onChange={(e) => set({ bonusFree: e.target.value === "" ? undefined : Number(e.target.value) })} placeholder="e.g. 1" /></div>

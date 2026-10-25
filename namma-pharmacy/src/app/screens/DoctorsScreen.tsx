@@ -87,7 +87,7 @@ export default function DoctorsScreen() {
 
       {editing && <DoctorModal initial={editing === "new" ? null : editing} departments={departments.map((d) => d.name)}
         onClose={() => setEditing(null)}
-        onSave={(d) => { editing === "new" ? addDoctor(d) : updateDoctor((editing as DoctorProfile).id, d); setEditing(null); }}
+        onSave={async (d) => { const err = editing === "new" ? await addDoctor(d) : await updateDoctor((editing as DoctorProfile).id, d); if (!err) setEditing(null); }}
         onDelete={editing !== "new" ? () => { removeDoctor((editing as DoctorProfile).id); setEditing(null); } : undefined} />}
     </div>
   );
@@ -128,15 +128,15 @@ function DoctorModal({ initial, departments, onClose, onSave, onDelete }: {
           </div>
 
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Full name *</label><input className="pd-input" autoFocus value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Dr. …" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Full name *</label><input className="pd-input" autoFocus value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="Dr. …" /></div>
             <div className="pd-field"><label>Qualification</label><input className="pd-input" value={d.qualification} onChange={(e) => set({ qualification: e.target.value })} placeholder="MBBS, MD…" /></div>
             <div className="pd-field"><label>Specialty</label><select className="pd-select" value={d.specialty} onChange={(e) => set({ specialty: e.target.value })}>{DOCTOR_SPECIALTIES.map((s) => <option key={s}>{s}</option>)}</select></div>
             <div className="pd-field"><label>Department</label><select className="pd-select" value={d.department} onChange={(e) => set({ department: e.target.value })}><option value="">— Select —</option>{departments.map((x) => <option key={x}>{x}</option>)}</select></div>
             <div className="pd-field"><label>Medical Reg. No.</label><input className="pd-input pd-mono" value={d.regNo} onChange={(e) => set({ regNo: e.target.value })} placeholder="e.g. KMC-12345" /></div>
             <div className="pd-field"><label>Gender</label><select className="pd-select" value={d.gender} onChange={(e) => set({ gender: e.target.value as DoctorProfile["gender"], emoji: e.target.value === "Female" ? "👩‍⚕️" : "👨‍⚕️" })}><option>Male</option><option>Female</option><option>Other</option></select></div>
             <div className="pd-field"><label>Experience (years)</label><input className="pd-input" type="number" min={0} value={d.experience || ""} onChange={(e) => set({ experience: Number(e.target.value) || 0 })} /></div>
-            <div className="pd-field"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
-            <div className="pd-field"><label>Email</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="doctor@hospital.in" /></div>
+            <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
+            <div className="pd-field" data-field="email"><label>Email</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="doctor@hospital.in" /></div>
             <div className="pd-field"><label>OPD room</label><input className="pd-input" value={d.opdRoom} onChange={(e) => set({ opdRoom: e.target.value })} placeholder="OPD-1" /></div>
             <div className="pd-field"><label>Consulting days</label><input className="pd-input" value={d.days} onChange={(e) => set({ days: e.target.value })} placeholder="Mon–Sat" /></div>
             <div className="pd-field"><label>Consulting hours</label><input className="pd-input" value={d.timing} onChange={(e) => set({ timing: e.target.value })} placeholder="10:00 AM – 1:00 PM" /></div>

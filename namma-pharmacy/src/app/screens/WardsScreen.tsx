@@ -131,7 +131,7 @@ function WardSetupModal({ onClose }: { onClose: () => void }) {
   const { wards, addWard, updateWard, removeWard } = usePharma();
   const [draft, setDraft] = useState<Omit<Ward, "id">>({ name: "", code: "", floor: "", type: "General", beds: 10, occupied: 0, sister: "" });
   const setD = (p: Partial<Ward>) => setDraft((s) => ({ ...s, ...p }));
-  const add = () => { if (!draft.name.trim() || !draft.code.trim()) return; addWard(draft); setDraft({ name: "", code: "", floor: "", type: "General", beds: 10, occupied: 0, sister: "" }); };
+  const add = async () => { if (!draft.name.trim() || !draft.code.trim()) return; const err = await addWard(draft); if (!err) setDraft({ name: "", code: "", floor: "", type: "General", beds: 10, occupied: 0, sister: "" }); };
 
   return (
     <div className="pd-modal-wrap" onClick={onClose}>
@@ -160,7 +160,7 @@ function WardSetupModal({ onClose }: { onClose: () => void }) {
           <div className="pd-card pd-card-pad" style={{ marginTop: 16, background: "var(--wash2)" }}>
             <b style={{ display: "block", marginBottom: 10 }}>Add a ward</b>
             <div className="pd-form-grid">
-              <div className="pd-field pd-span2"><label>Ward name</label><input className="pd-input" value={draft.name} onChange={(e) => setD({ name: e.target.value })} placeholder="e.g. Orthopaedic Ward" /></div>
+              <div className="pd-field pd-span2" data-field="name"><label>Ward name</label><input className="pd-input" value={draft.name} onChange={(e) => setD({ name: e.target.value })} placeholder="e.g. Orthopaedic Ward" /></div>
               <div className="pd-field"><label>Code / bed prefix</label><input className="pd-input pd-mono" value={draft.code} onChange={(e) => setD({ code: e.target.value.toUpperCase() })} placeholder="ORT" /></div>
               <div className="pd-field"><label>Floor</label><input className="pd-input" value={draft.floor} onChange={(e) => setD({ floor: e.target.value })} placeholder="3rd floor" /></div>
               <div className="pd-field"><label>Category</label><select className="pd-select" value={draft.type} onChange={(e) => setD({ type: e.target.value as WardType })}>{WARD_TYPES.map((t) => <option key={t}>{t}</option>)}</select></div>
@@ -206,9 +206,9 @@ function AdmitModal({ preset, onClose, onAdmitted }: { preset: { wardId: string;
         <div className="pd-modal-head"><h3>Admit patient</h3><button className="pd-iconbtn" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Patient name *</label><input className="pd-input" autoFocus value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="Full name" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Patient name *</label><input className="pd-input" autoFocus value={f.name} onChange={(e) => set({ name: e.target.value })} placeholder="Full name" /></div>
             <div className="pd-field"><label>Patient ID / UHID *</label><input className="pd-input pd-mono" value={f.patientId} onChange={(e) => set({ patientId: e.target.value })} /></div>
-            <div className="pd-field"><label>Phone</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
+            <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
             <div className="pd-field"><label>Age</label><input className="pd-input" type="number" min={0} value={f.age} onChange={(e) => set({ age: e.target.value })} /></div>
             <div className="pd-field"><label>Gender</label><select className="pd-select" value={f.gender} onChange={(e) => set({ gender: e.target.value as Admission["gender"] })}><option>Male</option><option>Female</option><option>Other</option></select></div>
             <div className="pd-field"><label>Ward *</label><select className="pd-select" value={wardId} onChange={(e) => pickWard(e.target.value)}>{wards.map((w) => <option key={w.id} value={w.id}>{w.name} ({wardBedNos(w).filter((b) => !occupiedBedsOf(admissions, w.id).has(b)).length} free)</option>)}</select></div>

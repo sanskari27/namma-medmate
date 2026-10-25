@@ -3,7 +3,7 @@ import { Pool, type PoolClient } from "pg";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { fail } from "./errors";
 import { absorbFiles } from "./files";
-import { PharmacyState } from "./state";
+import { stripDemo, type PharmacyState } from "./state";
 import type { BusinessType } from "./types";
 
 const SCHEMA = `
@@ -181,7 +181,9 @@ export async function loadState(pharmacyId: string): Promise<PharmacyState> {
   await migrate();
   const { rows } = await getPool().query("SELECT state FROM pharmacies WHERE id = $1", [pharmacyId]);
   if (!rows[0]) fail(404, "NOT_FOUND", "Pharmacy not found");
-  return fromPaise(rows[0].state) as PharmacyState;
+  const state = fromPaise(rows[0].state) as PharmacyState;
+  if (stripDemo(state)) await replaceState(pharmacyId, state);
+  return state;
 }
 
 export async function withState<T>(pharmacyId: string, fn: (state: PharmacyState) => T | Promise<T>): Promise<T> {
@@ -192,6 +194,7 @@ export async function withState<T>(pharmacyId: string, fn: (state: PharmacyState
     const { rows } = await client.query("SELECT state FROM pharmacies WHERE id = $1 FOR UPDATE", [pharmacyId]);
     if (!rows[0]) fail(404, "NOT_FOUND", "Pharmacy not found");
     const state = fromPaise(rows[0].state) as PharmacyState;
+    stripDemo(state);
     const result = await fn(state);
     const stored = await absorbFiles(client, pharmacyId, state);
     await client.query("UPDATE pharmacies SET state = $2, setup_complete = $3, business_type = $4, updated_at = now() WHERE id = $1", [

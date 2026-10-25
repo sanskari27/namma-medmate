@@ -6,7 +6,7 @@ The public URL is `/`. `Shell.tsx` switches screens from the `Route` value in `p
 
 ## Access model
 
-Sign-in is the OTP screen in `Onboarding.tsx`. The hinted demo code is `123456`, and any six digits signs in. The user chooses `pharmacy` or `hospital`. That choice is `businessType`.
+Sign-in is the OTP screen in `Onboarding.tsx`. Production sends the code through Cognito. Local development without Cognito accepts any six-digit code and shows `123456`. The user chooses `pharmacy` or `hospital`. That choice is `businessType`.
 
 A nine-step setup wizard in `SetupWizard.tsx` can run before the shell. `setupComplete` remembers that it finished.
 
@@ -60,12 +60,12 @@ Hospital routes are additionally hidden unless `businessType` is `hospital`.
 | `ca` | `CAReportScreen.tsx` | Growth copy | Advisor records and a share action. Share shows a toast; it does not send email. |
 | `account` | `AccountScreen.tsx` | Always open | Profile summary, plan, bank account, and shortcuts. |
 | `employees` | `EmployeesScreen.tsx` | Growth copy | Employee records and document data URLs. |
-| `users` | `UsersScreen.tsx` | Growth copy | Staff profiles, roles, and permissions. The shell hides screens the signed-in user cannot open. Seed records contain demo passwords. |
+| `users` | `UsersScreen.tsx` | Growth copy | Staff profiles, roles, and permissions. The shell hides screens the signed-in user cannot open. A new pharmacy has the owner only. |
 | `invoicing` | `InvoiceSettingsScreen.tsx` | Free | Invoice prefix, template, terms, and logo. Templates include thermal. |
-| `subscription` | `SubscriptionScreen.tsx` | Always open | Plan and billing-cycle change with a mock checkout. |
-| `refer` | `ReferScreen.tsx` | Always open | Static referral rows and a generated code. No referral records are stored. |
-| `settings` | `SettingsScreen.tsx` | Always open | Profile, licences, custom fields, loose-sale default, and demo reset. |
-| `support` | `SupportScreen.tsx` | Always open | Static FAQ and channels. Tickets stay in component state, including seed ticket `TKT-8841`. |
+| `subscription` | `SubscriptionScreen.tsx` | Always open | Shows the current plan. Paid checkout is not offered, and no receipt rows are invented. Downgrade to Free is still available. |
+| `refer` | `ReferScreen.tsx` | Always open | Generates a code from the pharmacy name. Invited pharmacies are stored on the account. |
+| `settings` | `SettingsScreen.tsx` | Always open | Profile, licences, custom fields, and loose-sale default. |
+| `support` | `SupportScreen.tsx` | Always open | FAQ and tickets stored on the pharmacy. No sample ticket is created. |
 
 ## Hospital screens
 
@@ -74,11 +74,11 @@ Shown only for `businessType: "hospital"`. Plan copy says Pro. The current gate 
 | Route | Screen | Current behavior |
 |-------|--------|------------------|
 | `wards` | `WardsScreen.tsx` | Ward records, admit, discharge, bed map, and start a POS bill for an admission. Occupied wards cannot be removed. |
-| `hospbill` | `HospitalBillingScreen.tsx` | Hospital credit account, ward issue and return, pricing changes after OTP `123456`, payments, and indent billing. |
+| `hospbill` | `HospitalBillingScreen.tsx` | Hospital credit account, ward issue and return, pricing changes after the admin PIN, payments, and indent billing. The fixed code `123456` is accepted only outside production. |
 | `ptbills` | `PatientBillsScreen.tsx` | Active inpatient bills and batch settlement. |
 | `salesreg` | `SalesRegisterScreen.tsx` | Sales filtered by source, payment mode, and insurer. |
 | `indents` | `IndentsScreen.tsx` | Approve, reject, or issue a ward indent. Issue moves stock and opens hospital billing when needed. |
-| `departments` | `DepartmentsScreen.tsx` | Read-only seeded departments and doctors. No mutation exists. |
+| `departments` | `DepartmentsScreen.tsx` | Create, edit, and remove departments. The list starts empty. |
 | `doctors` | `DoctorsScreen.tsx` | Create, edit, and remove doctor profiles. |
 
 ## Declared data without a screen
@@ -102,4 +102,5 @@ Exports are generated in the browser by `lib/reportExport.ts`, `lib/stockExport.
 - Prescription images, logos, signatures, product photos, and employee documents are stored and returned as `/api/v1/files/<id>`.
 - GST totals on screen are JavaScript rupees. The API converts money fields to integer paise at the boundary.
 - Stock writes that move quantity require an `Idempotency-Key`. The same key returns the original result and does not move stock twice.
-- Settings → Reset asks for confirmation, then loads the sample store. A sample mobile that already belongs to another pharmacy stays visible on the user list and still signs into the pharmacy that owns it.
+- The dashboard does not offer a demo reset. Outside production, `POST /api/v1/demo/reset` still loads the sample store. A sample mobile that already belongs to another pharmacy stays visible on the user list and still signs into the pharmacy that owns it.
+- In production, a pharmacy document that still matches the sample store (sale `INV-2601`, Dolo `p1`, and the sample GSTIN or staff password) is replaced with an empty store on the next load. The owner phone is kept.

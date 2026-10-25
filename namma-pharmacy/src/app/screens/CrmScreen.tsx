@@ -250,10 +250,10 @@ function Campaigns(s: any) {
   const recipients = patients.filter((p: Patient) => (seg === "all" || p.segments.includes(seg)) && p.phone);
   const defaultMsg = `Hi! This is ${profile.name}. ` + (offer ? `${offer}. ` : "") + `Visit us or reply to order your medicines. Stay healthy!`;
   const text = message || defaultMsg;
-  const launch = () => {
+  const launch = async () => {
     if (recipients.length === 0) return;
-    if (recipients[0].phone) (channel === "whatsapp" ? wa : sms)(recipients[0].phone, text.replace("Hi!", `Hi ${recipients[0].name}!`));
-    addCampaign({ name: `${segLabel(seg as Segment) || "All"} blast`, segment: seg, channel, message: text, offerLabel: offer || undefined, reach: recipients.length });
+    const err = await addCampaign({ name: `${segLabel(seg as Segment) || "All"} blast`, segment: seg, channel, message: text, offerLabel: offer || undefined, reach: recipients.length });
+    if (!err && recipients[0].phone) (channel === "whatsapp" ? wa : sms)(recipients[0].phone, text.replace("Hi!", `Hi ${recipients[0].name}!`));
   };
   return (
     <div className="pd-grid-2">
@@ -299,7 +299,7 @@ function FeedbackTab(s: any) {
   const avg = fb.length ? fb.reduce((a: number, f: any) => a + f.rating, 0) / fb.length : 0;
   const promoters = fb.filter((f: any) => (f.nps ?? 0) >= 9).length, detractors = fb.filter((f: any) => (f.nps ?? 0) <= 6).length;
   const npsScore = fb.length ? Math.round(((promoters - detractors) / fb.length) * 100) : 0;
-  const save = () => { const p = patients.find((x: Patient) => x.key === pk); if (!p) return; addFeedback({ custKey: p.key, custName: p.name, rating, nps, comment: comment.trim() || undefined }); setComment(""); };
+  const save = async () => { const p = patients.find((x: Patient) => x.key === pk); if (!p) return; const err = await addFeedback({ custKey: p.key, custName: p.name, rating, nps, comment: comment.trim() || undefined }); if (!err) setComment(""); };
   return (
     <div className="pd-grid-2">
       <div className="pd-card">

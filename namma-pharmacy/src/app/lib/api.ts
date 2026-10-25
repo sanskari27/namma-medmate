@@ -3,10 +3,12 @@ import { fromPaise, toPaise } from "./paise";
 export class ApiError extends Error {
   status: number;
   code: string;
-  constructor(status: number, code: string, message: string) {
+  field?: string;
+  constructor(status: number, code: string, message: string, field?: string) {
     super(message);
     this.status = status;
     this.code = code;
+    this.field = field;
   }
 }
 
@@ -29,10 +31,11 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
       body: init.body !== undefined ? JSON.stringify(toPaise(init.body)) : undefined,
     });
     const text = await res.text();
-    const json = text ? JSON.parse(text) : null;
+    let json: { error?: { code?: string; message?: string; field?: string } } | null = null;
+    if (text) { try { json = JSON.parse(text); } catch { json = null; } }
     if (!res.ok) {
       const error = json?.error;
-      throw new ApiError(res.status, error?.code || "VALIDATION", error?.message || "Request failed");
+      throw new ApiError(res.status, error?.code || "VALIDATION", error?.message || "Request failed", error?.field);
     }
     return fromPaise(json) as T;
   })();

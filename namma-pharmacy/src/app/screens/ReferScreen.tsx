@@ -2,18 +2,20 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import { inr } from "../data";
-import { REFERRALS } from "../lib/referrals";
-import { IconGift, IconCheck, IconSend, IconInbox, IconStore, IconCash } from "../components/Icon";
+import { ReferralStatus } from "../lib/referrals";
+import { IconGift, IconCheck, IconSend, IconInbox, IconStore, IconCash, IconTrash } from "../components/Icon";
 
 export default function ReferScreen() {
-  const { profile, toast } = usePharma();
+  const { profile, toast, referrals, addReferral, updateReferral, removeReferral } = usePharma();
   const code = profile.name.replace(/[^A-Za-z]/g, "").slice(0, 6).toUpperCase() + "500";
   const [copied, setCopied] = useState(false);
-
-  const referrals = REFERRALS;
+  const [name, setName] = useState("");
+  const [area, setArea] = useState("");
   const earned = referrals.filter((r) => r.status === "Earned").reduce((a, r) => a + r.reward, 0);
 
   const copy = () => { try { navigator.clipboard?.writeText(code); } catch {} setCopied(true); toast("Referral code copied"); setTimeout(() => setCopied(false), 1500); };
+  const shareText = `Join Namma MedMate with my code ${code}`;
+  const open = (url: string) => window.open(url, "_blank", "noopener,noreferrer");
 
   const steps = [
     { ic: IconInbox, t: "Share your code", s: "Send your referral code to other pharmacy owners." },
@@ -42,8 +44,8 @@ export default function ReferScreen() {
               <button className="pd-btn pd-btn-primary" onClick={copy}>{copied ? <><IconCheck size={15} /> Copied</> : "Copy"}</button>
             </div>
             <div className="pd-flex pd-gap6" style={{ marginTop: 14 }}>
-              <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => toast("Share sheet opened")}><IconSend size={15} /> WhatsApp</button>
-              <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => toast("Share sheet opened")}>Email</button>
+              <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => open(`https://wa.me/?text=${encodeURIComponent(shareText)}`)}><IconSend size={15} /> WhatsApp</button>
+              <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => open(`mailto:?subject=${encodeURIComponent("Namma MedMate referral")}&body=${encodeURIComponent(shareText)}`)}>Email</button>
             </div>
           </div>
 
@@ -70,15 +72,25 @@ export default function ReferScreen() {
 
       <div className="pd-card" style={{ marginTop: 16 }}>
         <div className="pd-card-head"><h3>Your referrals</h3></div>
+        <div className="pd-card-pad pd-flex pd-gap6">
+          <input className="pd-input" data-field="name" placeholder="Pharmacy name" value={name} onChange={(e) => setName(e.target.value)} />
+          <input className="pd-input" placeholder="Area" value={area} onChange={(e) => setArea(e.target.value)} />
+          <button className="pd-btn pd-btn-primary" onClick={() => { const n = name.trim(); if (!n) return; void addReferral({ name: n, area: area.trim() }).then((fault) => { if (!fault) { setName(""); setArea(""); } }); }}>Add</button>
+        </div>
         <div className="pd-tbl-wrap">
           <table className="pd-tbl">
-            <thead><tr><th>Pharmacy</th><th>Area</th><th>Status</th><th className="num">Reward</th></tr></thead>
+            <thead><tr><th>Pharmacy</th><th>Area</th><th>Status</th><th className="num">Reward</th><th /></tr></thead>
             <tbody>
-              {referrals.map((r) => (
-                <tr key={r.name}>
-                  <td style={{ fontWeight: 600 }}>{r.name}</td><td>{r.area}</td>
-                  <td><span className={`pd-pill ${r.status === "Earned" ? "pill-green" : r.status === "Signed up" ? "pill-blue" : "pill-gray"}`}><i className="d" />{r.status}</span></td>
-                  <td className="num" style={{ fontWeight: 700 }}>{r.reward ? inr(r.reward) : "—"}</td>
+              {referrals.length === 0 ? <tr><td colSpan={5} className="pd-muted">No referrals yet.</td></tr> : referrals.map((r) => (
+                <tr key={r.id}>
+                  <td style={{ fontWeight: 600 }}>{r.name}</td><td>{r.area || "—"}</td>
+                  <td>
+                    <select className="pd-select" value={r.status} onChange={(e) => updateReferral(r.id, { status: e.target.value as ReferralStatus })}>
+                      {(["Invited", "Signed up", "Earned"] as ReferralStatus[]).map((s) => <option key={s}>{s}</option>)}
+                    </select>
+                  </td>
+                  <td className="num"><input className="pd-input" data-field="amount" style={{ width: 90, textAlign: "right" }} type="number" min={0} value={r.reward} onChange={(e) => updateReferral(r.id, { reward: Math.max(0, Number(e.target.value) || 0) })} /></td>
+                  <td><button className="pd-btn pd-btn-ghost" onClick={() => removeReferral(r.id)}><IconTrash size={14} /></button></td>
                 </tr>
               ))}
             </tbody>

@@ -14,7 +14,7 @@ Memory only: POS cart and its customer, discount, payment, source, ward, insurer
 
 Sequences in the blob: `invSeq`, `grnSeq`, `prodSeq`, `poSeq`, `caSeq`, `userSeq`, `advSeq`, `supplierSeq`, `supplySeq`, `expSeq`, `empSeq`, `creditSeq`, `crmSeq`, `docSeq`, `wardSeq`, `admSeq`, `wsSeq`, `wrSeq`, `hpSeq`.
 
-`wipeData()` clears inventory, sales, prescriptions, purchases, purchase orders, offers, CA shares, and the supply list. `resetDemo()` asks for confirmation, then replaces the Postgres document with the sample store.
+`wipeData()` clears inventory, sales, prescriptions, purchases, purchase orders, offers, CA shares, and the supply list. The dashboard does not call it during setup. Outside production, `POST /api/v1/demo/reset` replaces the document with the sample store. Production load replaces a document that still matches that sample with an empty store and keeps the owner phone.
 
 ## Catalogue
 
@@ -85,7 +85,7 @@ Khata balance is derived from credit sales through `creditSalesOf()` minus `cred
 | `PharmacyProfile` | `updateProfile`, `toggleStoreOpen` | Includes GSTIN, PAN, drug licence, FSSAI, TDS/TCS flags, logo, and signature data URLs |
 | `InvoiceSettings` | `updateInvoiceSettings` | Controls prefix, template, terms, footer, and logo display |
 | `KioskConfig` | `updateKiosk` | Local kiosk configuration |
-| `Subscription` | `renewSubscription`, `changePlan`, `toggleAutoRenew` | Mock payment. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
+| `Subscription` | `renewSubscription`, `changePlan`, `toggleAutoRenew` | The screen does not collect a payment or invent receipts. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
 | `BankAccount` | `saveBankAccount`, `verifyBankAccount`, `removeBankAccount` | Verification flips a local flag. IFSC is checked with `isValidIfsc`. |
 | `Advisor`, `CAShare` | Advisor CRUD, `shareWithCA` | Share appends a local record and shows a toast |
 | `Expense`, categories | Expense CRUD, `addExpenseCategory` | No approval workflow |
@@ -101,11 +101,11 @@ Khata balance is derived from credit sales through `creditSalesOf()` minus `cred
 | `Ward` | `addWard`, `updateWard`, `removeWard` | Removal is blocked while occupied |
 | `Admission` | `admitPatient`, `updateAdmission`, `dischargePatient`, `startWardBilling` | Billing opens POS with the admission context |
 | `WardIndent` | `setIndentStatus`, `openIndentBilling`, `issueIndent`, `clearBillIndentTarget` | `issueIndent` calls ward supply when it can issue directly |
-| `Department` | None | Seeded in `lib/hospital.ts` |
-| `DoctorProfile` | `addDoctor`, `updateDoctor`, `removeDoctor` | Separate from the read-only department list |
+| `Department` | `addDepartment`, `updateDepartment`, `removeDepartment` | Stored on the pharmacy. A new account starts with none. Renaming updates doctors that use that name. |
+| `DoctorProfile` | `addDoctor`, `updateDoctor`, `removeDoctor` | Department is the department name string |
 | `TpaClaim` | `setClaimStatus` | No screen |
 | `HospitalAccount` | `updateHospitalAccount` | Credit terms: On demand, NET 15, NET 30, NET 45 |
-| `PriceRule` | `setUniformDiscount`, `setHospitalPriceRule` | Requires `unlockPricing` with demo OTP `123456` for the current tab |
+| `PriceRule` | `setUniformDiscount`, `setHospitalPriceRule` | Requires `unlockPricing` for the current tab. Outside production, `123456` is accepted. |
 | `WardSupply` | `issueWardSupply`, `returnWardSupply` | Issues reduce pharmacy stock; returns add it back |
 | `HospitalPayment` | `recordHospitalPayment` | Reduces hospital outstanding |
 

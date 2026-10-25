@@ -48,7 +48,7 @@ function AdminOtpModal({ onClose }: { onClose: () => void }) {
         <div className="pd-modal-head"><h3><IconLock size={16} /> Admin approval</h3><button className="pd-iconbtn" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <p className="pd-muted" style={{ fontSize: 13, marginBottom: 12 }}>Institutional pricing is protected. Enter the admin OTP to make changes.</p>
-          <div className="pd-field"><label>Admin OTP</label><input className="pd-input pd-mono" style={{ letterSpacing: ".4em", textAlign: "center", fontSize: 18 }} inputMode="numeric" maxLength={6} value={otp} autoFocus onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="••••••" /></div>
+          <div className="pd-field" data-field="otp"><label>Admin OTP</label><input className="pd-input pd-mono" style={{ letterSpacing: ".4em", textAlign: "center", fontSize: 18 }} inputMode="numeric" maxLength={6} value={otp} autoFocus onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} onKeyDown={(e) => e.key === "Enter" && submit()} placeholder="••••••" /></div>
           {demoCode ? <div className="pd-muted" style={{ fontSize: 12, marginTop: 8, background: "var(--wash2)", border: "1px dashed var(--line-2)", borderRadius: 8, padding: "7px 11px" }}>Demo admin OTP: <b>{demoCode}</b> <button className="pd-btn pd-btn-ghost pd-btn-sm" style={{ marginLeft: 6 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
         </div>
         <div className="pd-modal-foot"><button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button><button className="pd-btn pd-btn-primary" disabled={otp.length !== 6} onClick={submit}>Unlock pricing</button></div>
@@ -444,9 +444,9 @@ function AccountTab({ outstanding, supplied, returns, received, aging, onRemind 
         <h3 style={{ fontSize: 15, marginBottom: 12 }}>Hospital account</h3>
         <div className="pd-form-grid">
           <div className="pd-field pd-span2"><label>Hospital / institution name</label><input className="pd-input" value={a.name} onChange={(e) => updateHospitalAccount({ name: e.target.value })} /></div>
-          <div className="pd-field"><label>GSTIN</label><input className="pd-input pd-mono" value={a.gstin} onChange={(e) => updateHospitalAccount({ gstin: e.target.value.toUpperCase() })} /></div>
+          <div className="pd-field" data-field="gstin"><label>GSTIN</label><input className="pd-input pd-mono" value={a.gstin} onChange={(e) => updateHospitalAccount({ gstin: e.target.value.toUpperCase() })} /></div>
           <div className="pd-field"><label>Stores contact</label><input className="pd-input" value={a.contact} onChange={(e) => updateHospitalAccount({ contact: e.target.value })} /></div>
-          <div className="pd-field"><label>Billing phone</label><input className="pd-input" value={a.phone ?? ""} onChange={(e) => updateHospitalAccount({ phone: e.target.value })} placeholder="+91 " /></div>
+          <div className="pd-field" data-field="phone"><label>Billing phone</label><input className="pd-input" value={a.phone ?? ""} onChange={(e) => updateHospitalAccount({ phone: e.target.value })} placeholder="+91 " /></div>
           <div className="pd-field"><label>Billing email</label><input className="pd-input" value={a.email ?? ""} onChange={(e) => updateHospitalAccount({ email: e.target.value })} /></div>
           <div className="pd-field"><label>Credit terms</label><select className="pd-select" value={a.creditTerms} onChange={(e) => updateHospitalAccount({ creditTerms: e.target.value as CreditTerms })}>{CREDIT_TERMS.map((t) => <option key={t}>{t}</option>)}</select></div>
           <div className="pd-field"><label>Credit limit ₹</label><input className="pd-input" type="number" min={0} value={a.creditLimit} onChange={(e) => updateHospitalAccount({ creditLimit: Math.max(0, Number(e.target.value) || 0) })} /></div>
@@ -642,11 +642,12 @@ function SupplyModal({ mode, onClose, prefillIndentId }: { mode: "issue" | "retu
   const valid = !!ward && rows.length > 0 && rows.every((x) => x.qty > 0 && x.price >= 0) && !refillNeedsPatient;
 
   const buildItems = (): WardSupplyItem[] => rows.map((x) => { const p = inventory.find((y) => y.id === x.productId)!; const b = (x.batchNo && p.batches.find((z) => z.batchNo === x.batchNo)) || earliestBatch(p); return { productId: p.id, name: p.name, batchNo: b?.batchNo ?? "—", expiry: b?.expiry ?? "—", hsn: p.hsn, gst: p.gst, qty: x.qty, price: x.price, amount: Math.round(x.qty * x.price * 100) / 100, mrp: b?.mrp ?? mrpOf(p) }; });
-  const save = () => {
+  const save = async () => {
     if (!valid || !ward) return;
     const draft = { wardId: ward.id, wardName: ward.name, reason: mode === "return" ? "floor" as WardSupplyReason : reason, patientId: reason === "refill" ? patientId.trim() : undefined, patientName: reason === "refill" ? patientName.trim() : undefined, items: buildItems(), refDoc: refDoc.trim() || (indentId || undefined), indentId: mode === "issue" && indentId ? indentId : undefined };
-    if (mode === "return") returnWardSupply(draft); else issueWardSupply(draft);
-    onClose();
+    const res = mode === "return" ? await returnWardSupply(draft) : await issueWardSupply(draft);
+    if (res) onClose();
+    else setView("edit");
   };
 
   // invoice preview before sending to the hospital
@@ -670,7 +671,7 @@ function SupplyModal({ mode, onClose, prefillIndentId }: { mode: "issue" | "retu
             </div>
           )}
           <div className="pd-form-grid">
-            <div className="pd-field"><label>Ward</label><select className="pd-select" value={wardId} onChange={(e) => setWardId(e.target.value)}>{wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select></div>
+            <div className="pd-field" data-field="ward"><label>Ward</label><select className="pd-select" value={wardId} onChange={(e) => setWardId(e.target.value)}>{wards.map((w) => <option key={w.id} value={w.id}>{w.name}</option>)}</select></div>
             <div className="pd-field"><label>Reference (indent / doc)</label><input className="pd-input" value={refDoc} onChange={(e) => setRefDoc(e.target.value)} placeholder="e.g. IND-4012" /></div>
           </div>
 
@@ -762,7 +763,7 @@ function PaymentModal({ onClose, outstanding }: { onClose: () => void; outstandi
         <div className="pd-modal-head"><h3>Record hospital payment</h3><button className="pd-iconbtn" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}>Outstanding: <b style={{ color: "var(--rose)" }}>{inr(outstanding)}</b></p>
-          <div className="pd-field"><label>Amount received ₹</label><input className="pd-input" autoFocus type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
+          <div className="pd-field" data-field="amount"><label>Amount received ₹</label><input className="pd-input" autoFocus type="number" min={0} value={amount} onChange={(e) => setAmount(e.target.value)} /></div>
           <div className="pd-field" style={{ marginTop: 12 }}><label>Mode</label>
             <div className="pd-flex pd-gap6" style={{ marginTop: 4 }}>{MODES.map((m) => <button key={m} className={`pd-chip${mode === m ? " on" : ""}`} onClick={() => setMode(m)}>{PAY_LABEL[m]}</button>)}</div>
           </div>
@@ -770,7 +771,7 @@ function PaymentModal({ onClose, outstanding }: { onClose: () => void; outstandi
         </div>
         <div className="pd-modal-foot">
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="pd-btn pd-btn-primary" disabled={amt <= 0} onClick={() => { recordHospitalPayment({ amount: amt, mode, ref: ref.trim() || undefined }); onClose(); }}>Record {inr(amt)}</button>
+          <button className="pd-btn pd-btn-primary" disabled={amt <= 0} onClick={async () => { const err = await recordHospitalPayment({ amount: amt, mode, ref: ref.trim() || undefined }); if (!err) onClose(); }}>Record {inr(amt)}</button>
         </div>
       </div>
     </div>

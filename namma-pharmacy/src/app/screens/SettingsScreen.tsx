@@ -8,20 +8,22 @@ import {
 import { IconCheck, IconPlus, IconTrash, IconUpload, IconX, IconDot, IconSettings } from "../components/Icon";
 
 export default function SettingsScreen() {
-  const { profile, updateProfile, invoiceSettings, updateInvoiceSettings, toggleStoreOpen, resetDemo, startSetup, suppliers, go, toast } = usePharma();
+  const { profile, updateProfile, invoiceSettings, updateInvoiceSettings, toggleStoreOpen, startSetup, suppliers, go, toast, showFault } = usePharma();
   const [f, setF] = useState<PharmacyProfile>(profile);
   const [terms, setTerms] = useState(invoiceSettings.terms);
   const [nd, setNd] = useState<BizDetail>({ label: "", value: "" });
   const logoRef = useRef<HTMLInputElement>(null);
   const signRef = useRef<HTMLInputElement>(null);
-  const [confirmReset, setConfirmReset] = useState(false);
   const set = (patch: Partial<PharmacyProfile>) => setF((p) => ({ ...p, ...patch }));
 
   const dirty = JSON.stringify(f) !== JSON.stringify(profile) || terms !== invoiceSettings.terms;
-  const save = () => {
-    if (f.phone.trim() && f.phone.replace(/\D/g, "").length < 10) { toast("Enter a valid mobile number"); return; }
-    if (f.gstin.trim() && !isValidGstin(f.gstin)) { toast("Enter a valid GSTIN"); return; }
-    updateProfile(f); updateInvoiceSettings({ terms }); toast("Business settings saved");
+  const save = async () => {
+    if (f.phone.trim() && f.phone.replace(/\D/g, "").length < 10) { showFault("Enter a valid mobile number"); return; }
+    if (f.gstin.trim() && !isValidGstin(f.gstin)) { showFault("Enter a valid GSTIN"); return; }
+    const err = await updateProfile(f);
+    if (err) return;
+    updateInvoiceSettings({ terms });
+    toast("Business settings saved");
   };
   const discard = () => { setF(profile); setTerms(invoiceSettings.terms); };
 
@@ -70,7 +72,7 @@ export default function SettingsScreen() {
           </div>
 
           <div className="pd-form-grid">
-            <div className="pd-field"><label>Company Phone Number</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
+            <div className="pd-field" data-field="phone"><label>Company Phone Number</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
             <div className="pd-field"><label>Company E-Mail</label><input className="pd-input" value={f.email} onChange={(e) => set({ email: e.target.value })} /></div>
             <div className="pd-field pd-span2"><label>Billing Address</label><textarea className="pd-textarea" value={f.address} onChange={(e) => set({ address: e.target.value })} /></div>
             <div className="pd-field"><label>State</label>
@@ -88,7 +90,7 @@ export default function SettingsScreen() {
               <button className={`pd-chip${!f.gstRegistered ? " on" : ""}`} onClick={() => set({ gstRegistered: false })}>No</button>
             </div>
           </div>
-          {f.gstRegistered && <div className="pd-field" style={{ marginTop: 10 }}><label>GSTIN *</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
+          {f.gstRegistered && <div className="pd-field" data-field="gstin" style={{ marginTop: 10 }}><label>GSTIN *</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
 
           <ToggleRow label="Enable e-Invoicing" badge="New" on={f.eInvoicing} onClick={() => set({ eInvoicing: !f.eInvoicing })} />
 
@@ -180,13 +182,6 @@ export default function SettingsScreen() {
         <button className="pd-btn pd-btn-ghost" onClick={startSetup}>Run setup</button>
       </div>
 
-      {/* reset */}
-      <div className="pd-card pd-card-pad" style={{ marginTop: 16, borderColor: "#f3d3d3", background: "var(--rose-bg)" }}>
-        <div className="pd-flex" style={{ justifyContent: "space-between" }}>
-          <div><h3 style={{ fontSize: 14, color: "var(--rose)" }}>Reset demo data</h3><p className="pd-muted" style={{ fontSize: 12.5 }}>Clears saved changes and restores seed inventory, orders & settings.</p></div>
-          <button className="pd-btn pd-btn-rose" onClick={() => { if (!confirmReset) { setConfirmReset(true); return; } resetDemo(); setConfirmReset(false); }}>{confirmReset ? "Confirm reset" : "Reset"}</button>
-        </div>
-      </div>
     </div>
   );
 }

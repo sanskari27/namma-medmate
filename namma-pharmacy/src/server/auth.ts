@@ -56,7 +56,7 @@ export async function verifyCognitoOtp(phone: string, code: string, session: str
     ChallengeResponses: params,
   }));
   const token = out.AuthenticationResult?.IdToken;
-  if (!token) fail(401, "UNAUTHENTICATED", "That code was not accepted");
+  if (!token) fail(401, "UNAUTHENTICATED", "That code was not accepted", "otp");
   const payload = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString()) as { sub?: string };
   return payload.sub || phone;
 }

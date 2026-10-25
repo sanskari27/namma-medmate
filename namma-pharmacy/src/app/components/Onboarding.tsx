@@ -33,7 +33,7 @@ function Mark() {
 }
 
 export default function Onboarding() {
-  const { signIn, toast } = usePharma();
+  const { signIn, showFault, formFault } = usePharma();
   const [phase, setPhase] = useState<Phase>("intro");
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState<BusinessType>("pharmacy");
@@ -60,12 +60,12 @@ export default function Onboarding() {
       const res = await api<{ delivery?: string }>("/auth/otp/send", { method: "POST", body: { phone } });
       setOtpSent(true);
       setDevOtp(res.delivery === "dev");
-    } catch (err) { toast(err instanceof Error ? err.message : "Could not send OTP"); }
+    } catch (err) { showFault(err, "Could not send OTP"); }
   };
   const verify = async () => {
     if (otp.replace(/\D/g, "").length !== 6) return;
     try { await signIn(type, name, phone, otp); }
-    catch (err) { toast(err instanceof Error ? err.message : "Could not sign in"); }
+    catch (err) { showFault(err, "Could not sign in"); }
   };
   const tt = TYPES.find((x) => x.key === type)!;
 
@@ -79,8 +79,7 @@ export default function Onboarding() {
           <p>Billing, inventory, online orders, GST & {type === "hospital" ? "IPD wards, indents and insurance claims." : "customer credit — everything in one console."}</p>
         </div>
         <div className="pd-ob-trust">
-          <div><span className="pd-ob-ico"><IconStore size={16} /></span> Trusted by 1,200+ stores</div>
-          <div><span className="pd-ob-ico"><IconRx size={16} /></span> Rx-aware & DPCO compliant</div>
+          <div><span className="pd-ob-ico"><IconRx size={16} /></span> Rx-aware billing</div>
           <div><span className="pd-ob-ico"><IconReports size={16} /></span> GST returns & CA-ready</div>
         </div>
         <p className="pd-ob-foot">© 2026 Medmate India Technology Private Limited · All rights reserved.</p>
@@ -133,18 +132,20 @@ export default function Onboarding() {
                 <>
                   <div className="pd-field"><label>Business name <span style={{ color: "var(--faint)", fontWeight: 600 }}>(optional)</span></label>
                     <input className="pd-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "hospital" ? "City Care Hospital Pharmacy" : "Sri Sai Medicals"} /></div>
-                  <div className="pd-field" style={{ marginTop: 12 }}><label>Mobile number</label>
+                  <div className="pd-field" data-field="phone" style={{ marginTop: 12 }}><label>Mobile number</label>
                     <div className="pd-ob-phone">
                       <span>+91</span>
-                      <input className="pd-input" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="98860 12345" onKeyDown={(e) => e.key === "Enter" && sendOtp()} autoFocus />
+                      <input className="pd-input" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="98860 12345" onKeyDown={(e) => e.key === "Enter" && sendOtp()} autoFocus aria-invalid={formFault?.field === "phone"} />
                     </div>
+                    {formFault?.field === "phone" && <span className="pd-field-err">{formFault.message}</span>}
                   </div>
                   <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={!phoneOk} onClick={sendOtp}>Send OTP <IconArrowRight size={16} /></button>
                 </>
               ) : (
                 <>
-                  <div className="pd-field"><label>6-digit OTP</label>
-                    <input ref={otpRef} className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="••••••" onKeyDown={(e) => e.key === "Enter" && verify()} />
+                  <div className="pd-field" data-field="otp"><label>6-digit OTP</label>
+                    <input ref={otpRef} className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="••••••" onKeyDown={(e) => e.key === "Enter" && verify()} aria-invalid={formFault?.field === "otp"} />
+                    {formFault?.field === "otp" && <span className="pd-field-err">{formFault.message}</span>}
                   </div>
                   {devOtp && demoCode ? <div className="pd-ob-demo">Demo OTP: <b>{demoCode}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
                   <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== 6} onClick={verify}><IconCheck size={16} /> Verify &amp; log in</button>

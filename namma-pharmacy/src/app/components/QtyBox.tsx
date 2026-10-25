@@ -13,7 +13,7 @@ export default function QtyBox({ qty, min = 1, max, onDec, onInc, onSet, onRemov
   const cap = (n: number) => (max != null ? Math.min(max, n) : n);
   const atMax = max != null && qty >= max;
   return (
-    <div className="pd-qty">
+    <div className="pd-qty" data-field="qty">
       <button type="button" onClick={onDec} aria-label="decrease">−</button>
       <input
         className="pd-qtyinput" type="text" inputMode="numeric" value={txt} aria-label="quantity"

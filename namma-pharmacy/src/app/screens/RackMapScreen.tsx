@@ -51,7 +51,12 @@ export default function RackMapScreen() {
 
       {tab === "map"
         ? <RackMap groups={groups} q={q} unassigned={unassigned} onGoAssign={() => setTab("assign")}
-            createRack={(c) => { if (createRack(c)) { toast(`Rack ${normalizeRack(c)} created`); return true; } toast("That rack already exists"); return false; }}
+            createRack={async (c) => {
+              const result = await createRack(c);
+              if (result === "added") { toast(`Rack ${normalizeRack(c)} created`); return true; }
+              if (result === "exists") toast("That rack already exists");
+              return false;
+            }}
             onOpen={(c) => setOpenRack(c)} onMed={(id) => setMedId(id)} />
         : <AssignLocations inventory={inventory} q={q} setProductLocation={setProductLocation} bulkAssignLocation={bulkAssignLocation} toast={toast} />}
 
@@ -60,8 +65,8 @@ export default function RackMapScreen() {
         <RackDetailModal
           code={detail.code} items={detail.items} inventory={inventory}
           onClose={() => setOpenRack(null)} onMed={(id) => setMedId(id)}
-          onAdd={(id) => { const p = inventory.find((x) => x.id === id); setProductLocation(id, detail.code); toast(`${p?.name ?? "Item"} → ${detail.code}`); }}
-          onRemoveItem={(id) => { const p = inventory.find((x) => x.id === id); setProductLocation(id, ""); toast(`Removed ${p?.name ?? "item"} from ${detail.code}`); }}
+          onAdd={async (id) => { const p = inventory.find((x) => x.id === id); if (!await setProductLocation(id, detail.code)) toast(`${p?.name ?? "Item"} → ${detail.code}`); }}
+          onRemoveItem={async (id) => { const p = inventory.find((x) => x.id === id); if (!await setProductLocation(id, "")) toast(`Removed ${p?.name ?? "item"} from ${detail.code}`); }}
           onDeleteRack={() => { removeRack(detail.code); toast(`Rack ${detail.code} removed`); setOpenRack(null); }}
         />
       )}
@@ -73,7 +78,7 @@ export default function RackMapScreen() {
 // ── rack map: medicines grouped by physical location ────────────
 function RackMap({ groups, q, unassigned, onGoAssign, createRack, onOpen, onMed }: {
   groups: { code: string; zone: string; items: InvProduct[] }[]; q: string; unassigned: InvProduct[];
-  onGoAssign: () => void; createRack: (code: string) => boolean; onOpen: (code: string) => void; onMed: (id: string) => void;
+  onGoAssign: () => void; createRack: (code: string) => Promise<boolean>; onOpen: (code: string) => void; onMed: (id: string) => void;
 }) {
   const t = q.trim().toLowerCase();
   const [nr, setNr] = useState("");
@@ -81,14 +86,14 @@ function RackMap({ groups, q, unassigned, onGoAssign, createRack, onOpen, onMed 
   const shown = groups
     .map((g) => ({ ...g, items: g.items.filter(matchProd) }))
     .filter((g) => (!t ? true : g.items.length > 0 || g.code.toLowerCase().includes(t)));
-  const submitNew = () => { if (nr.trim() && createRack(nr)) setNr(""); };
+  const submitNew = async () => { if (nr.trim() && await createRack(nr)) setNr(""); };
 
   return (
     <>
       {/* create a rack manually */}
       <div className="pd-card pd-card-pad" style={{ marginBottom: 14, display: "flex", alignItems: "center", gap: 12, flexWrap: "wrap" }}>
         <b style={{ fontSize: 13 }}><IconFolder size={15} /> Create a rack</b>
-        <input className="pd-input pd-mono" style={{ width: 130 }} value={nr} onChange={(e) => setNr(e.target.value.toUpperCase())} onKeyDown={(e) => { if (e.key === "Enter") submitNew(); }} placeholder="e.g. A3-12" />
+        <input className="pd-input pd-mono" data-field="rack" style={{ width: 130 }} value={nr} onChange={(e) => setNr(e.target.value.toUpperCase())} onKeyDown={(e) => { if (e.key === "Enter") void submitNew(); }} placeholder="e.g. A3-12" />
         <button className="pd-btn pd-btn-primary pd-btn-sm" disabled={!nr.trim()} onClick={submitNew}><IconPlus size={14} /> Add rack</button>
         <span className="pd-muted" style={{ fontSize: 11.5 }}>Make the on-screen code identical to the printed shelf label. Click any rack below to add / arrange medicines inside it.</span>
       </div>
@@ -274,8 +279,8 @@ function MedicineDetailModal({ p, now, onClose }: { p: InvProduct; now: number; 
 // ── assign / re-arrange locations ───────────────────────────────
 function AssignLocations({ inventory, q, setProductLocation, bulkAssignLocation, toast }: {
   inventory: InvProduct[]; q: string;
-  setProductLocation: (id: string, rack: string, rackAlt?: string) => void;
-  bulkAssignLocation: (ids: string[], rack: string) => void;
+  setProductLocation: (id: string, rack: string, rackAlt?: string) => Promise<unknown>;
+  bulkAssignLocation: (ids: string[], rack: string) => Promise<unknown>;
   toast: (m: string) => void;
 }) {
   const [onlyUnset, setOnlyUnset] = useState(true);
@@ -296,9 +301,9 @@ function AssignLocations({ inventory, q, setProductLocation, bulkAssignLocation,
   const allShownSelected = list.length > 0 && list.every((p) => sel.has(p.id));
   const toggleAll = () => setSel((s) => { const n = new Set(s); if (allShownSelected) list.forEach((p) => n.delete(p.id)); else list.forEach((p) => n.add(p.id)); return n; });
 
-  const assignSelected = () => {
+  const assignSelected = async () => {
     if (!code || sel.size === 0) return;
-    bulkAssignLocation([...sel], code);
+    if (await bulkAssignLocation([...sel], code)) return;
     toast(`${sel.size} medicine${sel.size !== 1 ? "s" : ""} → ${code}`);
     setSel(new Set());
   };
@@ -308,7 +313,7 @@ function AssignLocations({ inventory, q, setProductLocation, bulkAssignLocation,
       {/* location builder */}
       <div className="pd-card pd-card-pad" style={{ marginBottom: 14 }}>
         <div className="pd-flex" style={{ gap: 16, flexWrap: "wrap", alignItems: "flex-end" }}>
-          <div className="pd-field" style={{ width: 90 }}><label>Rack</label><input className="pd-input" value={rack} onChange={(e) => setRack(e.target.value.toUpperCase())} placeholder="A" maxLength={4} /></div>
+          <div className="pd-field" data-field="rack" style={{ width: 90 }}><label>Rack</label><input className="pd-input" value={rack} onChange={(e) => setRack(e.target.value.toUpperCase())} placeholder="A" maxLength={4} /></div>
           <div className="pd-field" style={{ width: 80 }}><label>Shelf</label><input className="pd-input" value={shelf} onChange={(e) => setShelf(e.target.value)} placeholder="3" maxLength={3} /></div>
           <div className="pd-field" style={{ width: 80 }}><label>Bin</label><input className="pd-input" value={bin} onChange={(e) => setBin(e.target.value)} placeholder="12" maxLength={4} /></div>
           <div style={{ alignSelf: "stretch", display: "flex", alignItems: "flex-end", paddingBottom: 2 }}>
@@ -345,7 +350,7 @@ function AssignLocations({ inventory, q, setProductLocation, bulkAssignLocation,
               </tr>
             </thead>
             <tbody>
-              {list.map((p) => <AssignRow key={p.id} p={p} checked={sel.has(p.id)} onToggle={() => toggle(p.id)} onSave={(v) => { setProductLocation(p.id, v); toast(`${p.name} → ${v}`); }} fillCode={code} />)}
+              {list.map((p) => <AssignRow key={p.id} p={p} checked={sel.has(p.id)} onToggle={() => toggle(p.id)} onSave={async (v) => { if (!await setProductLocation(p.id, v)) toast(`${p.name} → ${v}`); }} fillCode={code} />)}
               {list.length === 0 && <tr><td colSpan={5}><div className="pd-empty"><div className="em"><IconCheck size={28} /></div><p>{onlyUnset ? "Every medicine has a location. Nice and tidy!" : "No medicines match."}</p></div></td></tr>}
             </tbody>
           </table>
@@ -373,7 +378,7 @@ function AssignRow({ p, checked, onToggle, onSave, fillCode }: {
       <td className="pd-mono">{hasLocation(p) ? locationCodes(p).join(" · ") : <span className="pd-muted">—</span>}</td>
       <td>
         <div className="pd-flex pd-gap6">
-          <input className="pd-input pd-mono" style={{ width: 96 }} value={val} onChange={(e) => setVal(e.target.value.toUpperCase())} placeholder={fillCode || "A3-12"} />
+          <input className="pd-input pd-mono" data-field="rack" style={{ width: 96 }} value={val} onChange={(e) => setVal(e.target.value.toUpperCase())} placeholder={fillCode || "A3-12"} />
           {fillCode && val.trim() !== fillCode && <button className="pd-iconbtn" title={`Use ${fillCode}`} onClick={() => setVal(fillCode)}>↤</button>}
           <button className="pd-btn pd-btn-sm pd-btn-primary" disabled={!dirty || !val.trim()} onClick={() => onSave(val.trim())}>Save</button>
         </div>

@@ -137,7 +137,9 @@ Available only when the session business type is `hospital`.
 | GET | `/hospital/indents` | Indent list | `IndentsScreen` |
 | PATCH | `/hospital/indents/:id` | `setIndentStatus` | `setIndentStatus` |
 | POST | `/hospital/indents/:id/issue` | `issueIndent` | `issueIndent` |
-| GET | `/hospital/departments` | Read-only seeded departments | `DepartmentsScreen` |
+| GET, POST | `/hospital/departments` | Department list and `addDepartment` | `DepartmentsScreen` |
+| PATCH | `/hospital/departments/:id` | `updateDepartment` | `updateDepartment` |
+| DELETE | `/hospital/departments/:id` | `removeDepartment` | `removeDepartment` |
 | GET, POST | `/hospital/doctors` | Doctor list and `addDoctor` | `DoctorsScreen` |
 | PATCH | `/hospital/doctors/:id` | `updateDoctor` | `updateDoctor` |
 | DELETE | `/hospital/doctors/:id` | `removeDoctor` | `removeDoctor` |
@@ -155,7 +157,9 @@ Available only when the session business type is `hospital`.
 | Method | Path | Current behavior | Planned boundary |
 |--------|------|------------------|------------------|
 | GET, POST | `/support/tickets` | Tickets are stored on the pharmacy document. FAQ and channel text stay in the client. | FAQ and channel text stay in the client. |
-| GET | `/referrals` | `ReferScreen` uses a static array | Do not invent referral tracking. Return the same static referral content until the screen gains real records. |
+| GET, POST | `/referrals` | Referral list and `addReferral` | Rows exist only after the user adds them. |
+| PATCH | `/referrals/:id` | `updateReferral` | Status and reward |
+| DELETE | `/referrals/:id` | `removeReferral` | `removeReferral` |
 
 ## Not an endpoint
 

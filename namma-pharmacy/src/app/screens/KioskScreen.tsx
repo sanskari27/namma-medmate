@@ -146,7 +146,7 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
                   items.map(({ p, qty, loose }) => (
                     <div className="pd-bitem" key={p.id + (loose ? "-loose" : "")}>
                       <div className="lt"><div className="nm">{p.name} {loose && <span className="pd-tag">loose</span>}</div>{kiosk.showPrices && <div className="sub">{inr2(unitPrice(p, loose))}{loose ? `/${unitNoun(p)}` : ""}</div>}</div>
-                      <div className="pd-qty"><button onClick={() => dec(p.id, loose)}>−</button><span>{qty}</span><button onClick={() => add(p.id, loose)}>+</button></div>
+                      <div className="pd-qty" data-field="qty"><button onClick={() => dec(p.id, loose)}>−</button><span>{qty}</span><button onClick={() => add(p.id, loose)}>+</button></div>
                     </div>
                   ))}
               </div>

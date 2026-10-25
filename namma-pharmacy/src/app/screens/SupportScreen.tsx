@@ -2,48 +2,29 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import { timeAgo } from "../data";
-import { IconHelp, IconSend, IconCheck, IconX, IconMessage, IconPhone, IconMail, IconDoc, IconTicket } from "../components/Icon";
+import { IconSend, IconX, IconTicket } from "../components/Icon";
 
 const FAQS = [
   { q: "How do I add a new medicine to inventory?", a: "Go to Inventory → Add product, or simply enter a distributor bill under Purchases → New purchase entry and stock is created automatically." },
   { q: "How is GST calculated on my invoices?", a: "Selling prices (MRP) are GST-inclusive. The invoice backs out the taxable value and splits tax into CGST + SGST per slab automatically. Configure invoice text under Invoice Settings." },
   { q: "Can I hide certain medicines from the online store?", a: "Yes — open Online Store and toggle a product off, or use the toggle in Inventory. Hidden items stay available for counter billing only." },
   { q: "How do I reorder stock from my distributor?", a: "Open Reorder · Distributor. Low-stock items are grouped by their allotted distributor with suggested quantities — adjust and Send order. When goods arrive, record the bill under Purchases." },
-  { q: "How do I share reports with my CA?", a: "Open CA / Accountant, pick the period and reports, and tap Share. A secure link is emailed to your accountant." },
+  { q: "How do I share reports with my CA?", a: "Open CA / Accountant, add your accountant, pick the period and reports, and tap Share. The share is saved on this account. Email is not sent automatically." },
   { q: "What happens when my subscription expires?", a: "Billing and saved data stay safe. Online store and some advanced features pause until you renew under Subscription." },
 ];
 
-const CHANNELS = [
-  { ic: IconMessage, t: "Live chat", s: "Avg. reply in 2 min · 9am–9pm", action: "Start chat" },
-  { ic: IconPhone, t: "Call support", s: "1800-123-4567 · toll free", action: "Call now" },
-  { ic: IconMail, t: "Email us", s: "partners@nammamedmate.in", action: "Email" },
-  { ic: IconDoc, t: "Help centre", s: "Guides, videos & FAQs", action: "Browse" },
-];
-
 export default function SupportScreen() {
-  const { now, toast, tickets, raiseTicket } = usePharma();
+  const { now, tickets, raiseTicket } = usePharma();
   const [openFaq, setOpenFaq] = useState<number | null>(0);
   const [show, setShow] = useState(false);
 
-  const raise = (subject: string, category: string) => {
-    raiseTicket(subject, category);
-    setShow(false);
+  const raise = async (subject: string, category: string) => {
+    const err = await raiseTicket(subject, category);
+    if (!err) setShow(false);
   };
 
   return (
     <div className="pd-canvas-wide" style={{ maxWidth: 1000 }}>
-      {/* contact channels */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(4,1fr)", gap: 14, marginBottom: 18 }}>
-        {CHANNELS.map((c) => (
-          <div className="pd-card pd-card-pad" key={c.t} style={{ textAlign: "center" }}>
-            <div style={{ fontSize: 30 }}><c.ic size={28} /></div>
-            <div style={{ fontWeight: 800, fontSize: 14, marginTop: 6 }}>{c.t}</div>
-            <div className="pd-muted" style={{ fontSize: 11.5, margin: "3px 0 10px", minHeight: 28 }}>{c.s}</div>
-            <button className="pd-btn pd-btn-ghost pd-btn-sm pd-btn-block" onClick={() => toast(c.t + " opened")}>{c.action}</button>
-          </div>
-        ))}
-      </div>
-
       <div className="pd-grid-2">
         {/* FAQ */}
         <div className="pd-card">
@@ -92,7 +73,7 @@ function TicketModal({ onClose, onRaise }: { onClose: () => void; onRaise: (subj
         <div className="pd-modal-head"><h3>Raise a support ticket</h3><button className="pd-x" onClick={onClose}><IconX size={18} /></button></div>
         <div className="pd-modal-body">
           <div className="pd-form-grid">
-            <div className="pd-field pd-span2"><label>Subject</label><input className="pd-input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Briefly describe the issue" /></div>
+            <div className="pd-field pd-span2" data-field="name"><label>Subject</label><input className="pd-input" value={subject} onChange={(e) => setSubject(e.target.value)} placeholder="Briefly describe the issue" /></div>
             <div className="pd-field pd-span2"><label>Category</label><select className="pd-select" value={category} onChange={(e) => setCategory(e.target.value)}>{["Billing", "Inventory", "Online store", "Payments", "Account", "Other"].map((c) => <option key={c}>{c}</option>)}</select></div>
             <div className="pd-field pd-span2"><label>Details</label><textarea className="pd-textarea" value={detail} onChange={(e) => setDetail(e.target.value)} placeholder="Tell us what happened…" /></div>
           </div>
