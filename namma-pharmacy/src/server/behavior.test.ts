@@ -634,3 +634,86 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     await pool.query("DELETE FROM consultations WHERE phone = $1", [e164(bookDigits)]);
   }
 });
+
+test("a pharmacy can redeem one coupon, and the code still works for the next pharmacy", async () => {
+  await migrate();
+  const stamp = String(Date.now()).slice(-8);
+  const codes = [`G${stamp}`, `H${stamp}`, `X${stamp}`, `Y${stamp}`];
+  const phones = ["93" + stamp, "94" + stamp, "95" + stamp].map(e164);
+  const ids: string[] = [];
+  const pool = getPool();
+  const sign = async (digits: string) => {
+    const signed = await call("POST", "/auth/otp/verify", undefined, { phone: digits, code: "123456", businessType: "pharmacy", name: "Coupon " + digits });
+    assert.equal(signed.status, 200);
+    const cookie = cookieOf(signed, "namma_session");
+    const login = await findLogin(e164(digits));
+    assert.ok(login);
+    ids.push(login.pharmacy_id);
+    return { cookie, id: login.pharmacy_id };
+  };
+  try {
+    const masterPhone = phones[0];
+    await pool.query("INSERT INTO master_phones (phone) VALUES ($1) ON CONFLICT DO NOTHING", [masterPhone]);
+    const mastered = await call("POST", "/auth/otp/verify", undefined, { phone: phones[0].slice(3), code: "123456", portal: "master" });
+    assert.equal(mastered.status, 200);
+    const masterCookie = cookieOf(mastered, "namma_master");
+    assert.equal((await call("POST", "/master/coupons", undefined, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 401);
+    const pharmacy = await sign(phones[0].slice(3));
+    assert.equal((await call("POST", "/master/coupons", pharmacy.cookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 403);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Free", expiresOn: utcShift(10), validDays: 30 })).status, 400);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(-1), validDays: 30 })).status, 400);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 200);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 400);
+    const listed = await (await call("GET", "/master/coupons", masterCookie)).json() as { code: string; redeemed: number }[];
+    assert.equal(listed.find((row) => row.code === codes[0])?.redeemed, 0);
+
+    assert.equal((await call("POST", "/subscription/coupons/preview", pharmacy.cookie, { code: "nope" })).status, 404);
+    const preview = await call("POST", "/subscription/coupons/preview", pharmacy.cookie, { code: codes[0].toLowerCase() });
+    assert.equal(preview.status, 200);
+    const offer = await preview.json() as { plan: string; validDays: number; expired: boolean; renewsOn: string };
+    assert.equal(offer.plan, "Growth");
+    assert.equal(offer.validDays, 30);
+    assert.equal(offer.expired, false);
+    assert.equal(offer.renewsOn, utcShift(30));
+    await call("POST", "/subscription/requests", pharmacy.cookie, { plan: "Starter", cycle: "monthly", kind: "plan" });
+    const redeemed = await call("POST", "/subscription/coupons/redeem", pharmacy.cookie, { code: codes[0] });
+    assert.equal(redeemed.status, 200);
+    const session = await (await call("GET", "/session", pharmacy.cookie)).json() as { couponRedeemed: boolean; subscription: { plan: string; cycle: string; renewsOn: string }; subscriptionRequests: { status: string }[] };
+    assert.equal(session.couponRedeemed, true);
+    assert.equal(session.subscription.plan, "Growth");
+    assert.equal(session.subscription.cycle, "monthly");
+    assert.equal(session.subscription.renewsOn, utcShift(30));
+    assert.equal(session.subscriptionRequests.length, 1);
+    assert.equal(session.subscriptionRequests.every((row) => row.status === "handled"), true);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[1], plan: "Pro", expiresOn: utcShift(5), validDays: 15 })).status, 200);
+    assert.equal((await call("POST", "/subscription/coupons/redeem", pharmacy.cookie, { code: codes[1] })).status, 400);
+
+    const second = await sign(phones[1].slice(3));
+    assert.equal((await call("POST", "/subscription/coupons/redeem", second.cookie, { code: codes[0] })).status, 200);
+    const shared = await (await call("GET", "/master/coupons", masterCookie)).json() as { code: string; redeemed: number }[];
+    assert.equal(shared.find((row) => row.code === codes[0])?.redeemed, 2);
+
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[2], plan: "Starter", expiresOn: utcShift(3), validDays: 7 })).status, 200);
+    await pool.query("UPDATE coupons SET expires_on = $2 WHERE code = $1", [codes[2], utcShift(-1)]);
+    const third = await sign(phones[2].slice(3));
+    const late = await (await call("POST", "/subscription/coupons/preview", third.cookie, { code: codes[2] })).json() as { expired: boolean };
+    assert.equal(late.expired, true);
+    assert.equal((await call("POST", "/subscription/coupons/redeem", third.cookie, { code: codes[2] })).status, 400);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[3], plan: "Pro", expiresOn: utcShift(20), validDays: 365 })).status, 200);
+    assert.equal((await call("POST", "/subscription/coupons/redeem", third.cookie, { code: codes[3] })).status, 200);
+    const year = await (await call("GET", "/session", third.cookie)).json() as { subscription: { plan: string; cycle: string; renewsOn: string } };
+    assert.equal(year.subscription.plan, "Pro");
+    assert.equal(year.subscription.cycle, "annual");
+    assert.equal(year.subscription.renewsOn, utcShift(365));
+  } finally {
+    if (ids.length) {
+      await pool.query("ALTER TABLE master_audit DISABLE TRIGGER master_audit_freeze");
+      await pool.query("DELETE FROM master_audit WHERE pharmacy_id = ANY($1::uuid[])", [ids]);
+      await pool.query("ALTER TABLE master_audit ENABLE TRIGGER master_audit_freeze");
+      await pool.query("DELETE FROM pharmacies WHERE id = ANY($1::uuid[])", [ids]);
+    }
+    await pool.query("DELETE FROM coupons WHERE code = ANY($1::text[])", [codes]);
+    await pool.query("DELETE FROM master_sessions WHERE phone = ANY($1::text[])", [phones]);
+    await pool.query("DELETE FROM master_phones WHERE phone = ANY($1::text[])", [phones]);
+  }
+});

@@ -114,6 +114,8 @@ Money in request and response bodies is integer paise. The POS cart is not an AP
 | DELETE | `/users/:id` | `removeUser` | `removeUser` |
 | GET, PATCH | `/subscription` | Read the plan. PATCH changes auto-renew only. A plan, cycle, renewal date, grant, or seat write returns 403. | `SubscriptionScreen` |
 | POST | `/subscription/requests` | `requestPlan`. Appends a plan or renewal request. Duplicates stay as separate rows. | `SubscriptionScreen` |
+| POST | `/subscription/coupons/preview` | Looks up a coupon. Returns the plan, expiry, validity days, and the renewal date redeem would set. Does not change the plan. Refuses when this pharmacy has already redeemed one. | `SubscriptionScreen` |
+| POST | `/subscription/coupons/redeem` | Applies that coupon once. Sets the plan and renewal date, marks open plan requests handled, and records the redemption. A second redemption returns 400. | `SubscriptionScreen` |
 | GET, PUT, DELETE | `/bank-account` | `saveBankAccount`, `removeBankAccount` | `AccountScreen` |
 | POST | `/bank-account/verify` | `verifyBankAccount`. Remains a local verification result until a verification provider is chosen. | `verifyBankAccount` |
 | GET, POST | `/advisors` | Advisor list and `addAdvisor` | `CAReportScreen` |
@@ -176,6 +178,8 @@ A master session uses the `namma_master` cookie. It is separate from `namma_sess
 | GET | `/master/work` | Open tickets and referrals across pharmacies. |
 | GET | `/master/audit` | The latest 100 master audit rows. |
 | POST | `/consultations` | Public. Saves a name, phone, area, and note from the website. No session. |
+| GET | `/master/coupons` | Issued coupons, newest first, with how many pharmacies redeemed each. |
+| POST | `/master/coupons` | Issues a code for a paid plan, an expiry date, and a validity in days. The same code can be redeemed by many pharmacies until it expires. |
 | GET | `/master/consultations` | The latest 200 consultation bookings. |
 | PATCH | `/master/consultations/:id` | Sets the booking to `open` or `handled`. |
 | POST | `/master/pharmacies/:id/impersonate` | Opens that pharmacy as its owner. The pharmacy session records the master phone. Sign-out ends it and writes an audit row. |
@@ -188,7 +192,7 @@ A master session uses the `namma_master` cookie. It is separate from `namma_sess
 | POST | `/master/pharmacies/:id/referrals/:referralId/earn` | Sets the reward to ₹500. |
 | POST | `/master/pharmacies/:id/referrals/:referralId/pay` | One payout, with the master phone and time. Refused before the reward is earned. A repeat does not write a second payout. |
 
-Each write that changes something inserts one `master_audit` row in the same transaction: master phone, pharmacy, action, previous value, new value, time, and reason. The row cannot be updated or deleted.
+Each write that changes a pharmacy inserts one `master_audit` row in the same transaction: master phone, pharmacy, action, previous value, new value, time, and reason. The row cannot be updated or deleted. Issuing a coupon is not tied to one pharmacy, so it does not write an audit row. Redeeming one does, with action `coupon`.
 
 ## Not an endpoint
 

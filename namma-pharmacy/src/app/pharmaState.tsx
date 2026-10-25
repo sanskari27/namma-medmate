@@ -50,6 +50,7 @@ type Snapshot = {
   grants?: ScreenGrant[];
   extraSeats?: number;
   subscriptionRequests?: SubRequest[];
+  couponRedeemed?: boolean;
   creditPayments: CreditPayment[];
   caShares: CAShare[];
   wardSupplies: WardSupply[];
@@ -266,7 +267,9 @@ type Ctx = {
   grants: ScreenGrant[];
   extraSeats: number;
   subscriptionRequests: SubRequest[];
+  couponRedeemed: boolean;
   requestPlan: (plan: Plan, cycle: BillingCycle, kind?: "plan" | "renewal") => Promise<SaveFault | null>;
+  redeemCoupon: (code: string) => Promise<SaveFault | null>;
   toggleAutoRenew: () => void;
   featureLocked: (r: Route) => boolean;    // freemium paywall for premium routes
   // invoice settings
@@ -397,6 +400,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const [grants, setGrants] = useState<ScreenGrant[]>([]);
   const [extraSeats, setExtraSeats] = useState(0);
   const [subscriptionRequests, setSubscriptionRequests] = useState<SubRequest[]>([]);
+  const [couponRedeemed, setCouponRedeemed] = useState(false);
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({ ...DEFAULT_INVOICE_SETTINGS, bankLine: "" });
   const [kiosk, setKiosk] = useState<KioskConfig>({ ...DEFAULT_KIOSK, enabled: false, displayName: "", pin: "", welcome: "" });
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -509,6 +513,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setGrants(session.grants || []);
       setExtraSeats(session.extraSeats || 0);
       setSubscriptionRequests(session.subscriptionRequests || []);
+      setCouponRedeemed(session.couponRedeemed === true);
       setMe(session.user ? { id: session.user.id, role: session.user.role, permissions: session.user.permissions ?? [] } : null);
       setCreditPayments(session.creditPayments || []);
       setCaShares(session.caShares || []);
@@ -840,6 +845,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const requestPlan = async (plan: Plan, cycle: BillingCycle, kind: "plan" | "renewal" = "plan"): Promise<SaveFault | null> => ok(await post("/subscription/requests", "POST", { plan, cycle, kind }, { pull: true }), () => {
     toast(kind === "renewal" ? "Renewal request sent" : `Request for the ${plan} plan sent`);
   });
+  const redeemCoupon = async (code: string): Promise<SaveFault | null> => ok(await post("/subscription/coupons/redeem", "POST", { code }, { pull: true }), () => toast("Coupon applied"));
   const toggleAutoRenew = () => { void post("/subscription", "PATCH", { action: "toggle" }); setSubscription((s) => ({ ...s, autoRenew: !s.autoRenew })); };
   const featureLocked = (r: Route) => routeLocked(r, subscription, { grants, businessType });
 
@@ -1127,7 +1133,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     approveRx, rejectRx, dispenseRx,
     addOffer, toggleOffer, removeOffer, setDirectOffer,
     users, addUser, updateUser, toggleUser, removeUser,
-    subscription, grants, extraSeats, subscriptionRequests, requestPlan, toggleAutoRenew, featureLocked,
+    subscription, grants, extraSeats, subscriptionRequests, couponRedeemed, requestPlan, redeemCoupon, toggleAutoRenew, featureLocked,
     invoiceSettings, updateInvoiceSettings,
     kiosk, updateKiosk, placeKioskOrder,
     advisors, addAdvisor, updateAdvisor, removeAdvisor, caShares, shareWithCA,

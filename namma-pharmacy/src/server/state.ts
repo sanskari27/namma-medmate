@@ -72,6 +72,7 @@ export type PharmacyState = {
   wardSupplies: WardSupply[];
   hospitalPayments: HospitalPayment[];
   tickets: Ticket[];
+  couponRedeemed?: boolean;
 };
 
 const ZERO_SEQ: Seq = {
@@ -276,6 +277,7 @@ export function touchAccess(state: PharmacyState) {
   state.extraSeats ||= 0;
   state.subscriptionRequests ||= [];
   state.referrals ||= [];
+  state.couponRedeemed = state.couponRedeemed === true;
 }
 
 export function bump(state: PharmacyState, key: keyof Seq): number {

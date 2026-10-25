@@ -43,4 +43,4 @@ The POS cart remains on the client. The server sees it at `POST /api/v1/pos/chec
 
 ## Plan gate
 
-Free and expired subscriptions can use the free and shell routes. Manage Users stays open on Free and is capped by seats. Any active paid plan opens every non-hospital premium route. Hospital routes also require `businessType` `hospital`. A master grant opens one premium route while the plan is Free or the paid term has lapsed, and does nothing during an active paid term. `planForRoute()` remains display copy. A pharmacy cannot change its own plan.
+Free and expired subscriptions can use the free and shell routes. Manage Users stays open on Free and is capped by seats. Any active paid plan opens every non-hospital premium route. Hospital routes also require `businessType` `hospital`. A master grant opens one premium route while the plan is Free or the paid term has lapsed, and does nothing during an active paid term. `planForRoute()` remains display copy. A pharmacy cannot change its own plan, except by redeeming one master-issued coupon. That redemption sets the plan through the coupon's validity days.

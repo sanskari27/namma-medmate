@@ -2,13 +2,16 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
-  PLANS, BillingCycle, inr, planPrice, annualSavings, annualPerMonth,
+  PLANS, Plan, BillingCycle, inr, planPrice, annualSavings, annualPerMonth,
   cycleNoun, ANNUAL_DISCOUNT, GST_RATE, subscriptionLapsed,
 } from "../data";
+import { ApiError, api } from "../lib/api";
 import { IconCheck, IconCrown, IconStar } from "../components/Icon";
 
+type CouponOffer = { code: string; plan: Plan; expiresOn: string; validDays: number; expired: boolean; renewsOn: string };
+
 export default function SubscriptionScreen() {
-  const { subscription, subscriptionRequests, requestPlan, toggleAutoRenew } = usePharma();
+  const { subscription, subscriptionRequests, couponRedeemed, requestPlan, redeemCoupon, toggleAutoRenew } = usePharma();
   const current = PLANS.find((p) => p.key === subscription.plan)!;
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
 
@@ -83,6 +86,7 @@ export default function SubscriptionScreen() {
           );
         })}
       </div>
+      {!couponRedeemed && <CouponRedeem onRedeem={redeemCoupon} />}
       <p className="pd-muted" style={{ fontSize: 12.5 }}>Online payment is not connected. A request goes to Namma MedMate, who assigns the plan.</p>
       {subscriptionRequests.length > 0 && <div className="pd-card" style={{ marginTop: 16 }}>
         <div className="pd-card-head"><h3>Your requests</h3></div>
@@ -90,6 +94,59 @@ export default function SubscriptionScreen() {
           {subscriptionRequests.map((request) => <tr key={request.id}><td>{request.plan}</td><td>{request.cycle}</td><td>{request.kind}</td><td>{new Date(request.createdAt).toLocaleString()}</td><td>{request.status}</td></tr>)}
         </tbody></table></div>
       </div>}
+    </div>
+  );
+}
+
+function CouponRedeem({ onRedeem }: { onRedeem: (code: string) => Promise<unknown> }) {
+  const [open, setOpen] = useState(false);
+  const [code, setCode] = useState("");
+  const [offer, setOffer] = useState<CouponOffer | null>(null);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const check = async () => {
+    setError("");
+    setOffer(null);
+    setBusy(true);
+    try {
+      setOffer(await api<CouponOffer>("/subscription/coupons/preview", { method: "POST", body: { code } }));
+    } catch (err) {
+      setError(err instanceof ApiError ? err.message : "Could not check that code");
+    } finally { setBusy(false); }
+  };
+  const plan = offer ? PLANS.find((item) => item.key === offer.plan) : undefined;
+  return (
+    <div style={{ marginTop: 22 }}>
+      <div className="pd-flex" style={{ alignItems: "center", gap: 12, margin: "4px 0 14px" }}>
+        <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+        <span className="pd-muted" style={{ fontSize: 12, fontWeight: 700, letterSpacing: ".04em" }}>or</span>
+        <span style={{ flex: 1, height: 1, background: "var(--line)" }} />
+      </div>
+      {!open ? (
+        <p style={{ textAlign: "center", fontSize: 14 }}>Have a coupon code? <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => setOpen(true)}>Redeem now</button></p>
+      ) : (
+        <div className="pd-card pd-card-pad" style={{ maxWidth: 480, margin: "0 auto" }}>
+          <h3 style={{ fontSize: 15, marginBottom: 8 }}>Have a coupon code?</h3>
+          <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}>One coupon per pharmacy. Check it before you redeem.</p>
+          <div className="pd-flex pd-gap6" style={{ alignItems: "flex-end" }}>
+            <div className="pd-field" style={{ flex: 1 }}>
+              <label htmlFor="coupon-code">Coupon code</label>
+              <input id="coupon-code" className="pd-input" data-field="code" value={code} autoComplete="off" aria-invalid={Boolean(error)} onChange={(e) => { setCode(e.target.value.toUpperCase()); setOffer(null); setError(""); }} onKeyDown={(e) => { if (e.key === "Enter") void check(); }} />
+            </div>
+            <button className="pd-btn pd-btn-ghost" disabled={busy || code.trim().length < 4} onClick={() => void check()}>Check</button>
+          </div>
+          {error && <p className="pd-form-alert" role="alert" style={{ marginTop: 12 }}>{error}</p>}
+          {offer && plan && (
+            <div style={{ marginTop: 14 }}>
+              <div style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 18 }}>{plan.name} plan</div>
+              <p className="pd-muted" style={{ fontSize: 13, margin: "4px 0 10px" }}>Active for {offer.validDays} days, until <b>{offer.renewsOn}</b>. Code expires <b>{offer.expiresOn}</b>.</p>
+              {offer.expired
+                ? <p className="pd-form-alert" role="alert">This coupon has expired.</p>
+                : <button className="pd-btn pd-btn-primary" disabled={busy} onClick={() => { setBusy(true); void onRedeem(offer.code).finally(() => setBusy(false)); }}>Redeem</button>}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   );
 }

@@ -104,10 +104,16 @@ function cycleOf(value: unknown): BillingCycle {
   if (value === "monthly" || value === "annual") return value;
   fail(400, "VALIDATION", "Choose a billing cycle");
 }
-function dateOf(value: unknown) {
+function dateOf(value: unknown, message = "Enter a renewal date") {
   const date = String(value || "");
-  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(400, "VALIDATION", "Enter a renewal date");
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) fail(400, "VALIDATION", message);
   return date;
+}
+
+function shiftDays(days: number, from = todayISO()) {
+  const date = new Date(from + "T00:00:00Z");
+  date.setUTCDate(date.getUTCDate() + days);
+  return date.toISOString().slice(0, 10);
 }
 
 function seatsOf(state: PharmacyState) {
@@ -419,6 +425,116 @@ export async function listConsultations() {
     id: Number(row.id), name: row.name as string, phone: row.phone as string, area: row.area as string,
     note: row.note as string, status: row.status as string, at: new Date(row.at as string).toISOString(),
   }));
+}
+
+function couponCode(value: unknown) {
+  const code = String(value || "").trim().toUpperCase().replace(/\s+/g, "");
+  if (!/^[A-Z0-9]{4,16}$/.test(code)) fail(400, "VALIDATION", "Use 4–16 letters or numbers", "code");
+  return code;
+}
+
+function couponPlan(value: unknown): Plan {
+  const plan = planOf(value);
+  if (plan === "Free") fail(400, "VALIDATION", "Choose a paid plan");
+  return plan;
+}
+
+function validityDays(value: unknown) {
+  const days = Number(value);
+  if (!Number.isInteger(days) || days < 1 || days > 3650) fail(400, "VALIDATION", "Plan validity must be 1–3650 days");
+  return days;
+}
+
+type CouponRow = { code: string; plan: string; expires_on: string; valid_days: number; created_by?: string; redeemed?: number; created_at?: string };
+
+function presentCoupon(row: CouponRow) {
+  const expiresOn = String(row.expires_on).slice(0, 10);
+  const validDays = Number(row.valid_days);
+  return {
+    code: row.code,
+    plan: row.plan,
+    expiresOn,
+    validDays,
+    expired: expiresOn < todayISO(),
+    renewsOn: shiftDays(validDays),
+    redeemed: Number(row.redeemed || 0),
+    createdAt: row.created_at ? new Date(row.created_at).toISOString() : undefined,
+  };
+}
+
+export async function listCoupons() {
+  await migrate();
+  const { rows } = await getPool().query(
+    `SELECT c.code, c.plan, to_char(c.expires_on, 'YYYY-MM-DD') AS expires_on, c.valid_days, c.created_at,
+            (SELECT count(*)::int FROM coupon_redemptions r WHERE r.code = c.code) AS redeemed
+     FROM coupons c ORDER BY c.created_at DESC LIMIT 100`,
+  );
+  return rows.map((row) => presentCoupon(row as CouponRow));
+}
+
+export async function issueCoupon(master: MasterSession, body: Record<string, unknown>) {
+  await migrate();
+  const code = couponCode(body.code);
+  const plan = couponPlan(body.plan);
+  const expiresOn = dateOf(body.expiresOn, "Enter an expiry date");
+  if (expiresOn < todayISO()) fail(400, "VALIDATION", "Expiry must be today or later");
+  const validDays = validityDays(body.validDays);
+  try {
+    await getPool().query(
+      "INSERT INTO coupons (code, plan, expires_on, valid_days, created_by) VALUES ($1,$2,$3,$4,$5)",
+      [code, plan, expiresOn, validDays, master.phone],
+    );
+  } catch (err) {
+    if ((err as { code?: string }).code === "23505") fail(400, "VALIDATION", "That code already exists", "code");
+    throw err;
+  }
+  return { code, plan, expiresOn, validDays };
+}
+
+export async function previewCoupon(pharmacyId: string, codeRaw: unknown) {
+  await migrate();
+  const code = couponCode(codeRaw);
+  const used = await getPool().query("SELECT 1 FROM coupon_redemptions WHERE pharmacy_id = $1", [pharmacyId]);
+  if (used.rows[0]) fail(400, "VALIDATION", "A coupon can be redeemed only once");
+  const { rows } = await getPool().query(
+    "SELECT code, plan, to_char(expires_on, 'YYYY-MM-DD') AS expires_on, valid_days FROM coupons WHERE code = $1",
+    [code],
+  );
+  if (!rows[0]) fail(404, "NOT_FOUND", "Coupon not found");
+  return presentCoupon(rows[0] as CouponRow);
+}
+
+export async function redeemCoupon(pharmacyId: string, codeRaw: unknown) {
+  const code = couponCode(codeRaw);
+  return withState(pharmacyId, async (state, client) => {
+    const used = await client.query("SELECT 1 FROM coupon_redemptions WHERE pharmacy_id = $1", [pharmacyId]);
+    if (used.rows[0] || state.couponRedeemed) fail(400, "VALIDATION", "A coupon can be redeemed only once");
+    const { rows } = await client.query(
+      "SELECT code, plan, to_char(expires_on, 'YYYY-MM-DD') AS expires_on, valid_days, created_by FROM coupons WHERE code = $1",
+      [code],
+    );
+    if (!rows[0]) fail(404, "NOT_FOUND", "Coupon not found");
+    const coupon = rows[0] as CouponRow;
+    const expiresOn = String(coupon.expires_on).slice(0, 10);
+    if (expiresOn < todayISO()) fail(400, "VALIDATION", "This coupon has expired");
+    const plan = couponPlan(coupon.plan);
+    const validDays = Number(coupon.valid_days);
+    const renewsOn = shiftDays(validDays);
+    const before = { plan: state.subscription.plan, cycle: state.subscription.cycle, renewsOn: state.subscription.renewsOn };
+    // ponytail: cycle is a label; renewsOn is the term. Annual only when validity is at least a year.
+    const cycle: BillingCycle = validDays >= 365 ? "annual" : "monthly";
+    state.subscription = { ...state.subscription, plan, cycle, renewsOn, status: "active" };
+    markRequests(state);
+    state.couponRedeemed = true;
+    try {
+      await client.query("INSERT INTO coupon_redemptions (pharmacy_id, code) VALUES ($1,$2)", [pharmacyId, code]);
+    } catch (err) {
+      if ((err as { code?: string }).code === "23505") fail(400, "VALIDATION", "A coupon can be redeemed only once");
+      throw err;
+    }
+    await insertAudit(client, String(coupon.created_by || ""), pharmacyId, "coupon", before, { code, plan, cycle, renewsOn }, code);
+    return state.subscription;
+  });
 }
 
 export async function markConsultation(id: string, body: Record<string, unknown>) {

@@ -16,7 +16,7 @@ import { ApiError } from "./errors";
 import { expandFiles, readFile } from "./files";
 import {
   assignBusinessType, assignGrants, assignPlan, assignSeats, assignTicket, bookConsultation, createMasterSession, destroyMasterSession,
-  earnReferral, isMasterPhone, listAudit, listConsultations, listPharmacies, listRequests, listWork, markConsultation, masterCookie, masterFrom, masterToken, payReferral, pharmacyProfile, recordAudit, startImpersonation,
+  earnReferral, isMasterPhone, issueCoupon, listAudit, listConsultations, listCoupons, listPharmacies, listRequests, listWork, markConsultation, masterCookie, masterFrom, masterToken, payReferral, pharmacyProfile, previewCoupon, recordAudit, redeemCoupon, startImpersonation,
 } from "./master";
 import * as m from "./mutate";
 import { demoState, emptyState, type PharmacyState } from "./state";
@@ -80,6 +80,7 @@ export function sessionView(state: PharmacyState, session: SessionRow) {
     grants: state.grants || [],
     extraSeats: state.extraSeats || 0,
     subscriptionRequests: state.subscriptionRequests || [],
+    couponRedeemed: state.couponRedeemed === true,
     creditPayments: state.creditPayments,
     caShares: state.caShares,
     wardSupplies: state.wardSupplies,
@@ -369,6 +370,12 @@ export async function handle(req: Request): Promise<Response> {
     if (req.method === "GET" && path.startsWith("/sales/") && path.endsWith("/invoice.pdf")) return await invoicePdf(req, path.slice("/sales/".length, -"/invoice.pdf".length));
     if (req.method === "GET" && path.startsWith("/reports/") && path.endsWith("/export.csv")) return await reportCsv(req, path.slice("/reports/".length, -"/export.csv".length), url);
     if (req.method === "GET" && path.startsWith("/files/")) return await file(req, path.slice("/files/".length));
+    if (req.method === "POST" && (path === "/subscription/coupons/preview" || path === "/subscription/coupons/redeem")) {
+      const couponSession = await readSession(tokenOf(req));
+      if (!couponSession) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
+      if (path.endsWith("/preview")) return send(await previewCoupon(couponSession.pharmacyId, body.code));
+      return send(await redeemCoupon(couponSession.pharmacyId, body.code));
+    }
     const found = matchSpec(req.method, path);
     if (!found) throw new ApiError(404, "NOT_FOUND", "No such API");
     const session = await readSession(tokenOf(req));
@@ -469,6 +476,8 @@ async function masterApi(req: Request, path: string, url: URL, body: Record<stri
   if (req.method === "GET" && path === "/master/work") return send(await listWork());
   if (req.method === "GET" && path === "/master/audit") return send(await listAudit());
   if (req.method === "GET" && path === "/master/consultations") return send(await listConsultations());
+  if (req.method === "GET" && path === "/master/coupons") return send(await listCoupons());
+  if (req.method === "POST" && path === "/master/coupons") return send(await issueCoupon(master, body));
   if (req.method === "PATCH" && consult) return send(await markConsultation(id(consult[1]), body));
   if (req.method === "POST" && impersonate) return send({ ok: true }, 200, await startImpersonation(master, id(impersonate[1])));
   if (req.method === "GET" && one) return send(await pharmacyProfile(id(one[1])));

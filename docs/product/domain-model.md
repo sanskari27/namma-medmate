@@ -85,7 +85,7 @@ Khata balance is derived from credit sales through `creditSalesOf()` minus `cred
 | `PharmacyProfile` | `updateProfile`, `toggleStoreOpen` | Includes GSTIN, PAN, drug licence, FSSAI, TDS/TCS flags, logo, and signature data URLs |
 | `InvoiceSettings` | `updateInvoiceSettings` | Controls prefix, template, terms, footer, and logo display |
 | `KioskConfig` | `updateKiosk` | Local kiosk configuration |
-| `Subscription` | `requestPlan`, `toggleAutoRenew` | The pharmacy submits a plan or renewal request. A master assigns the plan, cycle, and renewal date. The screen does not collect a payment. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
+| `Subscription` | `requestPlan`, `toggleAutoRenew`, `redeemCoupon` | The pharmacy submits a plan or renewal request. A master assigns the plan, cycle, and renewal date, or issues a coupon with an expiry date and a plan length in days. Each pharmacy can redeem one coupon. The screen does not collect a payment. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
 | `BankAccount` | `saveBankAccount`, `verifyBankAccount`, `removeBankAccount` | Verification flips a local flag. IFSC is checked with `isValidIfsc`. |
 | `Advisor`, `CAShare` | Advisor CRUD, `shareWithCA` | Share appends a local record and shows a toast |
 | `Expense`, categories | Expense CRUD, `addExpenseCategory` | No approval workflow |

@@ -20,7 +20,7 @@ A nine-step setup wizard in `SetupWizard.tsx` can run before the shell. `setupCo
 - Any active `Starter`, `Growth`, or `Pro` plan opens the same non-hospital routes. Grants stay stored and do nothing until the paid term lapses. `planForRoute()` supplies upsell copy only.
 - Hospital routes stay hidden unless `businessType` is `hospital`. A Free or lapsed hospital pharmacy needs a grant for each hospital screen.
 
-Seats are 2 on Free and Starter, 5 on Growth, and unlimited on Pro, plus master-assigned extra seats up to 50 total on the finite plans. Adding staff stops at that cap. Existing staff stay. The pharmacy asks for a plan from Subscription. A master phone on the allowlist assigns it.
+Seats are 2 on Free and Starter, 5 on Growth, and unlimited on Pro, plus master-assigned extra seats up to 50 total on the finite plans. Adding staff stops at that cap. Existing staff stay. The pharmacy asks for a plan from Subscription, or redeems one coupon. A master phone on the allowlist assigns the plan and issues coupons.
 
 ### Staff permissions
 
@@ -63,7 +63,7 @@ Seats are 2 on Free and Starter, 5 on Growth, and unlimited on Pro, plus master-
 | `employees` | `EmployeesScreen.tsx` | Growth copy | Employee records and document data URLs. |
 | `users` | `UsersScreen.tsx` | Growth copy | Staff profiles, roles, and permissions. The shell hides screens the signed-in user cannot open. A new pharmacy has the owner only. |
 | `invoicing` | `InvoiceSettingsScreen.tsx` | Free | Invoice prefix, template, terms, and logo. Templates include thermal. |
-| `subscription` | `SubscriptionScreen.tsx` | Always open | Shows the current plan. Paid checkout is not offered, and no receipt rows are invented. Downgrade to Free is still available. |
+| `subscription` | `SubscriptionScreen.tsx` | Always open | Shows the current plan. Paid checkout is not offered, and no receipt rows are invented. Downgrade to Free is still available. Below the plans, an or-section accepts one coupon code per pharmacy: check shows the plan, expiry, and validity, then redeem applies it. |
 | `refer` | `ReferScreen.tsx` | Always open | Generates a code from the pharmacy name. Invited pharmacies are stored on the account. |
 | `settings` | `SettingsScreen.tsx` | Always open | Profile, licences, custom fields, and loose-sale default. |
 | `support` | `SupportScreen.tsx` | Always open | FAQ and tickets stored on the pharmacy. No sample ticket is created. |

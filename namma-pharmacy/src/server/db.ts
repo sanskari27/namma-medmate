@@ -86,6 +86,19 @@ CREATE TRIGGER master_audit_freeze
 BEFORE UPDATE OR DELETE ON master_audit
 FOR EACH ROW EXECUTE FUNCTION master_audit_freeze();
 REVOKE UPDATE, DELETE ON master_audit FROM PUBLIC;
+CREATE TABLE IF NOT EXISTS coupons (
+  code text PRIMARY KEY,
+  plan text NOT NULL,
+  expires_on date NOT NULL,
+  valid_days int NOT NULL,
+  created_by text NOT NULL,
+  created_at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS coupon_redemptions (
+  pharmacy_id uuid PRIMARY KEY REFERENCES pharmacies(id) ON DELETE CASCADE,
+  code text NOT NULL REFERENCES coupons(code),
+  redeemed_at timestamptz NOT NULL DEFAULT now()
+);
 `;
 
 let pool: Pool | undefined;

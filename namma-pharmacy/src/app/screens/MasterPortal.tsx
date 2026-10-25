@@ -3,11 +3,11 @@ import { useEffect, useState } from "react";
 import { api } from "../lib/api";
 import { BillingCycle, HOSPITAL_ROUTES, Plan, PREMIUM_ROUTES, subscriptionLapsed, todayISO } from "../data";
 import {
-  IconChevronLeft, IconCrown, IconDashboard, IconGift, IconHelp, IconReports, IconRx, IconSend, IconStore, IconUser,
+  IconChevronLeft, IconCrown, IconDashboard, IconGift, IconHelp, IconOffer, IconReports, IconRx, IconSend, IconStore, IconUser,
 } from "../components/Icon";
 import { SignOutDialog } from "../components/SignOutDialog";
 
-type Desk = "dashboard" | "pharmacies" | "kyc" | "subscriptions" | "requests" | "support" | "consultations" | "referrals" | "activity";
+type Desk = "dashboard" | "pharmacies" | "kyc" | "subscriptions" | "coupons" | "requests" | "support" | "consultations" | "referrals" | "activity";
 type Booking = { id: number; name: string; phone: string; area: string; note: string; status: string; at: string };
 type Seats = { included: number | null; extra: number; inUse: number; limit: number | null };
 type Kyc = { gstin: string; pan: string; dlNo: string; fssai: string; pharmacist?: string; bank?: { bankName?: string; accountNumber?: string; ifsc?: string } | null };
@@ -32,6 +32,7 @@ const NAV: { key: Desk; label: string; group?: string; Icon: (p: { size?: number
   { key: "pharmacies", label: "Pharmacies", Icon: IconStore, group: "Tenants" },
   { key: "kyc", label: "KYC", Icon: IconUser },
   { key: "subscriptions", label: "Subscriptions", Icon: IconCrown },
+  { key: "coupons", label: "Coupons", Icon: IconOffer },
   { key: "requests", label: "Plan requests", Icon: IconSend },
   { key: "support", label: "Support", Icon: IconHelp, group: "Operations" },
   { key: "consultations", label: "Consultations", Icon: IconRx },
@@ -43,6 +44,7 @@ const META: Record<Desk, { title: string; sub: string }> = {
   pharmacies: { title: "Pharmacies", sub: "Search and open a pharmacy file" },
   kyc: { title: "KYC", sub: "GSTIN, PAN, or drug licence still blank" },
   subscriptions: { title: "Subscriptions", sub: "Plan, cycle, and renewal" },
+  coupons: { title: "Coupons", sub: "Upgrade codes with an expiry and a plan length" },
   requests: { title: "Plan requests", sub: "What pharmacies asked for" },
   support: { title: "Support", sub: "Open tickets" },
   consultations: { title: "Consultations", sub: "Bookings from the public site" },
@@ -238,6 +240,7 @@ export default function MasterPortal({ phone, onPharmacy, pharmacyLabel, onSigne
                 {desk === "pharmacies" && <PharmacyList rows={filtered} q={q} setQ={setQ} plan={plan} setPlan={setPlan} businessType={businessType} setBusinessType={setBusinessType} window={window} setWindow={setWindow} onOpen={(id) => void open(id)} />}
                 {desk === "kyc" && <Queue rows={kycQueue} empty="Every pharmacy has a GSTIN, PAN, and drug licence." columns={["Pharmacy", "Phone", "Missing"]} cells={(row) => [row.name, row.phone, kycGaps(row).join(", ")]} onOpen={(id) => void open(id)} />}
                 {desk === "subscriptions" && <Queue rows={rows} empty="No pharmacies yet." columns={["Pharmacy", "Plan", "Renews", "Seats"]} cells={(row) => [row.name, `${row.plan} · ${row.cycle}${renewalDue(row) ? " · due" : ""}`, row.renewsOn || "—", seatText(row.seats)]} onOpen={(id) => void open(id)} />}
+                {desk === "coupons" && <CouponDesk />}
                 {desk === "requests" && <RequestTable requests={requests} onOpen={(request) => void open(request.pharmacyId, { plan: request.plan, cycle: request.cycle })} />}
                 {desk === "support" && <TicketTable tickets={tickets} onResolve={(ticket) => void save(`/master/pharmacies/${ticket.pharmacyId}/tickets/${ticket.id}`, "PATCH", { status: "Resolved" }, false)} />}
                 {desk === "consultations" && <ConsultationTable rows={bookings} onHandled={(id) => void markBooking(id)} />}
@@ -429,6 +432,59 @@ function PharmacyFile({ profile, reason, setReason, nextPlan, setNextPlan, cycle
           {referral.paidBy && <span className="pd-muted">Paid by {referral.paidBy}</span>}
         </div>
       ))}
+    </div>
+  );
+}
+
+type CouponRow = { code: string; plan: string; expiresOn: string; validDays: number; redeemed: number };
+
+function makeCode() {
+  const alphabet = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+  const bytes = crypto.getRandomValues(new Uint8Array(8));
+  return Array.from(bytes, (byte) => alphabet[byte % alphabet.length]).join("");
+}
+
+function CouponDesk() {
+  const [rows, setRows] = useState<CouponRow[]>([]);
+  const [code, setCode] = useState("");
+  const [plan, setPlan] = useState<Plan>("Growth");
+  const [expiresOn, setExpiresOn] = useState(plusDays(30));
+  const [validDays, setValidDays] = useState(30);
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const load = () => api<CouponRow[]>("/master/coupons").then(setRows).catch((err: Error) => setError(err.message));
+  useEffect(() => { void load(); }, []);
+  const issue = async () => {
+    setError("");
+    setBusy(true);
+    try {
+      await api("/master/coupons", { method: "POST", body: { code, plan, expiresOn, validDays } });
+      setCode("");
+      await load();
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Could not issue the coupon");
+    } finally { setBusy(false); }
+  };
+  return (
+    <div>
+      <div className="pd-card pd-card-pad" style={{ marginBottom: 16 }}>
+        <h3 style={{ marginBottom: 8 }}>Issue a coupon</h3>
+        <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}>The code works until the expiry date. Redeeming it turns on the plan for the validity days. Each pharmacy can redeem one coupon.</p>
+        {error && <p className="pd-form-alert" role="alert">{error}</p>}
+        <div className="pd-flex pd-gap6" style={{ flexWrap: "wrap", alignItems: "flex-end" }}>
+          <div className="pd-field"><label htmlFor="issue-code">Code</label><input id="issue-code" className="pd-input" value={code} autoComplete="off" onChange={(e) => setCode(e.target.value.toUpperCase())} /></div>
+          <button className="pd-btn pd-btn-ghost" type="button" onClick={() => setCode(makeCode())}>Generate</button>
+          <div className="pd-field"><label htmlFor="issue-plan">Plan</label>
+            <select id="issue-plan" className="pd-select" value={plan} onChange={(e) => setPlan(e.target.value as Plan)}>{(["Starter", "Growth", "Pro"] as Plan[]).map((item) => <option key={item}>{item}</option>)}</select>
+          </div>
+          <div className="pd-field"><label htmlFor="issue-expiry">Coupon expiry</label><input id="issue-expiry" className="pd-input" type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></div>
+          <div className="pd-field"><label htmlFor="issue-days">Plan validity (days)</label><input id="issue-days" className="pd-input" type="number" min={1} max={3650} value={validDays} onChange={(e) => setValidDays(Number(e.target.value))} /></div>
+          <button className="pd-btn pd-btn-primary" disabled={busy} onClick={() => void issue()}>Issue coupon</button>
+        </div>
+      </div>
+      <Table columns={["Code", "Plan", "Expires", "Validity", "Redeemed"]} empty="No coupons yet.">
+        {rows.map((row) => <tr key={row.code}><td>{row.code}</td><td>{row.plan}</td><td>{row.expiresOn}</td><td>{row.validDays} days</td><td>{row.redeemed}</td></tr>)}
+      </Table>
     </div>
   );
 }
