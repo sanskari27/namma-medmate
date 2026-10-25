@@ -107,11 +107,12 @@ function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () =
   const [amount, setAmount] = useState(0);
   const [gst, setGst] = useState(0);
   const [note, setNote] = useState("");
+  const [custom, setCustom] = useState("");
 
   const save = async () => {
     if (amount <= 0 || !party.trim()) return;
     const [y, m, d] = date.split("-").map(Number);
-    const err = await addExpense({ date: new Date(y, m - 1, d, 12).getTime(), party: party.trim(), category, paymentMode, amount, gst, note: note.trim() || undefined });
+    const err = await addExpense({ date: new Date(y, m - 1, d, 12).getTime(), party: party.trim(), category: custom.trim() || category, paymentMode, amount, gst, note: note.trim() || undefined });
     if (!err) onClose();
   };
 
@@ -127,6 +128,7 @@ function CreateExpense({ onClose, categories, addExpense, now }: { onClose: () =
           <div className="pd-grid-2">
             <div className="pd-field"><label>Category</label>
               <select className="pd-select" value={category} onChange={(e) => setCategory(e.target.value)}>{categories.map((c) => <option key={c} value={c}>{c}</option>)}</select>
+              <input className="pd-input" style={{ marginTop: 6 }} value={custom} onChange={(e) => setCustom(e.target.value)} placeholder="Or a new category" />
             </div>
             <div className="pd-field"><label>Payment mode</label>
               <select className="pd-select" value={paymentMode} onChange={(e) => setPaymentMode(e.target.value as PayMode)}>{(["cash", "upi", "card", "cod"] as PayMode[]).map((m) => <option key={m} value={m}>{PAY_LABEL[m]}</option>)}</select>

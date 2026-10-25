@@ -87,7 +87,7 @@ Money in request and response bodies is integer paise. The POS cart is not an AP
 | GET, POST | `/offers` | Offer list and `addOffer` | `OffersScreen` |
 | POST | `/offers/:id/toggle` | `toggleOffer` | `toggleOffer` |
 | DELETE | `/offers/:id` | `removeOffer` | `removeOffer` |
-| PUT | `/inventory/products/:id/direct-offer` | `setDirectOffer` | `setDirectOffer` |
+| PUT | `/inventory/products/:id/direct-offer` | `setDirectOffer` | `OnlineStoreScreen` |
 | GET | `/credit/ledger` | Derived khata balances | `KhataScreen`, `CustomersScreen` |
 | POST | `/credit/payments` | `recordCreditPayment` | `recordCreditPayment` |
 | GET | `/customers` | `aggregateCustomers` | `CustomersScreen` |

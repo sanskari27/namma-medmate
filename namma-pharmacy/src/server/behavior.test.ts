@@ -3,7 +3,7 @@ import test from "node:test";
 import { fieldFrom } from "../app/lib/formFault";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { findLogin, getPool, insertPharmacy, loadState, type SessionRow } from "./db";
-import { addDepartment, addReferral, cancelOrder, checkoutPos, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, setBatchQty, updateDepartment, updateReferral } from "./mutate";
+import { addDepartment, addReferral, cancelOrder, checkoutPos, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
 import { handle, keepOwner, sessionView } from "./router";
 import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
 
@@ -275,6 +275,21 @@ test("one session snapshot carries the pharmacy and hides locked hospital wards"
   assert.deepEqual(locked.wards, []);
   state.subscription = { ...state.subscription, plan: "Pro", status: "active", renewsOn: "2099-01-01" };
   assert.equal(sessionView(state, session).wards[0].id, "W1");
+});
+
+test("a direct offer stays on that product and a bank account needs a real IFSC", () => {
+  const state = emptyState({ phone: "+919000000000", businessType: "pharmacy" });
+  state.inventory = [stocked([])];
+  setDirectOffer(state, "p1", "pct", 10);
+  assert.equal(state.inventory[0].offerId, "od-p1");
+  assert.equal(state.offers[0].value, 10);
+  setDirectOffer(state, "p1", "pct", 0);
+  assert.equal(state.inventory[0].offerId, undefined);
+  assert.equal(state.offers.length, 0);
+  assert.throws(() => saveBankAccount(state, { holderName: "A", accountNumber: "1", ifsc: "BAD", bankName: "Bank", accountType: "Current" }), (err: { code?: string }) => err.code === "VALIDATION");
+  saveBankAccount(state, { holderName: "A", accountNumber: "1", ifsc: "hdfc0001234", bankName: "Bank", accountType: "Current" });
+  assert.equal(state.bankAccount?.ifsc, "HDFC0001234");
+  assert.equal(state.bankAccount?.verified, false);
 });
 
 test("a short OTP returns JSON 400", async () => {

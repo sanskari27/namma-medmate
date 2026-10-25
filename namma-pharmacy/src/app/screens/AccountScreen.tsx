@@ -1,6 +1,7 @@
 "use client";
+import { useState } from "react";
 import { usePharma } from "../pharmaState";
-import { PLANS, planPrice, cycleNoun, inr, computeInvoice, planUnlocksAll, UserRole } from "../data";
+import { PLANS, planPrice, cycleNoun, inr, computeInvoice, planUnlocksAll, UserRole, isValidIfsc } from "../data";
 import { Route } from "../pharmaState";
 import {
   IconUsers, IconReceipt, IconCrown, IconGift, IconShare, IconHelp, IconSettings, IconCheck,
@@ -15,6 +16,7 @@ const ROLE_PILL: Record<string, string> = { Owner: "pill-gold", Manager: "pill-b
 
 export default function AccountScreen() {
   const { profile, subscription, users, sales, inventory, bankAccount, go, startSetup, signOut } = usePharma();
+  const openBank = () => document.getElementById("pd-bank")?.scrollIntoView({ behavior: "smooth", block: "center" });
   const plan = PLANS.find((p) => p.key === subscription.plan)!;
   const isFree = subscription.plan === "Free";
 
@@ -37,7 +39,7 @@ export default function AccountScreen() {
     { label: "Drug licence", ok: !!profile.dlNo, go: () => go("settings") },
     { label: "FSSAI licence", ok: !!profile.fssai, go: () => go("settings") },
     { label: "Business email", ok: !!profile.email, go: () => go("settings") },
-    { label: "Bank account", ok: !!bankAccount, go: () => go("settings") },
+    { label: "Bank account", ok: !!bankAccount, go: openBank },
   ];
   const done = checklist.filter((c) => c.ok).length;
   const pct = Math.round((done / checklist.length) * 100);
@@ -51,7 +53,7 @@ export default function AccountScreen() {
     { label: "FSSAI licence", val: profile.fssai || "—", ok: !!profile.fssai },
     { label: "Registered pharmacist", val: profile.pharmacist.split(",")[0], ok: !!profile.pharmacist },
     { label: "e-Invoicing", val: profile.eInvoicing ? "Enabled" : "Not enabled", ok: profile.eInvoicing },
-    { label: "Bank account (payouts)", val: bankAccount ? `${bankAccount.bankName} ····${bankAccount.accountNumber.slice(-4)}` : "Add to receive payouts", ok: !!bankAccount },
+    { label: "Bank account (payouts)", val: bankAccount ? `${bankAccount.bankName} ····${bankAccount.accountNumber.slice(-4)}` : "Add to receive payouts", ok: !!bankAccount, bank: true },
   ];
 
   const links: { key: Route; label: string; sub: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
@@ -162,7 +164,7 @@ export default function AccountScreen() {
             {kyc.map((k) => (
               <div className="pd-flex" key={k.label} style={{ justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid var(--line)" }}>
                 <div><div style={{ fontWeight: 600, fontSize: 13 }}>{k.label}</div><div className="pd-muted pd-mono" style={{ fontSize: 11 }}>{k.val}</div></div>
-                {k.ok ? <span className="pd-pill pill-green"><IconCheck size={12} /> Done</span> : <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => go("settings")}>Add</button>}
+                {k.ok ? <span className="pd-pill pill-green"><IconCheck size={12} /> Done</span> : <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => ("bank" in k && k.bank ? openBank() : go("settings"))}>Add</button>}
               </div>
             ))}
           </div>
@@ -184,6 +186,8 @@ export default function AccountScreen() {
         </div>
       </div>
 
+      <BankCard />
+
       {/* quick links */}
       <div className="pd-sec-head" style={{ margin: "22px 0 12px" }}><h2 style={{ fontSize: 16 }}>Account settings</h2></div>
       <div className="pd-grid-cards" style={{ gap: 14 }}>
@@ -202,6 +206,49 @@ export default function AccountScreen() {
         <button className="pd-btn pd-btn-ghost" onClick={() => go("support")}><IconHelp size={14} /> Contact support</button>
         <div className="pd-spacer" />
         <button className="pd-btn pd-btn-line pd-acct-signout" onClick={signOut}>Sign out</button>
+      </div>
+    </div>
+  );
+}
+
+const blankBank = { holderName: "", accountNumber: "", ifsc: "", bankName: "", branch: "", accountType: "Current" as const, upiVpa: "" };
+function bankForm(b: { holderName: string; accountNumber: string; ifsc: string; bankName: string; branch?: string; accountType: "Savings" | "Current"; upiVpa?: string } | null) {
+  return b ? { holderName: b.holderName, accountNumber: b.accountNumber, ifsc: b.ifsc, bankName: b.bankName, branch: b.branch ?? "", accountType: b.accountType, upiVpa: b.upiVpa ?? "" } : blankBank;
+}
+function BankCard() {
+  const { bankAccount, saveBankAccount, verifyBankAccount, removeBankAccount } = usePharma();
+  const [f, setF] = useState(() => bankForm(bankAccount));
+  const set = (patch: Partial<typeof f>) => setF((p) => ({ ...p, ...patch }));
+  const ifscOk = isValidIfsc(f.ifsc);
+  const canSave = !!f.holderName.trim() && !!f.accountNumber.trim() && !!f.bankName.trim() && ifscOk;
+  const save = async () => {
+    await saveBankAccount({ holderName: f.holderName.trim(), accountNumber: f.accountNumber.replace(/\s/g, ""), ifsc: f.ifsc.trim().toUpperCase(), bankName: f.bankName.trim(), branch: f.branch.trim() || undefined, accountType: f.accountType, upiVpa: f.upiVpa.trim() || undefined });
+  };
+  return (
+    <div className="pd-card" id="pd-bank" style={{ marginTop: 16 }}>
+      <div className="pd-card-head">
+        <h3><span className="pd-flex pd-gap6"><IconBank size={16} /> Payout bank account</span></h3>
+        {bankAccount?.verified ? <span className="pd-pill pill-green"><IconCheck size={12} /> Verified</span> : bankAccount ? <span className="pd-pill pill-gold">Verification pending</span> : null}
+      </div>
+      <div className="pd-card-pad">
+        <div className="pd-form-grid">
+          <div className="pd-field"><label>Account holder</label><input className="pd-input" value={f.holderName} onChange={(e) => set({ holderName: e.target.value })} /></div>
+          <div className="pd-field"><label>Account number</label><input className="pd-input pd-mono" value={f.accountNumber} onChange={(e) => set({ accountNumber: e.target.value })} /></div>
+          <div className="pd-field" data-field="ifsc"><label>IFSC</label><input className="pd-input pd-mono" value={f.ifsc} onChange={(e) => set({ ifsc: e.target.value.toUpperCase() })} placeholder="HDFC0001234" /></div>
+          <div className="pd-field"><label>Bank</label><input className="pd-input" value={f.bankName} onChange={(e) => set({ bankName: e.target.value })} /></div>
+          <div className="pd-field"><label>Branch</label><input className="pd-input" value={f.branch} onChange={(e) => set({ branch: e.target.value })} /></div>
+          <div className="pd-field"><label>Type</label>
+            <select className="pd-select" value={f.accountType} onChange={(e) => set({ accountType: e.target.value as "Savings" | "Current" })}><option>Current</option><option>Savings</option></select>
+          </div>
+          <div className="pd-field pd-span2"><label>UPI (optional)</label><input className="pd-input" value={f.upiVpa} onChange={(e) => set({ upiVpa: e.target.value })} placeholder="name@upi" /></div>
+        </div>
+        {f.ifsc.trim() && !ifscOk ? <p className="pd-muted" style={{ fontSize: 12, color: "var(--rose)", marginTop: 8 }}>Enter a valid IFSC (4 letters, 0, then 6 characters).</p> : null}
+        <div className="pd-flex pd-gap6" style={{ marginTop: 14 }}>
+          <button className="pd-btn pd-btn-primary" disabled={!canSave} onClick={save}>Save account</button>
+          {bankAccount && !bankAccount.verified ? <button className="pd-btn pd-btn-ghost" onClick={verifyBankAccount}>Mark verified</button> : null}
+          {bankAccount ? <button className="pd-btn pd-btn-ghost" style={{ color: "var(--rose)" }} onClick={() => { removeBankAccount(); setF(blankBank); }}>Remove</button> : null}
+        </div>
+        <p className="pd-muted" style={{ fontSize: 12, marginTop: 8 }}>Verification is stored on this pharmacy. No bank is contacted.</p>
       </div>
     </div>
   );
