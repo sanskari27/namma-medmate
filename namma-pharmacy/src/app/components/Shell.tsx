@@ -45,6 +45,8 @@ import DoctorsScreen from "../screens/DoctorsScreen";
 import HospitalBillingScreen from "../screens/HospitalBillingScreen";
 import SetupWizard from "./SetupWizard";
 import Onboarding from "./Onboarding";
+import MasterPortal from "../screens/MasterPortal";
+import { api } from "../lib/api";
 
 const NAV: { key: Route; label: string; Icon: (p: { size?: number }) => React.ReactNode; group?: string; hospital?: boolean }[] = [
   { key: "dashboard", label: "Dashboard", Icon: IconDashboard },
@@ -140,7 +142,7 @@ function BrandMark() {
   );
 }
 
-function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
+function Sidebar({ open, onNavigate, onMaster }: { open: boolean; onNavigate: () => void; onMaster?: () => void }) {
   const { route, go, profile, prescriptions, sales, isHospital, wardIndents, signOut, featureLocked, me } = usePharma();
   const newOrders = sales.filter((s) => s.channel === "online" && s.status === "new").length;
   const pendingRx = prescriptions.filter((r) => r.status === "pending").length;
@@ -185,6 +187,7 @@ function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }
             <svg width={17} height={17} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2} strokeLinecap="round" strokeLinejoin="round"><path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4" /><polyline points="16 17 21 12 16 7" /><line x1="21" y1="12" x2="9" y2="12" /></svg>
           </button>
         </div>
+        {onMaster && <button className="pd-ob-link" style={{ margin: "8px 12px" }} onClick={onMaster}>Master portal</button>}
         <p className="pd-copyright">© 2026 Medmate India Technology Private Limited</p>
       </div>
     </aside>
@@ -313,17 +316,25 @@ function FaultBanner() {
 function Inner() {
   const { setupComplete, signedIn, route, go, me, isHospital } = usePharma();
   const [menu, setMenu] = useState(false);
+  const [masterPhone, setMasterPhone] = useState<string | null | undefined>(undefined);
+  const [showMaster, setShowMaster] = useState(false);
+  const loadMaster = () => api<{ phone: string }>("/master/session").then((row) => setMasterPhone(row.phone)).catch(() => setMasterPhone(null));
+  useEffect(() => { void loadMaster(); }, []);
   useEffect(() => {
     if (!me || canSeeRoute(route, me.role, me.permissions)) return;
     const next = NAV.find((n) => (isHospital || !n.hospital) && canSeeRoute(n.key, me.role, me.permissions));
     if (next) go(next.key);
   }, [me, route, isHospital, go]);
-  if (!signedIn) return <Onboarding />;
+  if (masterPhone === undefined && !signedIn) return <div className="pd-boot">Loading pharmacy…</div>;
+  if (masterPhone && (showMaster || !signedIn)) {
+    return <MasterPortal phone={masterPhone} pharmacyLabel={signedIn ? "Pharmacy" : "Pharmacy sign in"} onPharmacy={() => setShowMaster(false)} onSignedOut={() => { setMasterPhone(null); setShowMaster(false); }} />;
+  }
+  if (!signedIn) return <Onboarding onMaster={() => { setShowMaster(true); void loadMaster(); }} />;
   if (!setupComplete) return <SetupWizard />;
   return (
     <div className="pd-shell">
       {menu && <button className="pd-nav-backdrop" aria-label="Close menu" onClick={() => setMenu(false)} />}
-      <Sidebar open={menu} onNavigate={() => setMenu(false)} />
+      <Sidebar open={menu} onNavigate={() => setMenu(false)} onMaster={masterPhone ? () => setShowMaster(true) : undefined} />
       <div className="pd-main">
         <TopBar onMenu={() => setMenu((v) => !v)} />
         <div className="pd-canvas">
@@ -334,10 +345,22 @@ function Inner() {
   );
 }
 
+function SupportBanner() {
+  const { impersonator, profile, signOut } = usePharma();
+  if (!impersonator) return null;
+  return (
+    <div role="status" className="pd-form-alert" style={{ position: "fixed", top: 8, left: "50%", transform: "translateX(-50%)", zIndex: 120, display: "flex", alignItems: "center", gap: 8, width: "max-content", maxWidth: "calc(100% - 16px)", margin: 0, padding: "4px 4px 4px 10px", borderRadius: 999, fontSize: 12, fontWeight: 600 }}>
+      <span style={{ overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }}>Support · {profile.name} · {impersonator}</span>
+      <button className="pd-btn pd-btn-sm" style={{ padding: "3px 8px", fontSize: 11 }} onClick={signOut}>Exit</button>
+    </div>
+  );
+}
+
 function Frame() {
   const { formFault } = usePharma();
   return (
     <div className="pd-app" data-fault={formFault?.field || ""}>
+      <SupportBanner />
       <Inner />
       <FaultBanner />
       <Toast />

@@ -27,7 +27,7 @@ Before that script runs, deploy upserts the `pharmacy.nammamedmate.com` A record
 
 ## Runtime configuration
 
-`scripts/pull-prod-env.sh` writes the SSM parameter `/namma-medmate-prod/compose.env` to `.env` before Compose starts. The website image reads `WEBSITE_SITE_URL` and `NEXT_PUBLIC_API_BASE_URL`. The pharmacy image reads `DATABASE_URL`, `AWS_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`, and `S3_BUCKET`.
+`scripts/pull-prod-env.sh` writes the SSM parameter `/namma-medmate-prod/compose.env` to `.env` before Compose starts. The website image reads `WEBSITE_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL`, and `NEXT_PUBLIC_PHARMACY_URL` (where the public consultation form posts). The pharmacy image reads `DATABASE_URL`, `AWS_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`, `S3_BUCKET`, and optional `MASTER_PHONES` (comma-separated master login numbers, seeded into the allowlist on startup).
 
 Terraform can create RDS, the Cognito user pool, and the file bucket. Apply it by hand from `infra/terraform/envs/prod`. Put the RDS URL into the SSM parameter after apply. Terraform does not overwrite the existing parameter value. The release workflow does not apply Terraform. Production SMS in India needs the Cognito sender registered before phones outside the pool's allow-list receive codes.
 

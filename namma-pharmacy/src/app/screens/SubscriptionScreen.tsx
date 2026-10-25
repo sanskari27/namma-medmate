@@ -8,7 +8,7 @@ import {
 import { IconCheck, IconCrown, IconStar } from "../components/Icon";
 
 export default function SubscriptionScreen() {
-  const { subscription, changePlan, toggleAutoRenew } = usePharma();
+  const { subscription, subscriptionRequests, requestPlan, toggleAutoRenew } = usePharma();
   const current = PLANS.find((p) => p.key === subscription.plan)!;
   const [cycle, setCycle] = useState<BillingCycle>(subscription.cycle);
 
@@ -76,16 +76,20 @@ export default function SubscriptionScreen() {
               <div style={{ marginBottom: 14 }}>
                 {p.features.map((f) => <div key={f} className="pd-flex pd-gap6" style={{ fontSize: 12.5, padding: "3px 0", alignItems: "flex-start" }}><span style={{ color: "var(--green)", marginTop: 1 }}><IconCheck size={13} /></span><span>{f}</span></div>)}
               </div>
-              {isCurrent
+              {isCurrent && free
                 ? <button className="pd-btn pd-btn-ghost pd-btn-block" disabled>Current plan</button>
-                : free
-                  ? <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => changePlan("Free", "monthly")}>Downgrade to Free</button>
-                  : <button className="pd-btn pd-btn-ghost pd-btn-block" disabled>Payment not available</button>}
+                : <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => requestPlan(p.key, free ? "monthly" : cycle, isCurrent ? "renewal" : "plan")}>{isCurrent ? "Request renewal" : `Request ${p.name}`}</button>}
             </div>
           );
         })}
       </div>
-      <p className="pd-muted" style={{ fontSize: 12.5 }}>Online payment is not connected, so a paid plan cannot be purchased here.</p>
+      <p className="pd-muted" style={{ fontSize: 12.5 }}>Online payment is not connected. A request goes to Namma MedMate, who assigns the plan.</p>
+      {subscriptionRequests.length > 0 && <div className="pd-card" style={{ marginTop: 16 }}>
+        <div className="pd-card-head"><h3>Your requests</h3></div>
+        <div className="pd-tbl-wrap"><table className="pd-tbl"><thead><tr><th>Plan</th><th>Cycle</th><th>Kind</th><th>Sent</th><th>Status</th></tr></thead><tbody>
+          {subscriptionRequests.map((request) => <tr key={request.id}><td>{request.plan}</td><td>{request.cycle}</td><td>{request.kind}</td><td>{new Date(request.createdAt).toLocaleString()}</td><td>{request.status}</td></tr>)}
+        </tbody></table></div>
+      </div>}
     </div>
   );
 }

@@ -10,6 +10,9 @@ export const APP_URL = (process.env.NEXT_PUBLIC_APP_URL || "https://medmate-indi
 /** Spring API that stores waitlist sign-ups. Baked in at build time. */
 export const API_BASE_URL = (process.env.NEXT_PUBLIC_API_BASE_URL || "http://localhost:8080").replace(/\/$/, "");
 
+/** Pharmacy app that stores consultation bookings. Baked in at build time. */
+export const PHARMACY_URL = (process.env.NEXT_PUBLIC_PHARMACY_URL || (process.env.NODE_ENV === "production" ? "https://pharmacy.nammamedmate.com" : "http://localhost:3000")).replace(/\/$/, "");
+
 /** Store listings. Empty until the apps are published; the site then shows "Coming soon" and opens the web app instead. */
 export const PLAY_URL = process.env.NEXT_PUBLIC_PLAY_URL || "";
 export const IOS_URL = process.env.NEXT_PUBLIC_IOS_URL || "";

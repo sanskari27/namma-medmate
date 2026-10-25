@@ -32,8 +32,9 @@ function Mark() {
   );
 }
 
-export default function Onboarding() {
+export default function Onboarding({ onMaster }: { onMaster: () => void }) {
   const { signIn, showFault, formFault } = usePharma();
+  const [staff, setStaff] = useState(false);
   const [phase, setPhase] = useState<Phase>("intro");
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState<BusinessType>("pharmacy");
@@ -65,7 +66,14 @@ export default function Onboarding() {
   const otpLen = devOtp ? 6 : 8;
   const verify = async () => {
     if (otp.replace(/\D/g, "").length !== otpLen) return;
-    try { await signIn(type, name, phone, otp); }
+    try {
+      if (staff) {
+        await api("/auth/otp/verify", { method: "POST", body: { phone, code: otp, portal: "master" } });
+        onMaster();
+        return;
+      }
+      await signIn(type, name, phone, otp);
+    }
     catch (err) { showFault(err, "Could not sign in"); }
   };
   const tt = TYPES.find((x) => x.key === type)!;
@@ -99,6 +107,7 @@ export default function Onboarding() {
               <div className="pd-ob-dots">{SLIDES.map((_, i) => <i key={i} className={i === slide ? "on" : ""} onClick={() => setSlide(i)} />)}</div>
               <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" onClick={() => setPhase("type")}>Get started <IconArrowRight size={16} /></button>
               <button className="pd-ob-link" onClick={() => setPhase("login")}>I already have an account · Log in</button>
+              <button className="pd-ob-link" onClick={() => { setStaff(true); setPhase("login"); }}>Namma MedMate staff sign in</button>
             </div>
           )}
 
@@ -125,14 +134,14 @@ export default function Onboarding() {
 
           {phase === "login" && (
             <div className="pd-ob-step">
-              <span className="pd-ob-badge">{tt.Ic({ size: 15 })} {tt.t}</span>
-              <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : "Log in to continue"}</h2>
+              <span className="pd-ob-badge">{staff ? "Master" : <>{tt.Ic({ size: 15 })} {tt.t}</>}</span>
+              <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : staff ? "Staff sign in" : "Log in to continue"}</h2>
               <p className="pd-ob-sub">{otpSent ? `We sent ${otpLen === 8 ? "an 8-digit" : "a 6-digit"} code to ${phone}.` : "Sign in with your registered mobile number."}</p>
 
               {!otpSent ? (
                 <>
-                  <div className="pd-field"><label>Business name <span style={{ color: "var(--faint)", fontWeight: 600 }}>(optional)</span></label>
-                    <input className="pd-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "hospital" ? "City Care Hospital Pharmacy" : "Sri Sai Medicals"} /></div>
+                  {!staff && <div className="pd-field"><label>Business name <span style={{ color: "var(--faint)", fontWeight: 600 }}>(optional)</span></label>
+                    <input className="pd-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "hospital" ? "City Care Hospital Pharmacy" : "Sri Sai Medicals"} /></div>}
                   <div className="pd-field" data-field="phone" style={{ marginTop: 12 }}><label>Mobile number</label>
                     <div className="pd-ob-phone">
                       <span>+91</span>
@@ -149,7 +158,7 @@ export default function Onboarding() {
                     {formFault?.field === "otp" && <span className="pd-field-err">{formFault.message}</span>}
                   </div>
                   {devOtp && demoCode ? <div className="pd-ob-demo">Demo OTP: <b>{demoCode}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
-                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== otpLen} onClick={verify}><IconCheck size={16} /> Verify &amp; log in</button>
+                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== otpLen} onClick={verify}><IconCheck size={16} /> {staff ? "Verify & open master" : "Verify & log in"}</button>
                   <button className="pd-ob-link" onClick={() => { setOtpSent(false); setOtp(""); }}>← Change number</button>
                 </>
               )}

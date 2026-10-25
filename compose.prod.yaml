@@ -11,6 +11,7 @@ services:
       args:
         SITE_URL: ${WEBSITE_SITE_URL:-https://medmatepharmacy.com}
         NEXT_PUBLIC_API_BASE_URL: ${NEXT_PUBLIC_API_BASE_URL:-https://api.nammamedmate.com}
+        NEXT_PUBLIC_PHARMACY_URL: ${NEXT_PUBLIC_PHARMACY_URL:-https://pharmacy.nammamedmate.com}
     image: ${NAMMA_WEBSITE_IMAGE:-namma-medmate-website:prod}
     restart: unless-stopped
     ports:
@@ -35,6 +36,7 @@ services:
       COGNITO_CLIENT_ID: ${COGNITO_CLIENT_ID:-}
       COGNITO_CLIENT_SECRET: ${COGNITO_CLIENT_SECRET:-}
       S3_BUCKET: ${S3_BUCKET:-}
+      MASTER_PHONES: ${MASTER_PHONES:-}
     ports:
       - '127.0.0.1:10083:3000'
     healthcheck:

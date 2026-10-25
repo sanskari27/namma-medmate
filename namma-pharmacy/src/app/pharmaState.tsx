@@ -7,7 +7,7 @@ import {
   Rider, packComplete,
   computeInvoice, InvoiceTotals, billUnit, earliestBatch, stockOf, findScan,
   normalizeRack,
-  StaffUser, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, routeLocked,
+  StaffUser, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, ScreenGrant, SubRequest, routeLocked, todayISO,
   InvoiceSettings, DEFAULT_INVOICE_SETTINGS, KioskConfig, DEFAULT_KIOSK,
   Advisor, CAShare, isValidGstin,
   PurchaseOrder, POItem,
@@ -46,6 +46,9 @@ type Snapshot = {
   businessType: BusinessType;
   setupComplete: boolean;
   subscription: Subscription;
+  grants?: ScreenGrant[];
+  extraSeats?: number;
+  subscriptionRequests?: SubRequest[];
   creditPayments: CreditPayment[];
   caShares: CAShare[];
   wardSupplies: WardSupply[];
@@ -73,6 +76,7 @@ type Snapshot = {
   crm: CrmData;
   tickets: { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[];
   referrals: Referral[];
+  impersonator?: string | null;
   wards: Ward[];
   admissions: Admission[];
   wardIndents: WardIndent[];
@@ -115,6 +119,7 @@ type Ctx = {
   isHospital: boolean;
   signIn: (bt: BusinessType, name?: string, phone?: string, code?: string) => Promise<void>;
   signOut: () => void;
+  impersonator: string | null;
   // hospital-pharmacy modules
   wards: Ward[];
   addWard: (w: Omit<Ward, "id">) => Promise<SaveFault | null>;
@@ -257,8 +262,10 @@ type Ctx = {
   removeUser: (id: string) => void;
   // subscription
   subscription: Subscription;
-  renewSubscription: () => Promise<SaveFault | null>;
-  changePlan: (plan: Plan, cycle: BillingCycle) => Promise<SaveFault | null>;
+  grants: ScreenGrant[];
+  extraSeats: number;
+  subscriptionRequests: SubRequest[];
+  requestPlan: (plan: Plan, cycle: BillingCycle, kind?: "plan" | "renewal") => Promise<SaveFault | null>;
   toggleAutoRenew: () => void;
   featureLocked: (r: Route) => boolean;    // freemium paywall for premium routes
   // invoice settings
@@ -351,6 +358,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const now = nowRef.current;
 
   const [signedIn, setSignedIn] = useState(false);
+  const [impersonator, setImpersonator] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<BusinessType>("pharmacy");
   const [wards, setWards] = useState<Ward[]>([]);
   const [admissions, setAdmissions] = useState<Admission[]>([]);
@@ -384,6 +392,9 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const [bankAccount, setBankAccount] = useState<BankAccount | null>(null);
   const [users, setUsers] = useState<StaffUser[]>([]);
   const [subscription, setSubscription] = useState<Subscription>({ ...DEFAULT_SUBSCRIPTION, since: "" });
+  const [grants, setGrants] = useState<ScreenGrant[]>([]);
+  const [extraSeats, setExtraSeats] = useState(0);
+  const [subscriptionRequests, setSubscriptionRequests] = useState<SubRequest[]>([]);
   const [invoiceSettings, setInvoiceSettings] = useState<InvoiceSettings>({ ...DEFAULT_INVOICE_SETTINGS, bankLine: "" });
   const [kiosk, setKiosk] = useState<KioskConfig>({ ...DEFAULT_KIOSK, enabled: false, displayName: "", pin: "", welcome: "" });
   const [advisors, setAdvisors] = useState<Advisor[]>([]);
@@ -489,9 +500,13 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       const session = await (pending ?? api<Snapshot>("/session"));
       signedRef.current = true;
       setSignedIn(true);
+      setImpersonator(session.impersonator || null);
       setBusinessType(session.businessType);
       if (!holdSetup.current) setSetupComplete(session.setupComplete);
       setSubscription(session.subscription);
+      setGrants(session.grants || []);
+      setExtraSeats(session.extraSeats || 0);
+      setSubscriptionRequests(session.subscriptionRequests || []);
       setMe(session.user ? { id: session.user.id, role: session.user.role, permissions: session.user.permissions ?? [] } : null);
       setCreditPayments(session.creditPayments || []);
       setCaShares(session.caShares || []);
@@ -510,7 +525,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
         setDoctors(session.doctors || []); setHospitalAccount(session.hospitalAccount ?? BLANK_HOSPITAL); setDepartments(session.departments || []);
       }
     } catch (err) {
-      if (err instanceof ApiError && err.status === 401) { signedRef.current = false; setSignedIn(false); return; }
+      if (err instanceof ApiError && err.status === 401) { signedRef.current = false; setSignedIn(false); setImpersonator(null); return; }
       if (faultRef.current) return;
       const fault = faultOf(err, "Could not load the pharmacy");
       faultRef.current = fault;
@@ -820,20 +835,11 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const removeUser = (id: string) => { void post(`/users/${id}`, "DELETE"); setUsers((l) => l.filter((u) => u.id !== id)); };
 
   // ── subscription ──
-  const addMonths = (iso: string, n: number) => { const d = new Date(iso + "T00:00:00"); d.setMonth(d.getMonth() + n); return d.toISOString().slice(0, 10); };
-  const todayISO = () => new Date(nowRef.current).toISOString().slice(0, 10);
-  // renew the CURRENT plan/cycle: extend from the later of renewal date or today
-  const renewSubscription = async (): Promise<SaveFault | null> => ok(await post("/subscription", "PATCH", { action: "renew" }), () => setSubscription((s) => {
-    const base = s.renewsOn > todayISO() ? s.renewsOn : todayISO();
-    return { ...s, status: "active", renewsOn: addMonths(base, s.cycle === "annual" ? 12 : 1) };
-  }));
-  // upgrade / switch to a plan + billing cycle: starts a fresh term from today
-  const changePlan = async (plan: Plan, cycle: BillingCycle): Promise<SaveFault | null> => ok(await post("/subscription", "PATCH", { plan, cycle }), () => {
-    setSubscription((s) => ({ ...s, plan, cycle, status: "active", renewsOn: addMonths(todayISO(), cycle === "annual" ? 12 : 1) }));
-    toast(`${plan} plan activated (${cycle === "annual" ? "annual" : "monthly"})`);
+  const requestPlan = async (plan: Plan, cycle: BillingCycle, kind: "plan" | "renewal" = "plan"): Promise<SaveFault | null> => ok(await post("/subscription/requests", "POST", { plan, cycle, kind }, { pull: true }), () => {
+    toast(kind === "renewal" ? "Renewal request sent" : `Request for the ${plan} plan sent`);
   });
   const toggleAutoRenew = () => { void post("/subscription", "PATCH", { action: "toggle" }); setSubscription((s) => ({ ...s, autoRenew: !s.autoRenew })); };
-  const featureLocked = (r: Route) => routeLocked(r, subscription);
+  const featureLocked = (r: Route) => routeLocked(r, subscription, { grants, businessType });
 
   // ── invoice settings ──
   const updateInvoiceSettings = (patch: Partial<InvoiceSettings>) => { setInvoiceSettings((s) => { const next = { ...s, ...patch }; invoiceRef.current = next; return next; }); quiet.current = true; window.setTimeout(() => { quiet.current = false; void post("/settings/invoice", "PATCH", invoiceRef.current); }, 400); };
@@ -956,7 +962,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     resetNav("dashboard");
     toast("Welcome back");
   };
-  const signOut = () => { void api("/auth/sign-out", { method: "POST" }).catch(() => undefined); signedRef.current = false; setSignedIn(false); resetNav("dashboard"); };
+  const signOut = () => { void api("/auth/sign-out", { method: "POST" }).catch(() => undefined); signedRef.current = false; setSignedIn(false); setImpersonator(null); resetNav("dashboard"); };
 
   // ── hospital modules ──
   const setIndentStatus = (id: string, status: IndentStatus) => {
@@ -1100,7 +1106,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const raiseTicket = async (subject: string, category: string): Promise<SaveFault | null> => ok(await post("/support/tickets", "POST", { subject, category }, { pull: true }), () => toast("Ticket raised"));
 
   const value: Ctx = {
-    signedIn, businessType, isHospital: businessType === "hospital", signIn, signOut,
+    signedIn, businessType, isHospital: businessType === "hospital", signIn, signOut, impersonator,
     wards, addWard, updateWard, removeWard, admissions, admitPatient, updateAdmission, dischargePatient, startWardBilling,
     wardIndents, departments, addDepartment, updateDepartment, removeDepartment, referrals, addReferral, updateReferral, removeReferral, tpaClaims, doctors, addDoctor, updateDoctor, removeDoctor, setIndentStatus, setClaimStatus, settleBills,
     hospitalAccount, updateHospitalAccount, hospitalPriceRules, setUniformDiscount, setHospitalPriceRule, pricingUnlocked, unlockPricing, lockPricing, wardSupplies, issueWardSupply, returnWardSupply, hospitalPayments, recordHospitalPayment,
@@ -1114,7 +1120,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     approveRx, rejectRx, dispenseRx,
     addOffer, toggleOffer, removeOffer, setDirectOffer,
     users, addUser, updateUser, toggleUser, removeUser,
-    subscription, renewSubscription, changePlan, toggleAutoRenew, featureLocked,
+    subscription, grants, extraSeats, subscriptionRequests, requestPlan, toggleAutoRenew, featureLocked,
     invoiceSettings, updateInvoiceSettings,
     kiosk, updateKiosk, placeKioskOrder,
     advisors, addAdvisor, updateAdvisor, removeAdvisor, caShares, shareWithCA,

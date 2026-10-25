@@ -11,7 +11,7 @@ export default function ReferScreen() {
   const [copied, setCopied] = useState(false);
   const [name, setName] = useState("");
   const [area, setArea] = useState("");
-  const earned = referrals.filter((r) => r.status === "Earned").reduce((a, r) => a + r.reward, 0);
+  const earned = referrals.filter((r) => r.status === "Earned" || r.status === "Paid").reduce((a, r) => a + r.reward, 0);
 
   const copy = () => { try { navigator.clipboard?.writeText(code); } catch {} setCopied(true); toast("Referral code copied"); setTimeout(() => setCopied(false), 1500); };
   const shareText = `Join Namma MedMate with my code ${code}`;
@@ -85,12 +85,14 @@ export default function ReferScreen() {
                 <tr key={r.id}>
                   <td style={{ fontWeight: 600 }}>{r.name}</td><td>{r.area || "—"}</td>
                   <td>
-                    <select className="pd-select" value={r.status} onChange={(e) => updateReferral(r.id, { status: e.target.value as ReferralStatus })}>
-                      {(["Invited", "Signed up", "Earned"] as ReferralStatus[]).map((s) => <option key={s}>{s}</option>)}
-                    </select>
+                    {r.status === "Paid"
+                      ? <span className="pd-pill pill-green">Paid</span>
+                      : <select className="pd-select" value={r.status} onChange={(e) => updateReferral(r.id, { status: e.target.value as ReferralStatus })}>
+                        {(["Invited", "Signed up", "Earned"] as ReferralStatus[]).map((s) => <option key={s}>{s}</option>)}
+                      </select>}
                   </td>
-                  <td className="num"><input className="pd-input" data-field="amount" style={{ width: 90, textAlign: "right" }} type="number" min={0} value={r.reward} onChange={(e) => updateReferral(r.id, { reward: Math.max(0, Number(e.target.value) || 0) })} /></td>
-                  <td><button className="pd-btn pd-btn-ghost" onClick={() => removeReferral(r.id)}><IconTrash size={14} /></button></td>
+                  <td className="num">{r.status === "Paid" ? inr(r.reward) : <input className="pd-input" data-field="amount" style={{ width: 90, textAlign: "right" }} type="number" min={0} value={r.reward} onChange={(e) => updateReferral(r.id, { reward: Math.max(0, Number(e.target.value) || 0) })} />}</td>
+                  <td>{r.status === "Paid" ? null : <button className="pd-btn pd-btn-ghost" onClick={() => removeReferral(r.id)}><IconTrash size={14} /></button>}</td>
                 </tr>
               ))}
             </tbody>

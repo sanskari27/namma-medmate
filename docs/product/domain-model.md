@@ -85,14 +85,14 @@ Khata balance is derived from credit sales through `creditSalesOf()` minus `cred
 | `PharmacyProfile` | `updateProfile`, `toggleStoreOpen` | Includes GSTIN, PAN, drug licence, FSSAI, TDS/TCS flags, logo, and signature data URLs |
 | `InvoiceSettings` | `updateInvoiceSettings` | Controls prefix, template, terms, footer, and logo display |
 | `KioskConfig` | `updateKiosk` | Local kiosk configuration |
-| `Subscription` | `renewSubscription`, `changePlan`, `toggleAutoRenew` | The screen does not collect a payment or invent receipts. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
+| `Subscription` | `requestPlan`, `toggleAutoRenew` | The pharmacy submits a plan or renewal request. A master assigns the plan, cycle, and renewal date. The screen does not collect a payment. Plans: Free, Starter ₹699, Growth ₹1499, Pro ₹2999 per month, with annual discounts of 0%, 5%, 15%, and 20%. SaaS GST rate is 18%. |
 | `BankAccount` | `saveBankAccount`, `verifyBankAccount`, `removeBankAccount` | Verification flips a local flag. IFSC is checked with `isValidIfsc`. |
 | `Advisor`, `CAShare` | Advisor CRUD, `shareWithCA` | Share appends a local record and shows a toast |
 | `Expense`, categories | Expense CRUD, `addExpenseCategory` | No approval workflow |
 | `Employee` | Employee CRUD | Documents are data URLs |
 | `StaffUser` | `addUser`, `updateUser`, `toggleUser`, `removeUser` | Role and permission fields are stored only |
 
-`businessType` is `pharmacy` or `hospital`, set by `signIn`. `signOut` clears the session flags used by onboarding and resets navigation.
+`businessType` is `pharmacy` or `hospital`, set by `signIn` and changeable by a master. `signOut` clears the pharmacy session and resets navigation. It does not clear a master session.
 
 ## Hospital
 

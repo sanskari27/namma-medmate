@@ -916,6 +916,7 @@ export const annualPerMonth = (p: PlanInfo): number => Math.round(planPrice(p, "
 export const cycleNoun = (c: BillingCycle) => (c === "annual" ? "year" : "month");
 
 export type Subscription = { plan: Plan; cycle: BillingCycle; status: "active" | "expiring" | "expired"; renewsOn: string; since: string; autoRenew: boolean };
+export type SubRequest = { id: string; plan: Plan; cycle: BillingCycle; kind: "plan" | "renewal"; createdAt: number; status: "open" | "handled" };
 export const DEFAULT_SUBSCRIPTION: Subscription = { plan: "Free", cycle: "monthly", status: "active", renewsOn: "—", since: "2026-07-01", autoRenew: false };
 export const todayISO = (now = new Date()) => now.toISOString().slice(0, 10);
 export const subscriptionLapsed = (sub: Subscription, today = todayISO()) =>
@@ -923,14 +924,35 @@ export const subscriptionLapsed = (sub: Subscription, today = todayISO()) =>
 
 // ── freemium gating ─────────────────────────────────────────────
 // Core features that are FREE FOR EVERYONE, forever — no subscription needed.
-export const FREE_ROUTES: string[] = ["pos", "inventory", "purchases", "invoicing"];
+export const FREE_ROUTES: string[] = ["pos", "inventory", "purchases", "invoicing", "users"];
 // Account / shell routes that are always reachable (so users can manage & upgrade).
 export const ALWAYS_ROUTES: string[] = ["dashboard", "account", "subscription", "settings", "support", "notifications", "menu", "refer"];
+export const HOSPITAL_ROUTES = ["wards", "hospbill", "ptbills", "salesreg", "indents", "departments", "doctors"];
+export const PREMIUM_ROUTES = [
+  "orders", "sales", "prescriptions", "customers", "khata", "crm", "rackmap", "reorder", "distributors",
+  "online", "offers", "kiosk", "reports", "expenses", "ca", "employees", ...HOSPITAL_ROUTES,
+];
+export type ScreenGrant = { route: string; until?: string };
+export type AccessOpts = { grants?: ScreenGrant[]; businessType?: "pharmacy" | "hospital"; today?: string };
 // a paid plan (Free never unlocks the premium modules; expired plans lock too)
 export const planUnlocksAll = (sub: Subscription) => sub.plan !== "Free" && !subscriptionLapsed(sub);
 export const routeIsFree = (route: string) => FREE_ROUTES.includes(route) || ALWAYS_ROUTES.includes(route);
-// is this route behind the paywall for the current subscription?
-export const routeLocked = (route: string, sub: Subscription) => !routeIsFree(route) && !planUnlocksAll(sub);
+export const includedSeats = (plan: Plan): number | null => (plan === "Pro" ? null : plan === "Growth" ? 5 : 2);
+export const SEAT_CAP = 50;
+export const seatCeiling = (plan: Plan, extraSeats: number): number | null => {
+  const included = includedSeats(plan);
+  return included == null ? null : included + Math.max(0, extraSeats || 0);
+};
+const grantOpen = (grant: ScreenGrant, today: string) => !grant.until || grant.until >= today;
+// Hospital screens need a hospital pharmacy. A paid plan opens every other premium screen.
+// Grants apply only while the plan is Free or the paid term has lapsed.
+export const routeLocked = (route: string, sub: Subscription, access?: AccessOpts) => {
+  if (HOSPITAL_ROUTES.includes(route) && access?.businessType !== "hospital") return true;
+  if (routeIsFree(route)) return false;
+  if (planUnlocksAll(sub)) return false;
+  const today = access?.today || todayISO();
+  return !(access?.grants || []).some((grant) => grant.route === route && grantOpen(grant, today));
+};
 // smallest paid plan that unlocks a given premium route (for the upsell copy)
 export const planForRoute = (route: string): Plan => {
   if (route === "prescriptions" || route === "customers" || route === "khata") return "Starter";

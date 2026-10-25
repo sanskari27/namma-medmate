@@ -14,16 +14,17 @@ A nine-step setup wizard in `SetupWizard.tsx` can run before the shell. `setupCo
 
 `routeLocked()` in `data.ts` is the only navigation gate.
 
-- Free routes, always open: Billing / POS, Inventory, Purchases, Invoice Settings.
+- Free routes, always open: Billing / POS, Inventory, Purchases, Invoice Settings, Manage Users.
 - Shell routes, always open: Dashboard, Account, Subscription, Settings, Help & Support, Refer & Earn, plus the unused `notifications` and `menu` keys.
-- Every other route is locked while the plan is `Free` or the subscription status is `expired`.
-- Any active `Starter`, `Growth`, or `Pro` plan opens every route. `planForRoute()` supplies upsell copy only. The code does not enforce the Starter, Growth, and Pro feature split shown on the plan cards.
+- Every other route is locked while the plan is `Free` or the paid term has lapsed, unless a master grant for that route is still in date.
+- Any active `Starter`, `Growth`, or `Pro` plan opens the same non-hospital routes. Grants stay stored and do nothing until the paid term lapses. `planForRoute()` supplies upsell copy only.
+- Hospital routes stay hidden unless `businessType` is `hospital`. A Free or lapsed hospital pharmacy needs a grant for each hospital screen.
 
-Hospital routes are additionally hidden unless `businessType` is `hospital`.
+Seats are 2 on Free and Starter, 5 on Growth, and unlimited on Pro, plus master-assigned extra seats up to 50 total on the finite plans. Adding staff stops at that cap. Existing staff stay. The pharmacy asks for a plan from Subscription. A master phone on the allowlist assigns it.
 
 ### Staff permissions
 
-`UsersScreen` edits a permission list on `StaffUser`. The shell hides a nav item when that list does not include the matching module. The owner sees every item. Sales, customers, kiosk, hospital screens, account, subscription, refer, and support have no permission key and stay available when the plan allows them. Server checks on expenses, employees, and users stay. Older mutations are not permission-checked yet.
+`UsersScreen` edits a permission list on `StaffUser`. The shell hides a nav item when that list does not include the matching module. The owner sees every item. Sales, customers, kiosk, hospital screens, account, subscription, refer, and support have no permission key and stay available when the plan allows them. A route with a permission key is refused on the server for anyone except the owner when that key is missing. A cashier cannot open Reports.
 
 ## Onboarding and shell
 

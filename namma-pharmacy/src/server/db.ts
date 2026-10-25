@@ -3,7 +3,7 @@ import { Pool, type PoolClient } from "pg";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { fail } from "./errors";
 import { absorbFiles } from "./files";
-import { stripDemo, type PharmacyState } from "./state";
+import { stripDemo, touchAccess, type PharmacyState } from "./state";
 import type { BusinessType } from "./types";
 
 const SCHEMA = `
@@ -49,6 +49,43 @@ CREATE TABLE IF NOT EXISTS otp_challenges (
   cognito_session text,
   expires_at timestamptz NOT NULL
 );
+CREATE TABLE IF NOT EXISTS master_phones (
+  phone text PRIMARY KEY
+);
+CREATE TABLE IF NOT EXISTS master_sessions (
+  token text PRIMARY KEY,
+  phone text NOT NULL,
+  expires_at timestamptz NOT NULL
+);
+CREATE TABLE IF NOT EXISTS consultations (
+  id bigserial PRIMARY KEY,
+  name text NOT NULL,
+  phone text NOT NULL,
+  area text NOT NULL DEFAULT '',
+  note text NOT NULL DEFAULT '',
+  status text NOT NULL DEFAULT 'open',
+  at timestamptz NOT NULL DEFAULT now()
+);
+CREATE TABLE IF NOT EXISTS master_audit (
+  id bigserial PRIMARY KEY,
+  phone text NOT NULL,
+  pharmacy_id uuid NOT NULL,
+  action text NOT NULL,
+  before jsonb NOT NULL,
+  after jsonb NOT NULL,
+  reason text NOT NULL DEFAULT '',
+  at timestamptz NOT NULL DEFAULT now()
+);
+CREATE OR REPLACE FUNCTION master_audit_freeze() RETURNS trigger
+LANGUAGE plpgsql AS $$
+BEGIN
+  RAISE EXCEPTION 'master_audit is append-only';
+END $$;
+DROP TRIGGER IF EXISTS master_audit_freeze ON master_audit;
+CREATE TRIGGER master_audit_freeze
+BEFORE UPDATE OR DELETE ON master_audit
+FOR EACH ROW EXECUTE FUNCTION master_audit_freeze();
+REVOKE UPDATE, DELETE ON master_audit FROM PUBLIC;
 `;
 
 let pool: Pool | undefined;
@@ -70,7 +107,22 @@ export async function migrate() {
   if (!ready) {
     ready = (async () => {
       const client = await getPool().connect();
-      try { await client.query(SCHEMA); } finally { client.release(); }
+      try {
+        await client.query(SCHEMA);
+        await client.query(`ALTER TABLE master_audit ADD COLUMN IF NOT EXISTS before jsonb`);
+        await client.query(`ALTER TABLE master_audit ADD COLUMN IF NOT EXISTS after jsonb`);
+        await client.query(`ALTER TABLE master_audit ADD COLUMN IF NOT EXISTS reason text NOT NULL DEFAULT ''`);
+        await client.query(`ALTER TABLE master_audit DISABLE TRIGGER master_audit_freeze`);
+        await client.query(`UPDATE master_audit SET before = COALESCE(before, '{}'::jsonb), after = COALESCE(after, '{}'::jsonb)`);
+        await client.query(`ALTER TABLE master_audit ENABLE TRIGGER master_audit_freeze`);
+        await client.query(`ALTER TABLE master_audit ALTER COLUMN before SET NOT NULL`);
+        await client.query(`ALTER TABLE master_audit ALTER COLUMN after SET NOT NULL`);
+        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS impersonator text`);
+        for (const raw of (process.env.MASTER_PHONES || "").split(",")) {
+          const phone = raw.trim();
+          if (phone) await client.query("INSERT INTO master_phones (phone) VALUES ($1) ON CONFLICT DO NOTHING", [e164(phone)]);
+        }
+      } finally { client.release(); }
     })();
   }
   await ready;
@@ -82,6 +134,7 @@ export type SessionRow = {
   userId: string;
   phone: string;
   pricingUnlocked: boolean;
+  impersonator: string | null;
   pricingPin: string;
   businessType: BusinessType;
   expiresAt: Date;
@@ -143,12 +196,13 @@ async function syncPhones(client: PoolClient, pharmacyId: string, state: Pharmac
   }
 }
 
-export async function createSession(pharmacyId: string, userId: string, phone: string) {
+export async function createSession(pharmacyId: string, userId: string, phone: string, impersonator?: string) {
+  await migrate();
   const token = randomBytes(32).toString("hex");
   const expires = new Date(Date.now() + 30 * 86400000);
   await getPool().query(
-    "INSERT INTO sessions (token, pharmacy_id, user_id, phone, expires_at) VALUES ($1,$2,$3,$4,$5)",
-    [token, pharmacyId, userId, e164(phone), expires],
+    "INSERT INTO sessions (token, pharmacy_id, user_id, phone, expires_at, impersonator) VALUES ($1,$2,$3,$4,$5,$6)",
+    [token, pharmacyId, userId, e164(phone), expires, impersonator || null],
   );
   return token;
 }
@@ -157,7 +211,7 @@ export async function readSession(token: string | undefined): Promise<SessionRow
   if (!token) return null;
   await migrate();
   const { rows } = await getPool().query(
-    `SELECT s.token, s.pharmacy_id, s.user_id, s.phone, s.pricing_unlocked, s.expires_at, p.pricing_pin, p.business_type
+    `SELECT s.token, s.pharmacy_id, s.user_id, s.phone, s.pricing_unlocked, s.impersonator, s.expires_at, p.pricing_pin, p.business_type
      FROM sessions s JOIN pharmacies p ON p.id = s.pharmacy_id WHERE s.token = $1`,
     [token],
   );
@@ -165,7 +219,7 @@ export async function readSession(token: string | undefined): Promise<SessionRow
   if (!row || new Date(row.expires_at).getTime() < Date.now()) return null;
   return {
     token: row.token, pharmacyId: row.pharmacy_id, userId: row.user_id, phone: row.phone,
-    pricingUnlocked: row.pricing_unlocked, pricingPin: row.pricing_pin, businessType: row.business_type, expiresAt: row.expires_at,
+    pricingUnlocked: row.pricing_unlocked, impersonator: (row.impersonator as string) || null, pricingPin: row.pricing_pin, businessType: row.business_type, expiresAt: row.expires_at,
   };
 }
 
@@ -182,11 +236,12 @@ export async function loadState(pharmacyId: string): Promise<PharmacyState> {
   const { rows } = await getPool().query("SELECT state FROM pharmacies WHERE id = $1", [pharmacyId]);
   if (!rows[0]) fail(404, "NOT_FOUND", "Pharmacy not found");
   const state = fromPaise(rows[0].state) as PharmacyState;
+  touchAccess(state);
   if (stripDemo(state)) await replaceState(pharmacyId, state);
   return state;
 }
 
-export async function withState<T>(pharmacyId: string, fn: (state: PharmacyState) => T | Promise<T>): Promise<T> {
+export async function withState<T>(pharmacyId: string, fn: (state: PharmacyState, client: PoolClient) => T | Promise<T>): Promise<T> {
   await migrate();
   const client = await getPool().connect();
   try {
@@ -194,8 +249,9 @@ export async function withState<T>(pharmacyId: string, fn: (state: PharmacyState
     const { rows } = await client.query("SELECT state FROM pharmacies WHERE id = $1 FOR UPDATE", [pharmacyId]);
     if (!rows[0]) fail(404, "NOT_FOUND", "Pharmacy not found");
     const state = fromPaise(rows[0].state) as PharmacyState;
+    touchAccess(state);
     stripDemo(state);
-    const result = await fn(state);
+    const result = await fn(state, client);
     const stored = await absorbFiles(client, pharmacyId, state);
     await client.query("UPDATE pharmacies SET state = $2, setup_complete = $3, business_type = $4, updated_at = now() WHERE id = $1", [
       pharmacyId, JSON.stringify(toPaise(stored)), stored.setupComplete, stored.businessType,
@@ -239,6 +295,7 @@ export async function withIdempotent<T>(pharmacyId: string, key: string, hash: s
       return { status: row.status, body: row.body };
     }
     const state = fromPaise(locked.rows[0].state) as PharmacyState;
+    touchAccess(state);
     const result = await run(state);
     const stored = await absorbFiles(client, pharmacyId, state);
     await client.query("UPDATE pharmacies SET state = $2, setup_complete = $3, business_type = $4, updated_at = now() WHERE id = $1", [

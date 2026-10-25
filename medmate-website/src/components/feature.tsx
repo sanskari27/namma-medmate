@@ -15,6 +15,7 @@ export type FeatureProps = {
   steps: [string, string, string][];
   points: [string, string, string][];
   faqs: [string, string][];
+  book?: string;
 };
 
 /** Landing page for one app feature: hero with QR, steps, benefits, FAQ and a closing call to action. */
@@ -37,6 +38,7 @@ export async function FeatureLanding(f: FeatureProps) {
                   <p className="max-w-[150px] font-semibold leading-5">Scan to open it in the app</p>
                 </div>
                 <div className="flex w-full flex-col gap-3 sm:w-auto">
+                  {f.book && <a href={f.book} className="press d-btn inline-flex h-12 w-fit items-center justify-center gap-2 whitespace-nowrap rounded-xl bg-white px-5 text-forest hover:bg-mint-50 max-sm:w-full">Book a consultation</a>}
                   <GetAppLink from={from} to={f.to} variant="gold" className="w-fit">{f.cta}<Icon name="chev-r" size={18} /></GetAppLink>
                   <StoreButtons dark from={from} />
                   <StoreLine dark />

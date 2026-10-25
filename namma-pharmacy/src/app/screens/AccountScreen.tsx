@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
-import { PLANS, planPrice, cycleNoun, inr, computeInvoice, planUnlocksAll, UserRole, isValidIfsc } from "../data";
+import { PLANS, planPrice, cycleNoun, inr, computeInvoice, routeLocked, PREMIUM_ROUTES, HOSPITAL_ROUTES, includedSeats, seatCeiling, UserRole, isValidIfsc } from "../data";
 import { Route } from "../pharmaState";
 import {
   IconUsers, IconReceipt, IconCrown, IconGift, IconShare, IconHelp, IconSettings, IconCheck,
@@ -10,23 +10,23 @@ import {
 } from "../components/Icon";
 
 const download = (blob: Blob, name: string) => { const u = URL.createObjectURL(blob); const a = document.createElement("a"); a.href = u; a.download = name; a.click(); setTimeout(() => URL.revokeObjectURL(u), 6000); };
-const seatLimitFor = (plan: string) => (plan === "Pro" ? 99 : plan === "Growth" ? 5 : 2);
-const PREMIUM_ROUTES = ["orders", "prescriptions", "customers", "khata", "crm", "reports", "expenses", "ca", "online", "offers", "reorder", "distributors", "kiosk", "employees", "sales", "wards", "hospbill"];
 const ROLE_PILL: Record<string, string> = { Owner: "pill-gold", Manager: "pill-blue", Pharmacist: "pill-green", Cashier: "pill-teal" };
 
 export default function AccountScreen() {
-  const { profile, subscription, users, sales, inventory, bankAccount, go, startSetup, signOut } = usePharma();
+  const { profile, subscription, grants, extraSeats, businessType, users, sales, inventory, bankAccount, go, startSetup, signOut } = usePharma();
   const openBank = () => document.getElementById("pd-bank")?.scrollIntoView({ behavior: "smooth", block: "center" });
   const plan = PLANS.find((p) => p.key === subscription.plan)!;
   const isFree = subscription.plan === "Free";
 
   // ── metrics ──
   const activeUsers = users.filter((u) => u.active).length;
-  const seatLimit = seatLimitFor(subscription.plan);
-  const seatPct = seatLimit >= 99 ? Math.min(100, activeUsers * 10) : Math.min(100, Math.round((activeUsers / seatLimit) * 100));
+  const included = includedSeats(subscription.plan);
+  const seatLimit = seatCeiling(subscription.plan, extraSeats);
+  const seatPct = seatLimit == null ? Math.min(100, activeUsers * 10) : Math.min(100, Math.round((activeUsers / Math.max(1, seatLimit)) * 100));
   const invoices = sales.filter((s) => s.status !== "cancelled");
   const revenue = invoices.reduce((a, s) => a + computeInvoice(s.items, s.discount).payable, 0);
-  const premiumUnlocked = planUnlocksAll(subscription) ? PREMIUM_ROUTES.length : 0;
+  const visiblePremium = PREMIUM_ROUTES.filter((route) => businessType === "hospital" || !HOSPITAL_ROUTES.includes(route));
+  const premiumUnlocked = visiblePremium.filter((route) => !routeLocked(route, subscription, { grants, businessType })).length;
   const roleCount = users.reduce<Record<string, number>>((m, u) => { m[u.role] = (m[u.role] || 0) + 1; return m; }, {});
   const roleMax = Math.max(1, ...Object.values(roleCount));
 
@@ -101,7 +101,7 @@ export default function AccountScreen() {
       <div className="pd-stats" >
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => go("subscription")}><span className="go"><IconArrowRight size={16} /></span><div className="ic ic-gold"><IconCrown size={18} /></div><div className="lbl">Plan</div><div className="val">{subscription.plan}</div><div className="split">{isFree ? "free forever" : subscription.status}</div></div>
         <div className="pd-stat link" role="button" tabIndex={0} onClick={() => go("users")}><span className="go"><IconArrowRight size={16} /></span><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team members</div><div className="val">{users.length}</div><div className="split">{activeUsers} active</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconWallet size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeUsers} / {seatLimit >= 99 ? "∞" : seatLimit}</div><div className="split">{subscription.plan} plan</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconWallet size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeUsers} / {seatLimit == null ? "∞" : seatLimit}</div><div className="split">{included == null ? "Unlimited" : `${included} included`}{extraSeats ? ` + ${extraSeats} extra` : ""}</div></div>
         <div className="pd-stat"><div className="ic ic-teal"><IconReceipt size={18} /></div><div className="lbl">Invoices</div><div className="val">{invoices.length}</div><div className="split">all time</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconRupee size={18} /></div><div className="lbl">Lifetime sales</div><div className="val">{inr(revenue)}</div><div className="split">{inventory.length} SKUs</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconShield size={18} /></div><div className="lbl">Profile complete</div><div className="val">{pct}%</div><div className="split">{done}/{checklist.length} done</div></div>
@@ -119,13 +119,13 @@ export default function AccountScreen() {
             </div>
             {/* seats */}
             <div className="pd-acct-usage">
-              <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}><span className="pd-muted">Team seats</span><b>{activeUsers} / {seatLimit >= 99 ? "∞" : seatLimit}</b></div>
+              <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}><span className="pd-muted">Team seats</span><b>{activeUsers} / {seatLimit == null ? "∞" : seatLimit}</b></div>
               <div className="pd-util"><span style={{ width: `${seatPct}%` }} /></div>
             </div>
             {/* premium modules */}
             <div className="pd-acct-usage">
-              <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}><span className="pd-muted">Premium modules</span><b>{premiumUnlocked} / {PREMIUM_ROUTES.length} unlocked</b></div>
-              <div className="pd-util"><span style={{ width: `${(premiumUnlocked / PREMIUM_ROUTES.length) * 100}%` }} /></div>
+              <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 12.5, marginBottom: 4 }}><span className="pd-muted">Premium modules</span><b>{premiumUnlocked} / {visiblePremium.length} unlocked</b></div>
+              <div className="pd-util"><span style={{ width: `${visiblePremium.length ? (premiumUnlocked / visiblePremium.length) * 100 : 0}%` }} /></div>
             </div>
             {isFree
               ? <div className="pd-acct-freebar"><IconLock size={13} /> Billing / POS, Inventory &amp; Purchases are free. <b onClick={() => go("subscription")} style={{ cursor: "pointer", color: "var(--gold-d)" }}>Upgrade</b> to unlock the rest.</div>

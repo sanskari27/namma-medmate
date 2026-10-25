@@ -1,4 +1,4 @@
-import { ALL_PERM_KEYS, userPerms } from "../app/data";
+import { ALL_PERM_KEYS, ROUTE_PERM, userPerms } from "../app/data";
 import { aggregateCustomers } from "../app/lib/customerExport";
 import { buildPatients } from "../app/lib/crm";
 import { custKeyOf, creditCustomers, findScan } from "../app/data";
@@ -14,6 +14,10 @@ import {
 } from "./db";
 import { ApiError } from "./errors";
 import { expandFiles, readFile } from "./files";
+import {
+  assignBusinessType, assignGrants, assignPlan, assignSeats, assignTicket, bookConsultation, createMasterSession, destroyMasterSession,
+  earnReferral, isMasterPhone, listAudit, listConsultations, listPharmacies, listRequests, listWork, markConsultation, masterCookie, masterFrom, masterToken, payReferral, pharmacyProfile, recordAudit, startImpersonation,
+} from "./master";
 import * as m from "./mutate";
 import { demoState, emptyState, type PharmacyState } from "./state";
 import type { BusinessType } from "./types";
@@ -49,9 +53,10 @@ function encode(body: unknown) {
   return toPaise(expanded);
 }
 
-function send(body: unknown, status = 200, token?: string | null) {
+function send(body: unknown, status = 200, token?: string | null, masterToken?: string | null) {
   const headers = new Headers({ "content-type": "application/json" });
-  if (token !== undefined) headers.set("set-cookie", cookie(token));
+  if (token !== undefined) headers.append("set-cookie", cookie(token));
+  if (masterToken !== undefined) headers.append("set-cookie", masterCookie(masterToken));
   return new Response(JSON.stringify(encode(body)), { status, headers });
 }
 
@@ -72,6 +77,9 @@ export function sessionView(state: PharmacyState, session: SessionRow) {
     businessType: state.businessType,
     setupComplete: state.setupComplete,
     subscription: state.subscription,
+    grants: state.grants || [],
+    extraSeats: state.extraSeats || 0,
+    subscriptionRequests: state.subscriptionRequests || [],
     creditPayments: state.creditPayments,
     caShares: state.caShares,
     wardSupplies: state.wardSupplies,
@@ -99,6 +107,7 @@ export function sessionView(state: PharmacyState, session: SessionRow) {
     crm: state.crm,
     tickets: state.tickets,
     referrals: state.referrals || [],
+    impersonator: session.impersonator,
     wards: hospital("wards", state.wards, []),
     admissions: hospital("wards", state.admissions, []),
     wardIndents: hospital("indents", state.wardIndents, []),
@@ -118,7 +127,8 @@ async function ownerState(phone: string, name: string | undefined, businessType:
 function guard(state: PharmacyState, session: SessionRow, route?: { plan?: string; perm?: string; hospital?: boolean }) {
   if (route?.hospital) m.requireHospital(state);
   if (route?.plan) m.requirePlan(state, route.plan);
-  if (route?.perm) m.requirePerm(state, session.userId, route.perm);
+  const perm = route?.perm ?? (route?.plan ? ROUTE_PERM[route.plan] : undefined);
+  if (perm) m.requirePerm(state, session.userId, perm);
 }
 
 type Spec = {
@@ -139,7 +149,7 @@ const specs: Spec[] = [
   { method: "POST", path: "/pharmacy/store-open", write: true, run: (c) => m.toggleStore(c.state) },
   { method: "GET", path: "/settings/invoice", run: (c) => c.state.invoiceSettings },
   { method: "PATCH", path: "/settings/invoice", write: true, run: (c) => m.patchInvoice(c.state, c.body) },
-  { method: "GET", path: "/settings/kiosk", run: (c) => c.state.kiosk },
+  { method: "GET", path: "/settings/kiosk", plan: "kiosk", run: (c) => c.state.kiosk },
   { method: "PATCH", path: "/settings/kiosk", write: true, plan: "kiosk", run: (c) => m.patchKiosk(c.state, c.body) },
   { method: "POST", path: "/setup/complete", write: true, run: (c) => m.completeSetup(c.state, c.body.complete !== false) },
   { method: "POST", path: "/setup/wipe", write: true, run: (c) => m.wipeData(c.state) },
@@ -157,25 +167,25 @@ const specs: Spec[] = [
   { method: "POST", path: "/inventory/location/bulk", write: true, plan: "rackmap", run: (c) => m.bulkAssignLocation(c.state, (c.body.ids as string[]) || [], String(c.body.rack || "")) },
   { method: "POST", path: "/inventory/loose-default", write: true, run: (c) => m.setLooseDefault(c.state, Boolean(c.body.allowed)) },
   { method: "GET", path: "/inventory/scan", run: (c) => { m.requirePlan(c.state, "pos"); return findScan(c.state.inventory, c.url.searchParams.get("q") || ""); } },
-  { method: "GET", path: "/racks", run: (c) => c.state.racks },
+  { method: "GET", path: "/racks", plan: "rackmap", run: (c) => c.state.racks },
   { method: "POST", path: "/racks", write: true, plan: "rackmap", run: (c) => m.createRack(c.state, String(c.body.rack || c.body.code || "")) },
   { method: "DELETE", path: "/racks/:code", write: true, plan: "rackmap", run: (c) => m.removeRack(c.state, c.params.code) },
   { method: "GET", path: "/purchases", run: (c) => c.state.purchases },
   { method: "POST", path: "/purchases/receive", write: true, idem: true, run: (c) => m.receivePurchase(c.state, c.body as never) },
-  { method: "GET", path: "/suppliers", run: (c) => c.state.suppliers },
+  { method: "GET", path: "/suppliers", plan: "distributors", run: (c) => c.state.suppliers },
   { method: "POST", path: "/suppliers", write: true, plan: "distributors", run: (c) => m.addSupplier(c.state, c.body as never) },
   { method: "PATCH", path: "/suppliers/:id", write: true, plan: "distributors", run: (c) => m.updateSupplier(c.state, c.params.id, c.body) },
   { method: "DELETE", path: "/suppliers/:id", write: true, plan: "distributors", run: (c) => m.removeSupplier(c.state, c.params.id) },
-  { method: "GET", path: "/supply-list", run: (c) => c.state.supplyList },
+  { method: "GET", path: "/supply-list", plan: "distributors", run: (c) => c.state.supplyList },
   { method: "POST", path: "/supply-list", write: true, plan: "distributors", run: (c) => m.addSupply(c.state, c.body as never) },
   { method: "PATCH", path: "/supply-list/:id", write: true, plan: "distributors", run: (c) => m.updateSupply(c.state, c.params.id, c.body) },
   { method: "DELETE", path: "/supply-list/:id", write: true, plan: "distributors", run: (c) => m.removeSupply(c.state, c.params.id) },
   { method: "POST", path: "/supply-list/:id/preferred", write: true, plan: "distributors", run: (c) => m.setPreferredSupply(c.state, c.params.id) },
-  { method: "GET", path: "/purchase-orders", run: (c) => c.state.purchaseOrders },
+  { method: "GET", path: "/purchase-orders", plan: "reorder", run: (c) => c.state.purchaseOrders },
   { method: "POST", path: "/purchase-orders", write: true, plan: "reorder", run: (c) => m.sendPurchaseOrder(c.state, String(c.body.supplierId), String(c.body.supplierName || ""), (c.body.items as never) || [], c.body.note as string | undefined) },
   { method: "POST", path: "/purchase-orders/:id/received", write: true, plan: "reorder", run: (c) => m.markPOReceived(c.state, c.params.id) },
-  { method: "GET", path: "/sales", run: (c) => filterSales(c) },
-  { method: "GET", path: "/sales/:id", run: (c) => c.state.sales.find((s) => s.id === c.params.id) || missing("Sale") },
+  { method: "GET", path: "/sales", run: (c) => { m.requireAnyPlan(c.state, ["sales", "orders"]); return filterSales(c); } },
+  { method: "GET", path: "/sales/:id", run: (c) => { m.requireAnyPlan(c.state, ["sales", "orders"]); return c.state.sales.find((s) => s.id === c.params.id) || missing("Sale"); } },
   { method: "POST", path: "/pos/checkout", write: true, idem: true, run: (c) => m.checkoutPos(c.state, c.body as never) },
   { method: "POST", path: "/sales/:id/mark-paid", write: true, run: (c) => m.markPaid(c.state, c.params.id, c.body.payMode as never) },
   { method: "POST", path: "/sales/:id/advance", write: true, plan: "orders", run: (c) => m.advanceOrder(c.state, c.params.id) },
@@ -187,44 +197,45 @@ const specs: Spec[] = [
   { method: "POST", path: "/sales/:id/handover", write: true, plan: "orders", run: (c) => m.handToRider(c.state, c.params.id, c.body.rider as never) },
   { method: "POST", path: "/sales/settle", write: true, idem: true, hospital: true, plan: "ptbills", run: (c) => m.settleBills(c.state, (c.body.ids as string[]) || [], c.body.payMode as never) },
   { method: "POST", path: "/kiosk/orders", write: true, idem: true, plan: "kiosk", run: (c) => m.placeKioskOrder(c.state, (c.body.lines as never) || [], (c.body.payMode || c.body.pay) as never) },
-  { method: "GET", path: "/prescriptions", run: (c) => c.state.prescriptions },
+  { method: "GET", path: "/prescriptions", plan: "prescriptions", run: (c) => c.state.prescriptions },
   { method: "POST", path: "/prescriptions/:id/approve", write: true, plan: "prescriptions", run: (c) => m.approveRx(c.state, c.params.id) },
   { method: "POST", path: "/prescriptions/:id/reject", write: true, plan: "prescriptions", run: (c) => m.rejectRx(c.state, c.params.id, c.body.reason as string | undefined) },
   { method: "POST", path: "/prescriptions/:id/dispense", write: true, plan: "prescriptions", run: (c) => m.dispenseRx(c.state, c.params.id) },
-  { method: "GET", path: "/offers", run: (c) => c.state.offers },
+  { method: "GET", path: "/offers", plan: "offers", run: (c) => c.state.offers },
   { method: "POST", path: "/offers", write: true, plan: "offers", run: (c) => m.addOffer(c.state, c.body as never) },
   { method: "POST", path: "/offers/:id/toggle", write: true, plan: "offers", run: (c) => m.toggleOffer(c.state, c.params.id) },
   { method: "DELETE", path: "/offers/:id", write: true, plan: "offers", run: (c) => m.removeOffer(c.state, c.params.id) },
   { method: "PUT", path: "/inventory/products/:id/direct-offer", write: true, plan: "online", run: (c) => m.setDirectOffer(c.state, c.params.id, c.body.type as never, Number(c.body.value || 0)) },
-  { method: "GET", path: "/credit/ledger", run: (c) => creditCustomers(c.state.sales, c.state.creditPayments) },
+  { method: "GET", path: "/credit/ledger", plan: "khata", run: (c) => creditCustomers(c.state.sales, c.state.creditPayments) },
   { method: "POST", path: "/credit/payments", write: true, plan: "khata", run: (c) => m.recordCreditPayment(c.state, c.body as never) },
-  { method: "GET", path: "/customers", run: (c) => aggregateCustomers(c.state.sales) },
-  { method: "GET", path: "/crm/patients", run: (c) => ({ patients: patientsOf(c.state), crm: c.state.crm }) },
+  { method: "GET", path: "/customers", plan: "customers", run: (c) => aggregateCustomers(c.state.sales) },
+  { method: "GET", path: "/crm/patients", plan: "crm", run: (c) => ({ patients: patientsOf(c.state), crm: c.state.crm }) },
   { method: "PATCH", path: "/crm/patients/:key", write: true, plan: "crm", run: (c) => m.setPatientMeta(c.state, c.params.key, c.body as never) },
   { method: "POST", path: "/crm/campaigns", write: true, plan: "crm", run: (c) => m.addCampaign(c.state, c.body as never) },
   { method: "POST", path: "/crm/feedback", write: true, plan: "crm", run: (c) => m.addFeedback(c.state, c.body as never) },
   { method: "POST", path: "/crm/reminders", write: true, plan: "crm", run: (c) => m.logReminder(c.state, c.body as never) },
   { method: "POST", path: "/crm/redemptions", write: true, plan: "crm", run: (c) => m.redeemPoints(c.state, String(c.body.custKey), String(c.body.custName || ""), Number(c.body.points)) },
-  { method: "GET", path: "/expenses", run: (c) => ({ expenses: c.state.expenses, categories: c.state.expenseCategories }) },
+  { method: "GET", path: "/expenses", plan: "expenses", run: (c) => ({ expenses: c.state.expenses, categories: c.state.expenseCategories }) },
   { method: "POST", path: "/expenses", write: true, perm: "reports", plan: "expenses", run: (c) => m.addExpense(c.state, c.body as never) },
   { method: "PATCH", path: "/expenses/:id", write: true, perm: "reports", plan: "expenses", run: (c) => m.updateExpense(c.state, c.params.id, c.body) },
   { method: "DELETE", path: "/expenses/:id", write: true, perm: "reports", plan: "expenses", run: (c) => m.removeExpense(c.state, c.params.id) },
   { method: "POST", path: "/expense-categories", write: true, perm: "reports", plan: "expenses", run: (c) => m.addExpenseCategory(c.state, String(c.body.name || "")) },
-  { method: "GET", path: "/employees", run: (c) => c.state.employees },
+  { method: "GET", path: "/employees", plan: "employees", run: (c) => c.state.employees },
   { method: "POST", path: "/employees", write: true, perm: "employees", plan: "employees", run: (c) => m.addEmployee(c.state, c.body as never) },
   { method: "PATCH", path: "/employees/:id", write: true, perm: "employees", plan: "employees", run: (c) => m.updateEmployee(c.state, c.params.id, c.body) },
   { method: "DELETE", path: "/employees/:id", write: true, perm: "employees", plan: "employees", run: (c) => m.removeEmployee(c.state, c.params.id) },
   { method: "GET", path: "/users", run: (c) => c.state.users },
-  { method: "POST", path: "/users", write: true, perm: "users", plan: "users", run: (c) => m.addUser(c.state, c.body as never) },
-  { method: "PATCH", path: "/users/:id", write: true, perm: "users", plan: "users", run: (c) => m.updateUser(c.state, c.params.id, c.body) },
-  { method: "DELETE", path: "/users/:id", write: true, perm: "users", plan: "users", run: (c) => m.removeUser(c.state, c.params.id) },
+  { method: "POST", path: "/users", write: true, perm: "users", run: (c) => m.addUser(c.state, c.body as never) },
+  { method: "PATCH", path: "/users/:id", write: true, perm: "users", run: (c) => m.updateUser(c.state, c.params.id, c.body) },
+  { method: "DELETE", path: "/users/:id", write: true, perm: "users", run: (c) => m.removeUser(c.state, c.params.id) },
   { method: "GET", path: "/subscription", run: (c) => c.state.subscription },
+  { method: "POST", path: "/subscription/requests", write: true, run: (c) => m.addSubscriptionRequest(c.state, c.body.plan as never, c.body.cycle as never, c.body.kind as string | undefined) },
   { method: "PATCH", path: "/subscription", write: true, run: (c) => patchSub(c) },
   { method: "GET", path: "/bank-account", run: (c) => ({ bankAccount: c.state.bankAccount }) },
   { method: "PUT", path: "/bank-account", write: true, run: (c) => m.saveBankAccount(c.state, c.body as never) },
   { method: "DELETE", path: "/bank-account", write: true, run: (c) => m.removeBankAccount(c.state) },
   { method: "POST", path: "/bank-account/verify", write: true, run: (c) => m.verifyBankAccount(c.state) },
-  { method: "GET", path: "/advisors", run: (c) => c.state.advisors },
+  { method: "GET", path: "/advisors", plan: "ca", run: (c) => c.state.advisors },
   { method: "POST", path: "/advisors", write: true, plan: "ca", run: (c) => m.addAdvisor(c.state, c.body as never) },
   { method: "PATCH", path: "/advisors/:id", write: true, plan: "ca", run: (c) => m.updateAdvisor(c.state, c.params.id, c.body) },
   { method: "DELETE", path: "/advisors/:id", write: true, plan: "ca", run: (c) => m.removeAdvisor(c.state, c.params.id) },
@@ -288,9 +299,10 @@ function reportCtx(c: Ctx) {
   return { sales: c.state.sales, purchases: c.state.purchases, inventory: c.state.inventory, expenses: c.state.expenses, profile: c.state.profile, now: Date.now(), range: { from, to, label: "Selected range" } };
 }
 function patchSub(c: Ctx) {
+  if ("plan" in c.body || "grants" in c.body || "extraSeats" in c.body || "renewsOn" in c.body || c.body.action === "renew") {
+    throw new ApiError(403, "FORBIDDEN", "Plan changes are made by Namma MedMate");
+  }
   if (c.body.autoRenew === true || c.body.autoRenew === false) return c.body.action === "toggle" ? m.toggleAutoRenew(c.state) : (c.state.subscription = { ...c.state.subscription, autoRenew: Boolean(c.body.autoRenew) });
-  if (c.body.action === "renew") return m.renewSubscription(c.state);
-  if (c.body.plan) return m.changePlan(c.state, c.body.plan as never, (c.body.cycle as never) || c.state.subscription.cycle);
   return c.state.subscription;
 }
 function patchAdmission(c: Ctx) {
@@ -316,14 +328,41 @@ function matchSpec(method: string, path: string) {
   return null;
 }
 
+function websiteOrigin(req: Request) {
+  const origin = req.headers.get("origin") || "";
+  if (origin === "http://localhost:3200" || origin === "http://localhost:3100" || origin === "https://medmatepharmacy.com" || origin === "https://www.medmatepharmacy.com") return origin;
+  return "";
+}
+
+function withCors(req: Request, res: Response) {
+  const origin = websiteOrigin(req);
+  if (!origin) return res;
+  const headers = new Headers(res.headers);
+  headers.set("access-control-allow-origin", origin);
+  headers.set("vary", "origin");
+  headers.set("access-control-allow-headers", "content-type");
+  headers.set("access-control-allow-methods", "POST, OPTIONS");
+  return new Response(res.body, { status: res.status, headers });
+}
+
 export async function handle(req: Request): Promise<Response> {
   try {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/v1/, "") || "/";
+    if (req.method === "OPTIONS" && path === "/consultations") return withCors(req, new Response(null, { status: 204 }));
     const raw = req.method === "GET" || req.method === "DELETE" ? "" : await req.text();
     const body = raw ? fromPaise(JSON.parse(raw)) as Record<string, unknown> : {};
+    if (req.method === "POST" && path === "/consultations") {
+      try { return withCors(req, send(await bookConsultation(body))); }
+      catch (err) {
+        const status = err instanceof ApiError ? err.status : 500;
+        const message = err instanceof ApiError ? err.message : "Could not save the booking";
+        return withCors(req, Response.json({ error: { code: "VALIDATION", message } }, { status }));
+      }
+    }
     if (req.method === "POST" && path === "/auth/otp/send") return await sendOtp(body);
     if (req.method === "POST" && path === "/auth/otp/verify") return await verifyOtp(body);
+    if (path.startsWith("/master")) return await masterApi(req, path, url, body);
     if (req.method === "POST" && path === "/auth/sign-out") return await signOut(req);
     if (req.method === "POST" && path === "/demo/reset") return await demoReset(req);
     if (req.method === "POST" && path === "/hospital/pricing/unlock") return await unlockPricing(req, body);
@@ -388,6 +427,11 @@ async function verifyOtp(body: Record<string, unknown>) {
   } else if (!devAuth()) {
     throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
   }
+  if (body.portal === "master") {
+    if (!(await isMasterPhone(phone))) throw new ApiError(403, "FORBIDDEN", "This phone is not a master login");
+    const token = await createMasterSession(phone);
+    return send({ portal: "master", phone }, 200, undefined, token);
+  }
   let login = await findLogin(phone);
   if (!login) {
     const created = await ownerState(phone, body.name as string | undefined, businessType);
@@ -402,8 +446,46 @@ async function verifyOtp(body: Record<string, unknown>) {
   return send(sessionView(state, session), 200, token);
 }
 
+async function masterApi(req: Request, path: string, url: URL, body: Record<string, unknown>) {
+  if (req.method === "POST" && path === "/master/sign-out") {
+    await destroyMasterSession(masterToken(req));
+    return send({ ok: true }, 200, undefined, null);
+  }
+  const master = await masterFrom(req);
+  const id = (part: string) => decodeURIComponent(part);
+  const one = /^\/master\/pharmacies\/([^/]+)$/.exec(path);
+  const plan = /^\/master\/pharmacies\/([^/]+)\/plan$/.exec(path);
+  const grants = /^\/master\/pharmacies\/([^/]+)\/grants$/.exec(path);
+  const seats = /^\/master\/pharmacies\/([^/]+)\/seats$/.exec(path);
+  const kind = /^\/master\/pharmacies\/([^/]+)\/business-type$/.exec(path);
+  const ticket = /^\/master\/pharmacies\/([^/]+)\/tickets\/([^/]+)$/.exec(path);
+  const impersonate = /^\/master\/pharmacies\/([^/]+)\/impersonate$/.exec(path);
+  const consult = /^\/master\/consultations\/([^/]+)$/.exec(path);
+  const earn = /^\/master\/pharmacies\/([^/]+)\/referrals\/([^/]+)\/earn$/.exec(path);
+  const pay = /^\/master\/pharmacies\/([^/]+)\/referrals\/([^/]+)\/pay$/.exec(path);
+  if (req.method === "GET" && path === "/master/session") return send({ phone: master.phone });
+  if (req.method === "GET" && path === "/master/pharmacies") return send(await listPharmacies(url.searchParams));
+  if (req.method === "GET" && path === "/master/requests") return send(await listRequests());
+  if (req.method === "GET" && path === "/master/work") return send(await listWork());
+  if (req.method === "GET" && path === "/master/audit") return send(await listAudit());
+  if (req.method === "GET" && path === "/master/consultations") return send(await listConsultations());
+  if (req.method === "PATCH" && consult) return send(await markConsultation(id(consult[1]), body));
+  if (req.method === "POST" && impersonate) return send({ ok: true }, 200, await startImpersonation(master, id(impersonate[1])));
+  if (req.method === "GET" && one) return send(await pharmacyProfile(id(one[1])));
+  if (req.method === "PATCH" && plan) return send(await assignPlan(master, id(plan[1]), body));
+  if (req.method === "PUT" && grants) return send(await assignGrants(master, id(grants[1]), body));
+  if (req.method === "PATCH" && seats) return send(await assignSeats(master, id(seats[1]), body));
+  if (req.method === "PATCH" && kind) return send(await assignBusinessType(master, id(kind[1]), body));
+  if (req.method === "PATCH" && ticket) return send(await assignTicket(master, id(ticket[1]), id(ticket[2]), body));
+  if (req.method === "POST" && earn) return send(await earnReferral(master, id(earn[1]), id(earn[2]), body));
+  if (req.method === "POST" && pay) return send(await payReferral(master, id(pay[1]), id(pay[2]), body));
+  throw new ApiError(404, "NOT_FOUND", "No such API");
+}
+
 async function signOut(req: Request) {
   const token = tokenOf(req);
+  const session = token ? await readSession(token) : null;
+  if (session?.impersonator) await recordAudit(session.impersonator, session.pharmacyId, "impersonate-end", {}, { userId: session.userId }, "");
   if (token) await destroySession(token);
   return send({ ok: true }, 200, null);
 }
@@ -462,6 +544,7 @@ async function reportCsv(req: Request, id: string, url: URL) {
   if (!session) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
   const state = await loadState(session.pharmacyId);
   m.requirePlan(state, "reports");
+  m.requirePerm(state, session.userId, "reports");
   const from = Number(url.searchParams.get("from") || Date.now() - 365 * 86400000);
   const to = Number(url.searchParams.get("to") || Date.now());
   const report = runReport(decodeURIComponent(id), { sales: state.sales, purchases: state.purchases, inventory: state.inventory, expenses: state.expenses, profile: state.profile, now: Date.now(), range: { from, to, label: "Selected range" } });

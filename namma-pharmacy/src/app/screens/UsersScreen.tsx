@@ -2,7 +2,7 @@
 import { useMemo, useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
-  ROLE_DEFAULT_PERMS, UserRole, StaffUser, timeAgo,
+  ROLE_DEFAULT_PERMS, UserRole, StaffUser, timeAgo, seatCeiling, includedSeats,
   PERMISSION_CATALOG, ALL_PERM_KEYS, PERM_LABEL, userPerms,
   genPassword, suggestUsername, waLink, smsLink,
 } from "../data";
@@ -30,12 +30,13 @@ function Copy({ text, label }: { text: string; label?: string }) {
 }
 
 export default function UsersScreen() {
-  const { users, addUser, toggleUser, removeUser, updateUser, subscription, profile, now } = usePharma();
+  const { users, addUser, toggleUser, removeUser, updateUser, subscription, extraSeats, profile, now } = usePharma();
   const [editing, setEditing] = useState<StaffUser | "new" | null>(null);
   const [share, setShare] = useState<StaffUser | null>(null);
   const [reveal, setReveal] = useState<Record<string, boolean>>({});
 
-  const seatLimit = subscription.plan === "Starter" ? 2 : subscription.plan === "Growth" ? 5 : 99;
+  const included = includedSeats(subscription.plan);
+  const seatLimit = seatCeiling(subscription.plan, extraSeats);
   const activeCount = users.filter((u) => u.active).length;
   const withLogin = users.filter((u) => u.username && u.password).length;
 
@@ -43,7 +44,7 @@ export default function UsersScreen() {
     <div className="pd-canvas-wide" style={{ maxWidth: 1040 }}>
       <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team members</div><div className="val">{users.length}</div><div className="split">{activeCount} active</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconKey size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeCount} / {seatLimit === 99 ? "∞" : seatLimit}</div><div className="split">{subscription.plan} plan</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconKey size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeCount} / {seatLimit == null ? "∞" : seatLimit}</div><div className="split">{included == null ? "Unlimited" : `${included} included`}{extraSeats ? ` + ${extraSeats} extra` : ""}</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconLock size={18} /></div><div className="lbl">Login enabled</div><div className="val">{withLogin}</div><div className="split">have ID &amp; password</div></div>
         <div className="pd-stat"><div className="ic ic-teal"><IconShield size={18} /></div><div className="lbl">Access roles</div><div className="val">{ROLES.length}</div><div className="split">module-level control</div></div>
       </div>
@@ -51,9 +52,9 @@ export default function UsersScreen() {
       <div className="pd-toolbar">
         <h2 style={{ fontSize: 16 }}>Staff &amp; access control</h2>
         <div className="pd-spacer" />
-        <button className="pd-btn pd-btn-primary" disabled={seatLimit !== 99 && activeCount >= seatLimit} onClick={() => setEditing("new")}><IconPlus size={16} /> Add user</button>
+        <button className="pd-btn pd-btn-primary" disabled={seatLimit != null && activeCount >= seatLimit} onClick={() => setEditing("new")}><IconPlus size={16} /> Add user</button>
       </div>
-      {seatLimit !== 99 && activeCount >= seatLimit && <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}><IconAlert size={14} /> Seat limit reached for the {subscription.plan} plan — deactivate a user or upgrade your subscription.</p>}
+      {seatLimit != null && activeCount >= seatLimit && <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}><IconAlert size={14} /> Seat limit reached for the {subscription.plan} plan — deactivate a user or ask Namma MedMate for more seats.</p>}
 
       <div className="pd-card">
         <div className="pd-tbl-wrap">

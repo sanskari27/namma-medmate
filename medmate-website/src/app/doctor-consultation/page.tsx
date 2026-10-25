@@ -1,4 +1,6 @@
+import { BookConsult } from "@/components/book-consult";
 import { FeatureLanding } from "@/components/feature";
+import { Container, Heading } from "@/components/ui";
 import { pageMeta } from "@/lib/site";
 
 export const metadata = pageMeta({
@@ -9,6 +11,7 @@ export const metadata = pageMeta({
 
 export default function DoctorConsultation() {
   return (
+    <>
     <FeatureLanding
       path="/doctor-consultation"
       crumb="Doctor consultation"
@@ -18,6 +21,7 @@ export default function DoctorConsultation() {
       lead="When MedMate launches, you will be able to book an audio or video consultation with a registered medical practitioner. The doctor makes an independent decision about whether a prescription is right for you, and may decide it is not."
       cta="Join the waitlist"
       to="/home"
+      book="#book"
       screen={["/screens/tracking.webp", "Preview of the MedMate app in development"]}
       steps={[
         ["steth", "Book a consultation", "Choose a time that suits you. You will see the doctor’s name, qualification and registration number before the call."],
@@ -38,5 +42,12 @@ export default function DoctorConsultation() {
         ["When does this start?", "With the MedMate launch in Bengaluru. Join the waitlist and we will message you."],
       ]}
     />
+    <section id="book" className="scroll-mt-24 bg-surface py-16">
+      <Container className="flex flex-col gap-8">
+        <Heading eyebrow="Book a consultation" title="Leave your number" accent="and we will call." lead="This saves a request. It does not start a medical consultation." />
+        <div className="max-w-xl"><BookConsult /></div>
+      </Container>
+    </section>
+    </>
   );
 }

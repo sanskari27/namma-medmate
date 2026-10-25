@@ -3,8 +3,8 @@ import {
   EXPENSE_CATEGORIES, SEED_ADVISORS, SEED_CA_SHARES, SEED_EMPLOYEES, SEED_INVENTORY,
   SEED_OFFERS, SEED_PURCHASE_ORDERS, SEED_PURCHASES, SEED_RX, SEED_SALES, SEED_SUPPLIERS,
   SEED_SUPPLY, SEED_USERS, Advisor, BankAccount, CAShare, CreditPayment, Employee,
-  Expense, InvProduct, InvoiceSettings, KioskConfig, Offer, PharmacyProfile, Purchase,
-  PurchaseOrder, Sale, StaffUser, Subscription, Supplier,   seedHistory, resolveSeedCreditPayments, resolveSeedExpenses, distinctRacks, SupplyEntry,
+  Expense, InvProduct, InvoiceSettings, KioskConfig, Offer, PharmacyProfile, Purchase, SubRequest,
+  PurchaseOrder, Sale, ScreenGrant, StaffUser, Subscription, Supplier,   seedHistory, resolveSeedCreditPayments, resolveSeedExpenses, distinctRacks, SupplyEntry,
 } from "../app/data";
 import { CrmData, EMPTY_CRM } from "../app/lib/crm";
 import {
@@ -26,14 +26,19 @@ export type Seq = {
   inv: number; rx: number; grn: number; prod: number; po: number; ca: number; user: number;
   adv: number; supplier: number; supply: number; exp: number; emp: number; credit: number;
   crm: number; doc: number; ward: number; adm: number; ws: number; wr: number; hp: number; ticket: number;
-  dept: number; referral: number;
+  dept: number; referral: number; request: number;
 };
+
+export type { SubRequest };
 
 export type PharmacyState = {
   profile: PharmacyProfile;
   invoiceSettings: InvoiceSettings;
   kiosk: KioskConfig;
   subscription: Subscription;
+  grants: ScreenGrant[];
+  extraSeats: number;
+  subscriptionRequests: SubRequest[];
   bankAccount: BankAccount | null;
   setupComplete: boolean;
   businessType: BusinessType;
@@ -72,7 +77,7 @@ export type PharmacyState = {
 const ZERO_SEQ: Seq = {
   inv: 1000, rx: 1000, grn: 1000, prod: 1000, po: 1000, ca: 1000, user: 1,
   adv: 1000, supplier: 1000, supply: 1000, exp: 1000, emp: 0, credit: 1000,
-  crm: 0, doc: 0, ward: 0, adm: 1000, ws: 1000, wr: 1000, hp: 1000, ticket: 1000, dept: 0, referral: 0,
+  crm: 0, doc: 0, ward: 0, adm: 1000, ws: 1000, wr: 1000, hp: 1000, ticket: 1000, dept: 0, referral: 0, request: 0,
 };
 
 export function emptyState(input: { name?: string; phone: string; businessType: BusinessType }): PharmacyState {
@@ -101,6 +106,9 @@ export function emptyState(input: { name?: string; phone: string; businessType: 
     invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS, bankLine: "", stamp: undefined },
     kiosk: { ...DEFAULT_KIOSK, displayName: name, pin: "" },
     subscription: { ...DEFAULT_SUBSCRIPTION, since: new Date().toISOString().slice(0, 10), renewsOn: "—" },
+    grants: [],
+    extraSeats: 0,
+    subscriptionRequests: [],
     bankAccount: null,
     setupComplete: false,
     businessType: input.businessType,
@@ -186,8 +194,11 @@ export function demoState(now: number, businessType: BusinessType): PharmacyStat
     seq: {
       inv: 2607, rx: 200, grn: 3103, prod: 900, po: 512, ca: 204, user: 4,
       adv: 2, supplier: 3, supply: 22, exp: 1008, emp: 5, credit: 1001,
-      crm: 1, doc: 6, ward: 6, adm: 1008, ws: 1007, wr: 300, hp: 501, ticket: 8841, dept: 0, referral: 0,
+      crm: 1, doc: 6, ward: 6, adm: 1008, ws: 1007, wr: 300, hp: 501, ticket: 8841, dept: 0, referral: 0, request: 0,
     },
+    grants: [],
+    extraSeats: 0,
+    subscriptionRequests: [],
     inventory: structuredClone(SEED_INVENTORY),
     racks: distinctRacks(SEED_INVENTORY),
     sales,
@@ -258,6 +269,13 @@ export function stripDemo(state: PharmacyState, env = process.env.NODE_ENV): boo
   for (const key of Object.keys(state)) delete (state as Record<string, unknown>)[key];
   Object.assign(state, next);
   return true;
+}
+
+export function touchAccess(state: PharmacyState) {
+  state.grants ||= [];
+  state.extraSeats ||= 0;
+  state.subscriptionRequests ||= [];
+  state.referrals ||= [];
 }
 
 export function bump(state: PharmacyState, key: keyof Seq): number {

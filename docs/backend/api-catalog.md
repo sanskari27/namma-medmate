@@ -112,7 +112,8 @@ Money in request and response bodies is integer paise. The POS cart is not an AP
 | GET, POST | `/users` | Staff list and `addUser` | `UsersScreen` |
 | PATCH | `/users/:id` | `updateUser`, including `toggleUser` through the active flag | `updateUser` |
 | DELETE | `/users/:id` | `removeUser` | `removeUser` |
-| GET, PATCH | `/subscription` | Plan, cycle, renewal, and auto-renew | `SubscriptionScreen` |
+| GET, PATCH | `/subscription` | Read the plan. PATCH changes auto-renew only. A plan, cycle, renewal date, grant, or seat write returns 403. | `SubscriptionScreen` |
+| POST | `/subscription/requests` | `requestPlan`. Appends a plan or renewal request. Duplicates stay as separate rows. | `SubscriptionScreen` |
 | GET, PUT, DELETE | `/bank-account` | `saveBankAccount`, `removeBankAccount` | `AccountScreen` |
 | POST | `/bank-account/verify` | `verifyBankAccount`. Remains a local verification result until a verification provider is chosen. | `verifyBankAccount` |
 | GET, POST | `/advisors` | Advisor list and `addAdvisor` | `CAReportScreen` |
@@ -159,7 +160,35 @@ Available only when the session business type is `hospital`.
 | GET, POST | `/support/tickets` | Tickets are stored on the pharmacy document. FAQ and channel text stay in the client. | FAQ and channel text stay in the client. |
 | GET, POST | `/referrals` | Referral list and `addReferral` | Rows exist only after the user adds them. |
 | PATCH | `/referrals/:id` | `updateReferral` | Status and reward |
-| DELETE | `/referrals/:id` | `removeReferral` | `removeReferral` |
+| DELETE | `/referrals/:id` | `removeReferral` | A paid referral cannot be changed or removed by the pharmacy. |
+
+## Master
+
+A master session uses the `namma_master` cookie. It is separate from `namma_session`. Every master route checks the phone allowlist again. No session returns 401. A pharmacy session returns 403. Master responses omit sales, stock, and customers.
+
+| Method | Path | What it does |
+|--------|------|----------------|
+| POST | `/auth/otp/verify` with `portal: "master"` | Starts a master session when the phone is allowlisted. It does not start a pharmacy session. |
+| GET | `/master/session` | The master phone. |
+| POST | `/master/sign-out` | Clears the master cookie only. |
+| GET | `/master/pharmacies` | Search `q` and filters `plan`, `businessType`, `window` (`7`, `15`, `30`, `expired`). |
+| GET | `/master/requests` | Plan and renewal requests, including duplicates and handled rows. |
+| GET | `/master/work` | Open tickets and referrals across pharmacies. |
+| GET | `/master/audit` | The latest 100 master audit rows. |
+| POST | `/consultations` | Public. Saves a name, phone, area, and note from the website. No session. |
+| GET | `/master/consultations` | The latest 200 consultation bookings. |
+| PATCH | `/master/consultations/:id` | Sets the booking to `open` or `handled`. |
+| POST | `/master/pharmacies/:id/impersonate` | Opens that pharmacy as its owner. The pharmacy session records the master phone. Sign-out ends it and writes an audit row. |
+| GET | `/master/pharmacies/:id` | Plan, seats, business type, KYC, open tickets, referrals, grants, and requests. |
+| PATCH | `/master/pharmacies/:id/plan` | Plan, cycle, and renewal date. Marks that pharmacy's open requests handled. |
+| PUT | `/master/pharmacies/:id/grants` | Replaces screen grants. `until` is optional. |
+| PATCH | `/master/pharmacies/:id/seats` | Extra seats. Included plus extra cannot exceed 50, except Pro, which stays unlimited and rejects an extra count above 50. |
+| PATCH | `/master/pharmacies/:id/business-type` | `pharmacy` or `hospital`. Grants are kept. |
+| PATCH | `/master/pharmacies/:id/tickets/:ticketId` | `Open` or `Resolved`. |
+| POST | `/master/pharmacies/:id/referrals/:referralId/earn` | Sets the reward to ₹500. |
+| POST | `/master/pharmacies/:id/referrals/:referralId/pay` | One payout, with the master phone and time. Refused before the reward is earned. A repeat does not write a second payout. |
+
+Each write that changes something inserts one `master_audit` row in the same transaction: master phone, pharmacy, action, previous value, new value, time, and reason. The row cannot be updated or deleted.
 
 ## Not an endpoint
 

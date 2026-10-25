@@ -2,7 +2,7 @@ import {
   ALL_PERM_KEYS, ROLE_DEFAULT_PERMS, Advisor, BankAccount, Batch, BillingCycle, DosageForm, Employee, Expense,
   InvProduct, Offer, OfferType, PAY_LABEL, POItem, PayMode, Plan, PurchaseItem, Rider, Sale, SaleItem, Schedule,
   StaffUser, billUnit, computeInvoice, directOfferId, earliestBatch, findScan, isValidGstin, isValidIfsc, looseSellable, normalizeRack, packComplete,
-  routeLocked, todayISO, unitNoun, unitsPerPack, userPerms,
+  routeLocked, seatCeiling, todayISO, unitNoun, unitsPerPack, userPerms,
 } from "../app/data";
 import { PatientMeta } from "../app/lib/crm";
 import { Admission, ClaimStatus, Department, DoctorProfile, IndentStatus, Ward } from "../app/lib/hospital";
@@ -33,8 +33,15 @@ export function requirePerm(state: PharmacyState, userId: string, key: string) {
   if (!userPerms(user).includes(key)) fail(403, "FORBIDDEN", "You do not have permission for this action");
 }
 
+function accessOf(state: PharmacyState) {
+  return { grants: state.grants, businessType: state.businessType };
+}
 export function requirePlan(state: PharmacyState, route: string) {
-  if (routeLocked(route, state.subscription)) fail(403, "PLAN_LOCKED", "This action needs a paid plan");
+  if (routeLocked(route, state.subscription, accessOf(state))) fail(403, "PLAN_LOCKED", "This action needs a paid plan");
+}
+export function requireAnyPlan(state: PharmacyState, routes: string[]) {
+  if (routes.some((route) => !routeLocked(route, state.subscription, accessOf(state)))) return;
+  fail(403, "PLAN_LOCKED", "This action needs a paid plan");
 }
 
 export function requireHospital(state: PharmacyState) {
@@ -568,6 +575,19 @@ function addMonths(iso: string, n: number) {
   d.setMonth(d.getMonth() + n);
   return d.toISOString().slice(0, 10);
 }
+export function addSubscriptionRequest(state: PharmacyState, plan: Plan, cycle: BillingCycle, kind?: string) {
+  if (plan !== "Free" && plan !== "Starter" && plan !== "Growth" && plan !== "Pro") fail(400, "VALIDATION", "Choose a plan");
+  if (cycle !== "monthly" && cycle !== "annual") fail(400, "VALIDATION", "Choose a billing cycle");
+  const row = {
+    id: "REQ-" + bump(state, "request"),
+    plan, cycle,
+    kind: kind === "renewal" ? "renewal" as const : "plan" as const,
+    createdAt: Date.now(),
+    status: "open" as const,
+  };
+  state.subscriptionRequests = [row, ...(state.subscriptionRequests || [])];
+  return row;
+}
 export function renewSubscription(state: PharmacyState) {
   const base = state.subscription.renewsOn > todayISO() ? state.subscription.renewsOn : todayISO();
   state.subscription = { ...state.subscription, status: "active", renewsOn: addMonths(base, state.subscription.cycle === "annual" ? 12 : 1) };
@@ -654,6 +674,9 @@ export function removeEmployee(state: PharmacyState, id: string) {
   return { employees: state.employees };
 }
 export function addUser(state: PharmacyState, u: Omit<StaffUser, "id" | "lastActiveMins">) {
+  const cap = seatCeiling(state.subscription.plan, state.extraSeats || 0);
+  const active = state.users.filter((user) => user.active !== false).length;
+  if (cap != null && active >= cap) fail(403, "FORBIDDEN", "Seat limit reached");
   const row: StaffUser = { ...u, id: "u" + bump(state, "user"), lastActiveMins: 0, permissions: u.permissions ?? ROLE_DEFAULT_PERMS[u.role] ?? [...ALL_PERM_KEYS] };
   state.users = [...state.users, row];
   return row;
@@ -748,12 +771,16 @@ export function addReferral(state: PharmacyState, input: { name?: string; area?:
 export function updateReferral(state: PharmacyState, id: string, patch: Partial<Referral>) {
   const prev = (state.referrals || []).find((r) => r.id === id);
   if (!prev) fail(404, "NOT_FOUND", "Referral not found");
+  if (prev.status === "Paid") fail(403, "FORBIDDEN", "A paid referral cannot be changed");
+  if (patch.status === "Paid") fail(403, "FORBIDDEN", "Only Namma MedMate can mark a referral paid");
   const status = patch.status === "Signed up" || patch.status === "Earned" || patch.status === "Invited" ? patch.status : prev.status;
   const reward = patch.reward != null && Number.isFinite(Number(patch.reward)) ? Math.max(0, Number(patch.reward)) : prev.reward;
   state.referrals = state.referrals.map((r) => (r.id === id ? { ...prev, name: patch.name != null ? String(patch.name).trim() || prev.name : prev.name, area: patch.area != null ? String(patch.area).trim() : prev.area, status, reward, id } : r));
   return state.referrals.find((r) => r.id === id)!;
 }
 export function removeReferral(state: PharmacyState, id: string) {
+  const prev = (state.referrals || []).find((r) => r.id === id);
+  if (prev?.status === "Paid") fail(403, "FORBIDDEN", "A paid referral cannot be changed");
   state.referrals = (state.referrals || []).filter((r) => r.id !== id);
   return { referrals: state.referrals };
 }
