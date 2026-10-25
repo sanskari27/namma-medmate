@@ -1,6 +1,7 @@
 "use client";
+import { useEffect, useState } from "react";
 import { PharmaProvider, usePharma, Route } from "../pharmaState";
-import { PLANS, planForRoute, inr, planPrice } from "../data";
+import { PLANS, inr, planPrice, canSeeRoute } from "../data";
 import {
   IconDashboard, IconPos, IconOrders, IconInventory, IconRx, IconStore,
   IconOffer, IconReports, IconSettings, IconSearch, IconBell, IconTruck,
@@ -139,15 +140,16 @@ function BrandMark() {
   );
 }
 
-function Sidebar() {
-  const { route, go, profile, prescriptions, sales, isHospital, wardIndents, signOut, featureLocked } = usePharma();
+function Sidebar({ open, onNavigate }: { open: boolean; onNavigate: () => void }) {
+  const { route, go, profile, prescriptions, sales, isHospital, wardIndents, signOut, featureLocked, me } = usePharma();
   const newOrders = sales.filter((s) => s.channel === "online" && s.status === "new").length;
   const pendingRx = prescriptions.filter((r) => r.status === "pending").length;
   const pendingIndents = wardIndents.filter((x) => x.status === "pending").length;
   const badgeFor = (k: Route) => (k === "orders" ? newOrders : k === "prescriptions" ? pendingRx : k === "indents" ? pendingIndents : 0);
-  const nav = NAV.filter((n) => isHospital || !n.hospital);
+  const nav = NAV.filter((n) => (isHospital || !n.hospital) && canSeeRoute(n.key, me?.role, me?.permissions));
+  const choose = (key: Route) => { go(key); onNavigate(); };
   return (
-    <aside className="pd-sidebar">
+    <aside className={`pd-sidebar${open ? " open" : ""}`}>
       <div className="pd-brand">
         <BrandMark />
         <span className="pd-brand-tx">
@@ -166,7 +168,7 @@ function Sidebar() {
           return (
             <div key={n.key}>
               {n.group && <div className="pd-nav-label">{n.group}</div>}
-              <button className={`pd-navitem${route === n.key ? " on" : ""}${locked ? " locked" : ""}`} onClick={() => go(n.key)} title={locked ? "Premium feature — upgrade to unlock" : undefined}>
+              <button className={`pd-navitem${route === n.key ? " on" : ""}${locked ? " locked" : ""}`} onClick={() => choose(n.key)} title={locked ? "Premium feature — upgrade to unlock" : undefined}>
                 <span className="ic"><n.Icon size={19} /></span>
                 {n.label}
                 {locked ? <span className="pd-navlock"><IconLock size={12} /></span> : b > 0 && <span className="badge">{b}</span>}
@@ -189,12 +191,14 @@ function Sidebar() {
   );
 }
 
-function TopBar() {
-  const { route, go, back, canGoBack, prescriptions, subscription } = usePharma();
+function TopBar({ onMenu }: { onMenu: () => void }) {
+  const { route, go, back, canGoBack, prescriptions, subscription, me } = usePharma();
   const meta = PAGE_META[route];
   const pendingRx = prescriptions.filter((r) => r.status === "pending").length;
+  const allow = (key: Route) => canSeeRoute(key, me?.role, me?.permissions);
   return (
     <header className="pd-topbar">
+      <button className="pd-menu-btn pd-topbtn pd-no-print" onClick={onMenu} aria-label="Menu">Menu</button>
       {canGoBack && (
         <button className="pd-backbtn pd-no-print" onClick={back} aria-label="Go back" title="Back to previous page">
           <IconChevronLeft size={19} />
@@ -204,16 +208,16 @@ function TopBar() {
         <h1>{meta.title}</h1>
         <small>{meta.sub}</small>
       </div>
-      <div className="pd-topsearch pd-no-print">
+      {allow("inventory") && <div className="pd-topsearch pd-no-print">
         <span className="ic"><IconSearch size={17} /></span>
         <input placeholder="Search medicines, orders, invoices…" onFocus={() => go("inventory")} readOnly />
-      </div>
+      </div>}
       {subscription.plan === "Free" && <button className="pd-upgradechip pd-no-print" onClick={() => go("subscription")} title="Unlock premium features"><IconCrown size={14} /> Free plan · Upgrade</button>}
-      <button className="pd-btn pd-btn-primary pd-no-print" onClick={() => go("pos")}>+ New sale</button>
-      <button className="pd-topbtn pd-no-print" onClick={() => go("prescriptions")} aria-label="Notifications">
+      {allow("pos") && <button className="pd-btn pd-btn-primary pd-no-print" onClick={() => go("pos")}>+ New sale</button>}
+      {allow("prescriptions") && <button className="pd-topbtn pd-no-print" onClick={() => go("prescriptions")} aria-label="Notifications">
         <IconBell size={19} />
         {pendingRx > 0 && <span className="dot" />}
-      </button>
+      </button>}
     </header>
   );
 }
@@ -221,18 +225,17 @@ function TopBar() {
 function LockedFeature({ route }: { route: Route }) {
   const { go, subscription } = usePharma();
   const meta = PAGE_META[route];
-  const needKey = planForRoute(route);
-  const needPlan = PLANS.find((p) => p.key === needKey)!;
-  const price = planPrice(needPlan, "monthly");
+  const starter = PLANS.find((p) => p.key === "Starter")!;
+  const price = planPrice(starter, "monthly");
   return (
     <div className="pd-canvas-wide">
       <div className="pd-paywall">
         <span className="pd-paywall-ic"><IconLock size={30} /></span>
-        <span className="pd-pill pill-gold" style={{ marginBottom: 10 }}><IconCrown size={12} /> {needKey} plan feature</span>
+        <span className="pd-pill pill-gold" style={{ marginBottom: 10 }}><IconCrown size={12} /> Paid plan</span>
         <h2>{meta.title} is a premium feature</h2>
-        <p>You're on the <b>Free</b> plan. Billing / POS, Inventory and Purchases are free forever — {meta.title} unlocks with a <b>{needKey}</b> subscription from <b>{inr(price)}/mo</b>.</p>
+        <p>You're on the <b>{subscription.plan}</b> plan. Billing / POS, Inventory and Purchases stay open — {meta.title} unlocks with any active paid plan from <b>{inr(price)}/mo</b>.</p>
         <div className="pd-paywall-feats">
-          {needPlan.features.map((f) => <div key={f}><IconCheck size={14} /> {f}</div>)}
+          {starter.features.map((f) => <div key={f}><IconCheck size={14} /> {f}</div>)}
         </div>
         <div className="pd-paywall-cta">
           <button className="pd-btn pd-btn-primary" onClick={() => go("subscription")}><IconSparkle size={15} /> Upgrade to unlock</button>
@@ -291,14 +294,21 @@ function Toast() {
 }
 
 function Inner() {
-  const { setupComplete, signedIn } = usePharma();
+  const { setupComplete, signedIn, route, go, me, isHospital } = usePharma();
+  const [menu, setMenu] = useState(false);
+  useEffect(() => {
+    if (!me || canSeeRoute(route, me.role, me.permissions)) return;
+    const next = NAV.find((n) => (isHospital || !n.hospital) && canSeeRoute(n.key, me.role, me.permissions));
+    if (next) go(next.key);
+  }, [me, route, isHospital, go]);
   if (!signedIn) return <Onboarding />;
   if (!setupComplete) return <SetupWizard />;
   return (
     <div className="pd-shell">
-      <Sidebar />
+      {menu && <button className="pd-nav-backdrop" aria-label="Close menu" onClick={() => setMenu(false)} />}
+      <Sidebar open={menu} onNavigate={() => setMenu(false)} />
       <div className="pd-main">
-        <TopBar />
+        <TopBar onMenu={() => setMenu((v) => !v)} />
         <div className="pd-canvas">
           <Canvas />
         </div>

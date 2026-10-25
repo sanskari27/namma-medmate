@@ -2,7 +2,7 @@
 import { useState, useRef } from "react";
 import { usePharma } from "../pharmaState";
 import {
-  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, INDIAN_STATES, PharmacyProfile,
+  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, INDIAN_STATES, PharmacyProfile, isValidGstin,
 } from "../data";
 import {
   IconArrowRight, IconCheck, IconUpload, IconStore, IconReceipt, IconKiosk, IconRupee, IconInventory, IconUsers,
@@ -46,6 +46,8 @@ export default function SetupWizard() {
   const last = step === STEPS.length - 1;
 
   const finish = () => {
+    if (d.phone.trim() && d.phone.replace(/\D/g, "").length < 10) { toast("Enter a valid mobile number"); return; }
+    if (d.gstin.trim() && !isValidGstin(d.gstin)) { toast("Enter a valid GSTIN"); return; }
     updateProfile({
       name: d.name, tagline: d.tagline, logo: d.logo, phone: d.phone, email: d.email,
       address: d.address, city: d.city, state: d.state, pincode: d.pincode,

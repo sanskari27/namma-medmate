@@ -6,7 +6,7 @@ Money fields are JavaScript numbers in rupees. Dates on documents are strings or
 
 ## Persistence
 
-Hydration and saving use `localStorage` key `namma-pharmacy-state`.
+Hydration loads the pharmacy document from Postgres through `/api/v1`.
 
 Persisted: inventory, racks, sales, prescriptions, offers, purchases, profile, users, subscription, invoice settings, kiosk, advisors, CA shares, purchase orders, suppliers, supply list, expenses, expense categories, employees, credit payments, CRM, bank account, setup flag, signed-in flag, business type, ward indents, TPA claims, doctors, wards, admissions, hospital account, hospital price rules, ward supplies, hospital payments, and the document sequences listed below.
 
@@ -14,7 +14,7 @@ Memory only: POS cart and its customer, discount, payment, source, ward, insurer
 
 Sequences in the blob: `invSeq`, `grnSeq`, `prodSeq`, `poSeq`, `caSeq`, `userSeq`, `advSeq`, `supplierSeq`, `supplySeq`, `expSeq`, `empSeq`, `creditSeq`, `crmSeq`, `docSeq`, `wardSeq`, `admSeq`, `wsSeq`, `wrSeq`, `hpSeq`.
 
-`wipeData()` clears inventory, sales, prescriptions, purchases, purchase orders, offers, CA shares, and the supply list. `resetDemo()` deletes the storage key and reloads.
+`wipeData()` clears inventory, sales, prescriptions, purchases, purchase orders, offers, CA shares, and the supply list. `resetDemo()` asks for confirmation, then replaces the Postgres document with the sample store.
 
 ## Catalogue
 

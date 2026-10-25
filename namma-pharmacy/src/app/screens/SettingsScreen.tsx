@@ -3,7 +3,7 @@ import { useState, useRef } from "react";
 import { usePharma } from "../pharmaState";
 import {
   PharmacyProfile, BizDetail, INDIAN_STATES,
-  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES,
+  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, isValidGstin,
 } from "../data";
 import { IconCheck, IconPlus, IconTrash, IconUpload, IconX, IconDot, IconSettings } from "../components/Icon";
 
@@ -14,10 +14,15 @@ export default function SettingsScreen() {
   const [nd, setNd] = useState<BizDetail>({ label: "", value: "" });
   const logoRef = useRef<HTMLInputElement>(null);
   const signRef = useRef<HTMLInputElement>(null);
+  const [confirmReset, setConfirmReset] = useState(false);
   const set = (patch: Partial<PharmacyProfile>) => setF((p) => ({ ...p, ...patch }));
 
   const dirty = JSON.stringify(f) !== JSON.stringify(profile) || terms !== invoiceSettings.terms;
-  const save = () => { updateProfile(f); updateInvoiceSettings({ terms }); toast("Business settings saved"); };
+  const save = () => {
+    if (f.phone.trim() && f.phone.replace(/\D/g, "").length < 10) { toast("Enter a valid mobile number"); return; }
+    if (f.gstin.trim() && !isValidGstin(f.gstin)) { toast("Enter a valid GSTIN"); return; }
+    updateProfile(f); updateInvoiceSettings({ terms }); toast("Business settings saved");
+  };
   const discard = () => { setF(profile); setTerms(invoiceSettings.terms); };
 
   const onFile = (e: React.ChangeEvent<HTMLInputElement>, key: "logo" | "signature") => {
@@ -102,7 +107,7 @@ export default function SettingsScreen() {
         {/* ───── RIGHT column ───── */}
         <div>
           <div className="pd-card pd-card-pad" style={{ marginBottom: 16 }}>
-            <div className="pd-field"><label>Business Type (select multiple, if applicable)</label>
+            <div className="pd-field"><label>Store categories (select multiple, if applicable)</label>
               <div className="pd-flex pd-gap6" style={{ marginTop: 6, flexWrap: "wrap" }}>
                 {PHARMACY_BUSINESS_TYPES.map((t) => <button key={t} className={`pd-chip${f.businessTypes.includes(t) ? " on" : ""}`} onClick={() => toggleType(t)}>{t}</button>)}
               </div>
@@ -179,7 +184,7 @@ export default function SettingsScreen() {
       <div className="pd-card pd-card-pad" style={{ marginTop: 16, borderColor: "#f3d3d3", background: "var(--rose-bg)" }}>
         <div className="pd-flex" style={{ justifyContent: "space-between" }}>
           <div><h3 style={{ fontSize: 14, color: "var(--rose)" }}>Reset demo data</h3><p className="pd-muted" style={{ fontSize: 12.5 }}>Clears saved changes and restores seed inventory, orders & settings.</p></div>
-          <button className="pd-btn pd-btn-rose" onClick={resetDemo}>Reset</button>
+          <button className="pd-btn pd-btn-rose" onClick={() => { if (!confirmReset) { setConfirmReset(true); return; } resetDemo(); setConfirmReset(false); }}>{confirmReset ? "Confirm reset" : "Reset"}</button>
         </div>
       </div>
     </div>

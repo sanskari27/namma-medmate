@@ -76,7 +76,7 @@ export const CATEGORIES: { key: CategoryKey; label: string; emoji: string }[] = 
 export const catLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? key;
 
 // ── seed inventory ──────────────────────────────────────────────
-// expiries are intentionally varied so "expiring soon" demoes well (today = 2026-06).
+// expiries are written for June 2026. demoState shifts them onto the reset month.
 export const SEED_INVENTORY: InvProduct[] = [
   { id: "p1", name: "Dolo 650", composition: "Paracetamol 650mg", manufacturer: "Micro Labs", form: "Tablet", pack: "Strip of 15", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 40, online: true, emoji: "💊",
     batches: [ { batchNo: "DL6A229", expiry: "2027-03", qty: 120, mrp: 34, ptr: 24.5 }, { batchNo: "DL6A187", expiry: "2026-09", qty: 36, mrp: 34, ptr: 24.5 } ] },
@@ -367,6 +367,7 @@ export type BankAccount = {
 export const maskAccount = (n: string) => (n.length <= 4 ? n : "•••• " + n.slice(-4));
 // basic IFSC sanity check: 4 letters + 0 + 6 alphanumerics
 export const isValidIfsc = (s: string) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(s.trim().toUpperCase());
+export const isValidGstin = (s: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(s.trim().toUpperCase());
 
 export const INDIAN_STATES = [
   "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi", "Goa", "Gujarat", "Haryana",
@@ -591,8 +592,9 @@ export const onlineOfferPrice = (p: InvProduct, offers: Offer[]): number => {
 
 // ── loose / per-tablet selling (offline counter) ────────────────
 const round2 = (n: number) => Math.round(n * 100) / 100;
-/** Tablets/capsules per pack, parsed from the pack label (e.g. "Strip of 15" → 15). */
+/** Tablets or capsules per pack, parsed from the pack label (e.g. "Strip of 15" → 15). */
 export const unitsPerPack = (p: InvProduct): number => {
+  if (p.form !== "Tablet" && p.form !== "Capsule") return 1;
   const m = p.pack.match(/(\d+)/);
   return m ? Math.max(1, parseInt(m[1], 10)) : 1;
 };
@@ -601,9 +603,6 @@ export const isLooseEligible = (p: InvProduct) => (p.form === "Tablet" || p.form
 /** Sold loose = eligible AND the owner has enabled it (defaults on for eligible items). */
 export const looseSellable = (p: InvProduct) => isLooseEligible(p) && (p.looseAllowed ?? true);
 export const unitNoun = (p: InvProduct) => (p.form === "Capsule" ? "capsule" : "tablet");
-/** Auto-calculated price of one loose tablet/capsule. */
-export const perUnitPrice = (p: InvProduct) => round2(sellPrice(p) / unitsPerPack(p));
-export const perUnitMrp = (p: InvProduct) => round2(mrpOf(p) / unitsPerPack(p));
 
 // ── strip + loose-unit stock display ────────────────────────────
 /** The selling-unit noun for a product's full pack — strip / bottle / tube / jar / vial / box. */
@@ -650,6 +649,19 @@ export const earliestBatch = (p: InvProduct): Batch | null => {
   if (!withStock.length) return p.batches[0] ?? null;
   return [...withStock].sort((a, b) => a.expiry.localeCompare(b.expiry))[0];
 };
+
+/** Pack or loose price for the batch that will actually be sold. */
+export function billUnit(p: InvProduct, opts?: { loose?: boolean; batchNo?: string }): { price: number; mrp: number } {
+  const pinned = opts?.batchNo ? p.batches.find((b) => b.batchNo === opts.batchNo) : undefined;
+  const b = pinned ?? earliestBatch(p);
+  const pack = p.onlinePrice ?? b?.mrp ?? 0;
+  const packMrp = b?.mrp ?? 0;
+  if (!opts?.loose) return { price: pack, mrp: packMrp };
+  const n = Math.max(1, unitsPerPack(p));
+  return { price: round2(pack / n), mrp: round2(packMrp / n) };
+}
+export const perUnitPrice = (p: InvProduct) => billUnit(p, { loose: true }).price;
+export const perUnitMrp = (p: InvProduct) => billUnit(p, { loose: true }).mrp;
 
 /** Months until a "YYYY-MM" expiry relative to a stamped now (ms). */
 export const monthsToExpiry = (expiry: string, now: number) => {
@@ -857,6 +869,17 @@ export const ROLE_DEFAULT_PERMS: Record<UserRole, string[]> = {
 };
 // Effective permission set for a user (explicit list, else role defaults)
 export const userPerms = (u: StaffUser): string[] => u.permissions ?? ROLE_DEFAULT_PERMS[u.role];
+export const ROUTE_PERM: Record<string, string> = {
+  dashboard: "dashboard", pos: "pos", orders: "orders", prescriptions: "prescriptions", khata: "credit",
+  crm: "crm", inventory: "inventory", rackmap: "rackmap", purchases: "purchases", reorder: "purchases",
+  distributors: "distributors", online: "online_store", offers: "online_store", reports: "reports",
+  expenses: "reports", employees: "employees", users: "users", settings: "settings", invoicing: "settings",
+};
+export const canSeeRoute = (route: string, role?: string, permissions?: string[]) => {
+  const key = ROUTE_PERM[route];
+  if (!key || !role || role === "Owner") return true;
+  return (permissions ?? []).includes(key);
+};
 // Human-friendly password: Capitalised base + symbol + 4 digits. Call inside an event handler only.
 export const genPassword = (name?: string): string => {
   const base = (name || "Namma").replace(/[^a-zA-Z]/g, "").slice(0, 8) || "Namma";
@@ -875,9 +898,9 @@ export type Plan = "Free" | "Starter" | "Growth" | "Pro";
 export type PlanInfo = { key: Plan; name: string; price: number; seats: string; tagline: string; features: string[] };
 export const PLANS: PlanInfo[] = [
   { key: "Free", name: "Free", price: 0, seats: "2 users", tagline: "Core billing — free forever", features: ["Billing / POS & GST invoices", "Inventory, batches & expiry", "Purchases & goods-inward", "Up to 2 users"] },
-  { key: "Starter", name: "Starter", price: 699, seats: "2 users", tagline: "Single counter", features: ["Everything in Free", "Prescriptions & customers", "Credit / Khata ledger", "Email support"] },
-  { key: "Growth", name: "Growth", price: 1499, seats: "5 users", tagline: "Most popular", features: ["Everything in Starter", "Online store + orders", "Reports, CRM & CA sharing", "Reorder & distributors", "Up to 5 users"] },
-  { key: "Pro", name: "Pro", price: 2999, seats: "Unlimited", tagline: "Hospital, kiosk & more", features: ["Everything in Growth", "Hospital / IPD billing suite", "Self-order kiosk", "Unlimited users & branches", "Priority support"] },
+  { key: "Starter", name: "Starter", price: 699, seats: "2 users", tagline: "Single counter", features: ["Everything in Free", "All paid screens on any active plan", "Email support"] },
+  { key: "Growth", name: "Growth", price: 1499, seats: "5 users", tagline: "Most popular", features: ["Everything in Starter", "All paid screens on any active plan", "Up to 5 users"] },
+  { key: "Pro", name: "Pro", price: 2999, seats: "Unlimited", tagline: "Hospital, kiosk & more", features: ["Everything in Growth", "All paid screens on any active plan", "Unlimited users & branches", "Priority support"] },
 ];
 export type BillingCycle = "monthly" | "annual";
 // annual-billing discount per plan tier (paid yearly upfront)
@@ -894,6 +917,9 @@ export const cycleNoun = (c: BillingCycle) => (c === "annual" ? "year" : "month"
 
 export type Subscription = { plan: Plan; cycle: BillingCycle; status: "active" | "expiring" | "expired"; renewsOn: string; since: string; autoRenew: boolean };
 export const DEFAULT_SUBSCRIPTION: Subscription = { plan: "Free", cycle: "monthly", status: "active", renewsOn: "—", since: "2026-07-01", autoRenew: false };
+export const todayISO = (now = new Date()) => now.toISOString().slice(0, 10);
+export const subscriptionLapsed = (sub: Subscription, today = todayISO()) =>
+  sub.plan !== "Free" && (sub.status === "expired" || (/^\d{4}-\d{2}-\d{2}$/.test(sub.renewsOn) && sub.renewsOn < today));
 
 // ── freemium gating ─────────────────────────────────────────────
 // Core features that are FREE FOR EVERYONE, forever — no subscription needed.
@@ -901,7 +927,7 @@ export const FREE_ROUTES: string[] = ["pos", "inventory", "purchases", "invoicin
 // Account / shell routes that are always reachable (so users can manage & upgrade).
 export const ALWAYS_ROUTES: string[] = ["dashboard", "account", "subscription", "settings", "support", "notifications", "menu", "refer"];
 // a paid plan (Free never unlocks the premium modules; expired plans lock too)
-export const planUnlocksAll = (sub: Subscription) => sub.plan !== "Free" && sub.status !== "expired";
+export const planUnlocksAll = (sub: Subscription) => sub.plan !== "Free" && !subscriptionLapsed(sub);
 export const routeIsFree = (route: string) => FREE_ROUTES.includes(route) || ALWAYS_ROUTES.includes(route);
 // is this route behind the paywall for the current subscription?
 export const routeLocked = (route: string, sub: Subscription) => !routeIsFree(route) && !planUnlocksAll(sub);

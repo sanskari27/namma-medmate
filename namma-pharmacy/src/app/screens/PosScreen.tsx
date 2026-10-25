@@ -3,8 +3,8 @@ import { useState, useEffect } from "react";
 import { usePharma } from "../pharmaState";
 import QtyBox from "../components/QtyBox";
 import {
-  CATEGORIES, inr, inr2, sellPrice, stockOf, isLowStock, earliestBatch,
-  looseSellable, perUnitPrice, unitNoun, totalUnits, stockLabel,
+  CATEGORIES, inr, inr2, billUnit, stockOf, isLowStock, earliestBatch,
+  looseSellable, unitNoun, totalUnits, stockLabel,
   PayMode, PAY_LABEL, SALE_SOURCES, hasLocation, matchesLocation,
 } from "../data";
 import { INSURERS } from "../lib/hospital";
@@ -70,7 +70,7 @@ export default function PosScreen() {
     const loose = !!line.loose;
     const pinned = !loose && line.batchNo ? p.batches.find((x) => x.batchNo === line.batchNo) : null;
     const b = pinned ?? earliestBatch(p);
-    const unit = loose ? perUnitPrice(p) : (p.onlinePrice ?? b?.mrp ?? sellPrice(p));
+    const unit = billUnit(p, { loose, batchNo: b?.batchNo }).price;
     const maxQty = loose ? totalUnits(p) : (pinned ? pinned.qty : stockOf(p));
     return { p, loose, pinned, b, unit, maxQty };
   };
@@ -119,13 +119,13 @@ export default function PosScreen() {
                     <div className="em"><Thumb p={p} /></div>
                     <div className="nm">{p.name}</div>
                     <div className="sub">{p.pack}{hasLocation(p) && <span className="pd-rackchip" title="Rack location"><IconPin size={11} /> {p.rack}</span>}</div>
-                    <div className="pr">{inr(sellPrice(p))}</div>
+                    <div className="pr">{inr(billUnit(p).price)}</div>
                     <div className={`st ${out ? "out" : isLowStock(p) ? "low" : "ok"}`}>
                       {out ? "Out of stock" : isLowStock(p) ? `Low · ${stockLabel(p)}` : stockLabel(p)}
                     </div>
                     {loose && !out && (
-                      <span className={`pd-loose-btn${ln > 0 ? " on" : ""}`} role="button" title={`Sell loose ${unitNoun(p)}s @ ${inr2(perUnitPrice(p))} each`} onClick={(e) => { e.stopPropagation(); posAdd(p.id, true); }}>
-                        <IconHash size={13} /> Loose · {inr2(perUnitPrice(p))}/{unitNoun(p)}{ln > 0 ? ` · ${ln}` : ""}
+                      <span className={`pd-loose-btn${ln > 0 ? " on" : ""}`} role="button" title={`Sell loose ${unitNoun(p)}s @ ${inr2(billUnit(p, { loose: true }).price)} each`} onClick={(e) => { e.stopPropagation(); posAdd(p.id, true); }}>
+                        <IconHash size={13} /> Loose · {inr2(billUnit(p, { loose: true }).price)}/{unitNoun(p)}{ln > 0 ? ` · ${ln}` : ""}
                       </span>
                     )}
                   </button>

@@ -1,4 +1,4 @@
-import { ALL_PERM_KEYS } from "../app/data";
+import { ALL_PERM_KEYS, userPerms } from "../app/data";
 import { aggregateCustomers } from "../app/lib/customerExport";
 import { buildPatients } from "../app/lib/crm";
 import { custKeyOf, creditCustomers, findScan } from "../app/data";
@@ -58,12 +58,14 @@ function send(body: unknown, status = 200, token?: string | null) {
 
 function sessionView(state: PharmacyState, session: SessionRow) {
   const user = state.users.find((u) => u.id === session.userId);
+  const permissions = user ? (user.role === "Owner" ? [...ALL_PERM_KEYS] : userPerms(user)) : [...ALL_PERM_KEYS];
   return {
-    user: user ? { id: user.id, name: user.name, role: user.role, phone: user.phone } : { id: session.userId, phone: session.phone },
+    user: user
+      ? { id: user.id, name: user.name, role: user.role, phone: user.phone, permissions }
+      : { id: session.userId, phone: session.phone, role: "Owner", permissions },
     businessType: state.businessType,
     setupComplete: state.setupComplete,
     subscription: state.subscription,
-    pricingPin: user?.role === "Owner" ? session.pricingPin : undefined,
     creditPayments: state.creditPayments,
     caShares: state.caShares,
     wardSupplies: state.wardSupplies,
@@ -281,14 +283,14 @@ export async function handle(req: Request): Promise<Response> {
     const path = url.pathname.replace(/^\/api\/v1/, "") || "/";
     const raw = req.method === "GET" || req.method === "DELETE" ? "" : await req.text();
     const body = raw ? fromPaise(JSON.parse(raw)) as Record<string, unknown> : {};
-    if (req.method === "POST" && path === "/auth/otp/send") return sendOtp(body);
-    if (req.method === "POST" && path === "/auth/otp/verify") return verifyOtp(body);
-    if (req.method === "POST" && path === "/auth/sign-out") return signOut(req);
-    if (req.method === "POST" && path === "/demo/reset") return demoReset(req);
-    if (req.method === "POST" && path === "/hospital/pricing/unlock") return unlockPricing(req, body);
-    if (req.method === "GET" && path.startsWith("/sales/") && path.endsWith("/invoice.pdf")) return invoicePdf(req, path.slice("/sales/".length, -"/invoice.pdf".length));
-    if (req.method === "GET" && path.startsWith("/reports/") && path.endsWith("/export.csv")) return reportCsv(req, path.slice("/reports/".length, -"/export.csv".length), url);
-    if (req.method === "GET" && path.startsWith("/files/")) return file(req, path.slice("/files/".length));
+    if (req.method === "POST" && path === "/auth/otp/send") return await sendOtp(body);
+    if (req.method === "POST" && path === "/auth/otp/verify") return await verifyOtp(body);
+    if (req.method === "POST" && path === "/auth/sign-out") return await signOut(req);
+    if (req.method === "POST" && path === "/demo/reset") return await demoReset(req);
+    if (req.method === "POST" && path === "/hospital/pricing/unlock") return await unlockPricing(req, body);
+    if (req.method === "GET" && path.startsWith("/sales/") && path.endsWith("/invoice.pdf")) return await invoicePdf(req, path.slice("/sales/".length, -"/invoice.pdf".length));
+    if (req.method === "GET" && path.startsWith("/reports/") && path.endsWith("/export.csv")) return await reportCsv(req, path.slice("/reports/".length, -"/export.csv".length), url);
+    if (req.method === "GET" && path.startsWith("/files/")) return await file(req, path.slice("/files/".length));
     const found = matchSpec(req.method, path);
     if (!found) throw new ApiError(404, "NOT_FOUND", "No such API");
     const session = await readSession(tokenOf(req));
@@ -371,11 +373,25 @@ async function demoReset(req: Request) {
   const session = await readSession(tokenOf(req));
   if (!session) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
   const state = await loadState(session.pharmacyId);
-  const next = demoState(Date.now(), state.businessType);
-  const me = state.users.find((u) => u.id === session.userId);
-  if (me && !next.users.some((u) => e164(u.phone) === e164(session.phone))) next.users = [{ ...me, phone: session.phone }, ...next.users];
+  const next = keepOwner(demoState(Date.now(), state.businessType), state.users.find((u) => u.id === session.userId), session.phone);
   await replaceState(session.pharmacyId, next);
   return send({ ok: true });
+}
+
+export function keepOwner(next: PharmacyState, me: PharmacyState["users"][number] | undefined, phone: string): PharmacyState {
+  if (!me) return next;
+  const used = new Set(next.users.map((u) => u.id));
+  let n = next.seq.user;
+  next.users = next.users.map((u) => {
+    if (u.id !== me.id) return u;
+    let id = "";
+    do { n += 1; id = "u" + n; } while (used.has(id));
+    used.add(id);
+    return { ...u, id };
+  });
+  next.seq.user = n;
+  if (!next.users.some((u) => e164(u.phone) === e164(phone))) next.users = [{ ...me, phone }, ...next.users];
+  return next;
 }
 
 async function unlockPricing(req: Request, body: Record<string, unknown>) {

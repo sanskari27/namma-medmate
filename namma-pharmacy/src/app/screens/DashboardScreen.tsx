@@ -34,7 +34,7 @@ export default function DashboardScreen() {
   // ── smart extras: greeting, 7-day sparkline, delta, at-a-glance, top sellers ──
   const hour = new Date(now).getHours();
   const greet = hour < 12 ? "Good morning" : hour < 17 ? "Good afternoon" : "Good evening";
-  const who = (profile.pharmacist || profile.name || "there").split(" ")[0];
+  const who = (profile.pharmacist || profile.name || "there").trim() || "there";
   const dateStr = new Date(now).toLocaleDateString("en-IN", { weekday: "long", day: "numeric", month: "long" });
 
   const dayTotals = useMemo(() => {

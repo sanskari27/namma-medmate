@@ -412,6 +412,39 @@ export function runReport(id: string, ctx: ReportCtx): ReportResult {
         note: "Indicative balance sheet from in-app data (stock, collections, receivables & GST).",
       };
     }
+    case "pnl": {
+      const taxable = sIn.reduce((a, s) => a + saleTotals(s).taxable, 0);
+      const cogs = sIn.reduce((a, s) => a + s.items.reduce((x, i) => x + costOf(i.productId) * i.qty, 0), 0);
+      const gross = taxable - cogs;
+      const expenses = eIn.reduce((a, e) => a + e.amount, 0);
+      return {
+        columns: [{ key: "p", label: "Particulars" }, { key: "amt", label: "Amount", money: true }],
+        rows: [
+          ["Taxable sales", r0(taxable)],
+          ["COGS (at purchase cost)", r0(cogs)],
+          ["Gross profit", r0(gross)],
+          ["Expenses", r0(expenses)],
+          ["Net profit", r0(gross - expenses)],
+        ],
+        note: "Income, COGS and gross profit for this period. COGS uses the current batch PTR.",
+      };
+    }
+    case "sales-summary": {
+      const bills = sIn.length;
+      const revenue = sIn.reduce((a, s) => a + saleTotals(s).payable, 0);
+      const units = sIn.reduce((a, s) => a + s.items.reduce((x, i) => x + i.qty, 0), 0);
+      const online = sIn.filter((s) => s.channel === "online").reduce((a, s) => a + saleTotals(s).payable, 0);
+      return {
+        columns: [{ key: "p", label: "Particulars" }, { key: "amt", label: "Amount", money: true }],
+        rows: [
+          ["Counter sales", r0(revenue - online)],
+          ["Online sales", r0(online)],
+          ["Total sales", r0(revenue)],
+          ["Average bill", bills ? r0(revenue / bills) : 0],
+        ],
+        note: `${bills} bills · ${units} units`,
+      };
+    }
   }
   return { columns: [{ key: "x", label: "—" }], rows: [], note: "This report is not available." };
 }

@@ -140,13 +140,36 @@ export function emptyState(input: { name?: string; phone: string; businessType: 
   };
 }
 
+const SEED_EXPIRY_ANCHOR = 2026 * 12 + 6;
+
+function shiftExpiry(value: string, now: number): string {
+  const match = /^(\d{4})-(\d{2})$/.exec(value);
+  if (!match) return value;
+  const moved = Number(match[1]) * 12 + Number(match[2]) + (new Date(now).getFullYear() * 12 + new Date(now).getMonth() + 1 - SEED_EXPIRY_ANCHOR);
+  const year = Math.floor((moved - 1) / 12);
+  const month = ((moved - 1) % 12) + 1;
+  return `${year}-${String(month).padStart(2, "0")}`;
+}
+
+function shiftExpiries<T>(value: T, now: number): T {
+  if (Array.isArray(value)) return value.map((item) => shiftExpiries(item, now)) as T;
+  if (value && typeof value === "object") {
+    const out: Record<string, unknown> = {};
+    for (const [key, item] of Object.entries(value as Record<string, unknown>)) {
+      out[key] = key === "expiry" && typeof item === "string" ? shiftExpiry(item, now) : shiftExpiries(item, now);
+    }
+    return out as T;
+  }
+  return value;
+}
+
 export function demoState(now: number, businessType: BusinessType): PharmacyState {
   const sales: Sale[] = SEED_SALES.map((s) => {
     const { minsAgo, ...rest } = s;
     const createdAt = now - minsAgo * 60000;
     return { ...rest, createdAt, history: seedHistory(rest.channel, rest.status, createdAt, now) };
   });
-  return {
+  return shiftExpiries({
     profile: { ...DEFAULT_PROFILE },
     invoiceSettings: { ...DEFAULT_INVOICE_SETTINGS },
     kiosk: { ...DEFAULT_KIOSK },
@@ -190,7 +213,7 @@ export function demoState(now: number, businessType: BusinessType): PharmacyStat
     wardSupplies: resolveSeedSupplies(now),
     hospitalPayments: resolveSeedHospitalPayments(now),
     tickets: [{ id: "TKT-8841", subject: "GST rate wrong on one product", category: "Billing", status: "Resolved", createdAt: now - 2 * 86400000 }],
-  };
+  }, now);
 }
 
 export const DEPARTMENTS: Department[] = SEED_DEPARTMENTS;

@@ -3,7 +3,7 @@ import { useMemo, useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
   Supplier, SupplyEntry, InvProduct, inr, inr2, allottedSupplierId,
-  bestSupplyFor, effectiveSupplyPrice, schemeLabel, isDevice, mrpOf, catLabel,
+  bestSupplyFor, effectiveSupplyPrice, schemeLabel, isDevice, mrpOf, catLabel, isValidGstin,
 } from "../data";
 import { IconPlus, IconX, IconTrash, IconEdit, IconTruck, IconMail, IconBox, IconCard, IconUsers, IconPhone, IconReceipt, IconRefresh, IconStar, IconScale, IconCash, IconTag, IconCheck } from "../components/Icon";
 import { Thumb } from "../components/bits";
@@ -314,6 +314,7 @@ const BLANK_SUP: Omit<Supplier, "id"> = {
 };
 
 function DistributorModal({ init, onClose, onSave }: { init?: Supplier; onClose: () => void; onSave: (d: Omit<Supplier, "id">) => void }) {
+  const { toast } = usePharma();
   const [f, setF] = useState<Omit<Supplier, "id">>(init ? { ...init } : { ...BLANK_SUP });
   const set = (p: Partial<typeof f>) => setF((s) => ({ ...s, ...p }));
   return (
@@ -345,7 +346,7 @@ function DistributorModal({ init, onClose, onSave }: { init?: Supplier; onClose:
         </div>
         <div className="pd-modal-foot">
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
-          <button className="pd-btn pd-btn-primary" disabled={!f.name.trim() || !f.phone.trim()} onClick={() => onSave(f)}>{init ? "Save changes" : "Add distributor"}</button>
+          <button className="pd-btn pd-btn-primary" disabled={!f.name.trim() || !f.phone.trim()} onClick={() => { if (f.gstin.trim() && !isValidGstin(f.gstin)) { toast("Enter a valid GSTIN"); return; } onSave(f); }}>{init ? "Save changes" : "Add distributor"}</button>
         </div>
       </div>
     </div>

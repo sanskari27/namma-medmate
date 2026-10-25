@@ -154,7 +154,7 @@ Available only when the session business type is `hospital`.
 
 | Method | Path | Current behavior | Planned boundary |
 |--------|------|------------------|------------------|
-| GET, POST | `/support/tickets` | Tickets live only in `SupportScreen` state | Store tickets. FAQ and channel text stay in the client. |
+| GET, POST | `/support/tickets` | Tickets are stored on the pharmacy document. FAQ and channel text stay in the client. | FAQ and channel text stay in the client. |
 | GET | `/referrals` | `ReferScreen` uses a static array | Do not invent referral tracking. Return the same static referral content until the screen gains real records. |
 
 ## Not an endpoint

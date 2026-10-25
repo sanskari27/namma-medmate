@@ -1,6 +1,6 @@
 # Namma Pharmacy documentation
 
-`namma-pharmacy` is the product. These documents describe the dashboard that exists today and the internal API planned for it. They do not describe a separate backend application.
+`namma-pharmacy` is the product. These documents describe the dashboard that exists today and the `/api/v1` routes that serve it. They do not describe a separate backend application.
 
 ## Precedence
 
@@ -13,9 +13,9 @@
 
 | Label | Meaning |
 |-------|---------|
-| Current | Implemented in the browser MVP. Data is dummy seed data plus `localStorage`. |
-| Planned | Required to replace that behavior with internal Next.js route handlers. No handler exists yet. |
-| Target constraint | A rule the planned API must keep. It is not a claim that the MVP enforces it on a server. |
+| Current | The running pharmacy dashboard and `/api/v1`. The pharmacy document is in Postgres. The browser keeps the cart, navigation, and toast. |
+| Planned | A later change that is documented but not what the current handler does. |
+| Target constraint | A rule the API must keep. |
 
 ## Map
 

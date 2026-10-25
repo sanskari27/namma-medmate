@@ -3,7 +3,7 @@ import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
   PLANS, PlanInfo, Plan, BillingCycle, inr, planPrice, annualSavings, annualPerMonth,
-  cycleNoun, ANNUAL_DISCOUNT, GST_RATE,
+  cycleNoun, ANNUAL_DISCOUNT, GST_RATE, subscriptionLapsed,
 } from "../data";
 import { IconCheck, IconCrown, IconX, IconStar, IconLock } from "../components/Icon";
 
@@ -27,6 +27,8 @@ export default function SubscriptionScreen() {
   ];
 
   const isFree = subscription.plan === "Free";
+  const lapsed = subscriptionLapsed(subscription);
+  const statusLabel = lapsed ? "expired" : subscription.status;
   return (
     <div className="pd-canvas-wide" style={{ maxWidth: 1120 }}>
       {/* status banner */}
@@ -35,7 +37,7 @@ export default function SubscriptionScreen() {
         <div style={{ flex: 1 }}>
           <div className="pd-flex pd-gap6">
             <h3 style={{ fontSize: 17 }}>{current.name} plan</h3>
-            <span className="pd-pill pill-green"><i className="d" />{subscription.status}</span>
+            <span className={`pd-pill ${lapsed ? "pill-rose" : "pill-green"}`}><i className="d" />{statusLabel}</span>
             {!isFree && <span className="pd-pill pill-gray">{subscription.cycle === "annual" ? "Annual billing" : "Monthly billing"}</span>}
           </div>
           {isFree
@@ -50,7 +52,7 @@ export default function SubscriptionScreen() {
       </div>
 
       {!isFree && <div className="pd-flex" style={{ justifyContent: "space-between", marginBottom: 18, padding: "0 4px" }}>
-        <div><span style={{ fontWeight: 700, fontSize: 13.5 }}>Auto-renew</span><div className="pd-muted" style={{ fontSize: 12 }}>Automatically charge & extend on the renewal date</div></div>
+        <div><span style={{ fontWeight: 700, fontSize: 13.5 }}>Auto-renew</span><div className="pd-muted" style={{ fontSize: 12 }}>Saved preference only. It does not charge a card or keep paid screens open after the renewal date.</div></div>
         <button className={`pd-switch${subscription.autoRenew ? " on" : ""}`} style={{ transform: "scale(1.1)" }} onClick={toggleAutoRenew} />
       </div>}
 

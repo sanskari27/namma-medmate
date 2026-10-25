@@ -6,12 +6,11 @@ import {
   Purchase, PurchaseItem, DosageForm, Schedule,
   PayMode, PAY_LABEL, Channel, OrderStatus, ONLINE_FLOW, SaleSource,
   Rider, packComplete,
-  computeInvoice, InvoiceTotals, sellPrice, mrpOf, earliestBatch, stockOf, findScan,
+  computeInvoice, InvoiceTotals, billUnit, earliestBatch, stockOf, findScan,
   distinctRacks, normalizeRack,
-  perUnitPrice, perUnitMrp, unitsPerPack, unitNoun,
   StaffUser, SEED_USERS, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, routeLocked,
   InvoiceSettings, DEFAULT_INVOICE_SETTINGS, KioskConfig, DEFAULT_KIOSK,
-  Advisor, SEED_ADVISORS, CAShare, SEED_CA_SHARES,
+  Advisor, SEED_ADVISORS, CAShare, SEED_CA_SHARES, isValidGstin,
   PurchaseOrder, POItem, SEED_PURCHASE_ORDERS, seedHistory,
   Supplier, SEED_SUPPLIERS,
   Expense, resolveSeedExpenses, EXPENSE_CATEGORIES,
@@ -89,7 +88,7 @@ type Ctx = {
   setUniformDiscount: (pct: number) => void;        // uniform institutional discount (admin-gated)
   setHospitalPriceRule: (productId: string, rule: PriceRule | null) => void; // per-product (admin-gated)
   pricingUnlocked: boolean;                          // admin has authorised pricing changes this session
-  pricingPin: string;
+  me: { id: string; role: string; permissions: string[] } | null;
   unlockPricing: (otp: string) => Promise<boolean>;           // verify admin OTP → unlock
   lockPricing: () => void;
   wardSupplies: WardSupply[];
@@ -367,7 +366,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const [toastMsg, setToastMsg] = useState<string | null>(null);
   const [setupComplete, setSetupComplete] = useState(false);
   const [tickets, setTickets] = useState<{ id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[]>([]);
-  const [pricingPin, setPricingPin] = useState("");
+  const [me, setMe] = useState<{ id: string; role: string; permissions: string[] } | null>(null);
   const toastTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [hydrated, setHydrated] = useState(false);
   const invSeq = useRef(2607);
@@ -438,7 +437,8 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const refresh = useCallback(async () => {
     try {
       const session = await api<{
-        businessType: BusinessType; setupComplete: boolean; subscription: Subscription; pricingPin?: string;
+        user?: { id: string; role: string; permissions?: string[] };
+        businessType: BusinessType; setupComplete: boolean; subscription: Subscription;
         creditPayments: CreditPayment[]; caShares: CAShare[]; wardSupplies: WardSupply[]; hospitalPayments: HospitalPayment[];
         tpaClaims: TpaClaim[]; hospitalPriceRules: Record<string, PriceRule>;
       }>("/session");
@@ -468,7 +468,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setBusinessType(session.businessType);
       if (!holdSetup.current) setSetupComplete(session.setupComplete);
       setSubscription(session.subscription);
-      setPricingPin(session.pricingPin || "");
+      setMe(session.user ? { id: session.user.id, role: session.user.role, permissions: session.user.permissions ?? [] } : null);
       setCreditPayments(session.creditPayments || []);
       setCaShares(session.caShares || []);
       setWardSupplies(session.wardSupplies || []);
@@ -615,7 +615,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const posCount = useMemo(() => posItems.reduce((a, b) => a + (b.loose ? 1 : b.qty), 0), [posItems]);
   // pre-discount selling total (GST-inclusive), used to resolve a % discount to ₹
   const posGross = useMemo(() =>
-    posItems.reduce((a, { p, qty, loose }) => a + (loose ? perUnitPrice(p) : sellPrice(p)) * qty, 0),
+    posItems.reduce((a, { p, qty, loose, batchNo }) => a + billUnit(p, { loose, batchNo }).price * qty, 0),
     [posItems]);
   // effective ₹ discount: percent of gross when in % mode, clamped to [0, gross]
   const posDiscountFlat = useMemo(() => {
@@ -624,12 +624,10 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     return Math.max(0, Math.min(eff, posGross));
   }, [posDiscount, posDiscountMode, posGross]);
   const posTotals = useMemo(() =>
-    computeInvoice(posItems.map(({ p, qty, loose }) => ({
-      qty,
-      mrp: loose ? perUnitMrp(p) : mrpOf(p),
-      price: loose ? perUnitPrice(p) : sellPrice(p),
-      gst: p.gst,
-    })), posDiscountFlat),
+    computeInvoice(posItems.map(({ p, qty, loose, batchNo }) => {
+      const unit = billUnit(p, { loose, batchNo });
+      return { qty, mrp: unit.mrp, price: unit.price, gst: p.gst };
+    }), posDiscountFlat),
     [posItems, posDiscountFlat]
   );
 
@@ -962,7 +960,14 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   };
 
   // ── institutional hospital billing (ward supply → hospital credit) ──
-  const updateHospitalAccount = (patch: Partial<HospitalAccount>) => { void post("/hospital/account", "PATCH", patch); setHospitalAccount((a) => ({ ...a, ...patch })); };
+  const updateHospitalAccount = (patch: Partial<HospitalAccount>) => {
+    if (typeof patch.gstin === "string" && patch.gstin.trim() && !isValidGstin(patch.gstin)) {
+      if (patch.gstin.trim().length < 15) setHospitalAccount((a) => ({ ...a, gstin: patch.gstin! }));
+      else toast("Enter a valid GSTIN");
+      return;
+    }
+    void post("/hospital/account", "PATCH", patch); setHospitalAccount((a) => ({ ...a, ...patch }));
+  };
   // ── institutional pricing (admin-gated) ──
   const unlockPricing = async (otp: string) => {
     try {
@@ -1107,7 +1112,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     updateProfile, toggleStoreOpen, resetDemo,
     bankAccount, saveBankAccount, verifyBankAccount, removeBankAccount,
     setupComplete, startSetup, completeSetup, wipeData, setLooseDefault,
-    toast, toastMsg, tickets, raiseTicket, pricingPin,
+    toast, toastMsg, tickets, raiseTicket, me,
   };
   if (!hydrated) return <div className="pd-boot">Loading pharmacy…</div>;
   return <PCtx.Provider value={value}>{children}</PCtx.Provider>;

@@ -105,7 +105,7 @@ export default function Onboarding() {
           {phase === "type" && (
             <div className="pd-ob-step">
               <h2 className="pd-ob-h">Choose your business</h2>
-              <p className="pd-ob-sub">This tailors your dashboard. You can change it later in Settings.</p>
+              <p className="pd-ob-sub">This choice stays with this mobile number.</p>
               <div className="pd-ob-types">
                 {TYPES.map((x) => (
                   <button key={x.key} className={`pd-ob-type${type === x.key ? " on" : ""}`} onClick={() => setType(x.key)}>

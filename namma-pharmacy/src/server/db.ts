@@ -132,9 +132,12 @@ async function syncPhones(client: PoolClient, pharmacyId: string, state: Pharmac
   for (const user of state.users) {
     if (!user.phone || user.active === false) continue;
     try {
+      await client.query("SAVEPOINT staff_phone");
       await client.query("INSERT INTO staff_phones (phone, pharmacy_id, user_id) VALUES ($1,$2,$3)", [e164(user.phone), pharmacyId, user.id]);
+      await client.query("RELEASE SAVEPOINT staff_phone");
     } catch (err) {
-      if ((err as { code?: string }).code === "23505") fail(409, "CONFLICT", "That mobile number is already used");
+      await client.query("ROLLBACK TO SAVEPOINT staff_phone");
+      if ((err as { code?: string }).code === "23505") continue;
       throw err;
     }
   }

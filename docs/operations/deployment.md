@@ -37,4 +37,4 @@ Deploy waits until both Compose health checks pass, then requests `http://127.0.
 
 The previous successful Git tag remains available. Restoring it means running a reviewed deployment of that commit after the same checks. Containers are replaced one service build at a time, and Nginx keeps the public names pointed at the loopback ports.
 
-The pharmacy MVP has no server database, so a dashboard deploy does not migrate stored customer data. Browser `localStorage` remains on each user's device until the backend slices replace it.
+The pharmacy document lives in Postgres. A dashboard deploy replaces the app containers. It does not copy browser storage from a pharmacist's device.

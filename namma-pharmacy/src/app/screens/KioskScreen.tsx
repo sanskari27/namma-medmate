@@ -1,7 +1,7 @@
 "use client";
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
-import { CATEGORIES, inr, inr2, sellPrice, totalUnits, looseSellable, perUnitPrice, unitNoun, PayMode, PAY_LABEL, InvProduct } from "../data";
+import { CATEGORIES, inr, inr2, billUnit, totalUnits, looseSellable, unitNoun, PayMode, PAY_LABEL, InvProduct } from "../data";
 import { IconKiosk, IconX, IconCheck, IconHash, IconCart } from "../components/Icon";
 import { Thumb } from "../components/bits";
 
@@ -85,7 +85,7 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
   const same = (l: { productId: string; loose: boolean }, id: string, loose: boolean) => l.productId === id && l.loose === loose;
   const add = (id: string, loose = false) => setCart((c) => (c.some((x) => same(x, id, loose)) ? c.map((x) => (same(x, id, loose) ? { ...x, qty: x.qty + 1 } : x)) : [...c, { productId: id, qty: 1, loose }]));
   const dec = (id: string, loose = false) => setCart((c) => c.flatMap((x) => (same(x, id, loose) ? (x.qty > 1 ? [{ ...x, qty: x.qty - 1 }] : []) : [x])));
-  const unitPrice = (p: InvProduct, loose: boolean) => (loose ? perUnitPrice(p) : sellPrice(p));
+  const unitPrice = (p: InvProduct, loose: boolean) => billUnit(p, { loose }).price;
   const items = cart.map((l) => { const p = inventory.find((x) => x.id === l.productId); return p ? { p, qty: l.qty, loose: l.loose } : null; }).filter(Boolean) as { p: InvProduct; qty: number; loose: boolean }[];
   const total = items.reduce((a, x) => a + unitPrice(x.p, x.loose) * x.qty, 0);
   const count = items.reduce((a, x) => a + x.qty, 0);
@@ -125,12 +125,12 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
                       <div className="em" style={{ width: 48, height: 48, fontSize: 24, overflow: "hidden" }}><Thumb p={p} /></div>
                       <div className="nm">{p.name}</div>
                       <div className="sub">{p.pack}</div>
-                      {kiosk.showPrices && <div className="pr">{inr(sellPrice(p))}</div>}
+                      {kiosk.showPrices && <div className="pr">{inr(unitPrice(p, false))}</div>}
                       {looseSellable(p) && (
                         <span className={`pd-loose-btn${ln > 0 ? " on" : ""}`} role="button"
                           title={`Add a single ${unitNoun(p)}`}
                           onClick={(e) => { e.stopPropagation(); add(p.id, true); }}>
-                          <IconHash size={13} /> 1 {unitNoun(p)}{kiosk.showPrices ? ` · ${inr2(perUnitPrice(p))}` : ""}{ln > 0 ? ` · ${ln}` : ""}
+                          <IconHash size={13} /> 1 {unitNoun(p)}{kiosk.showPrices ? ` · ${inr2(unitPrice(p, true))}` : ""}{ln > 0 ? ` · ${ln}` : ""}
                         </span>
                       )}
                     </button>

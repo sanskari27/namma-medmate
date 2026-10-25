@@ -1,6 +1,6 @@
 # MVP feature catalog
 
-Status of every item below: **current**. The data is seeded and then stored in the browser. Nothing in this catalog has a server API yet.
+Status of every item below: **current**. The dashboard reads and writes a Postgres pharmacy document through `/api/v1`. The browser keeps the cart, the current screen, and the toast.
 
 The public URL is `/`. `Shell.tsx` switches screens from the `Route` value in `pharmaState.tsx`.
 
@@ -23,7 +23,7 @@ Hospital routes are additionally hidden unless `businessType` is `hospital`.
 
 ### Staff permissions
 
-`UsersScreen` edits a permission list on `StaffUser`. The shell does not read those permissions. A target constraint for the API is to enforce them; the MVP does not.
+`UsersScreen` edits a permission list on `StaffUser`. The shell hides a nav item when that list does not include the matching module. The owner sees every item. Sales, customers, kiosk, hospital screens, account, subscription, refer, and support have no permission key and stay available when the plan allows them. Server checks on expenses, employees, and users stay. Older mutations are not permission-checked yet.
 
 ## Onboarding and shell
 
@@ -60,7 +60,7 @@ Hospital routes are additionally hidden unless `businessType` is `hospital`.
 | `ca` | `CAReportScreen.tsx` | Growth copy | Advisor records and a share action. Share shows a toast; it does not send email. |
 | `account` | `AccountScreen.tsx` | Always open | Profile summary, plan, bank account, and shortcuts. |
 | `employees` | `EmployeesScreen.tsx` | Growth copy | Employee records and document data URLs. |
-| `users` | `UsersScreen.tsx` | Growth copy | Staff profiles, roles, and permissions. Permissions are not enforced. Seed records contain demo passwords in client code. |
+| `users` | `UsersScreen.tsx` | Growth copy | Staff profiles, roles, and permissions. The shell hides screens the signed-in user cannot open. Seed records contain demo passwords. |
 | `invoicing` | `InvoiceSettingsScreen.tsx` | Free | Invoice prefix, template, terms, and logo. Templates include thermal. |
 | `subscription` | `SubscriptionScreen.tsx` | Always open | Plan and billing-cycle change with a mock checkout. |
 | `refer` | `ReferScreen.tsx` | Always open | Static referral rows and a generated code. No referral records are stored. |
@@ -99,7 +99,7 @@ Exports are generated in the browser by `lib/reportExport.ts`, `lib/stockExport.
 ## Explicit demo boundaries
 
 - No SMS, WhatsApp, email, payment gateway, penny drop, e-invoice, or rider network is connected.
-- Prescription images, logos, signatures, product photos, and employee documents are data URLs in `localStorage`.
-- GST totals are JavaScript numbers, not integer paise.
-- Stock changes assume one browser tab. There is no transaction or replay protection.
-- Reset demo removes `namma-pharmacy-state` and reloads the seeds.
+- Prescription images, logos, signatures, product photos, and employee documents are stored and returned as `/api/v1/files/<id>`.
+- GST totals on screen are JavaScript rupees. The API converts money fields to integer paise at the boundary.
+- Stock writes that move quantity require an `Idempotency-Key`. The same key returns the original result and does not move stock twice.
+- Settings → Reset asks for confirmation, then loads the sample store. A sample mobile that already belongs to another pharmacy stays visible on the user list and still signs into the pharmacy that owns it.

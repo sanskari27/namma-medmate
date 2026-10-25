@@ -1,8 +1,8 @@
 import {
   ALL_PERM_KEYS, ROLE_DEFAULT_PERMS, Advisor, BankAccount, Batch, BillingCycle, DosageForm, Employee, Expense,
   InvProduct, Offer, OfferType, PAY_LABEL, POItem, PayMode, Plan, PurchaseItem, Rider, Sale, SaleItem, Schedule,
-  StaffUser, directOfferId, earliestBatch, findScan, isValidIfsc, mrpOf, normalizeRack, packComplete,
-  perUnitMrp, perUnitPrice, routeLocked, sellPrice, unitNoun, unitsPerPack, userPerms,
+  StaffUser, billUnit, computeInvoice, directOfferId, earliestBatch, findScan, isValidGstin, isValidIfsc, looseSellable, normalizeRack, packComplete,
+  routeLocked, todayISO, unitNoun, unitsPerPack, userPerms,
 } from "../app/data";
 import { PatientMeta } from "../app/lib/crm";
 import { Admission, ClaimStatus, DoctorProfile, IndentStatus, Ward } from "../app/lib/hospital";
@@ -40,6 +40,15 @@ export function requireHospital(state: PharmacyState) {
   if (state.businessType !== "hospital") fail(403, "FORBIDDEN", "Hospital pharmacy only");
 }
 
+function checkGstin(value: unknown) {
+  if (typeof value === "string" && value.trim() && !isValidGstin(value)) fail(400, "VALIDATION", "Enter a valid GSTIN");
+}
+function checkPhone(value: unknown) {
+  if (typeof value === "string" && value.trim() && value.replace(/\D/g, "").length < 10) fail(400, "VALIDATION", "Enter a valid mobile number");
+}
+function checkIfsc(value: unknown) {
+  if (typeof value === "string" && value.trim() && !isValidIfsc(value)) fail(400, "VALIDATION", "Enter a valid IFSC");
+}
 function rememberRack(state: PharmacyState, code: string) {
   if (code && !state.racks.includes(code)) state.racks = [...state.racks, code];
 }
@@ -50,21 +59,36 @@ function earliestIdx(batches: Batch[]): number {
   return bi;
 }
 
-export function deductLines(state: PharmacyState, lines: PosLine[]) {
-  state.inventory = state.inventory.map((p) => {
-    const mine = lines.filter((l) => l.productId === p.id);
+function takePacks(batches: Batch[], qty: number, batchNo?: string): number {
+  let need = qty;
+  if (batchNo) {
+    const bi = batches.findIndex((b) => b.batchNo === batchNo);
+    if (bi >= 0) { const take = Math.min(batches[bi].qty, need); batches[bi].qty -= take; need -= take; }
+  }
+  while (need > 0) {
+    const fi = earliestIdx(batches);
+    if (fi < 0) break;
+    const take = Math.min(batches[fi].qty, need); batches[fi].qty -= take; need -= take;
+  }
+  return need;
+}
+
+function nextInventory(state: PharmacyState, lines: PosLine[]): InvProduct[] {
+  for (const l of lines) {
+    if (l.qty <= 0) continue;
+    const p = state.inventory.find((x) => x.id === l.productId);
+    if (!p) fail(404, "NOT_FOUND", "Product not found");
+    if (l.loose && !looseSellable(p)) fail(400, "VALIDATION", `${p.name} cannot be sold loose`);
+  }
+  return state.inventory.map((p) => {
+    const mine = lines.filter((l) => l.productId === p.id && l.qty > 0);
     if (!mine.length) return p;
-    const upp = unitsPerPack(p);
     const batches = p.batches.map((b) => ({ ...b }));
-    for (const l of mine.filter((x) => !x.loose && x.batchNo)) {
-      let need = l.qty;
-      const bi = batches.findIndex((b) => b.batchNo === l.batchNo);
-      if (bi >= 0) { const take = Math.min(batches[bi].qty, need); batches[bi].qty -= take; need -= take; }
-      while (need > 0) { const fi = earliestIdx(batches); if (fi < 0) break; const take = Math.min(batches[fi].qty, need); batches[fi].qty -= take; need -= take; }
-    }
-    let needPacks = mine.filter((l) => !l.loose && !l.batchNo).reduce((a, l) => a + l.qty, 0);
-    while (needPacks > 0) { const bi = earliestIdx(batches); if (bi < 0) break; const take = Math.min(batches[bi].qty, needPacks); batches[bi].qty -= take; needPacks -= take; }
+    const unmet = (left: number) => { if (left > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`); };
+    for (const l of mine.filter((x) => !x.loose && x.batchNo)) unmet(takePacks(batches, l.qty, l.batchNo));
+    unmet(takePacks(batches, mine.filter((l) => !l.loose && !l.batchNo).reduce((a, l) => a + l.qty, 0)));
     let loose = p.looseUnits ?? 0;
+    const upp = unitsPerPack(p);
     for (const l of mine.filter((x) => x.loose)) {
       let need = l.qty;
       const fromPool = Math.min(loose, need); loose -= fromPool; need -= fromPool;
@@ -75,9 +99,14 @@ export function deductLines(state: PharmacyState, lines: PosLine[]) {
         batches[bi].qty -= 1; loose += upp;
         const t = Math.min(loose, need); loose -= t; need -= t;
       }
+      unmet(need);
     }
     return { ...p, batches, looseUnits: loose };
   });
+}
+
+export function deductLines(state: PharmacyState, lines: PosLine[]) {
+  state.inventory = nextInventory(state, lines);
 }
 
 function addBack(state: PharmacyState, productId: string, batchNo: string | undefined, qty: number) {
@@ -113,6 +142,8 @@ function moveInventory(state: PharmacyState, items: WardSupplyItem[], dir: 1 | -
 }
 
 export function patchProfile(state: PharmacyState, patch: Partial<PharmacyState["profile"]>) {
+  checkGstin(patch.gstin);
+  checkPhone(patch.phone);
   state.profile = { ...state.profile, ...patch };
   return state.profile;
 }
@@ -234,12 +265,14 @@ export function receivePurchase(state: PharmacyState, draft: { supplierId: strin
 }
 
 export function addSupplier(state: PharmacyState, row: Omit<import("../app/data").Supplier, "id">) {
+  checkGstin(row.gstin);
   const supplier = { ...row, id: "s" + bump(state, "supplier") };
   state.suppliers = [...state.suppliers, supplier];
   return supplier;
 }
 export function updateSupplier(state: PharmacyState, id: string, patch: Partial<import("../app/data").Supplier>) {
   if (!state.suppliers.some((s) => s.id === id)) fail(404, "NOT_FOUND", "Supplier not found");
+  checkGstin(patch.gstin);
   state.suppliers = state.suppliers.map((s) => (s.id === id ? { ...s, ...patch, id } : s));
   return state.suppliers.find((s) => s.id === id)!;
 }
@@ -298,19 +331,20 @@ export function checkoutPos(state: PharmacyState, input: CheckoutInput) {
   const customer = input.customer ?? {};
   const resolved = input.lines.map((line) => ({ p: mustProduct(state, line.productId), qty: line.qty, loose: !!line.loose, batchNo: line.batchNo })).filter((x) => x.qty > 0);
   if (!resolved.length) fail(400, "VALIDATION", "Nothing to bill");
-  const gross = resolved.reduce((a, { p, qty, loose }) => a + (loose ? perUnitPrice(p) : sellPrice(p)) * qty, 0);
-  const raw = input.discount || 0;
-  const eff = input.discountMode === "percent" ? Math.round((gross * raw) / 100) : raw;
-  const discount = Math.max(0, Math.min(eff, gross));
+  const inventory = nextInventory(state, input.lines);
   const items: SaleItem[] = resolved.map(({ p, qty, loose, batchNo }) => {
     const b = (batchNo && p.batches.find((x) => x.batchNo === batchNo)) || earliestBatch(p);
-    const baseMrp = b?.mrp ?? mrpOf(p);
+    const unit = billUnit(p, { loose, batchNo: b?.batchNo });
     return {
       productId: p.id, name: loose ? `${p.name} — loose ${unitNoun(p)}s` : p.name,
       batchNo: b?.batchNo ?? "—", expiry: b?.expiry ?? "—", hsn: p.hsn, qty,
-      mrp: loose ? perUnitMrp(p) : baseMrp, price: loose ? perUnitPrice(p) : (p.onlinePrice ?? baseMrp), gst: p.gst, loose,
+      mrp: unit.mrp, price: unit.price, gst: p.gst, loose,
     };
   });
+  const raw = input.discount || 0;
+  const gross = items.reduce((a, it) => a + it.price * it.qty, 0);
+  const eff = input.discountMode === "percent" ? Math.round((gross * raw) / 100) : raw;
+  const discount = computeInvoice(items, eff).discount;
   const hasRx = resolved.some(({ p }) => p.schedule !== "OTC");
   const name = (customer.name || "").trim() || "Walk-in";
   let prescription: PharmacyState["prescriptions"][number] | undefined;
@@ -333,7 +367,7 @@ export function checkoutPos(state: PharmacyState, input: CheckoutInput) {
     source: hospital ? input.source : undefined, insurer: input.payMode === "insurance" ? (input.insurer || undefined) : undefined,
     patientId: hospital && (input.source === "ward" || input.source === "emergency") ? (input.patientId?.trim() || undefined) : undefined,
   };
-  deductLines(state, input.lines);
+  state.inventory = inventory;
   if (prescription) state.prescriptions = [prescription, ...state.prescriptions];
   state.sales = [sale, ...state.sales];
   return { sale, prescription: prescription ?? null, inventory: state.inventory };
@@ -341,10 +375,6 @@ export function checkoutPos(state: PharmacyState, input: CheckoutInput) {
 
 export function placeKioskOrder(state: PharmacyState, lines: PosLine[], pay: PayMode) {
   const built = checkoutPos(state, { lines, customer: { name: "Kiosk (self-order)" }, payMode: pay, paid: true, discount: 0 });
-  built.sale.items = built.sale.items.map((it) => {
-    const p = mustProduct(state, it.productId);
-    return { ...it, mrp: it.loose ? perUnitMrp(p) : mrpOf(p), price: it.loose ? perUnitPrice(p) : sellPrice(p) };
-  });
   built.sale.customer = { name: "Kiosk (self-order)" };
   built.sale.history = [{ status: "completed", at: built.sale.createdAt }];
   state.sales = state.sales.map((s) => (s.id === built.sale.id ? built.sale : s));
@@ -530,7 +560,6 @@ export function redeemPoints(state: PharmacyState, custKey: string, custName: st
   return row;
 }
 
-function todayISO() { return new Date().toISOString().slice(0, 10); }
 function addMonths(iso: string, n: number) {
   const base = iso && iso !== "—" ? iso : todayISO();
   const d = new Date(base + "T00:00:00");
@@ -608,12 +637,14 @@ export function addExpenseCategory(state: PharmacyState, name: string) {
   return { categories: state.expenseCategories };
 }
 export function addEmployee(state: PharmacyState, e: Omit<Employee, "id">) {
+  checkIfsc(e.ifsc);
   const row = { ...e, id: "EMP-" + String(bump(state, "emp")).padStart(3, "0") };
   state.employees = [...state.employees, row];
   return row;
 }
 export function updateEmployee(state: PharmacyState, id: string, patch: Partial<Employee>) {
   if (!state.employees.some((e) => e.id === id)) fail(404, "NOT_FOUND", "Employee not found");
+  checkIfsc(patch.ifsc);
   state.employees = state.employees.map((e) => (e.id === id ? { ...e, ...patch, id } : e));
   return state.employees.find((e) => e.id === id)!;
 }
@@ -627,12 +658,16 @@ export function addUser(state: PharmacyState, u: Omit<StaffUser, "id" | "lastAct
   return row;
 }
 export function updateUser(state: PharmacyState, id: string, patch: Partial<StaffUser>) {
-  if (!state.users.some((u) => u.id === id)) fail(404, "NOT_FOUND", "User not found");
-  state.users = state.users.map((u) => (u.id === id ? { ...u, ...patch, id } : u));
-  return state.users.find((u) => u.id === id)!;
+  const i = state.users.findIndex((u) => u.id === id);
+  if (i < 0) fail(404, "NOT_FOUND", "User not found");
+  const users = state.users.slice();
+  users[i] = { ...users[i], ...patch, id };
+  state.users = users;
+  return users[i];
 }
 export function removeUser(state: PharmacyState, id: string) {
-  state.users = state.users.filter((u) => u.id !== id);
+  const i = state.users.findIndex((u) => u.id === id);
+  if (i >= 0) state.users = state.users.filter((_, n) => n !== i);
   return { users: state.users };
 }
 
@@ -689,6 +724,7 @@ export function removeDoctor(state: PharmacyState, id: string) {
   return { doctors: state.doctors };
 }
 export function updateHospitalAccount(state: PharmacyState, patch: Partial<HospitalAccount>) {
+  checkGstin(patch.gstin);
   state.hospitalAccount = { ...state.hospitalAccount, ...patch };
   return state.hospitalAccount;
 }
@@ -708,9 +744,25 @@ export function setHospitalPriceRule(state: PharmacyState, productId: string, ru
   state.hospitalPriceRules = next;
   return state.hospitalPriceRules;
 }
+function assertWardStock(state: PharmacyState, items: WardSupplyItem[], dir: 1 | -1) {
+  if (dir < 0) {
+    for (const it of items) if (!state.inventory.some((p) => p.id === it.productId)) fail(400, "VALIDATION", "Product not found");
+    return;
+  }
+  const held = new Map<string, Batch[]>();
+  for (const it of items) {
+    const p = state.inventory.find((x) => x.id === it.productId);
+    if (!p) fail(400, "VALIDATION", "Product not found");
+    const batches = held.get(p.id) ?? p.batches.map((b) => ({ ...b }));
+    const prefer = it.batchNo && it.batchNo !== "—" ? it.batchNo : undefined;
+    if (takePacks(batches, it.qty, prefer) > 0) fail(400, "VALIDATION", `${p.name} does not have enough stock`);
+    held.set(p.id, batches);
+  }
+}
 function supplyTotal(items: WardSupplyItem[]) { return Math.round(items.reduce((a, it) => a + it.amount, 0) * 100) / 100; }
 export function issueWardSupply(state: PharmacyState, draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) {
   if (!draft.items.length) fail(400, "VALIDATION", "Nothing to issue");
+  assertWardStock(state, draft.items, 1);
   const supply: WardSupply = { ...draft, id: "WS-" + bump(state, "ws"), kind: "issue", total: supplyTotal(draft.items), at: Date.now() };
   moveInventory(state, draft.items, 1);
   state.wardSupplies = [supply, ...state.wardSupplies];
@@ -719,6 +771,7 @@ export function issueWardSupply(state: PharmacyState, draft: Omit<WardSupply, "i
 }
 export function returnWardSupply(state: PharmacyState, draft: Omit<WardSupply, "id" | "kind" | "at" | "total">) {
   if (!draft.items.length) fail(400, "VALIDATION", "Nothing to return");
+  assertWardStock(state, draft.items, -1);
   const supply: WardSupply = { ...draft, id: "WR-" + bump(state, "wr"), kind: "return", total: supplyTotal(draft.items), at: Date.now() };
   moveInventory(state, draft.items, -1);
   state.wardSupplies = [supply, ...state.wardSupplies];
