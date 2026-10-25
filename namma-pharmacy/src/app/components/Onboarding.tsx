@@ -1,8 +1,8 @@
 "use client";
-import { useState, useRef, useEffect } from "react";
+import { useEffect, useRef, useState } from "react";
 import { api } from "../lib/api";
-import { usePharma, BusinessType } from "../pharmaState";
-import { IconArrowRight, IconCheck, IconStore, IconRx, IconReports, IconReceipt, IconGlobe, IconChart, IconHospital } from "./Icon";
+import { BusinessType, usePharma } from "../pharmaState";
+import { IconArrowRight, IconChart, IconCheck, IconGlobe, IconHospital, IconReceipt, IconReports, IconRx, IconStore } from "./Icon";
 
 type Phase = "intro" | "type" | "login";
 
@@ -105,9 +105,9 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
                 <p>{SLIDES[slide].s}</p>
               </div>
               <div className="pd-ob-dots">{SLIDES.map((_, i) => <i key={i} className={i === slide ? "on" : ""} onClick={() => setSlide(i)} />)}</div>
-              <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" onClick={() => setPhase("type")}>Get started <IconArrowRight size={16} /></button>
-              <button className="pd-ob-link" onClick={() => setPhase("login")}>I already have an account · Log in</button>
-              <button className="pd-ob-link" onClick={() => { setStaff(true); setPhase("login"); }}>Namma MedMate staff sign in</button>
+              <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" onClick={() => {setPhase("type"),setStaff(false)}}>Get started <IconArrowRight size={16} /></button>
+              <button className="pd-ob-link" onClick={() => {setPhase("login"),setStaff(false)}}>I already have an account · Log in</button>
+              <button className="pd-ob-link" onClick={() => {setPhase("login"),setStaff(true)}}>Namma MedMate staff sign in</button>
             </div>
           )}
 
@@ -164,7 +164,7 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
               )}
 
               <div className="pd-ob-row" style={{ justifyContent: "center", marginTop: 18 }}>
-                <button className="pd-ob-link" onClick={() => setPhase("type")}>← Change business type</button>
+                <button className="pd-ob-link" onClick={() => setPhase("intro")}>← Back</button>
               </div>
               <p className="pd-ob-terms">By continuing you agree to the Terms of Service & Privacy Policy.</p>
             </div>

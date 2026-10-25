@@ -397,6 +397,12 @@
 .pd-modal-foot { padding: 14px 20px; border-top: 1px solid var(--line); display: flex; gap: 10px; justify-content: flex-end; }
 .pd-x { width: 32px; height: 32px; border-radius: 8px; border: 0; background: var(--wash2); color: var(--ink-2); display: grid; place-items: center; font-size: 18px; }
 .pd-x:hover { background: var(--wash); }
+.pd-confirm { max-width: 380px; }
+.pd-confirm .pd-modal-body { display: flex; flex-direction: column; align-items: center; text-align: center; gap: 6px; padding: 28px 24px 4px; }
+.pd-confirm .pd-modal-foot { border-top: 0; padding: 18px 20px 20px; }
+.pd-confirm-mark { width: 48px; height: 48px; border-radius: 14px; background: var(--rose-bg); color: var(--rose); display: grid; place-items: center; margin-bottom: 6px; }
+.pd-confirm h3 { font-size: 18px; }
+.pd-confirm p { margin: 0; max-width: 32ch; font-size: 13.5px; color: var(--muted); line-height: 1.45; }
 
 /* ── store setup wizard ─────────────────────────────────────── */
 .pd-setup { position: fixed; inset: 0; z-index: 90; padding: 24px; overflow-y: auto; display: flex; align-items: center; justify-content: center; flex-direction: column;

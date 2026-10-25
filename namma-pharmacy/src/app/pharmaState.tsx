@@ -25,6 +25,7 @@ import {
   Ward, WardIndent, IndentStatus, Department, TpaClaim, ClaimStatus, DoctorProfile, Admission,
 } from "./lib/hospital";
 import { api, ApiError } from "./lib/api";
+import { SignOutDialog } from "./components/SignOutDialog";
 import { faultOf, SaveFault } from "./lib/formFault";
 import {
   HospitalAccount, WardSupply, WardSupplyItem, HospitalPayment, creditPriceOf, PriceRule,
@@ -358,6 +359,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const now = nowRef.current;
 
   const [signedIn, setSignedIn] = useState(false);
+  const [leaveOpen, setLeaveOpen] = useState(false);
   const [impersonator, setImpersonator] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<BusinessType>("pharmacy");
   const [wards, setWards] = useState<Ward[]>([]);
@@ -962,7 +964,12 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     resetNav("dashboard");
     toast("Welcome back");
   };
-  const signOut = () => { void api("/auth/sign-out", { method: "POST" }).catch(() => undefined); signedRef.current = false; setSignedIn(false); setImpersonator(null); resetNav("dashboard"); };
+  const signOut = () => setLeaveOpen(true);
+  const finishSignOut = () => {
+    setLeaveOpen(false);
+    void api("/auth/sign-out", { method: "POST" }).catch(() => undefined);
+    signedRef.current = false; setSignedIn(false); setImpersonator(null); resetNav("dashboard");
+  };
 
   // ── hospital modules ──
   const setIndentStatus = (id: string, status: IndentStatus) => {
@@ -1137,7 +1144,12 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     toast, toastMsg, formFault, showFault, clearFault, tickets, raiseTicket, me,
   };
   if (!hydrated) return <div className="pd-boot">Loading pharmacy…</div>;
-  return <PCtx.Provider value={value}>{children}</PCtx.Provider>;
+  return (
+    <PCtx.Provider value={value}>
+      {children}
+      {leaveOpen && <SignOutDialog onCancel={() => setLeaveOpen(false)} onConfirm={finishSignOut} />}
+    </PCtx.Provider>
+  );
 }
 
 // helper re-export for screens

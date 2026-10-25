@@ -5,6 +5,7 @@ import { BillingCycle, HOSPITAL_ROUTES, Plan, PREMIUM_ROUTES, subscriptionLapsed
 import {
   IconChevronLeft, IconCrown, IconDashboard, IconGift, IconHelp, IconReports, IconRx, IconSend, IconStore, IconUser,
 } from "../components/Icon";
+import { SignOutDialog } from "../components/SignOutDialog";
 
 type Desk = "dashboard" | "pharmacies" | "kyc" | "subscriptions" | "requests" | "support" | "consultations" | "referrals" | "activity";
 type Booking = { id: number; name: string; phone: string; area: string; note: string; status: string; at: string };
@@ -94,6 +95,7 @@ export default function MasterPortal({ phone, onPharmacy, pharmacyLabel, onSigne
   const [extra, setExtra] = useState(0);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [error, setError] = useState("");
+  const [leaveOpen, setLeaveOpen] = useState(false);
 
   const load = async () => {
     const [list, inbox, work, booked] = await Promise.all([
@@ -134,7 +136,9 @@ export default function MasterPortal({ phone, onPharmacy, pharmacyLabel, onSigne
       if (desk === "activity") setAudit(await api<AuditRow[]>("/master/audit"));
     } catch (err) { setError(err instanceof Error ? err.message : "Save failed"); }
   };
-  const signOut = async () => {
+  const signOut = () => setLeaveOpen(true);
+  const finishSignOut = async () => {
+    setLeaveOpen(false);
     await api("/master/sign-out", { method: "POST" }).catch(() => undefined);
     onSignedOut();
   };
@@ -244,6 +248,7 @@ export default function MasterPortal({ phone, onPharmacy, pharmacyLabel, onSigne
           </div>
         </div>
       </div>
+      {leaveOpen && <SignOutDialog onCancel={() => setLeaveOpen(false)} onConfirm={() => void finishSignOut()} />}
     </div>
   );
 }
