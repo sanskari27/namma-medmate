@@ -11,7 +11,7 @@ Money in request and response bodies is integer paise. The POS cart is not an AP
 | POST | `/auth/otp/send` | OTP request. Body: phone. | `Onboarding.tsx` |
 | POST | `/auth/otp/verify` | `signIn`. Body: phone, code, business type, optional name. Sets the session. | `signIn` |
 | POST | `/auth/sign-out` | `signOut` | `signOut` |
-| GET | `/session` | Signed-in user, business type, setup flag, subscription | `pharmaState.tsx` |
+| GET | `/session` | One snapshot for dashboard hydration: user, subscription, and the pharmacy collections. Hospital lists are empty unless that plan is open. | `pharmaState.tsx` |
 | GET, PATCH | `/pharmacy/profile` | `updateProfile` | `SettingsScreen`, `SetupWizard` |
 | POST | `/pharmacy/store-open` | `toggleStoreOpen` | `updateProfile` flow |
 | GET, PATCH | `/settings/invoice` | `updateInvoiceSettings` | `InvoiceSettingsScreen` |

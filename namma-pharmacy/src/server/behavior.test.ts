@@ -2,9 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { fieldFrom } from "../app/lib/formFault";
 import { fromPaise, toPaise } from "../app/lib/paise";
-import { findLogin, getPool, insertPharmacy, loadState } from "./db";
+import { findLogin, getPool, insertPharmacy, loadState, type SessionRow } from "./db";
 import { addDepartment, addReferral, cancelOrder, checkoutPos, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, setBatchQty, updateDepartment, updateReferral } from "./mutate";
-import { handle, keepOwner } from "./router";
+import { handle, keepOwner, sessionView } from "./router";
 import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
 
 test("money crosses the API as integer paise and flat offers stay distinct from percents", () => {
@@ -263,6 +263,18 @@ test("validation messages name the form field", () => {
   assert.equal(fieldFrom("Paracetamol does not have enough stock"), "qty");
   assert.equal(fieldFrom("Amount must be positive"), "amount");
   assert.equal(fieldFrom("This action needs a paid plan"), undefined);
+});
+
+test("one session snapshot carries the pharmacy and hides locked hospital wards", () => {
+  const state = emptyState({ phone: "+919000000000", businessType: "hospital" });
+  state.profile.name = "City Pharmacy";
+  state.wards = [{ id: "W1", name: "ICU", code: "ICU", floor: "1", type: "ICU", beds: 1, occupied: 0, sister: "A" }];
+  const session = { userId: "u1", phone: "+919000000000" } as SessionRow;
+  const locked = sessionView(state, session);
+  assert.equal(locked.profile.name, "City Pharmacy");
+  assert.deepEqual(locked.wards, []);
+  state.subscription = { ...state.subscription, plan: "Pro", status: "active", renewsOn: "2099-01-01" };
+  assert.equal(sessionView(state, session).wards[0].id, "W1");
 });
 
 test("a short OTP returns JSON 400", async () => {

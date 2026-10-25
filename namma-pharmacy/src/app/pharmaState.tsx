@@ -41,6 +41,53 @@ const BLANK_HOSPITAL: HospitalAccount = {
   creditTerms: "On demand", creditLimit: 0, discountPct: 0, flagRefills: false,
 };
 
+type Snapshot = {
+  user?: { id: string; role: string; permissions?: string[] };
+  businessType: BusinessType;
+  setupComplete: boolean;
+  subscription: Subscription;
+  creditPayments: CreditPayment[];
+  caShares: CAShare[];
+  wardSupplies: WardSupply[];
+  hospitalPayments: HospitalPayment[];
+  tpaClaims: TpaClaim[];
+  hospitalPriceRules: Record<string, PriceRule>;
+  profile: PharmacyProfile;
+  invoiceSettings: InvoiceSettings;
+  kiosk: KioskConfig;
+  inventory: InvProduct[];
+  racks: string[];
+  sales: Sale[];
+  prescriptions: Prescription[];
+  offers: Offer[];
+  purchases: Purchase[];
+  suppliers: Supplier[];
+  supplyList: SupplyEntry[];
+  purchaseOrders: PurchaseOrder[];
+  expenses: Expense[];
+  expenseCategories: string[];
+  employees: Employee[];
+  users: StaffUser[];
+  bankAccount: BankAccount | null;
+  advisors: Advisor[];
+  crm: CrmData;
+  tickets: { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[];
+  referrals: Referral[];
+  wards: Ward[];
+  admissions: Admission[];
+  wardIndents: WardIndent[];
+  doctors: DoctorProfile[];
+  hospitalAccount: HospitalAccount | null;
+  departments: Department[];
+};
+
+// Strict mode mounts twice. Share the first /session so boot is one request.
+let boot: Promise<Snapshot> | null = null;
+function initialSession() {
+  if (!boot) boot = api<Snapshot>("/session").finally(() => { boot = null; });
+  return boot;
+}
+
 // pharmacy = standalone retail pharmacy · hospital = hospital pharmacy (extra IPD/TPA modules)
 export type BusinessType = "pharmacy" | "hospital";
 
@@ -437,36 +484,9 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   profileRef.current = profile;
   invoiceRef.current = invoiceSettings;
   kioskRef.current = kiosk;
-  const refresh = useCallback(async () => {
+  const refresh = useCallback(async (pending?: Promise<Snapshot>) => {
     try {
-      const session = await api<{
-        user?: { id: string; role: string; permissions?: string[] };
-        businessType: BusinessType; setupComplete: boolean; subscription: Subscription;
-        creditPayments: CreditPayment[]; caShares: CAShare[]; wardSupplies: WardSupply[]; hospitalPayments: HospitalPayment[];
-        tpaClaims: TpaClaim[]; hospitalPriceRules: Record<string, PriceRule>;
-      }>("/session");
-      const [profile, invoice, kioskCfg, inventory, racks, sales, prescriptions, offers, purchases, suppliers, supply, orders, expenses, employees, users, bank, advisors, crmPack, ticketRows, referralRows] = await Promise.all([
-        api<PharmacyProfile>("/pharmacy/profile"),
-        api<InvoiceSettings>("/settings/invoice"),
-        api<KioskConfig>("/settings/kiosk"),
-        api<InvProduct[]>("/inventory"),
-        api<string[]>("/racks"),
-        api<Sale[]>("/sales"),
-        api<Prescription[]>("/prescriptions"),
-        api<Offer[]>("/offers"),
-        api<Purchase[]>("/purchases"),
-        api<Supplier[]>("/suppliers"),
-        api<SupplyEntry[]>("/supply-list"),
-        api<PurchaseOrder[]>("/purchase-orders"),
-        api<{ expenses: Expense[]; categories: string[] }>("/expenses"),
-        api<Employee[]>("/employees"),
-        api<StaffUser[]>("/users"),
-        api<{ bankAccount: BankAccount | null }>("/bank-account"),
-        api<Advisor[]>("/advisors"),
-        api<{ crm: CrmData }>("/crm/patients"),
-        api<{ id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[]>("/support/tickets"),
-        api<Referral[]>("/referrals"),
-      ]);
+      const session = await (pending ?? api<Snapshot>("/session"));
       signedRef.current = true;
       setSignedIn(true);
       setBusinessType(session.businessType);
@@ -479,21 +499,15 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setHospitalPayments(session.hospitalPayments || []);
       setTpaClaims(session.tpaClaims || []);
       setHospitalPriceRules(session.hospitalPriceRules || {});
-      setProfile(profile); setInvoiceSettings(invoice); setKiosk(kioskCfg); setInventory(inventory); setRacks(racks);
-      setSales(sales); setPrescriptions(prescriptions); setOffers(offers); setPurchases(purchases);
-      setSuppliers(suppliers); setSupplyList(supply); setPurchaseOrders(orders);
-      setExpenses(expenses.expenses); setExpenseCategories(expenses.categories); setEmployees(employees); setUsers(users);
-      setBankAccount(bank.bankAccount); setAdvisors(advisors); setCrm(crmPack.crm); setTickets(ticketRows); setReferrals(referralRows || []);
+      setProfile(session.profile); setInvoiceSettings(session.invoiceSettings); setKiosk(session.kiosk);
+      setInventory(session.inventory); setRacks(session.racks); setSales(session.sales);
+      setPrescriptions(session.prescriptions); setOffers(session.offers); setPurchases(session.purchases);
+      setSuppliers(session.suppliers); setSupplyList(session.supplyList); setPurchaseOrders(session.purchaseOrders);
+      setExpenses(session.expenses); setExpenseCategories(session.expenseCategories); setEmployees(session.employees); setUsers(session.users);
+      setBankAccount(session.bankAccount); setAdvisors(session.advisors); setCrm(session.crm); setTickets(session.tickets); setReferrals(session.referrals || []);
       if (session.businessType === "hospital") {
-        const [wards, admissions, indents, doctors, account, departmentRows] = await Promise.all([
-          api<Ward[]>("/hospital/wards").catch(() => [] as Ward[]),
-          api<Admission[]>("/hospital/admissions").catch(() => [] as Admission[]),
-          api<WardIndent[]>("/hospital/indents").catch(() => [] as WardIndent[]),
-          api<DoctorProfile[]>("/hospital/doctors").catch(() => [] as DoctorProfile[]),
-          api<HospitalAccount>("/hospital/account").catch(() => BLANK_HOSPITAL),
-          api<Department[]>("/hospital/departments").catch(() => [] as Department[]),
-        ]);
-        setWards(wards); setAdmissions(admissions); setWardIndents(indents); setDoctors(doctors); setHospitalAccount(account); setDepartments(departmentRows);
+        setWards(session.wards || []); setAdmissions(session.admissions || []); setWardIndents(session.wardIndents || []);
+        setDoctors(session.doctors || []); setHospitalAccount(session.hospitalAccount ?? BLANK_HOSPITAL); setDepartments(session.departments || []);
       }
     } catch (err) {
       if (err instanceof ApiError && err.status === 401) { signedRef.current = false; setSignedIn(false); return; }
@@ -504,10 +518,16 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     } finally { setHydrated(true); }
   }, []);
   useEffect(() => {
-    void refresh();
-    const onFocus = () => { if (signedRef.current && !quiet.current) void refresh(); };
-    window.addEventListener("focus", onFocus);
-    return () => window.removeEventListener("focus", onFocus);
+    void refresh(initialSession());
+    // ponytail: focus refires while the tab stays open (devtools, a click). Reload only after the tab was hidden.
+    let hidden = document.visibilityState === "hidden";
+    const onVis = () => {
+      const isHidden = document.visibilityState === "hidden";
+      if (hidden && !isHidden && signedRef.current && !quiet.current) void refresh();
+      hidden = isHidden;
+    };
+    document.addEventListener("visibilitychange", onVis);
+    return () => document.removeEventListener("visibilitychange", onVis);
   }, [refresh]);
   const showFault = (err: unknown, fallback = "Save failed") => {
     const fault = typeof err === "string" ? faultOf(new Error(err), fallback) : faultOf(err, fallback);

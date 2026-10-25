@@ -55,9 +55,16 @@ function send(body: unknown, status = 200, token?: string | null) {
   return new Response(JSON.stringify(encode(body)), { status, headers });
 }
 
-function sessionView(state: PharmacyState, session: SessionRow) {
+function allowed(state: PharmacyState, session: SessionRow, plan: string) {
+  if (state.businessType !== "hospital") return false;
+  try { guard(state, session, { hospital: true, plan }); return true; } catch { return false; }
+}
+
+// One read for the dashboard. Per-route GETs stay for everything else.
+export function sessionView(state: PharmacyState, session: SessionRow) {
   const user = state.users.find((u) => u.id === session.userId);
   const permissions = user ? (user.role === "Owner" ? [...ALL_PERM_KEYS] : userPerms(user)) : [...ALL_PERM_KEYS];
+  const hospital = <T,>(plan: string, value: T, empty: T) => allowed(state, session, plan) ? value : empty;
   return {
     user: user
       ? { id: user.id, name: user.name, role: user.role, phone: user.phone, permissions }
@@ -71,6 +78,33 @@ function sessionView(state: PharmacyState, session: SessionRow) {
     hospitalPayments: state.hospitalPayments,
     tpaClaims: state.tpaClaims,
     hospitalPriceRules: state.hospitalPriceRules,
+    profile: state.profile,
+    invoiceSettings: state.invoiceSettings,
+    kiosk: state.kiosk,
+    inventory: state.inventory,
+    racks: state.racks,
+    sales: state.sales,
+    prescriptions: state.prescriptions,
+    offers: state.offers,
+    purchases: state.purchases,
+    suppliers: state.suppliers,
+    supplyList: state.supplyList,
+    purchaseOrders: state.purchaseOrders,
+    expenses: state.expenses,
+    expenseCategories: state.expenseCategories,
+    employees: state.employees,
+    users: state.users,
+    bankAccount: state.bankAccount,
+    advisors: state.advisors,
+    crm: state.crm,
+    tickets: state.tickets,
+    referrals: state.referrals || [],
+    wards: hospital("wards", state.wards, []),
+    admissions: hospital("wards", state.admissions, []),
+    wardIndents: hospital("indents", state.wardIndents, []),
+    doctors: hospital("doctors", state.doctors, []),
+    hospitalAccount: hospital("hospbill", state.hospitalAccount, null),
+    departments: hospital("departments", state.departments || [], []),
   };
 }
 
