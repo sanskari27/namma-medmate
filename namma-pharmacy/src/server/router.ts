@@ -344,7 +344,8 @@ async function sendOtp(body: Record<string, unknown>) {
 async function verifyOtp(body: Record<string, unknown>) {
   const phone = e164(String(body.phone || ""));
   const code = String(body.code || "").replace(/\D/g, "");
-  if (code.length !== 6) throw new ApiError(400, "VALIDATION", "Enter the 6-digit code", "otp");
+  const digits = cognitoConfigured() ? 8 : 6;
+  if (code.length !== digits) throw new ApiError(400, "VALIDATION", `Enter the ${digits}-digit code`, "otp");
   const businessType: BusinessType = body.businessType === "hospital" ? "hospital" : "pharmacy";
   if (cognitoConfigured()) {
     const challenge = await takeChallenge(phone);

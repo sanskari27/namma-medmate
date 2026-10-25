@@ -259,6 +259,7 @@ test("validation messages name the form field", () => {
   assert.equal(fieldFrom("Enter a valid mobile number"), "phone");
   assert.equal(fieldFrom("Enter a valid IFSC"), "ifsc");
   assert.equal(fieldFrom("Enter the 6-digit code"), "otp");
+  assert.equal(fieldFrom("Enter the 8-digit code"), "otp");
   assert.equal(fieldFrom("Paracetamol does not have enough stock"), "qty");
   assert.equal(fieldFrom("Amount must be positive"), "amount");
   assert.equal(fieldFrom("This action needs a paid plan"), undefined);
@@ -274,4 +275,26 @@ test("a short OTP returns JSON 400", async () => {
   const body = await res.json() as { error: { message: string; field?: string } };
   assert.equal(body.error.message, "Enter the 6-digit code");
   assert.equal(body.error.field, "otp");
+});
+
+test("cognito sign-in rejects a 6-digit code", async () => {
+  const pool = process.env.COGNITO_USER_POOL_ID;
+  const client = process.env.COGNITO_CLIENT_ID;
+  process.env.COGNITO_USER_POOL_ID = "pool";
+  process.env.COGNITO_CLIENT_ID = "client";
+  try {
+    const res = await handle(new Request("http://localhost/api/v1/auth/otp/verify", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ phone: "9000000001", code: "123456" }),
+    }));
+    assert.equal(res.status, 400);
+    const body = await res.json() as { error: { message: string } };
+    assert.equal(body.error.message, "Enter the 8-digit code");
+  } finally {
+    if (pool === undefined) delete process.env.COGNITO_USER_POOL_ID;
+    else process.env.COGNITO_USER_POOL_ID = pool;
+    if (client === undefined) delete process.env.COGNITO_CLIENT_ID;
+    else process.env.COGNITO_CLIENT_ID = client;
+  }
 });

@@ -62,8 +62,9 @@ export default function Onboarding() {
       setDevOtp(res.delivery === "dev");
     } catch (err) { showFault(err, "Could not send OTP"); }
   };
+  const otpLen = devOtp ? 6 : 8;
   const verify = async () => {
-    if (otp.replace(/\D/g, "").length !== 6) return;
+    if (otp.replace(/\D/g, "").length !== otpLen) return;
     try { await signIn(type, name, phone, otp); }
     catch (err) { showFault(err, "Could not sign in"); }
   };
@@ -126,7 +127,7 @@ export default function Onboarding() {
             <div className="pd-ob-step">
               <span className="pd-ob-badge">{tt.Ic({ size: 15 })} {tt.t}</span>
               <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : "Log in to continue"}</h2>
-              <p className="pd-ob-sub">{otpSent ? `We sent a 6-digit code to ${phone}.` : "Sign in with your registered mobile number."}</p>
+              <p className="pd-ob-sub">{otpSent ? `We sent ${otpLen === 8 ? "an 8-digit" : "a 6-digit"} code to ${phone}.` : "Sign in with your registered mobile number."}</p>
 
               {!otpSent ? (
                 <>
@@ -143,12 +144,12 @@ export default function Onboarding() {
                 </>
               ) : (
                 <>
-                  <div className="pd-field" data-field="otp"><label>6-digit OTP</label>
-                    <input ref={otpRef} className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={6} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder="••••••" onKeyDown={(e) => e.key === "Enter" && verify()} aria-invalid={formFault?.field === "otp"} />
+                  <div className="pd-field" data-field="otp"><label>{otpLen}-digit OTP</label>
+                    <input ref={otpRef} className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={otpLen} value={otp} onChange={(e) => setOtp(e.target.value.replace(/\D/g, ""))} placeholder={"•".repeat(otpLen)} onKeyDown={(e) => e.key === "Enter" && verify()} aria-invalid={formFault?.field === "otp"} />
                     {formFault?.field === "otp" && <span className="pd-field-err">{formFault.message}</span>}
                   </div>
                   {devOtp && demoCode ? <div className="pd-ob-demo">Demo OTP: <b>{demoCode}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
-                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== 6} onClick={verify}><IconCheck size={16} /> Verify &amp; log in</button>
+                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== otpLen} onClick={verify}><IconCheck size={16} /> Verify &amp; log in</button>
                   <button className="pd-ob-link" onClick={() => { setOtpSent(false); setOtp(""); }}>← Change number</button>
                 </>
               )}

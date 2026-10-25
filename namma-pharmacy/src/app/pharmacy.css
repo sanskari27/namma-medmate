@@ -725,7 +725,7 @@
 .pd-ob-phone { display: flex; align-items: stretch; gap: 8px; }
 .pd-ob-phone > span { display: grid; place-items: center; padding: 0 14px; border-radius: var(--r-sm); background: var(--wash); font-weight: 800; color: var(--dark); border: 1px solid var(--line-2); }
 .pd-ob-phone .pd-input { flex: 1; }
-.pd-ob-otp { letter-spacing: .5em; font-size: 22px; text-align: center; font-weight: 800; }
+.pd-ob-otp { letter-spacing: .28em; font-size: 22px; text-align: center; font-weight: 800; }
 .pd-ob-demo { margin-top: 10px; font-size: 12.5px; color: var(--muted); background: var(--wash2); border: 1px dashed var(--line-2); border-radius: var(--r-sm); padding: 8px 12px; }
 .pd-ob-terms { text-align: center; font-size: 11px; color: var(--faint); margin-top: 16px; }
 
