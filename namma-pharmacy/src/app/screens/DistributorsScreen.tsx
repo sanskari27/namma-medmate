@@ -91,7 +91,6 @@ function Directory() {
                   <td className="num">
                     <div className="pd-flex pd-gap6" style={{ justifyContent: "flex-end" }}>
                       <button className="pd-iconbtn" title="Edit" onClick={() => setEdit(s)}><IconEdit size={15} /></button>
-                      <button className="pd-iconbtn" title="Remove" onClick={() => { if (confirm(`Remove ${s.name}? Its supply-list items will also be removed.`)) removeSupplier(s.id); }}><IconTrash size={15} /></button>
                     </div>
                   </td>
                 </tr>
@@ -193,7 +192,6 @@ function SupplyList() {
                       <div className="pd-flex pd-gap6" style={{ justifyContent: "flex-end" }}>
                         {!e.preferred && <button className="pd-btn pd-btn-ghost pd-btn-sm" title="Mark preferred source" onClick={() => setPreferredSupply(e.id)}><IconStar size={14} /></button>}
                         <button className="pd-iconbtn" title="Edit" onClick={() => setEdit(e)}><IconEdit size={15} /></button>
-                        <button className="pd-iconbtn" title="Remove" onClick={() => removeSupply(e.id)}><IconTrash size={15} /></button>
                       </div>
                     </td>
                   </tr>

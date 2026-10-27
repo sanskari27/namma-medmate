@@ -1,4 +1,4 @@
-import { createHash, randomBytes, randomInt } from "crypto";
+import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from "crypto";
 import { Pool, type PoolClient } from "pg";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { fail } from "./errors";
@@ -42,7 +42,8 @@ CREATE TABLE IF NOT EXISTS files (
 CREATE TABLE IF NOT EXISTS staff_phones (
   phone text PRIMARY KEY,
   pharmacy_id uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
-  user_id text NOT NULL
+  user_id text NOT NULL,
+  login_pin_hash text
 );
 CREATE TABLE IF NOT EXISTS otp_challenges (
   phone text PRIMARY KEY,
@@ -131,6 +132,7 @@ export async function migrate() {
         await client.query(`ALTER TABLE master_audit ALTER COLUMN before SET NOT NULL`);
         await client.query(`ALTER TABLE master_audit ALTER COLUMN after SET NOT NULL`);
         await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS impersonator text`);
+        await client.query(`ALTER TABLE staff_phones ADD COLUMN IF NOT EXISTS login_pin_hash text`);
         for (const raw of (process.env.MASTER_PHONES || "").split(",")) {
           const phone = raw.trim();
           if (phone) await client.query("INSERT INTO master_phones (phone) VALUES ($1) ON CONFLICT DO NOTHING", [e164(phone)]);
@@ -151,6 +153,7 @@ export type SessionRow = {
   pricingPin: string;
   businessType: BusinessType;
   expiresAt: Date;
+  hasPin: boolean;
 };
 
 export function e164(phone: string) {
@@ -164,13 +167,37 @@ export function requestHash(method: string, path: string, raw: string) {
   return createHash("sha256").update(method + " " + path + "\n" + raw).digest("hex");
 }
 
+export function hashLoginPin(pin: string) {
+  const salt = randomBytes(16);
+  const hash = scryptSync(pin, salt, 32);
+  return salt.toString("hex") + ":" + hash.toString("hex");
+}
+
+export function loginPinMatches(pin: string, stored: string | null | undefined) {
+  if (!stored) return false;
+  const [salt, hash] = stored.split(":");
+  if (!salt || !hash) return false;
+  const next = scryptSync(pin, Buffer.from(salt, "hex"), 32);
+  const prev = Buffer.from(hash, "hex");
+  return next.length === prev.length && timingSafeEqual(next, prev);
+}
+
 export async function findLogin(phone: string) {
   await migrate();
   const { rows } = await getPool().query(
-    "SELECT pharmacy_id, user_id FROM staff_phones WHERE phone = $1",
+    "SELECT pharmacy_id, user_id, login_pin_hash FROM staff_phones WHERE phone = $1",
     [e164(phone)],
   );
-  return rows[0] as { pharmacy_id: string; user_id: string } | undefined;
+  return rows[0] as { pharmacy_id: string; user_id: string; login_pin_hash: string | null } | undefined;
+}
+
+export async function setLoginPin(pharmacyId: string, phone: string, pin: string) {
+  await migrate();
+  const { rowCount } = await getPool().query(
+    "UPDATE staff_phones SET login_pin_hash = $1 WHERE pharmacy_id = $2 AND phone = $3",
+    [hashLoginPin(pin), pharmacyId, e164(phone)],
+  );
+  if (!rowCount) fail(404, "NOT_FOUND", "No login for this phone");
 }
 
 export async function insertPharmacy(phone: string, businessType: BusinessType, state: PharmacyState) {
@@ -194,12 +221,18 @@ export async function insertPharmacy(phone: string, businessType: BusinessType, 
 }
 
 async function syncPhones(client: PoolClient, pharmacyId: string, state: PharmacyState) {
+  const { rows } = await client.query("SELECT phone, login_pin_hash FROM staff_phones WHERE pharmacy_id = $1", [pharmacyId]);
+  const hashes = new Map(rows.map((row) => [row.phone as string, (row.login_pin_hash as string | null) ?? null]));
   await client.query("DELETE FROM staff_phones WHERE pharmacy_id = $1", [pharmacyId]);
   for (const user of state.users) {
     if (!user.phone || user.active === false) continue;
+    const phone = e164(user.phone);
     try {
       await client.query("SAVEPOINT staff_phone");
-      await client.query("INSERT INTO staff_phones (phone, pharmacy_id, user_id) VALUES ($1,$2,$3)", [e164(user.phone), pharmacyId, user.id]);
+      await client.query(
+        "INSERT INTO staff_phones (phone, pharmacy_id, user_id, login_pin_hash) VALUES ($1,$2,$3,$4)",
+        [phone, pharmacyId, user.id, hashes.get(phone) ?? null],
+      );
       await client.query("RELEASE SAVEPOINT staff_phone");
     } catch (err) {
       await client.query("ROLLBACK TO SAVEPOINT staff_phone");
@@ -224,8 +257,11 @@ export async function readSession(token: string | undefined): Promise<SessionRow
   if (!token) return null;
   await migrate();
   const { rows } = await getPool().query(
-    `SELECT s.token, s.pharmacy_id, s.user_id, s.phone, s.pricing_unlocked, s.impersonator, s.expires_at, p.pricing_pin, p.business_type
-     FROM sessions s JOIN pharmacies p ON p.id = s.pharmacy_id WHERE s.token = $1`,
+    `SELECT s.token, s.pharmacy_id, s.user_id, s.phone, s.pricing_unlocked, s.impersonator, s.expires_at, p.pricing_pin, p.business_type,
+            (sp.login_pin_hash IS NOT NULL) AS has_pin
+     FROM sessions s JOIN pharmacies p ON p.id = s.pharmacy_id
+     LEFT JOIN staff_phones sp ON sp.pharmacy_id = s.pharmacy_id AND sp.phone = s.phone
+     WHERE s.token = $1`,
     [token],
   );
   const row = rows[0];
@@ -233,6 +269,7 @@ export async function readSession(token: string | undefined): Promise<SessionRow
   return {
     token: row.token, pharmacyId: row.pharmacy_id, userId: row.user_id, phone: row.phone,
     pricingUnlocked: row.pricing_unlocked, impersonator: (row.impersonator as string) || null, pricingPin: row.pricing_pin, businessType: row.business_type, expiresAt: row.expires_at,
+    hasPin: Boolean(row.has_pin),
   };
 }
 

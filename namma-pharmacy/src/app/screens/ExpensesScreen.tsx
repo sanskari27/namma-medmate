@@ -68,7 +68,7 @@ export default function ExpensesScreen() {
                   <td><span className="pd-pill pill-gray">{e.category}</span></td>
                   <td>{PAY_LABEL[e.paymentMode]}</td>
                   <td className="num" style={{ fontWeight: 800 }}>{inr(e.amount)}</td>
-                  <td className="num"><button className="pd-icon-btn" title="Delete" onClick={() => removeExpense(e.id)}><IconX size={14} /></button></td>
+                  <td className="num" />
                 </tr>
               ))}
               {rows.length === 0 && <tr><td colSpan={7}><div className="pd-empty"><div className="em"><IconReceipt size={28} /></div><p>No expenses match the current filter.</p></div></td></tr>}

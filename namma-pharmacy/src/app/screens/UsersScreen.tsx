@@ -94,7 +94,6 @@ export default function UsersScreen() {
                       <div className="pd-rowacts">
                         <button className="pd-iconbtn" title="Manage access" onClick={() => setEditing(u)}><IconEdit size={15} /></button>
                         <button className="pd-iconbtn" title="Share credentials" disabled={!u.username} onClick={() => setShare(u)}><IconShare size={15} /></button>
-                        {u.role !== "Owner" && <button className="pd-iconbtn" title="Remove" onClick={() => removeUser(u.id)}><IconTrash size={15} /></button>}
                       </div>
                     </td>
                   </tr>

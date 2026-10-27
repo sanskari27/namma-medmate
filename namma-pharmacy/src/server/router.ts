@@ -9,8 +9,8 @@ import { buildInvoicePdf } from "../app/lib/pdf";
 import { fromPaise, reportToPaise, toPaise } from "../app/lib/paise";
 import { cognitoConfigured, sendCognitoOtp, verifyCognitoOtp } from "./auth";
 import {
-  createSession, destroySession, e164, findLogin, insertPharmacy, loadState, readSession,
-  replaceState, requestHash, saveChallenge, setUnlocked, takeChallenge, withIdempotent, withState, type SessionRow,
+  createSession, destroySession, e164, findLogin, insertPharmacy, loadState, loginPinMatches, readSession,
+  replaceState, requestHash, saveChallenge, setLoginPin, setUnlocked, takeChallenge, withIdempotent, withState, type SessionRow,
 } from "./db";
 import { ApiError } from "./errors";
 import { expandFiles, readFile } from "./files";
@@ -109,6 +109,7 @@ export function sessionView(state: PharmacyState, session: SessionRow) {
     tickets: state.tickets,
     referrals: state.referrals || [],
     impersonator: session.impersonator,
+    needsPin: !session.hasPin && !session.impersonator,
     wards: hospital("wards", state.wards, []),
     admissions: hospital("wards", state.admissions, []),
     wardIndents: hospital("indents", state.wardIndents, []),
@@ -156,6 +157,7 @@ const specs: Spec[] = [
   { method: "POST", path: "/setup/wipe", write: true, run: (c) => m.wipeData(c.state) },
   { method: "GET", path: "/inventory", run: (c) => c.state.inventory },
   { method: "POST", path: "/inventory/products", write: true, run: (c) => m.addProduct(c.state, c.body as never) },
+  { method: "POST", path: "/inventory/import", write: true, run: (c) => m.importProducts(c.state, (c.body.products as never) || []) },
   { method: "PATCH", path: "/inventory/products/:id", write: true, run: (c) => m.updateProduct(c.state, c.params.id, c.body) },
   { method: "POST", path: "/inventory/products/:id/batches", write: true, run: (c) => m.addBatch(c.state, c.params.id, c.body as never) },
   { method: "PATCH", path: "/inventory/products/:id/batches/:batchNo", write: true, idem: true, run: (c) => m.setBatchQty(c.state, c.params.id, c.params.batchNo, Number(c.body.qty)) },
@@ -184,6 +186,7 @@ const specs: Spec[] = [
   { method: "POST", path: "/supply-list/:id/preferred", write: true, plan: "distributors", run: (c) => m.setPreferredSupply(c.state, c.params.id) },
   { method: "GET", path: "/purchase-orders", plan: "reorder", run: (c) => c.state.purchaseOrders },
   { method: "POST", path: "/purchase-orders", write: true, plan: "reorder", run: (c) => m.sendPurchaseOrder(c.state, String(c.body.supplierId), String(c.body.supplierName || ""), (c.body.items as never) || [], c.body.note as string | undefined) },
+  { method: "POST", path: "/purchase-orders/import", write: true, plan: "reorder", run: (c) => m.importPurchaseOrders(c.state, (c.body.rows as never) || []) },
   { method: "POST", path: "/purchase-orders/:id/received", write: true, plan: "reorder", run: (c) => m.markPOReceived(c.state, c.params.id) },
   { method: "GET", path: "/sales", run: (c) => { m.requireAnyPlan(c.state, ["sales", "orders"]); return filterSales(c); } },
   { method: "GET", path: "/sales/:id", run: (c) => { m.requireAnyPlan(c.state, ["sales", "orders"]); return c.state.sales.find((s) => s.id === c.params.id) || missing("Sale"); } },
@@ -350,6 +353,7 @@ export async function handle(req: Request): Promise<Response> {
   try {
     const url = new URL(req.url);
     const path = url.pathname.replace(/^\/api\/v1/, "") || "/";
+    if (req.method === "DELETE") throw new ApiError(403, "FORBIDDEN", "Records cannot be deleted");
     if (req.method === "OPTIONS" && path === "/consultations") return withCors(req, new Response(null, { status: 204 }));
     const raw = req.method === "GET" || req.method === "DELETE" ? "" : await req.text();
     const body = raw ? fromPaise(JSON.parse(raw)) as Record<string, unknown> : {};
@@ -361,6 +365,9 @@ export async function handle(req: Request): Promise<Response> {
         return withCors(req, Response.json({ error: { code: "VALIDATION", message } }, { status }));
       }
     }
+    if (req.method === "POST" && path === "/auth/login") return await loginStart(body);
+    if (req.method === "POST" && path === "/auth/pin") return await verifyPin(body);
+    if (req.method === "POST" && path === "/auth/pin/set") return await savePin(req, body);
     if (req.method === "POST" && path === "/auth/otp/send") return await sendOtp(body);
     if (req.method === "POST" && path === "/auth/otp/verify") return await verifyOtp(body);
     if (path.startsWith("/master")) return await masterApi(req, path, url, body);
@@ -409,9 +416,54 @@ export async function handle(req: Request): Promise<Response> {
   }
 }
 
+function pinDigits(raw: unknown) {
+  const pin = String(raw ?? "").replace(/\D/g, "");
+  if (pin.length !== 4) throw new ApiError(400, "VALIDATION", "Enter a 4-digit PIN", "pin");
+  return pin;
+}
+
+async function loginStart(body: Record<string, unknown>) {
+  const phone = e164(String(body.phone || ""));
+  if (phone.replace(/\D/g, "").length < 12) throw new ApiError(400, "VALIDATION", "Enter a 10-digit mobile number", "phone");
+  if (body.portal === "master") return send({ mode: "otp" });
+  const login = await findLogin(phone);
+  return send({ mode: login?.login_pin_hash ? "pin" : "otp" });
+}
+
+async function verifyPin(body: Record<string, unknown>) {
+  const phone = e164(String(body.phone || ""));
+  const pin = pinDigits(body.pin);
+  const login = await findLogin(phone);
+  if (!login?.login_pin_hash || !loginPinMatches(pin, login.login_pin_hash)) throw new ApiError(401, "UNAUTHENTICATED", "Incorrect PIN", "pin");
+  return openPharmacy(phone, login);
+}
+
+async function savePin(req: Request, body: Record<string, unknown>) {
+  const session = await readSession(tokenOf(req));
+  if (!session) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
+  const pin = pinDigits(body.pin);
+  if (pin !== pinDigits(body.confirm)) throw new ApiError(400, "VALIDATION", "PINs do not match", "pin");
+  await setLoginPin(session.pharmacyId, session.phone, pin);
+  return send({ ok: true, needsPin: false });
+}
+
+async function openPharmacy(phone: string, login: { pharmacy_id: string; user_id: string }) {
+  const state = await loadState(login.pharmacy_id);
+  const user = state.users.find((u) => u.id === login.user_id);
+  if (user && user.active === false) throw new ApiError(403, "FORBIDDEN", "This user is inactive");
+  const token = await createSession(login.pharmacy_id, login.user_id, phone);
+  const session = await readSession(token);
+  if (!session) throw new ApiError(500, "VALIDATION", "Could not start a session");
+  return send(sessionView(state, session), 200, token);
+}
+
 async function sendOtp(body: Record<string, unknown>) {
   const phone = e164(String(body.phone || ""));
   if (phone.replace(/\D/g, "").length < 12) throw new ApiError(400, "VALIDATION", "Enter a 10-digit mobile number", "phone");
+  if (body.portal !== "master" && body.purpose !== "reset") {
+    const existing = await findLogin(phone);
+    if (existing?.login_pin_hash) throw new ApiError(403, "FORBIDDEN", "Sign in with your PIN", "pin");
+  }
   if (!cognitoConfigured()) {
     if (!devAuth()) throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
     return send({ delivery: "dev" });
@@ -440,17 +492,12 @@ async function verifyOtp(body: Record<string, unknown>) {
     return send({ portal: "master", phone }, 200, undefined, token);
   }
   let login = await findLogin(phone);
+  if (login?.login_pin_hash && body.purpose !== "reset") throw new ApiError(403, "FORBIDDEN", "Sign in with your PIN", "pin");
   if (!login) {
     const created = await ownerState(phone, body.name as string | undefined, businessType);
-    login = { pharmacy_id: created.id, user_id: "u1" };
+    login = { pharmacy_id: created.id, user_id: "u1", login_pin_hash: null };
   }
-  const state = await loadState(login.pharmacy_id);
-  const user = state.users.find((u) => u.id === login!.user_id);
-  if (user && user.active === false) throw new ApiError(403, "FORBIDDEN", "This user is inactive");
-  const token = await createSession(login.pharmacy_id, login.user_id, phone);
-  const session = await readSession(token);
-  if (!session) throw new ApiError(500, "VALIDATION", "Could not start a session");
-  return send(sessionView(state, session), 200, token);
+  return openPharmacy(phone, login);
 }
 
 async function masterApi(req: Request, path: string, url: URL, body: Record<string, unknown>) {

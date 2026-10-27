@@ -5,7 +5,7 @@ import {
   PharmacyProfile, BizDetail, INDIAN_STATES,
   PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, isValidGstin,
 } from "../data";
-import { IconCheck, IconPlus, IconTrash, IconUpload, IconX, IconDot, IconSettings } from "../components/Icon";
+import { IconCheck, IconPlus, IconUpload, IconX, IconDot, IconSettings } from "../components/Icon";
 
 export default function SettingsScreen() {
   const { profile, updateProfile, invoiceSettings, updateInvoiceSettings, toggleStoreOpen, startSetup, suppliers, go, toast, showFault } = usePharma();
@@ -33,7 +33,6 @@ export default function SettingsScreen() {
   };
   const toggleType = (t: string) => set({ businessTypes: f.businessTypes.includes(t) ? f.businessTypes.filter((x) => x !== t) : [...f.businessTypes, t] });
   const addDetail = () => { if (!nd.label.trim() || !nd.value.trim()) return; set({ extraDetails: [...f.extraDetails, nd] }); setNd({ label: "", value: "" }); };
-  const removeDetail = (i: number) => set({ extraDetails: f.extraDetails.filter((_, idx) => idx !== i) });
 
   return (
     <div className="pd-canvas-wide">
@@ -155,7 +154,6 @@ export default function SettingsScreen() {
                 {f.extraDetails.map((d, i) => (
                   <div className="pd-flex" key={i} style={{ justifyContent: "space-between", padding: "9px 0", borderTop: "1px solid var(--line)" }}>
                     <div><div style={{ fontWeight: 700, fontSize: 13 }}>{d.label}</div><div className="pd-muted" style={{ fontSize: 12.5 }}>{d.value}</div></div>
-                    <button className="pd-iconbtn" onClick={() => removeDetail(i)} title="Remove"><IconTrash size={15} /></button>
                   </div>
                 ))}
               </div>

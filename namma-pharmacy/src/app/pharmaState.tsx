@@ -1,7 +1,7 @@
 "use client";
 import { createContext, useContext, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  InvProduct, Sale, SaleItem, Prescription, Offer, OfferType, directOfferId, PharmacyProfile, Batch, BankAccount,
+  InvProduct, Sale, SaleItem, Prescription, Offer, OfferType, PharmacyProfile, Batch, BankAccount,
   Purchase, PurchaseItem, DosageForm, Schedule,
   PayMode, PAY_LABEL, Channel, OrderStatus, ONLINE_FLOW, SaleSource,
   Rider, packComplete,
@@ -25,7 +25,7 @@ import {
   Ward, WardIndent, IndentStatus, Department, TpaClaim, ClaimStatus, DoctorProfile, Admission,
 } from "./lib/hospital";
 import { api, ApiError } from "./lib/api";
-import { SignOutDialog } from "./components/SignOutDialog";
+import { SaveConfirm, SignOutDialog } from "./components/SignOutDialog";
 import { faultOf, SaveFault } from "./lib/formFault";
 import {
   HospitalAccount, WardSupply, WardSupplyItem, HospitalPayment, creditPriceOf, PriceRule,
@@ -79,6 +79,7 @@ type Snapshot = {
   tickets: { id: string; subject: string; category: string; status: "Open" | "Resolved"; createdAt: number }[];
   referrals: Referral[];
   impersonator?: string | null;
+  needsPin?: boolean;
   wards: Ward[];
   admissions: Admission[];
   wardIndents: WardIndent[];
@@ -119,7 +120,11 @@ type Ctx = {
   signedIn: boolean;
   businessType: BusinessType;
   isHospital: boolean;
-  signIn: (bt: BusinessType, name?: string, phone?: string, code?: string) => Promise<void>;
+  signIn: (bt: BusinessType, name?: string, phone?: string, code?: string, purpose?: "reset") => Promise<void>;
+  signInWithPin: (phone: string, pin: string) => Promise<void>;
+  setLoginPin: (pin: string, confirm: string) => Promise<void>;
+  needsPin: boolean;
+  pinReset: boolean;
   signOut: () => void;
   impersonator: string | null;
   // hospital-pharmacy modules
@@ -189,6 +194,7 @@ type Ctx = {
   now: number;
   // inventory ops
   addProduct: (p: InvProduct) => void;
+  importMedicines: (products: InvProduct[]) => Promise<{ added: number; skipped: string[] } | null>;
   updateProduct: (id: string, patch: Partial<InvProduct>) => Promise<SaveFault | null>;
   // rack / bin locations
   racks: string[];
@@ -289,6 +295,7 @@ type Ctx = {
   // purchase orders (reorder → distributor)
   purchaseOrders: PurchaseOrder[];
   sendPurchaseOrder: (supplierId: string, supplierName: string, items: POItem[], note?: string) => void;
+  importPurchaseOrders: (rows: { supplierName: string; productName: string; qty: number; note?: string }[]) => Promise<{ created: number; skipped: string[] } | null>;
   markPOReceived: (id: string) => void;
   setProductSupplier: (id: string, supplierId: string) => void;
   // distributors / suppliers
@@ -362,6 +369,9 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const now = nowRef.current;
 
   const [signedIn, setSignedIn] = useState(false);
+  const [needsPin, setNeedsPin] = useState(false);
+  const [pinReset, setPinReset] = useState(false);
+  const [saveAsk, setSaveAsk] = useState<{ title: string; body: string; resolve: (yes: boolean) => void } | null>(null);
   const [leaveOpen, setLeaveOpen] = useState(false);
   const [impersonator, setImpersonator] = useState<string | null>(null);
   const [businessType, setBusinessType] = useState<BusinessType>("pharmacy");
@@ -497,6 +507,12 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const profileRef = useRef(profile);
   const invoiceRef = useRef(invoiceSettings);
   const kioskRef = useRef(kiosk);
+  const invoiceSaved = useRef(invoiceSettings);
+  const kioskSaved = useRef(kiosk);
+  const invoiceTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const kioskTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const saveQueue = useRef(Promise.resolve());
+  const saveCancelled = useRef(false);
   pricingRef.current = pricingUnlocked;
   profileRef.current = profile;
   invoiceRef.current = invoiceSettings;
@@ -527,6 +543,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setSuppliers(session.suppliers); setSupplyList(session.supplyList); setPurchaseOrders(session.purchaseOrders);
       setExpenses(session.expenses); setExpenseCategories(session.expenseCategories); setEmployees(session.employees); setUsers(session.users);
       setBankAccount(session.bankAccount); setAdvisors(session.advisors); setCrm(session.crm); setTickets(session.tickets); setReferrals(session.referrals || []);
+      invoiceSaved.current = session.invoiceSettings; kioskSaved.current = session.kiosk; setNeedsPin(Boolean(session.needsPin));
       if (session.businessType === "hospital") {
         setWards(session.wards || []); setAdmissions(session.admissions || []); setWardIndents(session.wardIndents || []);
         setDoctors(session.doctors || []); setHospitalAccount(session.hospitalAccount ?? BLANK_HOSPITAL); setDepartments(session.departments || []);
@@ -557,26 +574,55 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     setFormFault(fault);
   };
   const clearFault = () => { faultRef.current = null; setFormFault(null); };
+  const askSave = (kind: "save" | "edit") => {
+    const job = saveQueue.current.then(() => new Promise<boolean>((resolve) => {
+      setSaveAsk({
+        title: kind === "edit" ? "Save these changes?" : "Save this?",
+        body: "Nothing already stored will be deleted.",
+        resolve,
+      });
+    }));
+    saveQueue.current = job.then(() => undefined, () => undefined);
+    return job;
+  };
   const post = (path: string, method: string, body?: unknown, opts?: { idem?: boolean; pull?: boolean }) => {
     if (!signedRef.current) { showFault("Sign in required"); return Promise.resolve(null); }
-    return api(path, { method, body, idempotency: opts?.idem, pricing: pricingRef.current }).then(async (result) => {
-      if (opts?.pull) await refresh();
-      clearFault();
-      return result;
-    }).catch((err) => {
-      showFault(err);
-      void refresh();
-      return null;
-    });
+    const quietWrite = /\/packing\/(scan|pick)$/.test(path) || path === "/crm/reminders";
+    return (async () => {
+      if (method === "DELETE" || path === "/setup/wipe") { toast("Records cannot be deleted"); return null; }
+      if (!quietWrite && (method === "POST" || method === "PATCH" || method === "PUT")) {
+        const yes = await askSave(method === "POST" ? "save" : "edit");
+        if (!yes) { saveCancelled.current = true; return null; }
+      }
+      try {
+        const result = await api(path, { method, body, idempotency: opts?.idem, pricing: pricingRef.current });
+        if (opts?.pull) await refresh();
+        clearFault();
+        return result;
+      } catch (err) {
+        showFault(err);
+        void refresh();
+        return null;
+      }
+    })();
   };
+  const whenSaved = (work: Promise<unknown>, apply: () => void) => { void work.then((res) => { if (res != null) apply(); }); };
   const ok = (res: unknown, done?: () => void): SaveFault | null => {
-    if (res == null) return faultRef.current ?? { message: "Save failed" };
+    if (res == null) {
+      if (saveCancelled.current) { saveCancelled.current = false; return { message: "Save cancelled" }; }
+      return faultRef.current ?? { message: "Save failed" };
+    }
     done?.();
     return null;
   };
 
   // ── inventory ops ──
-  const addProduct = (p: InvProduct) => { void post("/inventory/products", "POST", p, { pull: true }); setInventory((l) => [p, ...l]); };
+  const addProduct = (p: InvProduct) => { void post("/inventory/products", "POST", p, { pull: true }); };
+  const importMedicines = async (products: InvProduct[]) => {
+    const res = await post("/inventory/import", "POST", { products }, { pull: true }) as { added: number; skipped: string[] } | null;
+    if (res) toast(res.added ? `Imported ${res.added} medicine${res.added === 1 ? "" : "s"}` : "Those medicines are already in the catalogue");
+    return res;
+  };
   const updateProduct = async (id: string, patch: Partial<InvProduct>): Promise<SaveFault | null> => {
     const res = await post(`/inventory/products/${id}`, "PATCH", patch);
     return ok(res, () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, ...patch } : p))));
@@ -593,13 +639,9 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     const res = await post("/racks", "POST", { rack: code }, { pull: true });
     return res == null ? "failed" : "added";
   };
-  const removeRack = (rack: string) => {
-    const code = normalizeRack(rack);
-    void post(`/racks/${encodeURIComponent(code)}`, "DELETE");
-    setRacks((r) => r.filter((x) => x !== code));
-  };
-  const addBatch = (id: string, batch: InvProduct["batches"][number]) => { void post(`/inventory/products/${id}/batches`, "POST", batch, { pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, batches: [...p.batches, batch] } : p))); };
-  const setBatchQty = (id: string, batchNo: string, qty: number) => { void post(`/inventory/products/${id}/batches/${encodeURIComponent(batchNo)}`, "PATCH", { qty }, { idem: true, pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, batches: p.batches.map((b) => (b.batchNo === batchNo ? { ...b, qty: Math.max(0, qty) } : b)) } : p))); };
+  const removeRack = (_rack: string) => { toast("Records cannot be deleted"); };
+  const addBatch = (id: string, batch: InvProduct["batches"][number]) => { void post(`/inventory/products/${id}/batches`, "POST", batch, { pull: true }); };
+  const setBatchQty = (id: string, batchNo: string, qty: number) => { void post(`/inventory/products/${id}/batches/${encodeURIComponent(batchNo)}`, "PATCH", { qty }, { idem: true, pull: true }); };
 
   // ── purchases / goods-inward: enter a distributor bill → stock auto-updates ──
   const receivePurchase = async (draft: { supplierId: string; supplierName: string; invoiceNo: string; invoiceDate: string; items: PurchaseItem[] }): Promise<Purchase | null> => {
@@ -608,13 +650,13 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     toast("Stock updated");
     return res.purchase;
   };
-  const toggleOnline = (id: string) => { void post(`/inventory/products/${id}/online`, "POST", {}, { pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, online: !p.online } : p))); };
-  const toggleLoose = (id: string) => { void post(`/inventory/products/${id}/loose`, "POST", {}, { pull: true }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, looseAllowed: !(p.looseAllowed ?? true) } : p))); };
+  const toggleOnline = (id: string) => { void post(`/inventory/products/${id}/online`, "POST", {}, { pull: true }); };
+  const toggleLoose = (id: string) => { void post(`/inventory/products/${id}/loose`, "POST", {}, { pull: true }); };
   const setOnlinePrice = async (id: string, price: number | undefined): Promise<SaveFault | null> => {
     const res = await post(`/inventory/products/${id}/online-price`, "PATCH", { price });
     return ok(res, () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, onlinePrice: price } : p))));
   };
-  const setProductOffer = (id: string, offerId: string | undefined) => { void post(`/inventory/products/${id}/offer`, "PATCH", { offerId }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, offerId } : p))); };
+  const setProductOffer = (id: string, offerId: string | undefined) => { whenSaved(post(`/inventory/products/${id}/offer`, "PATCH", { offerId }), () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, offerId } : p)))); };
 
   // ── deduct stock FEFO when a sale is made ──
   const deductStock = (lines: { productId: string; qty: number; batchNo: string }[]) => {
@@ -692,6 +734,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
 
   const checkoutPos = async (opts?: { paid?: boolean; ward?: string }): Promise<SaveFault | null> => {
     if (posItems.length === 0) { showFault("Nothing to bill"); return faultRef.current; }
+    if (!(await askSave("save"))) return { message: "Save cancelled" };
     const payload = {
       lines: pos, customer: posCustomer, discount: posDiscount, discountMode: posDiscountMode, payMode: posPay,
       source: posSource, ward: opts?.ward || posWard, insurer: posInsurer, patientId: posPatientId, rxImage: posRxImage, paid: opts?.paid,
@@ -725,7 +768,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   // earliest-expiry in-stock batch (FEFO) for manual picking
   const fefoBatch = (p: InvProduct) => p.batches.filter((b) => b.qty > 0).sort((a, b) => a.expiry.localeCompare(b.expiry))[0];
 
-  const advanceOrder = (id: string) => { void post(`/sales/${id}/advance`, "POST"); setSales((l) => l.map((s) => {
+  const advanceOrder = (id: string) => { const sale = sales.find((s) => s.id === id); whenSaved(post(`/sales/${id}/advance`, "POST"), () => { setSales((l) => l.map((s) => {
       if (s.id !== id || s.channel !== "online") return s;
       const i = ONLINE_FLOW.indexOf(s.status as OrderStatus);
       if (i < 0 || i >= ONLINE_FLOW.length - 1) return s;
@@ -738,21 +781,15 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
         ? { ...(s.fulfillment ?? {}), lines: s.items.map((it) => ({ productId: it.productId, name: it.name, qty: it.qty, scanned: 0 })) }
         : s.fulfillment;
       return { ...s, status: next, fulfillment, history: [...(s.history ?? []), { status: next, at: Date.now() }] };
-    }));
+    })); if (sale?.status === "out") toast(sale.id + " marked delivered"); else if (sale?.status === "new") toast(sale.id + " accepted"); });
   };
-  const cancelOrder = (id: string) => {
-    void post(`/sales/${id}/cancel`, "POST", {}, { idem: true, pull: true });
-    const sale = sales.find((s) => s.id === id);
-    // restock anything already scanned/packed for this order
-    (sale?.fulfillment?.lines ?? []).forEach((ln) => { if (ln.scanned > 0) addBackStock(ln.productId, ln.batchNo, ln.scanned); });
-    setSales((l) => l.map((s) => (s.id === id ? { ...s, status: "cancelled" as OrderStatus, history: [...(s.history ?? []), { status: "cancelled" as OrderStatus, at: Date.now() }] } : s)));
-  };
+  const cancelOrder = (id: string) => { void post(`/sales/${id}/cancel`, "POST", {}, { idem: true, pull: true }); };
 
   // ── online-order fulfilment ──
-  const startPacking = (id: string) => { void post(`/sales/${id}/packing/start`, "POST"); setSales((l) => l.map((s) => {
+  const startPacking = (id: string) => { whenSaved(post(`/sales/${id}/packing/start`, "POST"), () => { setSales((l) => l.map((s) => {
       if (s.id !== id || s.channel !== "online" || s.fulfillment?.lines) return s;
       return { ...s, fulfillment: { ...(s.fulfillment ?? {}), lines: s.items.map((it) => ({ productId: it.productId, name: it.name, qty: it.qty, scanned: 0 })) } };
-    }));
+    })); });
   };
   // scan a barcode/batch while packing → verify it belongs to the order, deduct that batch, tick the line
   const scanPackLine = async (id: string, raw: string) => {
@@ -778,7 +815,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     }
   };
   // seal: all items scanned → write packed batches onto the invoice, generate it, advance to "packed"
-  const sealPacket = (id: string) => { void post(`/sales/${id}/packing/seal`, "POST"); return setSales((l) => l.map((s) => {
+  const sealPacket = (id: string) => { whenSaved(post(`/sales/${id}/packing/seal`, "POST"), () => { setSales((l) => l.map((s) => {
       if (s.id !== id || !packComplete(s)) return s;
       const items = s.items.map((it) => {
         const ln = s.fulfillment!.lines!.find((x) => x.productId === it.productId);
@@ -787,59 +824,52 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
         return { ...it, batchNo: ln.batchNo, expiry: b?.expiry ?? it.expiry };
       });
       return { ...s, items, status: "packed" as OrderStatus, fulfillment: { ...s.fulfillment, sealed: true, sealedAt: Date.now() }, history: [...(s.history ?? []), { status: "packed" as OrderStatus, at: Date.now(), note: "Scanned, invoiced & sealed in a Namma MedMate packet" }] };
-    }));
+    })); toast(id + " sealed"); });
   };
   // hand the sealed packet to the delivery partner → dispatched (out for delivery)
-  const handToRider = (id: string, rider?: Rider) => { void post(`/sales/${id}/handover`, "POST", { rider }); return setSales((l) => l.map((s) => {
+  const handToRider = (id: string, rider?: Rider) => { whenSaved(post(`/sales/${id}/handover`, "POST", { rider }), () => { setSales((l) => l.map((s) => {
       if (s.id !== id || s.status !== "packed") return s;
       const r = rider ?? s.fulfillment?.rider;
       return { ...s, status: "out" as OrderStatus, fulfillment: { ...(s.fulfillment ?? {}), rider: r, handedAt: Date.now() }, history: [...(s.history ?? []), { status: "out" as OrderStatus, at: Date.now(), note: r?.name ? `Handed to delivery partner ${r.name}${r.phone ? ` · ${r.phone}` : ""}` : "Handed to delivery partner" }] };
-    }));
+    })); toast(id + " handed over"); });
   };
   const markPaid = (id: string, payMode: PayMode) => {
-    void post(`/sales/${id}/mark-paid`, "POST", { payMode });
-    setSales((l) => l.map((s) => (s.id === id ? { ...s, paid: true, reception: false, payMode, history: [...(s.history ?? []), { status: s.status, at: Date.now(), note: "Payment received at reception · " + PAY_LABEL[payMode] }] } : s)));
-    toast("Payment recorded for " + id + " · " + PAY_LABEL[payMode]);
+    whenSaved(post(`/sales/${id}/mark-paid`, "POST", { payMode }), () => {
+      setSales((l) => l.map((s) => (s.id === id ? { ...s, paid: true, reception: false, payMode, history: [...(s.history ?? []), { status: s.status, at: Date.now(), note: "Payment received at reception · " + PAY_LABEL[payMode] }] } : s)));
+      toast("Payment recorded for " + id + " · " + PAY_LABEL[payMode]);
+    });
   };
 
   // ── prescriptions ──
   const rxReviewer = () => profile.pharmacist.split(",")[0].trim();
-  const approveRx = (id: string) => { void post(`/prescriptions/${id}/approve`, "POST", {}, { pull: true }); setPrescriptions((l) => l.map((r) => (r.id === id ? { ...r, status: "approved", approvedAt: Date.now(), reviewedBy: rxReviewer() } : r))); };
-  const rejectRx = (id: string, reason?: string) => { void post(`/prescriptions/${id}/reject`, "POST", { reason }, { pull: true }); setPrescriptions((l) => l.map((r) => (r.id === id ? { ...r, status: "rejected", rejectedAt: Date.now(), rejectReason: reason || r.rejectReason, reviewedBy: rxReviewer() } : r))); };
+  const approveRx = (id: string) => { void post(`/prescriptions/${id}/approve`, "POST", {}, { pull: true }); };
+  const rejectRx = (id: string, reason?: string) => { void post(`/prescriptions/${id}/reject`, "POST", { reason }, { pull: true }); };
   const dispenseRx = (id: string) => {
     const rx = prescriptions.find((r) => r.id === id);
-    void post(`/prescriptions/${id}/dispense`, "POST", {}, { pull: true });
     if (!rx) return;
-    setPrescriptions((l) => l.map((r) => (r.id === id ? { ...r, status: "dispensed", dispensedAt: Date.now(), approvedAt: r.approvedAt ?? Date.now(), reviewedBy: rxReviewer() } : r)));
-    // load the Rx items into the POS bill so the pharmacist can bill them
-    setPos(rx.items.map((pid) => ({ productId: pid, qty: 1 })));
-    setPosCustomerState({ ...BLANK_POS_CUSTOMER, name: rx.patient, phone: rx.phone === "—" ? "" : rx.phone, doctor: rx.doctor, rxSource: "doctor" });
-    go("pos");
-    toast("Loaded " + rx.id + " into billing");
+    void post(`/prescriptions/${id}/dispense`, "POST", {}, { pull: true }).then((res) => {
+      if (res == null) return;
+      setPos(rx.items.map((pid) => ({ productId: pid, qty: 1 })));
+      setPosCustomerState({ ...BLANK_POS_CUSTOMER, name: rx.patient, phone: rx.phone === "—" ? "" : rx.phone, doctor: rx.doctor, rxSource: "doctor" });
+      go("pos");
+      toast("Loaded " + rx.id + " into billing");
+    });
   };
 
   // ── offers ──
   const addOffer = async (o: Offer): Promise<SaveFault | null> => ok(await post("/offers", "POST", o, { pull: true }), () => toast(o.title + " launched"));
-  const toggleOffer = (id: string) => { void post(`/offers/${id}/toggle`, "POST", {}, { pull: true }); setOffers((l) => l.map((o) => (o.id === id ? { ...o, active: !o.active } : o))); };
-  const removeOffer = (id: string) => { void post(`/offers/${id}`, "DELETE", undefined, { pull: true }); setOffers((l) => l.filter((o) => o.id !== id)); };
-  // apply / update / clear a direct per-product offer from the online-store page
-  const setDirectOffer = (productId: string, type: OfferType, value: number) => { void post(`/inventory/products/${productId}/direct-offer`, "PUT", { type, value }, { pull: true });
-    const id = directOfferId(productId);
-    if (!value || value <= 0) {
-      setOffers((l) => l.filter((o) => o.id !== id));
-      setInventory((l) => l.map((p) => (p.id === productId && p.offerId === id ? { ...p, offerId: undefined } : p)));
-      return;
-    }
-    const offer: Offer = { id, title: "Direct offer", code: "DIRECT", type, value, scope: "product", target: productId, online: true, active: true };
-    setOffers((l) => (l.some((o) => o.id === id) ? l.map((o) => (o.id === id ? offer : o)) : [offer, ...l]));
-    setInventory((l) => l.map((p) => (p.id === productId ? { ...p, offerId: id } : p)));
+  const toggleOffer = (id: string) => { void post(`/offers/${id}/toggle`, "POST", {}, { pull: true }); };
+  const removeOffer = (_id: string) => { toast("Records cannot be deleted"); };
+  const setDirectOffer = (productId: string, type: OfferType, value: number) => {
+    if (!value || value <= 0) { toast("Records cannot be deleted"); return; }
+    void post(`/inventory/products/${productId}/direct-offer`, "PUT", { type, value }, { pull: true });
   };
 
   // ── staff / users ──
   const addUser = async (u: Omit<StaffUser, "id" | "lastActiveMins">): Promise<SaveFault | null> => ok(await post("/users", "POST", u, { pull: true }), () => toast(u.name + " added"));
   const updateUser = async (id: string, patch: Partial<StaffUser>): Promise<SaveFault | null> => ok(await post(`/users/${id}`, "PATCH", patch), () => setUsers((l) => l.map((u) => (u.id === id ? { ...u, ...patch } : u))));
-  const toggleUser = (id: string) => { const user = users.find((u) => u.id === id); if (user) void post(`/users/${id}`, "PATCH", { active: !user.active }); setUsers((l) => l.map((u) => (u.id === id ? { ...u, active: !u.active } : u))); };
-  const removeUser = (id: string) => { void post(`/users/${id}`, "DELETE"); setUsers((l) => l.filter((u) => u.id !== id)); };
+  const toggleUser = (id: string) => { const user = users.find((u) => u.id === id); if (user) whenSaved(post(`/users/${id}`, "PATCH", { active: !user.active }), () => setUsers((l) => l.map((u) => (u.id === id ? { ...u, active: !u.active } : u)))); };
+  const removeUser = (_id: string) => { toast("Records cannot be deleted"); };
 
   // ── subscription ──
   const requestPlan = async (plan: Plan, cycle: BillingCycle, kind: "plan" | "renewal" = "plan"): Promise<SaveFault | null> => ok(await post("/subscription/requests", "POST", { plan, cycle, kind }, { pull: true }), () => {
@@ -853,9 +883,22 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const updateInvoiceSettings = (patch: Partial<InvoiceSettings>) => { setInvoiceSettings((s) => { const next = { ...s, ...patch }; invoiceRef.current = next; return next; }); quiet.current = true; window.setTimeout(() => { quiet.current = false; void post("/settings/invoice", "PATCH", invoiceRef.current); }, 400); };
 
   // ── kiosk ──
-  const updateKiosk = (patch: Partial<KioskConfig>) => { setKiosk((k) => { const next = { ...k, ...patch }; kioskRef.current = next; return next; }); quiet.current = true; window.setTimeout(() => { quiet.current = false; void post("/settings/kiosk", "PATCH", kioskRef.current); }, 400); };
+  const updateKiosk = (patch: Partial<KioskConfig>) => {
+    setKiosk((k) => { const next = { ...k, ...patch }; kioskRef.current = next; return next; });
+    quiet.current = true;
+    if (kioskTimer.current) clearTimeout(kioskTimer.current);
+    kioskTimer.current = setTimeout(() => {
+      quiet.current = false;
+      const next = kioskRef.current;
+      void post("/settings/kiosk", "PATCH", next).then((res) => {
+        if (res == null) { kioskRef.current = kioskSaved.current; setKiosk(kioskSaved.current); return; }
+        kioskSaved.current = next;
+      });
+    }, 400);
+  };
   const placeKioskOrder = async (linesIn: { productId: string; qty: number; loose?: boolean }[], pay: PayMode): Promise<Sale | null> => {
     if (!linesIn.length) return null;
+    if (!(await askSave("save"))) return null;
     try {
       const res = await api<{ sale: Sale; inventory: InvProduct[] }>("/kiosk/orders", { method: "POST", body: { lines: linesIn, payMode: pay }, idempotency: true });
       setInventory(res.inventory);
@@ -871,33 +914,34 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   // ── CA report sharing ──
   const addAdvisor = async (a: Omit<Advisor, "id">): Promise<SaveFault | null> => ok(await post("/advisors", "POST", a, { pull: true }), () => toast(a.type + " " + a.name + " added"));
   const updateAdvisor = async (id: string, patch: Partial<Advisor>): Promise<SaveFault | null> => ok(await post(`/advisors/${id}`, "PATCH", patch), () => setAdvisors((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a))));
-  const removeAdvisor = (id: string) => { void post(`/advisors/${id}`, "DELETE"); setAdvisors((l) => l.filter((a) => a.id !== id)); };
-  const shareWithCA = (period: string, reports: string[], advisorId: string) => { void post("/ca/shares", "POST", { period, reports, advisorId }, { pull: true });
+  const removeAdvisor = (_id: string) => { toast("Records cannot be deleted"); };
+  const shareWithCA = (period: string, reports: string[], advisorId: string) => {
     const adv = advisors.find((a) => a.id === advisorId) ?? advisors[0];
     if (!adv) return;
-    caSeq.current += 1;
-    setCaShares((l) => [{ id: "CA-" + caSeq.current, period, reports, sentTo: adv.email, recipient: adv.name, createdAt: Date.now() }, ...l]);
-    toast("Reports shared with " + adv.name);
+    void post("/ca/shares", "POST", { period, reports, advisorId }, { pull: true }).then((res) => { if (res) toast("Reports shared with " + adv.name); });
   };
 
   // ── purchase orders (reorder → distributor) ──
-  const sendPurchaseOrder = (supplierId: string, supplierName: string, items: POItem[], note?: string) => { void post("/purchase-orders", "POST", { supplierId, supplierName, items, note }, { pull: true });
+  const sendPurchaseOrder = (supplierId: string, supplierName: string, items: POItem[], note?: string) => {
     if (items.length === 0) return;
-    poSeq.current += 1;
-    setPurchaseOrders((l) => [{ id: "PO-" + poSeq.current, supplierId, supplierName, items, status: "sent", note, createdAt: Date.now() }, ...l]);
-    toast("Purchase order sent to " + supplierName);
+    void post("/purchase-orders", "POST", { supplierId, supplierName, items, note }, { pull: true }).then((res) => { if (res) toast("Purchase order sent to " + supplierName); });
   };
-  const markPOReceived = (id: string) => { void post(`/purchase-orders/${id}/received`, "POST"); setPurchaseOrders((l) => l.map((p) => (p.id === id ? { ...p, status: "received" } : p))); };
-  const setProductSupplier = (id: string, supplierId: string) => { void post(`/inventory/products/${id}/supplier`, "PATCH", { supplierId }); setInventory((l) => l.map((p) => (p.id === id ? { ...p, supplierId } : p))); };
+  const importPurchaseOrders = async (rows: { supplierName: string; productName: string; qty: number; note?: string }[]) => {
+    const res = await post("/purchase-orders/import", "POST", { rows }, { pull: true }) as { created: number; skipped: string[] } | null;
+    if (res) toast(`Created ${res.created} purchase order${res.created === 1 ? "" : "s"}`);
+    return res;
+  };
+  const markPOReceived = (id: string) => { whenSaved(post(`/purchase-orders/${id}/received`, "POST"), () => setPurchaseOrders((l) => l.map((p) => (p.id === id ? { ...p, status: "received" } : p)))); };
+  const setProductSupplier = (id: string, supplierId: string) => { whenSaved(post(`/inventory/products/${id}/supplier`, "PATCH", { supplierId }), () => setInventory((l) => l.map((p) => (p.id === id ? { ...p, supplierId } : p)))); };
   // ── expenses ──
   const addExpense = async (e: Omit<Expense, "id" | "number">): Promise<SaveFault | null> => ok(await post("/expenses", "POST", e, { pull: true }), () => toast("Expense recorded · ₹" + Math.round(e.amount).toLocaleString("en-IN")));
-  const updateExpense = (id: string, patch: Partial<Expense>) => { void post(`/expenses/${id}`, "PATCH", patch); setExpenses((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e))); };
-  const removeExpense = (id: string) => { void post(`/expenses/${id}`, "DELETE"); setExpenses((l) => l.filter((e) => e.id !== id)); toast("Expense deleted"); };
-  const addExpenseCategory = (name: string) => { const n = name.trim(); if (n && !expenseCategories.includes(n)) { void post("/expense-categories", "POST", { name: n }); setExpenseCategories((c) => [...c, n]); toast("Category added"); } };
+  const updateExpense = (id: string, patch: Partial<Expense>) => { whenSaved(post(`/expenses/${id}`, "PATCH", patch), () => setExpenses((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e)))); };
+  const removeExpense = (_id: string) => { toast("Records cannot be deleted"); };
+  const addExpenseCategory = (name: string) => { const n = name.trim(); if (n && !expenseCategories.includes(n)) whenSaved(post("/expense-categories", "POST", { name: n }), () => { setExpenseCategories((c) => [...c, n]); toast("Category added"); }); };
   // ── employees (HR records) ──
   const addEmployee = async (e: Omit<Employee, "id">): Promise<SaveFault | null> => ok(await post("/employees", "POST", e, { pull: true }), () => toast(e.name + " added"));
   const updateEmployee = async (id: string, patch: Partial<Employee>): Promise<SaveFault | null> => ok(await post(`/employees/${id}`, "PATCH", patch), () => setEmployees((l) => l.map((e) => (e.id === id ? { ...e, ...patch } : e))));
-  const removeEmployee = (id: string) => { void post(`/employees/${id}`, "DELETE"); setEmployees((l) => l.filter((e) => e.id !== id)); toast("Employee removed"); };
+  const removeEmployee = (_id: string) => { toast("Records cannot be deleted"); };
   // ── customer credit (khata) repayments ──
   const recordCreditPayment = async (p: { custKey: string; custName: string; custPhone: string; amount: number; mode: PayMode; note?: string }): Promise<SaveFault | null> => {
     if (p.amount <= 0) { showFault("Amount must be positive"); return faultRef.current; }
@@ -909,93 +953,95 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const addCampaign = async (c: Omit<Campaign, "id" | "sentAt">): Promise<SaveFault | null> => ok(await post("/crm/campaigns", "POST", c, { pull: true }), () => toast("Campaign saved"));
   const addFeedback = async (f: Omit<Feedback, "id" | "at">): Promise<SaveFault | null> => ok(await post("/crm/feedback", "POST", f, { pull: true }), () => toast("Feedback saved"));
   const logReminder = (r: Omit<ReminderLog, "id" | "at">) => { void post("/crm/reminders", "POST", r, { pull: true }); setCrm((s) => ({ ...s, reminders: [{ ...r, id: crmId("RM"), at: Date.now() }, ...s.reminders] })); };
-  const redeemPoints = (custKey: string, custName: string, points: number) => { if (points <= 0) return; void post("/crm/redemptions", "POST", { custKey, custName, points }, { pull: true }); setCrm((s) => ({ ...s, redemptions: [{ id: crmId("RD"), custKey, custName, points, value: points, at: Date.now() }, ...s.redemptions] })); toast(`Redeemed ${points} pts · ₹${points} off`); };
+  const redeemPoints = (custKey: string, custName: string, points: number) => { if (points <= 0) return; void post("/crm/redemptions", "POST", { custKey, custName, points }, { pull: true }).then((res) => { if (res) toast(`Redeemed ${points} pts · ₹${points} off`); }); };
   // ── distributors / suppliers ──
   const addSupplier = async (s: Omit<Supplier, "id">): Promise<SaveFault | null> => ok(await post("/suppliers", "POST", s, { pull: true }), () => toast(s.name + " added"));
   const updateSupplier = async (id: string, patch: Partial<Supplier>): Promise<SaveFault | null> => ok(await post(`/suppliers/${id}`, "PATCH", patch), () => setSuppliers((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))));
-  const removeSupplier = (id: string) => { void post(`/suppliers/${id}`, "DELETE", undefined, { pull: true });
-    setSuppliers((l) => l.filter((s) => s.id !== id));
-    setSupplyList((l) => l.filter((e) => e.supplierId !== id)); // drop its supply rows too
-  };
+  const removeSupplier = (_id: string) => { toast("Records cannot be deleted"); };
   // ── distributor supply list ──
   const addSupply = async (s: Omit<SupplyEntry, "id">): Promise<SaveFault | null> => ok(await post("/supply-list", "POST", s, { pull: true }), () => toast("Supply item added"));
   const updateSupply = async (id: string, patch: Partial<SupplyEntry>): Promise<SaveFault | null> => ok(await post(`/supply-list/${id}`, "PATCH", patch), () => setSupplyList((l) => l.map((s) => (s.id === id ? { ...s, ...patch } : s))));
-  const removeSupply = (id: string) => { void post(`/supply-list/${id}`, "DELETE"); setSupplyList((l) => l.filter((s) => s.id !== id)); };
-  const setPreferredSupply = (id: string) => { void post(`/supply-list/${id}/preferred`, "POST"); return setSupplyList((l) => {
+  const removeSupply = (_id: string) => { toast("Records cannot be deleted"); };
+  const setPreferredSupply = (id: string) => { whenSaved(post(`/supply-list/${id}/preferred`, "POST"), () => setSupplyList((l) => {
     const target = l.find((s) => s.id === id);
     if (!target) return l;
     return l.map((s) => s.productId === target.productId ? { ...s, preferred: s.id === id } : s);
-  });
+  }));
   };
 
   // ── settings ──
-  const profileWait = useRef<((fault: SaveFault | null) => void)[]>([]);
-  const profileTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-  const updateProfile = (patch: Partial<PharmacyProfile>): Promise<SaveFault | null> => {
-    setProfile((p) => { const next = { ...p, ...patch }; profileRef.current = next; return next; });
+  const updateProfile = async (patch: Partial<PharmacyProfile>): Promise<SaveFault | null> => {
+    const next = { ...profileRef.current, ...patch };
     quiet.current = true;
-    return new Promise((resolve) => {
-      profileWait.current.push(resolve);
-      if (profileTimer.current) clearTimeout(profileTimer.current);
-      profileTimer.current = setTimeout(() => {
-        quiet.current = false;
-        const waiters = profileWait.current;
-        profileWait.current = [];
-        void post("/pharmacy/profile", "PATCH", profileRef.current).then((res) => {
-          const fault = ok(res);
-          waiters.forEach((fn) => fn(fault));
-        });
-      }, 400);
-    });
+    const res = await post("/pharmacy/profile", "PATCH", next);
+    quiet.current = false;
+    return ok(res, () => { profileRef.current = next; setProfile(next); });
   };
   // ── payout bank account ──
   const saveBankAccount = async (b: Omit<BankAccount, "verified" | "addedOn">): Promise<SaveFault | null> => ok(await post("/bank-account", "PUT", b), () => {
     setBankAccount({ ...b, verified: false, addedOn: todayISO() });
     toast("Bank account saved — verification pending");
   });
-  const verifyBankAccount = () => { void post("/bank-account/verify", "POST"); setBankAccount((b) => (b ? { ...b, verified: true } : b)); toast("Bank account verified"); };
-  const removeBankAccount = () => { void post("/bank-account", "DELETE"); setBankAccount(null); toast("Bank account removed"); };
+  const verifyBankAccount = () => { whenSaved(post("/bank-account/verify", "POST"), () => { setBankAccount((b) => (b ? { ...b, verified: true } : b)); toast("Bank account verified"); }); };
+  const removeBankAccount = () => { toast("Records cannot be deleted"); };
   // ── store setup wizard ──
   const startSetup = () => { holdSetup.current = true; setSetupComplete(false); go("dashboard"); };
-  const completeSetup = () => { holdSetup.current = false; setSetupComplete(true); void post("/setup/complete", "POST"); toast("Store setup complete"); };
-  const wipeData = () => { void post("/setup/wipe", "POST", undefined, { pull: true }); setInventory([]); setSales([]); setPrescriptions([]); setPurchases([]); setPurchaseOrders([]); setOffers([]); setCaShares([]); setSupplyList([]); };
-  const setLooseDefault = (allowed: boolean) => { void post("/inventory/loose-default", "POST", { allowed }, { pull: true }); setInventory((l) => l.map((p) => (p.form === "Tablet" || p.form === "Capsule") ? { ...p, looseAllowed: allowed } : p)); };
-  const toggleStoreOpen = () => { void post("/pharmacy/store-open", "POST"); setProfile((p) => ({ ...p, storeOpen: !p.storeOpen })); };
+  const completeSetup = () => { whenSaved(post("/setup/complete", "POST"), () => { holdSetup.current = false; setSetupComplete(true); toast("Store setup complete"); }); };
+  const wipeData = () => { toast("Records cannot be deleted"); };
+  const setLooseDefault = (allowed: boolean) => { void post("/inventory/loose-default", "POST", { allowed }, { pull: true }); };
+  const toggleStoreOpen = () => { whenSaved(post("/pharmacy/store-open", "POST"), () => setProfile((p) => ({ ...p, storeOpen: !p.storeOpen }))); };
 
   // ── auth / onboarding ──
-  const signIn = async (bt: BusinessType, name?: string, phone?: string, code?: string) => {
+  const signIn = async (bt: BusinessType, name?: string, phone?: string, code?: string, purpose?: "reset") => {
     if (!phone || !code) return;
-    await api("/auth/otp/verify", { method: "POST", body: { phone, code, businessType: bt, name } });
+    await api("/auth/otp/verify", { method: "POST", body: { phone, code, businessType: bt, name, purpose } });
+    clearFault();
+    if (purpose === "reset") setPinReset(true);
+    await refresh();
+    resetNav("dashboard");
+    if (purpose !== "reset") toast("Welcome back");
+  };
+  const signInWithPin = async (phone: string, pin: string) => {
+    await api("/auth/pin", { method: "POST", body: { phone, pin } });
+    clearFault();
+    setPinReset(false);
     await refresh();
     resetNav("dashboard");
     toast("Welcome back");
   };
+  const setLoginPin = async (pin: string, confirmPin: string) => {
+    if (!(await askSave("save"))) return;
+    await api("/auth/pin/set", { method: "POST", body: { pin, confirm: confirmPin } });
+    setPinReset(false);
+    setNeedsPin(false);
+    toast("PIN saved");
+  };
   const signOut = () => setLeaveOpen(true);
   const finishSignOut = () => {
     setLeaveOpen(false);
+    setNeedsPin(false);
+    setPinReset(false);
     void api("/auth/sign-out", { method: "POST" }).catch(() => undefined);
     signedRef.current = false; setSignedIn(false); setImpersonator(null); resetNav("dashboard");
   };
 
   // ── hospital modules ──
   const setIndentStatus = (id: string, status: IndentStatus) => {
-    void post(`/hospital/indents/${id}`, "PATCH", { status });
-    setWardIndents((l) => l.map((x) => (x.id === id ? { ...x, status, items: status === "issued" ? x.items.map((it) => ({ ...it, issued: it.qty })) : x.items } : x)));
-    toast(status === "issued" ? "Indent issued · stock dispatched to ward" : status === "approved" ? "Indent approved" : status === "rejected" ? "Indent rejected" : "Indent updated");
+    whenSaved(post(`/hospital/indents/${id}`, "PATCH", { status }), () => {
+      setWardIndents((l) => l.map((x) => (x.id === id ? { ...x, status, items: status === "issued" ? x.items.map((it) => ({ ...it, issued: it.qty })) : x.items } : x)));
+      toast(status === "issued" ? "Indent issued · stock dispatched to ward" : status === "approved" ? "Indent approved" : status === "rejected" ? "Indent rejected" : "Indent updated");
+    });
   };
   const setClaimStatus = (id: string, status: ClaimStatus, approvedAmount?: number) => {
-    void post(`/hospital/tpa-claims/${id}`, "PATCH", { status, approvedAmount });
-    setTpaClaims((l) => l.map((c) => (c.id === id ? { ...c, status, approvedAmount: approvedAmount ?? c.approvedAmount } : c)));
-    toast("Claim " + id + " · " + status);
+    whenSaved(post(`/hospital/tpa-claims/${id}`, "PATCH", { status, approvedAmount }), () => {
+      setTpaClaims((l) => l.map((c) => (c.id === id ? { ...c, status, approvedAmount: approvedAmount ?? c.approvedAmount } : c)));
+      toast("Claim " + id + " · " + status);
+    });
   };
   // ── wards (hospital setup) ──
   const addWard = async (w: Omit<Ward, "id">): Promise<SaveFault | null> => ok(await post("/hospital/wards", "POST", w, { pull: true }), () => toast(w.name + " added"));
-  const updateWard = (id: string, patch: Partial<Ward>) => { void post(`/hospital/wards/${id}`, "PATCH", patch); setWards((l) => l.map((w) => (w.id === id ? { ...w, ...patch } : w))); };
-  const removeWard = (id: string) => {
-    if (admissions.some((a) => a.wardId === id && a.status === "admitted")) { toast("Discharge patients before removing this ward"); return; }
-    void post(`/hospital/wards/${id}`, "DELETE");
-    setWards((l) => l.filter((w) => w.id !== id)); toast("Ward removed");
-  };
+  const updateWard = (id: string, patch: Partial<Ward>) => { whenSaved(post(`/hospital/wards/${id}`, "PATCH", patch), () => setWards((l) => l.map((w) => (w.id === id ? { ...w, ...patch } : w)))); };
+  const removeWard = (_id: string) => { toast("Records cannot be deleted"); };
 
   // ── IPD admissions ──
   const admitPatient = async (a: Omit<Admission, "id" | "admittedAt" | "status">): Promise<Admission | null> => {
@@ -1004,11 +1050,12 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     toast(`${a.name} admitted · ${a.bed}`);
     return adm;
   };
-  const updateAdmission = (id: string, patch: Partial<Admission>) => { void post(`/hospital/admissions/${id}`, "PATCH", patch); setAdmissions((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a))); };
+  const updateAdmission = (id: string, patch: Partial<Admission>) => { whenSaved(post(`/hospital/admissions/${id}`, "PATCH", patch), () => setAdmissions((l) => l.map((a) => (a.id === id ? { ...a, ...patch } : a)))); };
   const dischargePatient = (id: string) => {
-    void post(`/hospital/admissions/${id}`, "PATCH", { status: "discharged" });
-    setAdmissions((l) => l.map((a) => (a.id === id ? { ...a, status: "discharged", dischargedAt: Date.now() } : a)));
-    toast("Patient discharged · bed freed");
+    whenSaved(post(`/hospital/admissions/${id}`, "PATCH", { status: "discharged" }), () => {
+      setAdmissions((l) => l.map((a) => (a.id === id ? { ...a, status: "discharged", dischargedAt: Date.now() } : a)));
+      toast("Patient discharged · bed freed");
+    });
   };
   // open the billing counter pre-filled for an admitted patient (ward, bed, UHID, insurer)
   const startWardBilling = (a: Admission) => {
@@ -1028,7 +1075,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       else showFault("Enter a valid GSTIN");
       return;
     }
-    void post("/hospital/account", "PATCH", patch); setHospitalAccount((a) => ({ ...a, ...patch }));
+    whenSaved(post("/hospital/account", "PATCH", patch), () => setHospitalAccount((a) => ({ ...a, ...patch })));
   };
   // ── institutional pricing (admin-gated) ──
   const unlockPricing = async (otp: string) => {
@@ -1047,13 +1094,14 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const lockPricing = () => { setPricingUnlocked(false); toast("Pricing locked"); };
   const setUniformDiscount = (pct: number) => {
     if (!pricingUnlocked) { toast("Unlock pricing with admin OTP first"); return; }
-    void post("/hospital/pricing/rules", "PATCH", { discountPct: Math.max(0, Math.min(95, Math.round(pct))) });
-    setHospitalAccount((a) => ({ ...a, discountPct: Math.max(0, Math.min(95, Math.round(pct))) }));
+    const discountPct = Math.max(0, Math.min(95, Math.round(pct)));
+    whenSaved(post("/hospital/pricing/rules", "PATCH", { discountPct }), () => setHospitalAccount((a) => ({ ...a, discountPct })));
   };
   const setHospitalPriceRule = (productId: string, rule: PriceRule | null) => {
     if (!pricingUnlocked) { toast("Unlock pricing with admin OTP first"); return; }
-    void post("/hospital/pricing/rules", "PATCH", { productId, rule });
-    setHospitalPriceRules((m) => { const next = { ...m }; if (!rule || isNaN(rule.value) || rule.value < 0) delete next[productId]; else next[productId] = { mode: rule.mode, value: Math.round(rule.value * 100) / 100 }; return next; });
+    if (!rule || isNaN(rule.value) || rule.value < 0) { toast("Records cannot be deleted"); return; }
+    const saved = { mode: rule.mode, value: Math.round(rule.value * 100) / 100 };
+    whenSaved(post("/hospital/pricing/rules", "PATCH", { productId, rule: saved }), () => setHospitalPriceRules((m) => ({ ...m, [productId]: saved })));
   };
   const supplyTotal = (items: WardSupplyItem[]) => Math.round(items.reduce((a, it) => a + it.amount, 0) * 100) / 100;
   const rupee = (n: number) => "₹" + Math.round(n).toLocaleString("en-IN");
@@ -1100,33 +1148,31 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   const addDoctor = async (d: Omit<DoctorProfile, "id">): Promise<SaveFault | null> => ok(await post("/hospital/doctors", "POST", d, { pull: true }), () => toast(d.name + " added"));
   const addDepartment = async (d: { name: string; head: string; type: Department["type"]; emoji?: string }): Promise<SaveFault | null> => ok(await post("/hospital/departments", "POST", d, { pull: true }), () => toast(d.name + " added"));
   const updateDepartment = async (id: string, patch: Partial<Department>): Promise<SaveFault | null> => ok(await post(`/hospital/departments/${id}`, "PATCH", patch, { pull: true }));
-  const removeDepartment = (id: string) => { void post(`/hospital/departments/${id}`, "DELETE"); setDepartments((l) => l.filter((d) => d.id !== id)); toast("Department removed"); };
+  const removeDepartment = (_id: string) => { toast("Records cannot be deleted"); };
   const addReferral = async (r: { name: string; area?: string }): Promise<SaveFault | null> => ok(await post("/referrals", "POST", r, { pull: true }), () => toast(r.name + " invited"));
-  const updateReferral = (id: string, patch: Partial<Referral>) => { void post(`/referrals/${id}`, "PATCH", patch); setReferrals((l) => l.map((r) => (r.id === id ? { ...r, ...patch } : r))); };
-  const removeReferral = (id: string) => { void post(`/referrals/${id}`, "DELETE"); setReferrals((l) => l.filter((r) => r.id !== id)); toast("Referral removed"); };
+  const updateReferral = (id: string, patch: Partial<Referral>) => { whenSaved(post(`/referrals/${id}`, "PATCH", patch), () => setReferrals((l) => l.map((r) => (r.id === id ? { ...r, ...patch } : r)))); };
+  const removeReferral = (_id: string) => { toast("Records cannot be deleted"); };
   const updateDoctor = async (id: string, patch: Partial<DoctorProfile>): Promise<SaveFault | null> => ok(await post(`/hospital/doctors/${id}`, "PATCH", patch), () => setDoctors((l) => l.map((d) => (d.id === id ? { ...d, ...patch } : d))));
-  const removeDoctor = (id: string) => { void post(`/hospital/doctors/${id}`, "DELETE"); setDoctors((l) => l.filter((d) => d.id !== id)); toast("Doctor removed"); };
+  const removeDoctor = (_id: string) => { toast("Records cannot be deleted"); };
 
-  // settle a set of in-patient bills together (e.g. at discharge) with one payment mode
   const settleBills = (ids: string[], payMode: PayMode) => {
     if (ids.length === 0) return;
-    void post("/sales/settle", "POST", { ids, payMode }, { idem: true, pull: true });
-    const set = new Set(ids);
-    setSales((l) => l.map((s) => (set.has(s.id) ? { ...s, paid: true, reception: false, payMode, history: [...(s.history ?? []), { status: s.status, at: Date.now(), note: "Settled · " + PAY_LABEL[payMode] }] } : s)));
-    toast(`Settled ${ids.length} bill${ids.length !== 1 ? "s" : ""} · ${PAY_LABEL[payMode]}`);
+    void post("/sales/settle", "POST", { ids, payMode }, { idem: true, pull: true }).then((res) => {
+      if (res) toast(`Settled ${ids.length} bill${ids.length !== 1 ? "s" : ""} · ${PAY_LABEL[payMode]}`);
+    });
   };
 
   const raiseTicket = async (subject: string, category: string): Promise<SaveFault | null> => ok(await post("/support/tickets", "POST", { subject, category }, { pull: true }), () => toast("Ticket raised"));
 
   const value: Ctx = {
-    signedIn, businessType, isHospital: businessType === "hospital", signIn, signOut, impersonator,
+    signedIn, businessType, isHospital: businessType === "hospital", signIn, signInWithPin, setLoginPin, needsPin, pinReset, signOut, impersonator,
     wards, addWard, updateWard, removeWard, admissions, admitPatient, updateAdmission, dischargePatient, startWardBilling,
     wardIndents, departments, addDepartment, updateDepartment, removeDepartment, referrals, addReferral, updateReferral, removeReferral, tpaClaims, doctors, addDoctor, updateDoctor, removeDoctor, setIndentStatus, setClaimStatus, settleBills,
     hospitalAccount, updateHospitalAccount, hospitalPriceRules, setUniformDiscount, setHospitalPriceRule, pricingUnlocked, unlockPricing, lockPricing, wardSupplies, issueWardSupply, returnWardSupply, hospitalPayments, recordHospitalPayment,
     billIndentTarget, openIndentBilling, clearBillIndentTarget, issueIndent,
     route, go, back, canGoBack, registerBack, invFilter, setInvFilter, reportTarget, openReport, setReportTarget,
     inventory, sales, prescriptions, offers, purchases, profile, now,
-    addProduct, updateProduct, racks, createRack, removeRack, setProductLocation, bulkAssignLocation, addBatch, setBatchQty, receivePurchase, toggleOnline, toggleLoose, setOnlinePrice, setProductOffer,
+    addProduct, importMedicines, updateProduct, racks, createRack, removeRack, setProductLocation, bulkAssignLocation, addBatch, setBatchQty, receivePurchase, toggleOnline, toggleLoose, setOnlinePrice, setProductOffer,
     pos, posCustomer, setPosCustomer, posDiscount, setPosDiscount, posDiscountMode, setPosDiscountMode, posDiscountFlat, posPay, setPosPay, posSource, setPosSource, posWard, setPosWard, posInsurer, setPosInsurer, posPatientId, setPosPatientId, posRxImage, setPosRxImage,
     posAdd, posDec, posSetQty, posRemove, posSetBatch, scanToPos, posClear, posTotals, posCount, checkoutPos, lastInvoice, setLastInvoice,
     advanceOrder, cancelOrder, markPaid, startPacking, scanPackLine, pickPackLine, sealPacket, handToRider,
@@ -1137,7 +1183,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     invoiceSettings, updateInvoiceSettings,
     kiosk, updateKiosk, placeKioskOrder,
     advisors, addAdvisor, updateAdvisor, removeAdvisor, caShares, shareWithCA,
-    purchaseOrders, sendPurchaseOrder, markPOReceived, setProductSupplier,
+    purchaseOrders, sendPurchaseOrder, importPurchaseOrders, markPOReceived, setProductSupplier,
     expenses, expenseCategories, addExpense, updateExpense, removeExpense, addExpenseCategory,
     employees, addEmployee, updateEmployee, removeEmployee,
     creditPayments, recordCreditPayment,
@@ -1154,6 +1200,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     <PCtx.Provider value={value}>
       {children}
       {leaveOpen && <SignOutDialog onCancel={() => setLeaveOpen(false)} onConfirm={finishSignOut} />}
+      {saveAsk && <SaveConfirm title={saveAsk.title} body={saveAsk.body} onCancel={() => { saveAsk.resolve(false); setSaveAsk(null); }} onConfirm={() => { saveAsk.resolve(true); setSaveAsk(null); }} />}
     </PCtx.Provider>
   );
 }

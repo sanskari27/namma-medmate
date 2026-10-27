@@ -44,7 +44,7 @@ import PatientBillsScreen from "../screens/PatientBillsScreen";
 import DoctorsScreen from "../screens/DoctorsScreen";
 import HospitalBillingScreen from "../screens/HospitalBillingScreen";
 import SetupWizard from "./SetupWizard";
-import Onboarding from "./Onboarding";
+import Onboarding, { PinSetup } from "./Onboarding";
 import MasterPortal from "../screens/MasterPortal";
 import { api } from "../lib/api";
 
@@ -314,7 +314,7 @@ function FaultBanner() {
 }
 
 function Inner() {
-  const { setupComplete, signedIn, route, go, me, isHospital } = usePharma();
+  const { setupComplete, signedIn, needsPin, pinReset, route, go, me, isHospital } = usePharma();
   const [menu, setMenu] = useState(false);
   const [masterPhone, setMasterPhone] = useState<string | null | undefined>(undefined);
   const [showMaster, setShowMaster] = useState(false);
@@ -330,6 +330,7 @@ function Inner() {
     return <MasterPortal phone={masterPhone} pharmacyLabel={signedIn ? "Pharmacy" : "Pharmacy sign in"} onPharmacy={() => setShowMaster(false)} onSignedOut={() => { setMasterPhone(null); setShowMaster(false); }} />;
   }
   if (!signedIn) return <Onboarding onMaster={() => { setShowMaster(true); void loadMaster(); }} />;
+  if (needsPin || pinReset) return <PinSetup />;
   if (!setupComplete) return <SetupWizard />;
   return (
     <div className="pd-shell">

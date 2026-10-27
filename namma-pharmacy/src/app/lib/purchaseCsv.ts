@@ -29,6 +29,7 @@ const COLS = {
   ptr: ["ptr", "rate", "purchaserate", "cost", "price", "buyprice"],
   mrp: ["mrp", "maxretailprice"],
   reorder: ["reorder", "reorderlevel", "minstock"],
+  rack: ["rack", "location", "bin"],
 } as const;
 
 const norm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
@@ -114,4 +115,73 @@ export function downloadPurchaseTemplate() {
   ];
   const csv = [head, ...sample].map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
   download(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }), "purchase-entry-template.csv");
+}
+
+const sheet = (name: string, rows: string[][]) => {
+  const csv = rows.map((r) => r.map((c) => `"${String(c).replace(/"/g, '""')}"`).join(",")).join("\n");
+  download(new Blob(["﻿" + csv], { type: "text/csv;charset=utf-8;" }), name);
+};
+
+export function downloadMedicineTemplate() {
+  sheet("medicines-template.csv", [
+    ["Product", "Composition", "Manufacturer", "Category", "Schedule", "Form", "Pack", "HSN", "GST%", "Rack", "ReorderLevel", "Batch", "Expiry", "Qty", "PTR", "MRP"],
+    ["Dolo 650", "Paracetamol 650mg", "Micro Labs", "fever", "OTC", "Tablet", "Strip of 15", "3004", "12", "A1", "40", "DL26A55", "2027-06", "100", "24.5", "34"],
+    ["Azithromycin 500", "Azithromycin 500mg", "Cipla", "fever", "H", "Tablet", "Strip of 5", "3004", "12", "A2", "20", "AZ5521", "2027-09", "50", "62", "98"],
+  ]);
+}
+
+export function parseMedicineCsv(text: string): { products: InvProduct[]; errors: string[] } {
+  const rows = parseCsvText(text);
+  if (rows.length < 2) return { products: [], errors: ["Sheet is empty or has no data rows."] };
+  const header = rows[0].map(norm);
+  const ix = Object.fromEntries(Object.keys(COLS).map((k) => [k, header.findIndex((h) => (COLS[k as keyof typeof COLS] as readonly string[]).some((a) => a === h))])) as Record<keyof typeof COLS, number>;
+  if (ix.name < 0) return { products: [], errors: ["No Product column found. Download the sample sheet."] };
+  const get = (r: string[], k: keyof typeof COLS) => (ix[k] >= 0 ? (r[ix[k]] ?? "").trim() : "");
+  const products: InvProduct[] = [];
+  const errors: string[] = [];
+  for (let i = 1; i < rows.length; i++) {
+    const name = get(rows[i], "name");
+    if (!name) { errors.push(`Row ${i + 1} has no product name.`); continue; }
+    const qty = num(get(rows[i], "qty"));
+    const batch = get(rows[i], "batch");
+    const gstRaw = get(rows[i], "gst");
+    products.push({
+      id: "", name, composition: get(rows[i], "composition"), manufacturer: get(rows[i], "manufacturer"),
+      form: form(get(rows[i], "form")) || "Tablet", pack: get(rows[i], "pack"), category: catKey(get(rows[i], "category")) || "fever",
+      hsn: get(rows[i], "hsn") || "3004", gst: gstRaw === "" ? 12 : num(gstRaw), schedule: sched(get(rows[i], "schedule")) || "OTC",
+      rack: get(rows[i], "rack") || "—", reorderLevel: num(get(rows[i], "reorder")) || 20, online: false, emoji: "💊",
+      batches: batch || qty > 0 ? [{ batchNo: batch || "OPENING", expiry: get(rows[i], "expiry") || "2027-12", qty, ptr: num(get(rows[i], "ptr")), mrp: num(get(rows[i], "mrp")) }] : [],
+    });
+  }
+  return { products, errors };
+}
+
+export function downloadPoTemplate() {
+  sheet("purchase-orders-template.csv", [
+    ["Distributor", "Product", "Qty", "Note"],
+    ["Bengaluru Pharma Distributors", "Dolo 650", "20", "June refill"],
+    ["Bengaluru Pharma Distributors", "Crocin Advance", "10", ""],
+  ]);
+}
+
+export function parsePoCsv(text: string): { rows: { supplierName: string; productName: string; qty: number; note?: string }[]; errors: string[] } {
+  const table = parseCsvText(text);
+  if (table.length < 2) return { rows: [], errors: ["Sheet is empty or has no data rows."] };
+  const header = table[0].map(norm);
+  const at = (aliases: string[]) => header.findIndex((h) => aliases.some((a) => a === h));
+  const supplier = at(["distributor", "supplier", "suppliername", "vendor"]);
+  const name = at(["product", "productname", "name", "medicine", "item"]);
+  const qty = at(["qty", "quantity", "units"]);
+  const note = at(["note", "notes", "remark"]);
+  if (supplier < 0 || name < 0 || qty < 0) return { rows: [], errors: ["Need Distributor, Product, and Qty columns. Download the sample sheet."] };
+  const rows: { supplierName: string; productName: string; qty: number; note?: string }[] = [];
+  const errors: string[] = [];
+  for (let i = 1; i < table.length; i++) {
+    const supplierName = (table[i][supplier] ?? "").trim();
+    const productName = (table[i][name] ?? "").trim();
+    const count = num(table[i][qty]);
+    if (!supplierName || !productName || count <= 0) { errors.push(`Row ${i + 1} needs a distributor, medicine, and quantity.`); continue; }
+    rows.push({ supplierName, productName, qty: count, note: note >= 0 ? (table[i][note] ?? "").trim() : undefined });
+  }
+  return { rows, errors };
 }

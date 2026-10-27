@@ -10,6 +10,7 @@ import {
 import { ScheduleTag, StockPill, Thumb } from "../components/bits";
 import { IconSearch, IconEdit, IconX, IconInventory, IconUpload, IconTruck, IconCash, IconTrendDown, IconCalendar, IconMap, IconBox, IconUnlock, IconLock, IconArrowRight, IconRupee, IconTag, IconAlert, IconClock, IconReceipt, IconPin, IconRefresh, IconDownload, IconPrint } from "../components/Icon";
 import { exportStockCsv, exportStockPdf } from "../lib/stockExport";
+import { downloadMedicineTemplate, parseMedicineCsv } from "../lib/purchaseCsv";
 
 const FILTER_LABEL: Record<Filter, string> = { all: "all", alerts: "alerts", low: "low-stock", expiring: "expiring", rx: "rx-only", out: "out-of-stock", noloc: "unallocated" };
 
@@ -29,7 +30,8 @@ const SCHEDS: Schedule[] = ["OTC", "H", "H1", "X"];
 const GSTS = [0, 5, 12, 18];
 
 export default function InventoryScreen() {
-  const { inventory, sales, profile, now, toggleOnline, toggleLoose, updateProduct, go, invFilter, setInvFilter } = usePharma();
+  const { inventory, sales, profile, now, toggleOnline, toggleLoose, updateProduct, go, invFilter, setInvFilter, importMedicines, showFault, toast } = usePharma();
+  const medFile = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
   const [edit, setEdit] = useState<InvProduct | null>(null);
@@ -113,6 +115,19 @@ export default function InventoryScreen() {
         <button className="pd-btn pd-btn-ghost" disabled={!list.length} title="Download this view as Excel (CSV)" onClick={() => exportStockCsv(list, FILTER_LABEL[filter], now)}><IconDownload size={15} /> Excel</button>
         <button className="pd-btn pd-btn-ghost" disabled={!list.length} title="Download this view as PDF" onClick={() => exportStockPdf(list, profile, FILTER_LABEL[filter], now)}><IconPrint size={15} /> PDF</button>
         <button className="pd-btn pd-btn-ghost" onClick={() => go("rackmap")} title="Arrange where each medicine is stored on the shelves"><IconMap size={16} /> Rack & Locations</button>
+        <input ref={medFile} type="file" accept=".csv,text/csv" hidden onChange={(e) => {
+          const f = e.target.files?.[0]; if (!f) return;
+          const r = new FileReader();
+          r.onload = async () => {
+            const parsed = parseMedicineCsv(String(r.result));
+            if (!parsed.products.length) { showFault(parsed.errors[0] || "No medicines in that sheet"); return; }
+            const res = await importMedicines(parsed.products);
+            if (res?.skipped.length) toast(`${res.skipped.length} already in the catalogue`);
+          };
+          r.readAsText(f); e.target.value = "";
+        }} />
+        <button className="pd-btn pd-btn-ghost" onClick={downloadMedicineTemplate}><IconDownload size={15} /> Sample sheet</button>
+        <button className="pd-btn pd-btn-ghost" onClick={() => medFile.current?.click()}><IconUpload size={15} /> Import medicines</button>
         <button className="pd-btn pd-btn-primary" onClick={() => go("purchases")} title="Products are added by entering a distributor purchase bill"><IconTruck size={16} /> Add stock via purchase</button>
       </div>
 

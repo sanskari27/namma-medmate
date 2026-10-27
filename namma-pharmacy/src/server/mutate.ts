@@ -171,16 +171,30 @@ export function completeSetup(state: PharmacyState, complete = true) {
   state.setupComplete = complete;
   return { setupComplete: state.setupComplete };
 }
-export function wipeData(state: PharmacyState) {
-  state.inventory = []; state.sales = []; state.prescriptions = []; state.purchases = [];
-  state.purchaseOrders = []; state.offers = []; state.caShares = []; state.supplyList = [];
-  return { ok: true };
+export function wipeData(_state: PharmacyState): never {
+  fail(403, "FORBIDDEN", "Records cannot be deleted");
 }
 
 export function addProduct(state: PharmacyState, p: InvProduct) {
   const row = { ...p, id: p.id || ("p" + bump(state, "prod")) };
   state.inventory = [row, ...state.inventory];
   return row;
+}
+export function importProducts(state: PharmacyState, products: InvProduct[]) {
+  const names = new Set(state.inventory.map((p) => p.name.trim().toLowerCase()));
+  const skipped: string[] = [];
+  let added = 0;
+  for (const p of products || []) {
+    const name = (p?.name || "").trim();
+    if (!name) continue;
+    const key = name.toLowerCase();
+    if (names.has(key)) { skipped.push(name); continue; }
+    names.add(key);
+    addProduct(state, { ...p, id: "", name, batches: Array.isArray(p.batches) ? p.batches : [] });
+    added += 1;
+  }
+  if (!added && skipped.length === 0) fail(400, "VALIDATION", "No medicines to import");
+  return { added, skipped, inventory: state.inventory };
 }
 export function updateProduct(state: PharmacyState, id: string, patch: Partial<InvProduct>) {
   mapProduct(state, id, (p) => ({ ...p, ...patch, id: p.id }));
@@ -220,6 +234,7 @@ export function setProductSupplier(state: PharmacyState, id: string, supplierId:
 }
 export function setProductLocation(state: PharmacyState, id: string, rack: string, rackAlt?: string) {
   const code = normalizeRack(rack);
+  if (!code) fail(400, "VALIDATION", "Choose a rack. A location cannot be cleared.", "rack");
   mapProduct(state, id, (p) => ({ ...p, rack: code, rackAlt: normalizeRack(rackAlt ?? p.rackAlt ?? "") || undefined }));
   rememberRack(state, code);
   return mustProduct(state, id);
@@ -314,6 +329,30 @@ export function sendPurchaseOrder(state: PharmacyState, supplierId: string, supp
   const po = { id: "PO-" + bump(state, "po"), supplierId, supplierName, items, status: "sent" as const, note, createdAt: Date.now() };
   state.purchaseOrders = [po, ...state.purchaseOrders];
   return po;
+}
+export function importPurchaseOrders(state: PharmacyState, rows: { supplierName?: string; productName?: string; qty?: number; note?: string }[]) {
+  const groups = new Map<string, { supplierId: string; supplierName: string; items: POItem[]; note?: string }>();
+  const skipped: string[] = [];
+  for (const row of rows || []) {
+    const supplierName = (row.supplierName || "").trim();
+    const productName = (row.productName || "").trim();
+    const qty = Number(row.qty) || 0;
+    const supplier = state.suppliers.find((s) => s.name.trim().toLowerCase() === supplierName.toLowerCase());
+    const product = state.inventory.find((p) => p.name.trim().toLowerCase() === productName.toLowerCase());
+    if (!supplier || !product || qty <= 0) { skipped.push(productName || supplierName || "row"); continue; }
+    const group = groups.get(supplier.id) ?? { supplierId: supplier.id, supplierName: supplier.name, items: [], note: row.note };
+    const line = group.items.find((it) => it.productId === product.id);
+    if (line) line.qty += qty;
+    else group.items.push({ productId: product.id, name: product.name, qty });
+    groups.set(supplier.id, group);
+  }
+  let created = 0;
+  for (const group of groups.values()) {
+    sendPurchaseOrder(state, group.supplierId, group.supplierName, group.items, group.note);
+    created += 1;
+  }
+  if (!created) fail(400, "VALIDATION", "No matching distributor and medicine rows");
+  return { created, skipped, purchaseOrders: state.purchaseOrders };
 }
 export function markPOReceived(state: PharmacyState, id: string) {
   if (!state.purchaseOrders.some((p) => p.id === id)) fail(404, "NOT_FOUND", "Purchase order not found");

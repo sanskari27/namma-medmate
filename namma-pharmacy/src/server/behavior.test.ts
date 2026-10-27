@@ -1,9 +1,10 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { fieldFrom } from "../app/lib/formFault";
+import { parseMedicineCsv, parsePoCsv } from "../app/lib/purchaseCsv";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { createSession, e164, findLogin, getPool, insertPharmacy, loadState, migrate, withState, type SessionRow } from "./db";
-import { addDepartment, addReferral, cancelOrder, checkoutPos, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
+import { addDepartment, addReferral, cancelOrder, checkoutPos, importProducts, importPurchaseOrders, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
 import { handle, keepOwner, sessionView } from "./router";
 import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
 
@@ -715,5 +716,56 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     await pool.query("DELETE FROM coupons WHERE code = ANY($1::text[])", [codes]);
     await pool.query("DELETE FROM master_sessions WHERE phone = ANY($1::text[])", [phones]);
     await pool.query("DELETE FROM master_phones WHERE phone = ANY($1::text[])", [phones]);
+  }
+});
+
+test("sheets add medicines and purchase orders without replacing existing rows", () => {
+  const med = parseMedicineCsv("Product,Qty,MRP\nDolo 650,10,34\n");
+  assert.equal(med.products.length, 1);
+  assert.equal(med.products[0].batches[0].qty, 10);
+  const state = emptyState({ phone: "+919100000099", businessType: "pharmacy" });
+  const first = importProducts(state, med.products);
+  assert.equal(first.added, 1);
+  const again = importProducts(state, med.products);
+  assert.equal(again.added, 0);
+  assert.equal(state.inventory.length, 1);
+  state.suppliers = [{ id: "s1", name: "City Distributors", gstin: "", phone: "9000000000" }];
+  const po = parsePoCsv("Distributor,Product,Qty\nCity Distributors,Dolo 650,5\n");
+  const created = importPurchaseOrders(state, po.rows);
+  assert.equal(created.created, 1);
+  assert.equal(state.purchaseOrders[0].items[0].qty, 5);
+  assert.equal(state.inventory.length, 1);
+});
+
+test("a pharmacy signs in with a pin after signup, and records cannot be deleted", async () => {
+  await migrate();
+  const phone = "91" + String(Math.floor(10000000 + Math.random() * 89999999));
+  const ids: string[] = [];
+  const pool = getPool();
+  try {
+    assert.equal((await call("DELETE", "/expenses/e1")).status, 403);
+    const signed = await call("POST", "/auth/otp/verify", undefined, { phone, code: "123456", businessType: "pharmacy", name: "Pin Medicals" });
+    assert.equal(signed.status, 200);
+    const body = await signed.json() as { needsPin?: boolean };
+    assert.equal(body.needsPin, true);
+    const cookie = cookieOf(signed, "namma_session");
+    const login = await findLogin(e164(phone));
+    assert.ok(login);
+    ids.push(login.pharmacy_id);
+    assert.equal((await (await call("POST", "/auth/login", undefined, { phone })).json() as { mode: string }).mode, "otp");
+    assert.equal((await call("POST", "/auth/pin/set", cookie, { pin: "2468", confirm: "2468" })).status, 200);
+    assert.equal((await (await call("POST", "/auth/login", undefined, { phone })).json() as { mode: string }).mode, "pin");
+    assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone, code: "123456" })).status, 403);
+    assert.equal((await call("POST", "/auth/pin", undefined, { phone, pin: "0000" })).status, 401);
+    const good = await call("POST", "/auth/pin", undefined, { phone, pin: "2468" });
+    assert.equal(good.status, 200);
+    const pinCookie = cookieOf(good, "namma_session");
+    assert.equal((await call("POST", "/setup/wipe", pinCookie, {})).status, 403);
+    assert.equal((await call("PATCH", "/pharmacy/profile", pinCookie, { city: "Hubli" })).status, 200);
+    assert.equal((await call("POST", "/auth/pin", undefined, { phone, pin: "2468" })).status, 200);
+    assert.equal((await call("POST", "/auth/otp/send", undefined, { phone, purpose: "reset" })).status, 200);
+    assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone, code: "123456", purpose: "reset" })).status, 200);
+  } finally {
+    if (ids.length) await pool.query("DELETE FROM pharmacies WHERE id = ANY($1::uuid[])", [ids]);
   }
 });

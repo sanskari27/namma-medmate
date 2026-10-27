@@ -1,15 +1,17 @@
 "use client";
-import { useState } from "react";
+import { useRef, useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
   isLowStock, stockOf, suggestedSupplierId, bestSupplyFor, effectiveSupplyPrice,
   schemeLabel, suggestedReorderQty, POItem, timeAgo, inr2,
 } from "../data";
-import { IconSend, IconTruck, IconCheck, IconTrendDown, IconCash, IconBulb } from "../components/Icon";
+import { IconSend, IconTruck, IconCheck, IconTrendDown, IconCash, IconBulb, IconDownload, IconUpload } from "../components/Icon";
+import { downloadPoTemplate, parsePoCsv } from "../lib/purchaseCsv";
 import { Thumb } from "../components/bits";
 
 export default function ReorderScreen() {
-  const { inventory, suppliers, supplyList, purchaseOrders, sendPurchaseOrder, markPOReceived, setProductSupplier, now, go } = usePharma();
+  const { inventory, suppliers, supplyList, purchaseOrders, sendPurchaseOrder, importPurchaseOrders, markPOReceived, setProductSupplier, now, go, showFault, toast } = usePharma();
+  const poFile = useRef<HTMLInputElement>(null);
   const [qtys, setQtys] = useState<Record<string, number>>({});
 
   const low = inventory.filter((p) => isLowStock(p));
@@ -124,7 +126,23 @@ export default function ReorderScreen() {
       )}
 
       <div className="pd-card">
-        <div className="pd-card-head"><h3>Purchase orders</h3><span className="sub">sent to distributors</span></div>
+        <div className="pd-card-head">
+          <h3>Purchase orders</h3><span className="sub">sent to distributors</span>
+          <div className="pd-spacer" />
+          <input ref={poFile} type="file" accept=".csv,text/csv" hidden onChange={(e) => {
+            const f = e.target.files?.[0]; if (!f) return;
+            const r = new FileReader();
+            r.onload = async () => {
+              const parsed = parsePoCsv(String(r.result));
+              if (!parsed.rows.length) { showFault(parsed.errors[0] || "No purchase orders in that sheet"); return; }
+              const res = await importPurchaseOrders(parsed.rows);
+              if (res?.skipped.length) toast(`${res.skipped.length} rows skipped — distributor or medicine name did not match`);
+            };
+            r.readAsText(f); e.target.value = "";
+          }} />
+          <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={downloadPoTemplate}><IconDownload size={14} /> Sample sheet</button>
+          <button className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => poFile.current?.click()}><IconUpload size={14} /> Import</button>
+        </div>
         <div className="pd-tbl-wrap">
           <table className="pd-tbl">
             <thead><tr><th>PO no.</th><th>Distributor</th><th>Items</th><th>Sent</th><th>Status</th><th></th></tr></thead>

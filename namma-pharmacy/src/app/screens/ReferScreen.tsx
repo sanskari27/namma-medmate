@@ -92,7 +92,7 @@ export default function ReferScreen() {
                       </select>}
                   </td>
                   <td className="num">{r.status === "Paid" ? inr(r.reward) : <input className="pd-input" data-field="amount" style={{ width: 90, textAlign: "right" }} type="number" min={0} value={r.reward} onChange={(e) => updateReferral(r.id, { reward: Math.max(0, Number(e.target.value) || 0) })} />}</td>
-                  <td>{r.status === "Paid" ? null : <button className="pd-btn pd-btn-ghost" onClick={() => removeReferral(r.id)}><IconTrash size={14} /></button>}</td>
+                  <td />
                 </tr>
               ))}
             </tbody>

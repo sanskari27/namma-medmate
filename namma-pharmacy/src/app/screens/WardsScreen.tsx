@@ -150,7 +150,7 @@ function WardSetupModal({ onClose }: { onClose: () => void }) {
                     <td><select className="pd-select" value={w.type} onChange={(e) => updateWard(w.id, { type: e.target.value as WardType })}>{WARD_TYPES.map((t) => <option key={t}>{t}</option>)}</select></td>
                     <td><input className="pd-input" type="number" min={0} style={{ width: 70 }} value={w.beds} onChange={(e) => updateWard(w.id, { beds: Math.max(0, Number(e.target.value) || 0) })} /></td>
                     <td><input className="pd-input" value={w.sister} onChange={(e) => updateWard(w.id, { sister: e.target.value })} /></td>
-                    <td><button className="pd-iconbtn" title="Remove ward" onClick={() => removeWard(w.id)}><IconTrash size={15} /></button></td>
+                    <td />
                   </tr>
                 ))}
               </tbody>

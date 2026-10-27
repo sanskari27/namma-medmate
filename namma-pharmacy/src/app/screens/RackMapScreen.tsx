@@ -66,8 +66,8 @@ export default function RackMapScreen() {
           code={detail.code} items={detail.items} inventory={inventory}
           onClose={() => setOpenRack(null)} onMed={(id) => setMedId(id)}
           onAdd={async (id) => { const p = inventory.find((x) => x.id === id); if (!await setProductLocation(id, detail.code)) toast(`${p?.name ?? "Item"} → ${detail.code}`); }}
-          onRemoveItem={async (id) => { const p = inventory.find((x) => x.id === id); if (!await setProductLocation(id, "")) toast(`Removed ${p?.name ?? "item"} from ${detail.code}`); }}
-          onDeleteRack={() => { removeRack(detail.code); toast(`Rack ${detail.code} removed`); setOpenRack(null); }}
+          onRemoveItem={() => { toast("Records cannot be deleted"); }}
+          onDeleteRack={() => { toast("Records cannot be deleted"); }}
         />
       )}
       {med && <MedicineDetailModal p={med} now={now} onClose={() => setMedId(null)} />}
@@ -187,14 +187,12 @@ function RackDetailModal({ code, items, inventory, onClose, onAdd, onRemoveItem,
                     <span className="nm">{p.name}<span className="pd-muted" style={{ fontSize: 11 }}> · {p.composition}</span></span>
                     <span className={`pd-pill ${stockOf(p) === 0 ? "pill-rose" : "pill-gray"}`}>{stockOf(p)}</span>
                   </button>
-                  <button className="pd-iconbtn" title="Remove from this rack" onClick={() => onRemoveItem(p.id)}><IconX size={14} /></button>
                 </div>
               ))}
             </div>
           )}
         </div>
         <div className="pd-modal-foot">
-          <button className="pd-btn pd-btn-sm" style={{ color: "var(--rose)", background: "none" }} disabled={items.length > 0} title={items.length ? "Move out all medicines first" : "Delete this rack"} onClick={onDeleteRack}><IconTrash size={14} /> Delete rack</button>
           <div className="pd-spacer" />
           <button className="pd-btn pd-btn-primary" onClick={onClose}>Done</button>
         </div>

@@ -124,9 +124,9 @@ export default function PackOrder({ saleId, onClose }: { saleId: string; onClose
         <div className="pd-modal-foot pd-no-print">
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Close</button>
           <div className="pd-spacer" />
-          {step === "pack" && <button className="pd-btn pd-btn-primary" disabled={!ready} onClick={() => { sealPacket(saleId); toast(`${sale.id} sealed in a Namma MedMate packet`); }}>{ready ? "Seal packet & generate invoice →" : `Scan all ${tot} units to continue`}</button>}
-          {step === "handover" && <button className="pd-btn pd-btn-primary" disabled={!rider.name.trim()} onClick={() => { handToRider(saleId, { name: rider.name.trim(), phone: rider.phone.trim() || undefined, vehicle: rider.vehicle.trim() || undefined }); toast(`${sale.id} handed to ${rider.name.trim()}`); }}><IconTruck size={15} /> Hand to delivery partner</button>}
-          {step === "done" && sale.status === "out" && <button className="pd-btn pd-btn-gold" onClick={() => { advanceOrder(saleId); toast(`${sale.id} marked delivered`); }}>Mark delivered</button>}
+          {step === "pack" && <button className="pd-btn pd-btn-primary" disabled={!ready} onClick={() => sealPacket(saleId)}>{ready ? "Seal packet & generate invoice →" : `Scan all ${tot} units to continue`}</button>}
+          {step === "handover" && <button className="pd-btn pd-btn-primary" disabled={!rider.name.trim()} onClick={() => handToRider(saleId, { name: rider.name.trim(), phone: rider.phone.trim() || undefined, vehicle: rider.vehicle.trim() || undefined })}><IconTruck size={15} /> Hand to delivery partner</button>}
+          {step === "done" && sale.status === "out" && <button className="pd-btn pd-btn-gold" onClick={() => advanceOrder(saleId)}>Mark delivered</button>}
         </div>
       </div>
     </div>

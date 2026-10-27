@@ -33,14 +33,17 @@ function Mark() {
 }
 
 export default function Onboarding({ onMaster }: { onMaster: () => void }) {
-  const { signIn, showFault, formFault } = usePharma();
+  const { signIn, signInWithPin, showFault, formFault } = usePharma();
   const [staff, setStaff] = useState(false);
   const [phase, setPhase] = useState<Phase>("intro");
   const [slide, setSlide] = useState(0);
   const [type, setType] = useState<BusinessType>("pharmacy");
   const [phone, setPhone] = useState("");
   const [otpSent, setOtpSent] = useState(false);
+  const [pinMode, setPinMode] = useState(false);
+  const [resetPin, setResetPin] = useState(false);
   const [otp, setOtp] = useState("");
+  const [pin, setPin] = useState("");
   const [name, setName] = useState("");
   const [devOtp, setDevOtp] = useState(false);
   const demoCode = process.env.NODE_ENV !== "production" ? "123456" : "";
@@ -55,16 +58,33 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
   useEffect(() => { if (otpSent) otpRef.current?.focus(); }, [otpSent]);
 
   const phoneOk = phone.replace(/\D/g, "").length >= 10;
-  const sendOtp = async () => {
+  const sendOtp = async (purpose?: "reset") => {
     if (!phoneOk) return;
     try {
-      const res = await api<{ delivery?: string }>("/auth/otp/send", { method: "POST", body: { phone } });
+      const res = await api<{ delivery?: string }>("/auth/otp/send", { method: "POST", body: { phone, purpose, portal: staff ? "master" : undefined } });
       setOtpSent(true);
+      setPinMode(false);
+      setResetPin(purpose === "reset");
       setDevOtp(res.delivery === "dev");
     } catch (err) { showFault(err, "Could not send OTP"); }
   };
+  const continuePhone = async () => {
+    if (!phoneOk) return;
+    if (staff) { await sendOtp(); return; }
+    try {
+      const res = await api<{ mode: "pin" | "otp" }>("/auth/login", { method: "POST", body: { phone } });
+      if (res.mode === "pin") { setPinMode(true); setOtpSent(false); setPin(""); return; }
+      await sendOtp();
+    } catch (err) { showFault(err, "Could not continue"); }
+  };
   const otpLen = devOtp ? 6 : 8;
   const verify = async () => {
+    if (pinMode && !otpSent) {
+      if (pin.length !== 4) return;
+      try { await signInWithPin(phone, pin); }
+      catch (err) { showFault(err, "Could not sign in"); }
+      return;
+    }
     if (otp.replace(/\D/g, "").length !== otpLen) return;
     try {
       if (staff) {
@@ -72,7 +92,7 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
         onMaster();
         return;
       }
-      await signIn(type, name, phone, otp);
+      await signIn(type, name, phone, otp, resetPin ? "reset" : undefined);
     }
     catch (err) { showFault(err, "Could not sign in"); }
   };
@@ -135,21 +155,30 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
           {phase === "login" && (
             <div className="pd-ob-step">
               <span className="pd-ob-badge">{staff ? "Master" : <>{tt.Ic({ size: 15 })} {tt.t}</>}</span>
-              <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : staff ? "Staff sign in" : "Log in to continue"}</h2>
-              <p className="pd-ob-sub">{otpSent ? `We sent ${otpLen === 8 ? "an 8-digit" : "a 6-digit"} code to ${phone}.` : "Sign in with your registered mobile number."}</p>
+              <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : pinMode ? "Enter your PIN" : staff ? "Staff sign in" : "Log in to continue"}</h2>
+              <p className="pd-ob-sub">{otpSent ? `We sent ${otpLen === 8 ? "an 8-digit" : "a 6-digit"} code to ${phone}.` : pinMode ? "Use the 4-digit PIN you created after signup." : staff ? "Staff sign in uses a one-time code." : "New pharmacies get a code by SMS. After that, sign in with your PIN."}</p>
 
-              {!otpSent ? (
+              {!otpSent && !pinMode ? (
                 <>
                   {!staff && <div className="pd-field"><label>Business name <span style={{ color: "var(--faint)", fontWeight: 600 }}>(optional)</span></label>
                     <input className="pd-input" value={name} onChange={(e) => setName(e.target.value)} placeholder={type === "hospital" ? "City Care Hospital Pharmacy" : "Sri Sai Medicals"} /></div>}
                   <div className="pd-field" data-field="phone" style={{ marginTop: 12 }}><label>Mobile number</label>
                     <div className="pd-ob-phone">
                       <span>+91</span>
-                      <input className="pd-input" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="98860 12345" onKeyDown={(e) => e.key === "Enter" && sendOtp()} autoFocus aria-invalid={formFault?.field === "phone"} />
+                      <input className="pd-input" inputMode="numeric" maxLength={10} value={phone} onChange={(e) => setPhone(e.target.value.replace(/\D/g, ""))} placeholder="98860 12345" onKeyDown={(e) => e.key === "Enter" && continuePhone()} autoFocus aria-invalid={formFault?.field === "phone"} />
                     </div>
                     {formFault?.field === "phone" && <span className="pd-field-err">{formFault.message}</span>}
                   </div>
-                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={!phoneOk} onClick={sendOtp}>Send OTP <IconArrowRight size={16} /></button>
+                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={!phoneOk} onClick={continuePhone}>{staff ? "Send OTP" : "Continue"} <IconArrowRight size={16} /></button>
+                </>
+              ) : pinMode && !otpSent ? (
+                <>
+                  <div className="pd-field" data-field="pin"><label>4-digit PIN</label>
+                    <input className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={4} type="password" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" onKeyDown={(e) => e.key === "Enter" && verify()} autoFocus aria-invalid={formFault?.field === "pin"} />
+                    {formFault?.field === "pin" && <span className="pd-field-err">{formFault.message}</span>}
+                  </div>
+                  <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={pin.length !== 4} onClick={verify}><IconCheck size={16} /> Log in</button>
+                  <button className="pd-ob-link" onClick={() => void sendOtp("reset")}>Forgot PIN</button>
                 </>
               ) : (
                 <>
@@ -159,7 +188,7 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
                   </div>
                   {devOtp && demoCode ? <div className="pd-ob-demo">Demo OTP: <b>{demoCode}</b> <button className="pd-ob-link" style={{ display: "inline", margin: 0 }} onClick={() => setOtp(demoCode)}>Auto-fill</button></div> : null}
                   <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={otp.replace(/\D/g, "").length !== otpLen} onClick={verify}><IconCheck size={16} /> {staff ? "Verify & open master" : "Verify & log in"}</button>
-                  <button className="pd-ob-link" onClick={() => { setOtpSent(false); setOtp(""); }}>← Change number</button>
+                  <button className="pd-ob-link" onClick={() => { setOtpSent(false); setOtp(""); setPinMode(false); setResetPin(false); }}>← Change number</button>
                 </>
               )}
 
@@ -169,6 +198,37 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
               <p className="pd-ob-terms">By continuing you agree to the Terms of Service & Privacy Policy.</p>
             </div>
           )}
+        </div>
+      </main>
+    </div>
+  );
+}
+
+export function PinSetup() {
+  const { setLoginPin, signOut, showFault, formFault } = usePharma();
+  const [pin, setPin] = useState("");
+  const [again, setAgain] = useState("");
+  const save = async () => {
+    if (pin.length !== 4) return;
+    if (pin !== again) { showFault("PINs do not match"); return; }
+    try { await setLoginPin(pin, again); }
+    catch (err) { showFault(err, "Could not save PIN"); }
+  };
+  return (
+    <div className="pd-ob">
+      <main className="pd-ob-main">
+        <div className="pd-ob-card">
+          <h2 className="pd-ob-h">Create your login PIN</h2>
+          <p className="pd-ob-sub">Use this 4-digit PIN next time. A code is only sent for signup or if you forget the PIN.</p>
+          <div className="pd-field" data-field="pin"><label>4-digit PIN</label>
+            <input className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={4} type="password" value={pin} onChange={(e) => setPin(e.target.value.replace(/\D/g, ""))} placeholder="••••" autoFocus aria-invalid={formFault?.field === "pin"} />
+          </div>
+          <div className="pd-field" style={{ marginTop: 12 }}><label>Confirm PIN</label>
+            <input className="pd-input pd-mono pd-ob-otp" inputMode="numeric" maxLength={4} type="password" value={again} onChange={(e) => setAgain(e.target.value.replace(/\D/g, ""))} placeholder="••••" onKeyDown={(e) => e.key === "Enter" && save()} />
+            {formFault?.field === "pin" && <span className="pd-field-err">{formFault.message}</span>}
+          </div>
+          <button className="pd-btn pd-btn-primary pd-btn-lg pd-ob-cta" disabled={pin.length !== 4 || again.length !== 4} onClick={save}><IconCheck size={16} /> Save PIN</button>
+          <button className="pd-ob-link" onClick={signOut}>Log out</button>
         </div>
       </main>
     </div>

@@ -88,7 +88,7 @@ export default function DoctorsScreen() {
       {editing && <DoctorModal initial={editing === "new" ? null : editing} departments={departments.map((d) => d.name)}
         onClose={() => setEditing(null)}
         onSave={async (d) => { const err = editing === "new" ? await addDoctor(d) : await updateDoctor((editing as DoctorProfile).id, d); if (!err) setEditing(null); }}
-        onDelete={editing !== "new" ? () => { removeDoctor((editing as DoctorProfile).id); setEditing(null); } : undefined} />}
+        />}
     </div>
   );
 }
@@ -147,7 +147,6 @@ function DoctorModal({ initial, departments, onClose, onSave, onDelete }: {
           </div>
         </div>
         <div className="pd-modal-foot">
-          {onDelete && <button className="pd-btn pd-btn-ghost" style={{ color: "var(--rose)" }} onClick={onDelete}><IconTrash size={15} /> Remove</button>}
           <div className="pd-spacer" />
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
           <button className="pd-btn pd-btn-primary" disabled={!valid} onClick={() => onSave(d)}>{initial ? "Save changes" : "Add doctor"}</button>

@@ -71,7 +71,6 @@ export default function DepartmentsScreen() {
               </ul>
               <div className="pd-flex pd-gap6" style={{ marginTop: 10 }}>
                 <button className="pd-btn pd-btn-ghost" onClick={() => { setEditing(d.id); setForm({ name: d.name, head: d.head, type: d.type }); }}><IconEdit size={14} /> Edit</button>
-                <button className="pd-btn pd-btn-ghost" onClick={() => removeDepartment(d.id)}><IconTrash size={14} /> Remove</button>
               </div>
             </div>
           );

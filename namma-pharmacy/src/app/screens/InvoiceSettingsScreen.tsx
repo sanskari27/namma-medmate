@@ -71,7 +71,6 @@ export default function InvoiceSettingsScreen() {
                 <input ref={logoRef} type="file" accept="image/*" hidden onChange={(e) => readFile(e.target.files?.[0], (d) => updateProfile({ logo: d }))} />
                 <div className="pd-flex pd-gap6">
                   <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => logoRef.current?.click()}>{profile.logo ? "Change" : "Upload"}</button>
-                  {profile.logo && <button className="pd-iconbtn" title="Remove" onClick={() => updateProfile({ logo: undefined })}><IconTrash size={14} /></button>}
                 </div>
                 <Row label="Show logo on invoice" on={cfg.showLogo} onClick={() => updateInvoiceSettings({ showLogo: !cfg.showLogo })} />
               </div>
@@ -84,7 +83,6 @@ export default function InvoiceSettingsScreen() {
                 <input ref={stampRef} type="file" accept="image/*" hidden onChange={(e) => readFile(e.target.files?.[0], (d) => updateInvoiceSettings({ stamp: d, showStamp: true }))} />
                 <div className="pd-flex pd-gap6">
                   <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => stampRef.current?.click()}>{cfg.stamp ? "Change" : "Upload"}</button>
-                  {cfg.stamp && <button className="pd-iconbtn" title="Remove" onClick={() => updateInvoiceSettings({ stamp: undefined, showStamp: false })}><IconTrash size={14} /></button>}
                 </div>
                 <Row label="Show stamp on invoice" on={cfg.showStamp} onClick={() => updateInvoiceSettings({ showStamp: !cfg.showStamp })} />
               </div>

@@ -42,7 +42,6 @@ export default function OffersScreen() {
               </div>
               <div className="pd-modal-foot" style={{ borderTop: "1px solid var(--line)", justifyContent: "space-between" }}>
                 <span className="pd-pill" style={{ background: o.active ? "var(--wash)" : "#eef2ef", color: o.active ? "var(--mid)" : "var(--muted)" }}><i className="d" />{o.active ? "Running" : "Paused"}</span>
-                <button className="pd-iconbtn" title="Delete" onClick={() => removeOffer(o.id)}><IconTrash size={15} /></button>
               </div>
             </div>
           ))}

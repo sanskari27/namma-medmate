@@ -73,7 +73,6 @@ export default function CAReportScreen() {
                     <div className="s">{a.firm} · {a.email} · {a.phone}</div>
                   </span>
                   <button className="pd-iconbtn" title="Edit" onClick={() => setEdit(a)}><IconEdit size={15} /></button>
-                  <button className="pd-iconbtn" title="Remove" onClick={() => removeAdvisor(a.id)}><IconTrash size={15} /></button>
                 </div>
               ))}
             </div>

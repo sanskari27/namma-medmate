@@ -117,7 +117,6 @@ export default function EmployeesScreen() {
           initial={editing === "new" ? null : editing}
           onClose={() => setEditing(null)}
           onSave={async (data) => { const err = editing === "new" ? await addEmployee(data) : await updateEmployee(editing.id, data); if (!err) setEditing(null); }}
-          onDelete={editing !== "new" ? () => { removeEmployee(editing.id); setEditing(null); } : undefined}
           now={now}
           onIdCard={editing !== "new" ? () => { setIdCardOf(editing as Employee); setEditing(null); } : undefined}
         />
@@ -219,7 +218,6 @@ function EmployeeForm({ initial, onClose, onSave, onDelete, now, onIdCard }: {
                   <span className="gw"><div className="t">{d.label}</div><div className="s">{d.fileName} · {d.kind === "pdf" ? "PDF" : "Image"}</div></span>
                   <a className="pd-btn pd-btn-ghost pd-btn-sm" href={d.dataUrl} target="_blank" rel="noreferrer">View</a>
                   <a className="pd-iconbtn" href={d.dataUrl} download={d.fileName} title="Download"><span style={{ display: "inline-flex", transform: "rotate(180deg)" }}><IconUpload size={14} /></span></a>
-                  <button className="pd-iconbtn" title="Remove" onClick={() => removeDoc(d.id)}><IconTrash size={14} /></button>
                 </div>
               ))}
             </div>
@@ -242,7 +240,6 @@ function EmployeeForm({ initial, onClose, onSave, onDelete, now, onIdCard }: {
           <Field label="Notes"><input className="pd-input" value={f.note ?? ""} onChange={(e) => set({ note: e.target.value })} placeholder="Anything else to record" /></Field>
         </div>
         <div className="pd-modal-foot">
-          {onDelete && <button className="pd-btn pd-btn-ghost" style={{ color: "var(--rose)", marginRight: "auto" }} onClick={onDelete}>Delete</button>}
           {onIdCard && <button className="pd-btn pd-btn-ghost" onClick={onIdCard}><IconIdCard size={14} /> ID card</button>}
           <button className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
           <button className="pd-btn pd-btn-primary" disabled={!valid} onClick={() => onSave(f)}>{initial ? "Save changes" : "Add employee"}</button>
