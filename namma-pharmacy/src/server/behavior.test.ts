@@ -3,7 +3,7 @@ import test from "node:test";
 import { code128Bits } from "../app/lib/barcode";
 import { findScan, productBarcode } from "../app/data";
 import { fieldFrom } from "../app/lib/formFault";
-import { parseMedicineCsv, parsePoCsv } from "../app/lib/purchaseCsv";
+import { parseMedicineCsv, parsePoCsv, parsePurchaseCsv } from "../app/lib/purchaseCsv";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { createSession, e164, findLogin, getPool, insertPharmacy, loadState, migrate, withState, type SessionRow } from "./db";
 import { addDepartment, addReferral, cancelOrder, checkoutPos, importProducts, importPurchaseOrders, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
@@ -734,6 +734,22 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     await pool.query("DELETE FROM master_sessions WHERE phone = ANY($1::text[])", [phones]);
     await pool.query("DELETE FROM master_phones WHERE phone = ANY($1::text[])", [phones]);
   }
+});
+
+test("purchase CSV accepts the renamed headers and the old ones", () => {
+  const renamed = parsePurchaseCsv(
+    "Product Name,Rx Schedule Type,Product Form,Packaging Detail,Total Quantity\nDolo 650,H,Tablet,Strip of 15,100\n",
+    [],
+  );
+  assert.equal(renamed.items[0].qty, 100);
+  assert.equal(renamed.items[0].schedule, "H");
+  assert.equal(renamed.items[0].form, "Tablet");
+  assert.equal(renamed.items[0].pack, "Strip of 15");
+  const old = parsePurchaseCsv("Product,Schedule,Form,Pack,Qty\nDolo 650,H,Tablet,Strip of 15,40\n", []);
+  assert.equal(old.items[0].qty, 40);
+  assert.equal(old.items[0].schedule, "H");
+  assert.equal(old.items[0].form, "Tablet");
+  assert.equal(old.items[0].pack, "Strip of 15");
 });
 
 test("sheets add medicines and purchase orders without replacing existing rows", () => {

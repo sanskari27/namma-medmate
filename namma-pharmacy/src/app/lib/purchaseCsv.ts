@@ -17,14 +17,14 @@ const COLS = {
   composition: ["composition", "salt", "molecule", "generic"],
   manufacturer: ["manufacturer", "mfr", "company", "brand"],
   category: ["category", "cat"],
-  schedule: ["schedule", "sch", "scheduletype"],
-  form: ["form", "dosageform", "type"],
-  pack: ["pack", "packing", "packsize"],
+  schedule: ["schedule", "sch", "scheduletype", "rxscheduletype"],
+  form: ["form", "dosageform", "type", "productform"],
+  pack: ["pack", "packing", "packsize", "packagingdetail"],
   hsn: ["hsn", "hsncode"],
   gst: ["gst", "gstpercent", "gstrate", "tax"],
   batch: ["batch", "batchno", "batchnumber", "lot"],
   expiry: ["expiry", "exp", "expirydate", "expdate"],
-  qty: ["qty", "quantity", "billedqty", "units"],
+  qty: ["qty", "quantity", "billedqty", "units", "totalquantity"],
   free: ["free", "freeqty", "freegoods", "scheme", "bonus"],
   ptr: ["ptr", "rate", "purchaserate", "cost", "price", "buyprice"],
   mrp: ["mrp", "maxretailprice"],
@@ -71,7 +71,7 @@ export function parsePurchaseCsv(text: string, inventory: InvProduct[]): CsvPars
   const header = rows[0].map(norm);
   const idx = (k: keyof typeof COLS) => header.findIndex((h) => (COLS[k] as readonly string[]).some((a) => a === h));
   const ix = Object.fromEntries(Object.keys(COLS).map((k) => [k, idx(k as keyof typeof COLS)])) as Record<keyof typeof COLS, number>;
-  if (ix.name < 0) return { items: [], matched: 0, created: 0, skipped: 0, errors: ["No 'Product' column found. Download the template for the expected format."] };
+  if (ix.name < 0) return { items: [], matched: 0, created: 0, skipped: 0, errors: ["No 'Product Name' column found. Download the template for the expected format."] };
 
   const items: PurchaseItem[] = []; const errors: string[] = []; let matched = 0, created = 0, skipped = 0;
   const get = (r: string[], k: keyof typeof COLS) => (ix[k] >= 0 ? (r[ix[k]] ?? "").trim() : "");
@@ -108,7 +108,7 @@ export function parsePurchaseCsv(text: string, inventory: InvProduct[]): CsvPars
 }
 
 export function downloadPurchaseTemplate() {
-  const head = ["Product", "Composition", "Manufacturer", "Category", "Schedule", "Form", "Pack", "HSN", "GST%", "Batch", "Expiry", "Qty", "Free", "PTR", "MRP", "ReorderLevel"];
+  const head = ["Product Name", "Composition", "Company", "Category", "Rx Schedule Type", "Product Form", "Packaging Detail", "HSN", "GST", "Batch", "Expiry", "Total Quantity", "Free", "Purchase Rate", "MRP", "ReorderLevel"];
   const sample = [
     ["Dolo 650", "Paracetamol 650mg", "Micro Labs", "fever", "OTC", "Tablet", "Strip of 15", "3004", "12", "DL26A55", "2027-06", "100", "10", "24.5", "34", "40"],
     ["Azithromycin 500", "Azithromycin 500mg", "Cipla", "fever", "H", "Tablet", "Strip of 5", "3004", "12", "AZ5521", "2027-09", "50", "5", "62", "98", "20"],
