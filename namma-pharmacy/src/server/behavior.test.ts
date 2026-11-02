@@ -1,5 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
+import { code128Bits } from "../app/lib/barcode";
+import { findScan, productBarcode } from "../app/data";
 import { fieldFrom } from "../app/lib/formFault";
 import { parseMedicineCsv, parsePoCsv } from "../app/lib/purchaseCsv";
 import { fromPaise, toPaise } from "../app/lib/paise";
@@ -111,6 +113,21 @@ function stocked(batches: { batchNo: string; expiry: string; qty: number; mrp: n
     online: true, emoji: "💊", looseAllowed: extra.looseAllowed, batches,
   };
 }
+
+test("a product barcode is the same for every batch and does not pin one", () => {
+  const p = stocked([
+    { batchNo: "NEW100", expiry: "2028-01", qty: 8, mrp: 100, ptr: 70 },
+    { batchNo: "OLD40", expiry: "2026-06", qty: 5, mrp: 40, ptr: 25 },
+  ]);
+  assert.equal(productBarcode(p), "NMp1");
+  assert.equal(productBarcode({ id: "p1" }), "NMp1");
+  const hit = findScan([p], "NMp1");
+  assert.equal(hit?.product.id, "p1");
+  assert.equal(hit?.batch, undefined);
+  assert.equal(findScan([p], "nmp1")?.batch, undefined);
+  assert.equal(findScan([p], "OLD40")?.batch?.batchNo, "OLD40");
+  assert.equal(code128Bits("0"), "1101001000010011101100100111001101100011101011");
+});
 
 test("a line bills the earliest batch when later batches have a higher MRP", () => {
   const state = emptyState({ phone: "+919000000000", businessType: "pharmacy" });

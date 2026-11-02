@@ -525,8 +525,9 @@ export const matchesLocation = (p: InvProduct, term: string) => {
 };
 
 // ── barcode / batch scanning ────────────────────────────────────
-// Each batch carries a deterministic scannable barcode (GS1-ish), so a scanner
-// resolves the exact product + batch. Used by POS & Hospital billing.
+// One code per product, derived from the id so every batch prints the same label.
+export const productBarcode = (p: { id: string }): string => "NM" + p.id;
+// Each batch also carries a deterministic scannable code (GS1-ish) for an exact lot.
 export const batchBarcode = (p: InvProduct, b: Batch): string => {
   let h = 5381; const s = p.id + "|" + b.batchNo;
   for (let i = 0; i < s.length; i++) h = ((h * 33) ^ s.charCodeAt(i)) >>> 0;
@@ -534,10 +535,12 @@ export const batchBarcode = (p: InvProduct, b: Batch): string => {
 };
 export type ScanHit = { product: InvProduct; batch?: Batch };
 const scanNorm = (s: string) => s.toLowerCase().replace(/[^a-z0-9]/g, "");
-// resolve a scanned/typed code → product + batch (barcode → batch no. → product name/id)
+// product barcode (no batch) → batch barcode → batch no. → product name/id
 export const findScan = (inv: InvProduct[], raw: string): ScanHit | null => {
   const code = (raw || "").trim(); if (!code) return null;
   const nc = scanNorm(code);
+  const labeled = inv.find((p) => scanNorm(productBarcode(p)) === nc);
+  if (labeled) return { product: labeled };
   for (const p of inv) for (const b of p.batches) if (batchBarcode(p, b) === code) return { product: p, batch: b };
   for (const p of inv) for (const b of p.batches) if (b.batchNo && scanNorm(b.batchNo) === nc) return { product: p, batch: b };
   const p = inv.find((x) => scanNorm(x.id) === nc || scanNorm(x.name) === nc) || inv.find((x) => nc.length >= 3 && scanNorm(x.name).includes(nc));

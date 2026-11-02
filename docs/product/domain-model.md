@@ -28,7 +28,7 @@ Sequences in the blob: `invSeq`, `grnSeq`, `prodSeq`, `poSeq`, `caSeq`, `userSeq
 | `Purchase` | Supplier, invoice number and date, line items | `receivePurchase` adds a GRN and increases matching or new product stock |
 | `PurchaseOrder` | Supplier, items, note, received flag | `sendPurchaseOrder`, `markPOReceived` |
 
-`findScan()` matches a product barcode or batch code for POS and packing. `earliestBatch()` selects the earliest expiry. Loose sale is available for tablets and capsules whose pack contains more than one unit when `looseAllowed` is not false.
+`findScan()` matches a product barcode (`NM` plus the product id, the same code for every batch of that product) or a batch code for POS and packing. A product-barcode hit does not select a batch; the sale uses `earliestBatch()`. Loose sale is available for tablets and capsules whose pack contains more than one unit when `looseAllowed` is not false.
 
 Categories: `fever`, `cold`, `diabetes`, `heart`, `stomach`, `vitamins`, `skin`, `baby`, `devices`, `personal`, `ayush`, `firstaid`.
 
