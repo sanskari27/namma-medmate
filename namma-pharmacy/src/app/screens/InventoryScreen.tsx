@@ -7,7 +7,7 @@ import {
   SCHEDULE_META, stockValue, isLooseEligible, perUnitPrice, unitNoun, looseUnitsOf,
   hasLocation, matchesLocation, locationCodes, Sale, fmtDateTime, timeAgo, productBarcode,
 } from "../data";
-import { barcodeSvg, printBarcodeLabels } from "../lib/barcode";
+import { barcodeSvg, saveBarcodeSvg } from "../lib/barcode";
 import { ScheduleTag, StockPill, Thumb } from "../components/bits";
 import { IconSearch, IconEdit, IconX, IconInventory, IconUpload, IconTruck, IconCash, IconTrendDown, IconCalendar, IconMap, IconBox, IconUnlock, IconLock, IconArrowRight, IconRupee, IconTag, IconAlert, IconClock, IconReceipt, IconPin, IconRefresh, IconDownload, IconPrint } from "../components/Icon";
 import { exportStockCsv, exportStockPdf } from "../lib/stockExport";
@@ -211,8 +211,6 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
     .sort((a, b) => b.createdAt - a.createdAt).slice(0, 12)
     .map((s) => ({ id: s.id, at: s.createdAt, qty: s.items.filter((i) => i.productId === p.id).reduce((x, i) => x + i.qty, 0), channel: s.channel }));
   const code = productBarcode(p);
-  const [copies, setCopies] = useState(1);
-  const [printBlocked, setPrintBlocked] = useState(false);
   const facts: [string, React.ReactNode][] = [
     ["Manufacturer", p.manufacturer], ["Pack", p.pack], ["HSN / GST", `${p.hsn} · ${p.gst}%`],
     ["Rack location", hasLocation(p) ? <span className="pd-mono"><IconPin size={11} /> {locationCodes(p).join(" · ")}</span> : <button className="pd-pill pill-gold" style={{ cursor: "pointer", border: 0 }} onClick={() => { onClose(); go("rackmap"); }}><IconAlert size={11} /> Unallocated · assign</button>],
@@ -246,11 +244,7 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
             <div style={{ minWidth: 160 }}>
               <div style={{ fontWeight: 700 }}>{p.name}</div>
               <div className="pd-mono" style={{ letterSpacing: ".12em", margin: "4px 0 8px" }}>{code}</div>
-              <div className="pd-flex pd-gap6" style={{ alignItems: "center" }}>
-                <input className="pd-input" style={{ width: 64 }} type="number" min={1} max={50} aria-label="Label copies" value={copies} onChange={(e) => setCopies(Math.max(1, Math.min(50, Number(e.target.value) || 1)))} />
-                <button className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => setPrintBlocked(!printBarcodeLabels(p.name, code, copies))}><IconPrint size={14} /> Print label</button>
-              </div>
-              {printBlocked && <div className="pd-field-err" style={{ marginTop: 6 }}>Allow pop-ups to print labels.</div>}
+              <button className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => saveBarcodeSvg(code)}><IconDownload size={14} /> Save SVG</button>
             </div>
           </div>
 

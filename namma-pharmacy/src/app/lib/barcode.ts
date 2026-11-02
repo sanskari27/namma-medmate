@@ -53,25 +53,14 @@ export function barcodeSvg(text: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bits.length} 50" width="100%" height="64" role="img" aria-label="Barcode ${text}">${rects.join("")}</svg>`;
 }
 
-const esc = (s: string) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
-
-/** Opens the browser print dialog for `copies` identical labels. False when the popup is blocked. */
-export function printBarcodeLabels(name: string, code: string, copies: number): boolean {
-  const n = Math.max(1, Math.min(50, Math.floor(copies) || 1));
-  const svg = barcodeSvg(code);
-  const w = window.open("", "_blank", "noopener,noreferrer");
-  if (!w) return false;
-  const label = `<section class="label"><p class="name">${esc(name)}</p>${svg}<p class="code">${esc(code)}</p></section>`;
-  w.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(code)}</title><style>
-    @page { margin: 8mm; }
-    body { margin: 0; font-family: system-ui, sans-serif; color: #111; }
-    .label { width: 58mm; padding: 3mm 2mm; text-align: center; break-after: page; }
-    .name { margin: 0 0 2mm; font-size: 13px; font-weight: 700; }
-    .code { margin: 1.5mm 0 0; font-family: ui-monospace, monospace; font-size: 12px; letter-spacing: .12em; }
-    svg { width: 52mm; height: 18mm; }
-  </style></head><body>${label.repeat(n)}</body></html>`);
-  w.document.close();
-  w.focus();
-  w.print();
-  return true;
+export function saveBarcodeSvg(code: string) {
+  const blob = new Blob([barcodeSvg(code)], { type: "image/svg+xml" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url;
+  a.download = `${code}.svg`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
