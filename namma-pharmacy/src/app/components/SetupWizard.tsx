@@ -1,8 +1,8 @@
 "use client";
-import { useState, useRef } from "react";
+import { useRef, useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
-  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, INDIAN_STATES, PharmacyProfile, isValidGstin,
+  PHARMACY_BUSINESS_TYPES, REGISTRATION_TYPES, INDUSTRY_TYPES, INDIAN_STATES, PharmacyProfile, ProfileFile, setupGap,
 } from "../data";
 import {
   IconArrowRight, IconCheck, IconUpload, IconStore, IconReceipt, IconKiosk, IconRupee, IconInventory, IconUsers,
@@ -26,10 +26,14 @@ type Draft = PharmacyProfile & {
 };
 
 export default function SetupWizard() {
-  const { profile, invoiceSettings, kiosk, updateProfile, updateInvoiceSettings, updateKiosk, setLooseDefault, completeSetup, showFault } = usePharma();
+  const { profile, invoiceSettings, kiosk, commitSetup, showFault, clearFault } = usePharma();
   const [step, setStep] = useState(0);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
   const [d, setD] = useState<Draft>({
     ...profile,
+    gstRegistered: true,
+    phone: profile.phone,
     invoicePrefix: invoiceSettings.prefix, terms: invoiceSettings.terms,
     kioskEnabled: kiosk.enabled, looseDefault: true,
   });
@@ -41,26 +45,38 @@ export default function SetupWizard() {
     const r = new FileReader(); r.onload = () => set({ [key]: r.result as string } as Partial<Draft>); r.readAsDataURL(file);
   };
   const toggleType = (t: string) => set({ businessTypes: d.businessTypes.includes(t) ? d.businessTypes.filter((x) => x !== t) : [...d.businessTypes, t] });
-
-  const canNext = step !== 1 || d.name.trim().length > 0;
   const last = step === STEPS.length - 1;
 
+  const blocked = (through: number) => {
+    const issue = setupGap(d);
+    if (!issue || issue.step > through) { clearFault(); return false; }
+    setStep(issue.step);
+    showFault(issue.message);
+    return true;
+  };
+
   const finish = async () => {
-    if (d.phone.trim() && d.phone.replace(/\D/g, "").length < 10) { setStep(1); showFault("Enter a valid mobile number"); return; }
-    if (d.gstin.trim() && !isValidGstin(d.gstin)) { setStep(3); showFault("Enter a valid GSTIN"); return; }
-    const err = await updateProfile({
-      name: d.name, tagline: d.tagline, logo: d.logo, phone: d.phone, email: d.email,
-      address: d.address, city: d.city, state: d.state, pincode: d.pincode,
-      gstRegistered: d.gstRegistered, gstin: d.gstin, eInvoicing: d.eInvoicing, pan: d.pan,
-      dlNo: d.dlNo, fssai: d.fssai, enableTDS: d.enableTDS, enableTCS: d.enableTCS,
-      businessTypes: d.businessTypes, industryType: d.industryType, registrationType: d.registrationType,
-      signature: d.signature, pharmacist: d.pharmacist, storeOpen: d.storeOpen,
+    if (savingRef.current) return;
+    if (blocked(STEPS.length - 1)) return;
+    savingRef.current = true;
+    setSaving(true);
+    const err = await commitSetup({
+      profile: {
+        name: d.name, tagline: d.tagline, logo: d.logo, email: d.email.trim(),
+        address: d.address, city: d.city, state: d.state, pincode: d.pincode,
+        gstRegistered: true, gstin: d.gstin, eInvoicing: d.eInvoicing, pan: d.pan,
+        dlNo: d.dlNo, fssai: d.fssai, gstFile: d.gstFile, panFile: d.panFile, dlFile: d.dlFile, fssaiFile: d.fssaiFile,
+        enableTDS: d.enableTDS, enableTCS: d.enableTCS,
+        businessTypes: d.businessTypes, industryType: d.industryType, registrationType: d.registrationType,
+        signature: d.signature, pharmacist: d.pharmacist, storeOpen: d.storeOpen,
+      },
+      invoice: { prefix: d.invoicePrefix, terms: d.terms },
+      kioskEnabled: d.kioskEnabled,
+      loose: d.looseDefault,
     });
-    if (err) { if (err.field === "phone") setStep(1); if (err.field === "gstin") setStep(3); return; }
-    updateInvoiceSettings({ prefix: d.invoicePrefix, terms: d.terms });
-    updateKiosk({ enabled: d.kioskEnabled });
-    setLooseDefault(d.looseDefault);
-    completeSetup();
+    savingRef.current = false;
+    setSaving(false);
+    if (err?.field === "gstin") setStep(3);
   };
 
   return (
@@ -103,7 +119,7 @@ export default function SetupWizard() {
                   </button>
                 </div>
                 <div style={{ flex: 1 }}>
-                  <div className="pd-field"><label>Pharmacy name *</label><input className="pd-input" autoFocus value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Sri Sai Medicals" /></div>
+                  <div className="pd-field" data-field="name"><label>Pharmacy name *</label><input className="pd-input" autoFocus value={d.name} onChange={(e) => set({ name: e.target.value })} placeholder="e.g. Sri Sai Medicals" /></div>
                   <div className="pd-field" style={{ marginTop: 10 }}><label>Tagline</label><input className="pd-input" value={d.tagline} onChange={(e) => set({ tagline: e.target.value })} placeholder="Your neighbourhood pharmacy" /></div>
                 </div>
               </div>
@@ -113,36 +129,30 @@ export default function SetupWizard() {
                 </div>
               </div>
               <div className="pd-form-grid" style={{ marginTop: 14 }}>
-                <div className="pd-field"><label>Registration type</label><select className="pd-select" value={d.registrationType} onChange={(e) => set({ registrationType: e.target.value })}>{REGISTRATION_TYPES.map((r) => <option key={r}>{r}</option>)}</select></div>
-                <div className="pd-field"><label>Industry</label><select className="pd-select" value={d.industryType} onChange={(e) => set({ industryType: e.target.value })}>{INDUSTRY_TYPES.map((i) => <option key={i}>{i}</option>)}</select></div>
-                <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
-                <div className="pd-field"><label>Email</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} /></div>
+                <div className="pd-field"><label>Registration type *</label><select className="pd-select" value={d.registrationType} onChange={(e) => set({ registrationType: e.target.value })}>{REGISTRATION_TYPES.map((r) => <option key={r}>{r}</option>)}</select></div>
+                <div className="pd-field"><label>Industry *</label><select className="pd-select" value={d.industryType} onChange={(e) => set({ industryType: e.target.value })}>{INDUSTRY_TYPES.map((i) => <option key={i}>{i}</option>)}</select></div>
+                <div className="pd-field" data-field="phone"><label>Phone *</label><input className="pd-input" value={d.phone} readOnly aria-readonly="true" style={{ background: "var(--wash2)" }} /><span className="pd-muted" style={{ fontSize: 12 }}>Login uses this number, so it cannot be changed.</span></div>
+                <div className="pd-field" data-field="email"><label>Email *</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="store@email.com" /></div>
               </div>
             </>
           )}
 
           {step === 2 && (
             <div className="pd-form-grid">
-              <div className="pd-field pd-span2"><label>Billing address</label><textarea className="pd-textarea" value={d.address} onChange={(e) => set({ address: e.target.value })} /></div>
-              <div className="pd-field"><label>City</label><input className="pd-input" value={d.city} onChange={(e) => set({ city: e.target.value })} /></div>
-              <div className="pd-field"><label>Pincode</label><input className="pd-input" value={d.pincode} onChange={(e) => set({ pincode: e.target.value })} /></div>
-              <div className="pd-field pd-span2"><label>State</label><select className="pd-select" value={d.state} onChange={(e) => set({ state: e.target.value })}>{INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}</select></div>
+              <div className="pd-field pd-span2"><label>Billing address *</label><textarea className="pd-textarea" value={d.address} onChange={(e) => set({ address: e.target.value })} /></div>
+              <div className="pd-field"><label>City *</label><input className="pd-input" value={d.city} onChange={(e) => set({ city: e.target.value })} /></div>
+              <div className="pd-field"><label>Pincode *</label><input className="pd-input" value={d.pincode} onChange={(e) => set({ pincode: e.target.value })} /></div>
+              <div className="pd-field pd-span2"><label>State *</label><select className="pd-select" value={d.state} onChange={(e) => set({ state: e.target.value })}><option value="">Select state</option>{INDIAN_STATES.map((s) => <option key={s}>{s}</option>)}</select></div>
             </div>
           )}
 
           {step === 3 && (
             <>
-              <div className="pd-field"><label>Are you GST registered?</label>
-                <div className="pd-flex pd-gap6" style={{ marginTop: 4 }}>
-                  <button className={`pd-chip${d.gstRegistered ? " on" : ""}`} onClick={() => set({ gstRegistered: true })}>Yes</button>
-                  <button className={`pd-chip${!d.gstRegistered ? " on" : ""}`} onClick={() => set({ gstRegistered: false })}>No</button>
-                </div>
-              </div>
-              <div className="pd-form-grid" style={{ marginTop: 12 }}>
-                {d.gstRegistered && <div className="pd-field pd-span2" data-field="gstin"><label>GSTIN</label><input className="pd-input pd-mono" value={d.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
-                <div className="pd-field"><label>PAN number</label><input className="pd-input pd-mono" value={d.pan} onChange={(e) => set({ pan: e.target.value })} /></div>
-                <div className="pd-field"><label>Drug Licence No. (D.L.)</label><input className="pd-input pd-mono" value={d.dlNo} onChange={(e) => set({ dlNo: e.target.value })} /></div>
-                <div className="pd-field pd-span2"><label>FSSAI Licence No.</label><input className="pd-input pd-mono" value={d.fssai} onChange={(e) => set({ fssai: e.target.value })} /></div>
+              <div className="pd-form-grid">
+                <LicenceField label="GSTIN" value={d.gstin} file={d.gstFile} onValue={(gstin) => set({ gstin, gstRegistered: true })} onFile={(gstFile) => set({ gstFile })} />
+                <LicenceField label="PAN number" value={d.pan} file={d.panFile} onValue={(pan) => set({ pan })} onFile={(panFile) => set({ panFile })} />
+                <LicenceField label="Drug Licence No. (D.L.)" value={d.dlNo} file={d.dlFile} onValue={(dlNo) => set({ dlNo })} onFile={(dlFile) => set({ dlFile })} />
+                <LicenceField label="FSSAI Licence No." value={d.fssai} file={d.fssaiFile} onValue={(fssai) => set({ fssai })} onFile={(fssaiFile) => set({ fssaiFile })} />
               </div>
               <FeatRow ico={<IconRupee size={18} />} t="Enable TDS" s="Deduct TDS on applicable purchases" on={d.enableTDS} onClick={() => set({ enableTDS: !d.enableTDS })} />
               <FeatRow ico={<IconRupee size={18} />} t="Enable TCS" s="Collect TCS on applicable sales" on={d.enableTCS} onClick={() => set({ enableTCS: !d.enableTCS })} />
@@ -151,24 +161,22 @@ export default function SetupWizard() {
 
           {step === 4 && (
             <div className="pd-form-grid">
-              <div className="pd-field pd-span2"><label>Registered pharmacist (printed on invoices)</label><input className="pd-input" value={d.pharmacist} onChange={(e) => set({ pharmacist: e.target.value })} placeholder="Name, B.Pharm (Reg. No.)" /></div>
+              <div className="pd-field pd-span2"><label>Registered pharmacist *</label><input className="pd-input" value={d.pharmacist} onChange={(e) => set({ pharmacist: e.target.value })} placeholder="Name, B.Pharm (Reg. No.)" /></div>
               <p className="pd-muted pd-span2" style={{ fontSize: 12.5 }}><IconBulb size={14} /> You can add cashiers, managers & more pharmacists later under <b>Manage Users</b> — each with their own role, PIN & permissions.</p>
             </div>
           )}
 
           {step === 5 && (
-            <>
-              <div className="pd-form-grid">
-                <div className="pd-field"><label>Invoice number prefix</label><input className="pd-input pd-mono" value={d.invoicePrefix} onChange={(e) => set({ invoicePrefix: e.target.value })} /></div>
-                <div className="pd-field"><label>Signature / stamp</label>
-                  <input ref={signRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e, "signature")} />
-                  {d.signature
-                    ? <div className="pd-flex pd-gap6"><img src={d.signature} alt="" style={{ height: 40, border: "1px solid var(--line)", borderRadius: 8, padding: 2 }} /><button className="pd-btn pd-btn-sm" style={{ color: "var(--rose)", background: "none" }} onClick={() => set({ signature: undefined })}>Remove</button></div>
-                    : <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => signRef.current?.click()}><IconUpload size={14} /> Upload</button>}
-                </div>
-                <div className="pd-field pd-span2"><label>Terms &amp; conditions (shown on invoices)</label><textarea className="pd-textarea" value={d.terms} onChange={(e) => set({ terms: e.target.value })} /></div>
+            <div className="pd-form-grid">
+              <div className="pd-field"><label>Invoice number prefix *</label><input className="pd-input pd-mono" value={d.invoicePrefix} onChange={(e) => set({ invoicePrefix: e.target.value })} /></div>
+              <div className="pd-field"><label>Signature / stamp *</label>
+                <input ref={signRef} type="file" accept="image/*" hidden onChange={(e) => onFile(e, "signature")} />
+                {d.signature
+                  ? <div className="pd-flex pd-gap6"><img src={d.signature} alt="" style={{ height: 40, border: "1px solid var(--line)", borderRadius: 8, padding: 2 }} /><button className="pd-btn pd-btn-sm pd-btn-ghost" onClick={() => signRef.current?.click()}>Replace</button></div>
+                  : <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => signRef.current?.click()}><IconUpload size={14} /> Upload</button>}
               </div>
-            </>
+              <div className="pd-field pd-span2"><label>Terms &amp; conditions (shown on invoices)</label><textarea className="pd-textarea" value={d.terms} onChange={(e) => set({ terms: e.target.value })} /></div>
+            </div>
           )}
 
           {step === 6 && (
@@ -196,12 +204,13 @@ export default function SetupWizard() {
                 <div><div style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 18 }}>{d.name || "Your pharmacy"}</div><div className="pd-muted" style={{ fontSize: 12.5 }}>{d.businessTypes.join(", ") || "Retail Pharmacy"} · {d.city}, {d.state}</div></div>
               </div>
               <div className="pd-setup-review">
-                <div className="r"><span className="k">GST</span><span className="v">{d.gstRegistered ? d.gstin || "Registered" : "Not registered"}</span></div>
-                <div className="r"><span className="k">PAN</span><span className="v">{d.pan || "—"}</span></div>
-                <div className="r"><span className="k">Drug Licence</span><span className="v">{d.dlNo || "—"}</span></div>
-                <div className="r"><span className="k">FSSAI</span><span className="v">{d.fssai || "—"}</span></div>
+                <div className="r"><span className="k">GSTIN</span><span className="v">{d.gstin}{d.gstFile ? " · attached" : ""}</span></div>
+                <div className="r"><span className="k">PAN</span><span className="v">{d.pan}{d.panFile ? " · attached" : ""}</span></div>
+                <div className="r"><span className="k">Drug Licence</span><span className="v">{d.dlNo}{d.dlFile ? " · attached" : ""}</span></div>
+                <div className="r"><span className="k">FSSAI</span><span className="v">{d.fssai}{d.fssaiFile ? " · attached" : ""}</span></div>
                 <div className="r"><span className="k">Invoice prefix</span><span className="v">{d.invoicePrefix}</span></div>
                 <div className="r"><span className="k">Pharmacist</span><span className="v">{d.pharmacist.split(",")[0] || "—"}</span></div>
+                <div className="r"><span className="k">Signature</span><span className="v">{d.signature ? "Attached" : "—"}</span></div>
                 <div className="r"><span className="k">Online orders</span><span className="v">{d.storeOpen ? "On" : "Off"}</span></div>
                 <div className="r"><span className="k">Kiosk</span><span className="v">{d.kioskEnabled ? "On" : "Off"}</span></div>
                 <div className="r"><span className="k">Loose selling</span><span className="v">{d.looseDefault ? "On" : "Off"}</span></div>
@@ -215,17 +224,38 @@ export default function SetupWizard() {
         </div>
 
         <div className="pd-setup-foot">
-          <button className="pd-btn pd-btn-ghost" disabled={step === 0} onClick={() => setStep((s) => Math.max(0, s - 1))}>Back</button>
+          <button className="pd-btn pd-btn-ghost" disabled={step === 0 || saving} onClick={() => setStep((s) => Math.max(0, s - 1))}>Back</button>
           <div className="pd-flex pd-gap6">
-            {step < STEPS.length - 1 && step > 0 && <button className="pd-btn pd-btn-ghost" onClick={() => setStep(STEPS.length - 1)}>Skip to review</button>}
             {last
-              ? <button className="pd-btn pd-btn-primary pd-btn-lg" onClick={finish}><IconCheck size={16} /> Finish setup</button>
-              : <button className="pd-btn pd-btn-primary" disabled={!canNext} onClick={() => setStep((s) => s + 1)}>{step === 0 ? "Get started" : "Continue"} <IconArrowRight size={15} /></button>}
+              ? <button className="pd-btn pd-btn-primary pd-btn-lg" disabled={saving} onClick={finish}><IconCheck size={16} /> Finish setup</button>
+              : <button className="pd-btn pd-btn-primary" onClick={() => { if (!blocked(step)) setStep((s) => s + 1); }}>{step === 0 ? "Get started" : "Continue"} <IconArrowRight size={15} /></button>}
           </div>
         </div>
       </div>
       <p className="pd-copyright" style={{ marginTop: 14 }}>© 2026 Medmate India Technology Private Limited</p>
     </div>
+  );
+}
+
+function LicenceField({ label, value, file, onValue, onFile }: { label: string; value: string; file?: ProfileFile; onValue: (v: string) => void; onFile: (f: ProfileFile) => void }) {
+  const ref = useRef<HTMLInputElement>(null);
+  const pick = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const picked = e.target.files?.[0]; if (!picked) return;
+    const r = new FileReader();
+    r.onload = () => onFile({ name: picked.name, dataUrl: String(r.result || "") });
+    r.readAsDataURL(picked);
+    e.target.value = "";
+  };
+  return (
+    <>
+      <div className="pd-field" data-field={label === "GSTIN" ? "gstin" : undefined}><label>{label} *</label><input className="pd-input pd-mono" value={value} onChange={(e) => onValue(e.target.value.toUpperCase())} /></div>
+      <div className="pd-field"><label>{label} document *</label>
+        <input ref={ref} type="file" accept="image/*,.pdf,application/pdf" hidden onChange={pick} />
+        {file?.dataUrl
+          ? <div className="pd-flex pd-gap6" style={{ alignItems: "center" }}><span style={{ fontSize: 12.5, fontWeight: 700 }}>{file.name}</span><button type="button" className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => ref.current?.click()}>Replace</button></div>
+          : <button type="button" className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => ref.current?.click()}><IconUpload size={14} /> Attach</button>}
+      </div>
+    </>
   );
 }
 

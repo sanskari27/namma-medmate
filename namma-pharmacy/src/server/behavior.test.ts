@@ -1,12 +1,12 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { code128Bits } from "../app/lib/barcode";
-import { findScan, productBarcode } from "../app/data";
+import { findScan, productBarcode, setupGap } from "../app/data";
 import { fieldFrom } from "../app/lib/formFault";
 import { parseMedicineCsv, parsePoCsv, parsePurchaseCsv } from "../app/lib/purchaseCsv";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { createSession, e164, findLogin, getPool, insertPharmacy, loadState, migrate, withState, type SessionRow } from "./db";
-import { addDepartment, addReferral, cancelOrder, checkoutPos, importProducts, importPurchaseOrders, issueWardSupply, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
+import { addDepartment, addReferral, cancelOrder, checkoutPos, importProducts, importPurchaseOrders, issueWardSupply, patchProfile, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
 import { handle, keepOwner, sessionView } from "./router";
 import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
 
@@ -270,6 +270,30 @@ test("departments and referrals stay on the pharmacy after create, edit, and del
   removeDepartment(state, dep.id);
   assert.equal(state.referrals.length, 0);
   assert.equal(state.departments.length, 0);
+});
+
+test("store setup requires profile, licences with documents, pharmacist, prefix, and signature", () => {
+  const doc = { name: "a.pdf", dataUrl: "data:application/pdf;base64,AA==" };
+  const ready = {
+    name: "City", registrationType: "Proprietorship", industryType: "Pharmacy & Healthcare",
+    phone: "+919000000000", email: "a@b.co", address: "12 Road", city: "Bengaluru", state: "Karnataka", pincode: "560011",
+    gstin: "29ABCDE1234F1Z2", pan: "ABCDE1234F", dlNo: "KA-1", fssai: "100", pharmacist: "Asha", invoicePrefix: "INV-",
+    signature: "data:image/png;base64,AA==", gstFile: doc, panFile: doc, dlFile: doc, fssaiFile: doc,
+  };
+  assert.equal(setupGap({ ...ready, email: "" })?.message, "Email is required");
+  assert.equal(setupGap({ ...ready, gstFile: undefined })?.message, "Attach the GST certificate");
+  assert.equal(setupGap({ ...ready, pharmacist: " " })?.step, 4);
+  assert.equal(setupGap({ ...ready, signature: undefined })?.message, "Signature is required");
+  assert.equal(setupGap(ready), null);
+});
+
+test("profile keeps the login phone and stays GST registered", () => {
+  const state = emptyState({ phone: "+919000000000", businessType: "pharmacy" });
+  patchProfile(state, { phone: "9111111111", gstRegistered: false, name: "City", gstFile: { name: "gst.pdf", dataUrl: "data:application/pdf;base64,AA==" } });
+  assert.equal(state.profile.phone, "+919000000000");
+  assert.equal(state.profile.gstRegistered, true);
+  assert.equal(state.profile.name, "City");
+  assert.equal(state.profile.gstFile?.name, "gst.pdf");
 });
 
 test("validation messages name the form field", () => {

@@ -300,6 +300,7 @@ export const SEED_OFFERS: Offer[] = [
 
 // ── pharmacy profile (used on invoices & business settings) ─────
 export type BizDetail = { label: string; value: string };
+export type ProfileFile = { name: string; dataUrl: string };
 export type PharmacyProfile = {
   name: string;
   tagline: string;
@@ -316,6 +317,10 @@ export type PharmacyProfile = {
   pan: string;
   dlNo: string;            // drug licence no
   fssai: string;           // FSSAI licence no
+  gstFile?: ProfileFile;
+  panFile?: ProfileFile;
+  dlFile?: ProfileFile;
+  fssaiFile?: ProfileFile;
   enableTDS: boolean;
   enableTCS: boolean;
   businessTypes: string[];
@@ -342,6 +347,33 @@ export const maskAccount = (n: string) => (n.length <= 4 ? n : "•••• " +
 // basic IFSC sanity check: 4 letters + 0 + 6 alphanumerics
 export const isValidIfsc = (s: string) => /^[A-Z]{4}0[A-Z0-9]{6}$/.test(s.trim().toUpperCase());
 export const isValidGstin = (s: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-Z]Z[0-9A-Z]$/.test(s.trim().toUpperCase());
+
+export function setupGap(d: {
+  name: string; registrationType: string; industryType: string; phone: string; email: string;
+  address: string; city: string; state: string; pincode: string; gstin: string; pan: string;
+  dlNo: string; fssai: string; pharmacist: string; invoicePrefix: string; signature?: string;
+  gstFile?: ProfileFile; panFile?: ProfileFile; dlFile?: ProfileFile; fssaiFile?: ProfileFile;
+}): { step: number; message: string } | null {
+  const file = (f?: ProfileFile) => !!f?.dataUrl;
+  if (!d.name.trim()) return { step: 1, message: "Pharmacy name is required" };
+  if (!d.registrationType.trim()) return { step: 1, message: "Registration type is required" };
+  if (!d.industryType.trim()) return { step: 1, message: "Industry is required" };
+  if (d.phone.replace(/\D/g, "").length < 10) return { step: 1, message: "Enter a valid mobile number" };
+  if (!/^\S+@\S+\.\S+$/.test(d.email.trim())) return { step: 1, message: "Email is required" };
+  if (!d.address.trim() || !d.city.trim() || !INDIAN_STATES.includes(d.state) || !d.pincode.trim()) return { step: 2, message: "Address, city, state and pincode are required" };
+  if (!isValidGstin(d.gstin)) return { step: 3, message: "Enter a valid GSTIN" };
+  if (!file(d.gstFile)) return { step: 3, message: "Attach the GST certificate" };
+  if (!d.pan.trim()) return { step: 3, message: "PAN number is required" };
+  if (!file(d.panFile)) return { step: 3, message: "Attach the PAN card" };
+  if (!d.dlNo.trim()) return { step: 3, message: "Drug licence number is required" };
+  if (!file(d.dlFile)) return { step: 3, message: "Attach the drug licence" };
+  if (!d.fssai.trim()) return { step: 3, message: "FSSAI licence number is required" };
+  if (!file(d.fssaiFile)) return { step: 3, message: "Attach the FSSAI licence" };
+  if (!d.pharmacist.trim()) return { step: 4, message: "Registered pharmacist name is required" };
+  if (!d.invoicePrefix.trim()) return { step: 5, message: "Invoice prefix is required" };
+  if (!d.signature) return { step: 5, message: "Signature is required" };
+  return null;
+}
 
 export const INDIAN_STATES = [
   "Andhra Pradesh", "Assam", "Bihar", "Chhattisgarh", "Delhi", "Goa", "Gujarat", "Haryana",

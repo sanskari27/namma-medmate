@@ -152,7 +152,9 @@ function moveInventory(state: PharmacyState, items: WardSupplyItem[], dir: 1 | -
 export function patchProfile(state: PharmacyState, patch: Partial<PharmacyState["profile"]>) {
   checkGstin(patch.gstin);
   checkPhone(patch.phone);
-  state.profile = { ...state.profile, ...patch };
+  const phone = state.profile.phone;
+  state.profile = { ...state.profile, ...patch, gstRegistered: true };
+  if (phone.replace(/\D/g, "").length >= 10) state.profile.phone = phone;
   return state.profile;
 }
 export function toggleStore(state: PharmacyState) {
