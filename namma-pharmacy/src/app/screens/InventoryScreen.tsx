@@ -7,7 +7,7 @@ import {
   SCHEDULE_META, stockValue, isLooseEligible, perUnitPrice, unitNoun, looseUnitsOf,
   hasLocation, matchesLocation, locationCodes, Sale, fmtDateTime, timeAgo, productBarcode,
 } from "../data";
-import { barcodeSvg, saveBarcodeSvg } from "../lib/barcode";
+import { barcodeSvg, printBarcodeLabels } from "../lib/barcode";
 import { ScheduleTag, StockPill, Thumb } from "../components/bits";
 import { IconSearch, IconEdit, IconX, IconInventory, IconUpload, IconTruck, IconCash, IconTrendDown, IconCalendar, IconMap, IconBox, IconUnlock, IconLock, IconArrowRight, IconRupee, IconTag, IconAlert, IconClock, IconReceipt, IconPin, IconRefresh, IconDownload, IconPrint } from "../components/Icon"
 import { monogramOf } from "../components/entityIcon";;
@@ -201,6 +201,30 @@ export default function InventoryScreen() {
   );
 }
 
+function PrintBarcodeDialog({ name, code, onClose }: { name: string; code: string; onClose: () => void }) {
+  const [n, setN] = useState("1");
+  const copies = Math.floor(Number(n));
+  const ok = copies >= 1 && copies <= 200;
+  return (
+    <div className="pd-modal-wrap" style={{ zIndex: 140 }} onClick={onClose}>
+      <form className="pd-modal" style={{ maxWidth: 360 }} onClick={(e) => e.stopPropagation()} onSubmit={(e) => { e.preventDefault(); if (!ok) return; printBarcodeLabels(name, code, copies); onClose(); }}>
+        <div className="pd-modal-head"><h3>Print barcode</h3><button type="button" className="pd-x" onClick={onClose}><IconX size={18} /></button></div>
+        <div className="pd-modal-body">
+          <div className="pd-field">
+            <label htmlFor="barcode-copies">How many labels?</label>
+            <input id="barcode-copies" className="pd-input" inputMode="numeric" type="number" min={1} max={200} step={1} autoFocus value={n} onChange={(e) => setN(e.target.value)} onFocus={(e) => e.currentTarget.select()} />
+          </div>
+          <p className="pd-muted" style={{ fontSize: 12.5, margin: "10px 0 0" }}>Opens the system print dialog. Select the Posiflow CD410, paper 100 × 50 mm, and turn headers off.</p>
+        </div>
+        <div className="pd-modal-foot">
+          <button type="button" className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>
+          <button type="submit" className="pd-btn pd-btn-primary" disabled={!ok}><IconPrint size={15} /> Print</button>
+        </div>
+      </form>
+    </div>
+  );
+}
+
 // ── product 360° detail: stock, batches, valuation, velocity, movement ──
 function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnline, toggleLoose, go }: {
   product: InvProduct; sales: Sale[]; now: number; onClose: () => void; onEdit: () => void;
@@ -220,6 +244,7 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
     .sort((a, b) => b.createdAt - a.createdAt).slice(0, 12)
     .map((s) => ({ id: s.id, at: s.createdAt, qty: s.items.filter((i) => i.productId === p.id).reduce((x, i) => x + i.qty, 0), channel: s.channel }));
   const code = productBarcode(p);
+  const [printAsk, setPrintAsk] = useState(false);
   const facts: [string, React.ReactNode][] = [
     ["Manufacturer", p.manufacturer], ["Pack", p.pack], ["HSN / GST", `${p.hsn} · ${p.gst}%`],
     ["Rack location", hasLocation(p) ? <span className="pd-mono"><IconPin size={11} /> {locationCodes(p).join(" · ")}</span> : <button className="pd-pill pill-gold" style={{ cursor: "pointer", border: 0 }} onClick={() => { onClose(); go("rackmap"); }}><IconAlert size={11} /> Unallocated · assign</button>],
@@ -227,6 +252,7 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
   ];
 
   return (
+    <>
     <div className="pd-modal-wrap" onClick={onClose}>
       <div className="pd-modal lg" onClick={(e) => e.stopPropagation()}>
         <div className="pd-modal-head">
@@ -257,7 +283,7 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
                 {catLabel(p.category)} · {p.manufacturer} · {p.pack}
               </div>
             </div>
-            <button className="pd-btn pd-btn-primary pd-btn-sm" style={{ whiteSpace: "nowrap" }} onClick={() => saveBarcodeSvg(code)}><IconDownload size={14} /> Save SVG</button>
+            <button className="pd-btn pd-btn-primary pd-btn-sm" style={{ whiteSpace: "nowrap" }} onClick={() => setPrintAsk(true)}><IconPrint size={14} /> Print</button>
           </div>
 
           {/* KPI tiles */}
@@ -325,6 +351,8 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
         <div className="pd-modal-foot"><button className="pd-btn pd-btn-ghost" onClick={onClose}>Close</button><button className="pd-btn pd-btn-primary" onClick={() => { onClose(); go("purchases"); }}><IconTruck size={15} /> Receive stock</button></div>
       </div>
     </div>
+    {printAsk && <PrintBarcodeDialog name={p.name} code={code} onClose={() => setPrintAsk(false)} />}
+    </>
   );
 }
 

@@ -53,14 +53,41 @@ export function barcodeSvg(text: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bits.length} 50" width="100%" height="64" role="img" aria-label="Barcode ${text}">${rects.join("")}</svg>`;
 }
 
-export function saveBarcodeSvg(code: string) {
-  const blob = new Blob([barcodeSvg(code)], { type: "image/svg+xml" });
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = `${code}.svg`;
-  document.body.appendChild(a);
-  a.click();
-  a.remove();
-  setTimeout(() => URL.revokeObjectURL(url), 1000);
+function esc(s: string) {
+  return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
+}
+
+/** One 100×50 mm label per copy. Fits the Posiflow CD410 (108 mm print width). */
+export function barcodeLabelDocument(name: string, code: string, copies: number): string {
+  const n = Math.min(200, Math.max(1, Math.floor(Number(copies)) || 1));
+  const svg = barcodeSvg(code).replace('width="100%" height="64"', 'width="92mm" height="26mm"');
+  const label = `<section class="label"><p class="name">${esc(name)}</p>${svg}<p class="code">${esc(code)}</p></section>`;
+  return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(code)}</title><style>
+@page{size:100mm 50mm;margin:0}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;background:#fff;color:#000}
+.label{width:100mm;height:50mm;padding:2.5mm 4mm 2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;break-after:page;page-break-after:always}
+.label:last-child{break-after:auto;page-break-after:auto}
+.name{margin:0 0 1mm;max-width:92mm;font:700 11pt/1.15 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.code{margin:1mm 0 0;font:600 9pt/1 ui-monospace,monospace;letter-spacing:.14em}
+svg{display:block;shape-rendering:crispEdges}
+svg rect{fill:#000}
+</style></head><body>${label.repeat(n)}</body></html>`;
+}
+
+export function printBarcodeLabels(name: string, code: string, copies: number) {
+  document.querySelectorAll("iframe[data-barcode-print]").forEach((el) => el.remove());
+  const frame = document.createElement("iframe");
+  frame.setAttribute("aria-hidden", "true");
+  frame.dataset.barcodePrint = "";
+  // ponytail: kept until afterprint so the system dialog still has a document; the next print drops a leftover frame
+  frame.style.cssText = "position:fixed;left:-120mm;top:0;width:100mm;height:50mm;border:0";
+  document.body.appendChild(frame);
+  const win = frame.contentWindow;
+  if (!win) { frame.remove(); return; }
+  win.document.open();
+  win.document.write(barcodeLabelDocument(name, code, copies));
+  win.document.close();
+  win.addEventListener("afterprint", () => frame.remove(), { once: true });
+  requestAnimationFrame(() => { win.focus(); win.print(); });
 }

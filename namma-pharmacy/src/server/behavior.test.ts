@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { code128Bits } from "../app/lib/barcode";
+import { barcodeLabelDocument, code128Bits } from "../app/lib/barcode";
 import { findScan, productBarcode, setupGap } from "../app/data";
 import { fieldFrom } from "../app/lib/formFault";
 import { parseMedicineCsv, parsePoCsv, parsePurchaseCsv } from "../app/lib/purchaseCsv";
@@ -127,6 +127,15 @@ test("a product barcode is the same for every batch and does not pin one", () =>
   assert.equal(findScan([p], "nmp1")?.batch, undefined);
   assert.equal(findScan([p], "OLD40")?.batch?.batchNo, "OLD40");
   assert.equal(code128Bits("0"), "1101001000010011101100100111001101100011101011");
+});
+
+test("barcode print sheet repeats one label per copy and escapes the name", () => {
+  const html = barcodeLabelDocument("A & B <x>", "NMp1", 3);
+  assert.equal(html.split('class="label"').length - 1, 3);
+  assert.match(html, /A &amp; B &lt;x&gt;/);
+  assert.match(html, /size:100mm 50mm/);
+  assert.equal(barcodeLabelDocument("x", "NMp1", 0).split('class="label"').length - 1, 1);
+  assert.equal(barcodeLabelDocument("x", "NMp1", 999).split('class="label"').length - 1, 200);
 });
 
 test("a line bills the earliest batch when later batches have a higher MRP", () => {
