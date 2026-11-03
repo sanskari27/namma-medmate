@@ -217,7 +217,7 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
         <span className="ic"><IconSearch size={17} /></span>
         <input placeholder="Search medicines, orders, invoices…" onFocus={() => go("inventory")} readOnly />
       </div>}
-      {subscription.plan === "Free" && <button className="pd-upgradechip pd-no-print" onClick={() => go("subscription")} title="Unlock premium features"><IconCrown size={14} /> <span>Free plan · Upgrade</span></button>}
+      {subscription.plan === "Essential" && <button className="pd-upgradechip pd-no-print" onClick={() => go("subscription")} title="Unlock premium features"><IconCrown size={14} /> <span>Essential · Upgrade</span></button>}
       {allow("pos") && <button className="pd-btn pd-btn-primary pd-no-print" onClick={() => go("pos")}>+ New sale</button>}
       {allow("prescriptions") && <button className="pd-topbtn pd-no-print" onClick={() => go("prescriptions")} aria-label="Notifications">
         <IconBell size={19} />
@@ -230,8 +230,8 @@ function TopBar({ onMenu }: { onMenu: () => void }) {
 function LockedFeature({ route }: { route: Route }) {
   const { go, subscription } = usePharma();
   const meta = PAGE_META[route];
-  const starter = PLANS.find((p) => p.key === "Starter")!;
-  const price = planPrice(starter, "monthly");
+  const care = PLANS.find((p) => p.key === "Care")!;
+  const price = planPrice(care, "monthly");
   return (
     <div className="pd-canvas-wide">
       <div className="pd-paywall">
@@ -240,7 +240,7 @@ function LockedFeature({ route }: { route: Route }) {
         <h2>{meta.title} is a premium feature</h2>
         <p>You're on the <b>{subscription.plan}</b> plan. Billing / POS, Inventory and Purchases stay open — {meta.title} unlocks with any active paid plan from <b>{inr(price)}/mo</b>.</p>
         <div className="pd-paywall-feats">
-          {starter.features.map((f) => <div key={f}><IconCheck size={14} /> {f}</div>)}
+          {care.features.map((f) => <div key={f}><IconCheck size={14} /> {f}</div>)}
         </div>
         <div className="pd-paywall-cta">
           <button className="pd-btn pd-btn-primary" onClick={() => go("subscription")}><IconSparkle size={15} /> Upgrade to unlock</button>

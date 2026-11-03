@@ -232,7 +232,7 @@ export function MobileCta() {
               <div className="flex items-center gap-3 px-4 py-2.5">
                 <div className="flex min-w-0 flex-1 flex-col">
                   <p className="truncate text-[15px] font-bold leading-5">First 3 months free</p>
-                  <p className="d-caption truncate text-muted">From ₹299 a month</p>
+                  <p className="d-caption truncate text-muted">Essential free · paid from ₹999</p>
                 </div>
                 <a href="#register" className="press d-btn inline-flex h-11 shrink-0 items-center gap-1.5 rounded-xl bg-gold px-4 text-forest">Book a demo<Icon name="chev-r" size={16} /></a>
                 <button type="button" aria-label="Hide" onClick={close} className="press flex size-11 shrink-0 items-center justify-center rounded-full text-muted hover:bg-surface-2"><Icon name="x" size={16} /></button>

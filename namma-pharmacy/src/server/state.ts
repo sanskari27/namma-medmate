@@ -3,7 +3,7 @@ import {
   EXPENSE_CATEGORIES, SEED_ADVISORS, SEED_CA_SHARES, SEED_EMPLOYEES, SEED_INVENTORY,
   SEED_OFFERS, SEED_PURCHASE_ORDERS, SEED_PURCHASES, SEED_RX, SEED_SALES, SEED_SUPPLIERS,
   SEED_SUPPLY, SEED_USERS, Advisor, BankAccount, CAShare, CreditPayment, Employee,
-  Expense, InvProduct, InvoiceSettings, KioskConfig, Offer, PharmacyProfile, Purchase, SubRequest,
+  Expense, InvProduct, InvoiceSettings, KioskConfig, Offer, PharmacyProfile, Purchase, SubRequest, asPlan,
   PurchaseOrder, Sale, ScreenGrant, StaffUser, Subscription, Supplier,   seedHistory, resolveSeedCreditPayments, resolveSeedExpenses, distinctRacks, SupplyEntry,
 } from "../app/data";
 import { CrmData, EMPTY_CRM } from "../app/lib/crm";
@@ -279,6 +279,12 @@ export function touchAccess(state: PharmacyState) {
   state.subscriptionRequests ||= [];
   state.referrals ||= [];
   state.couponRedeemed = state.couponRedeemed === true;
+  const plan = asPlan(state.subscription?.plan);
+  if (state.subscription && plan && state.subscription.plan !== plan) state.subscription.plan = plan;
+  for (const request of state.subscriptionRequests) {
+    const next = asPlan(request.plan);
+    if (next && request.plan !== next) request.plan = next;
+  }
 }
 
 export function bump(state: PharmacyState, key: keyof Seq): number {

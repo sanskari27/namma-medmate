@@ -2,7 +2,7 @@ import {
   ALL_PERM_KEYS, ROLE_DEFAULT_PERMS, Advisor, BankAccount, Batch, BillingCycle, DosageForm, Employee, Expense,
   InvProduct, Offer, OfferType, PAY_LABEL, POItem, PayMode, Plan, PurchaseItem, Rider, Sale, SaleItem, Schedule,
   StaffUser, billUnit, computeInvoice, directOfferId, earliestBatch, findScan, isValidGstin, isValidIfsc, looseSellable, normalizeRack, packComplete,
-  routeLocked, seatCeiling, todayISO, unitNoun, unitsPerPack, userPerms,
+  asPlan, routeLocked, seatCeiling, todayISO, unitNoun, unitsPerPack, userPerms,
 } from "../app/data";
 import { PatientMeta } from "../app/lib/crm";
 import { Admission, ClaimStatus, Department, DoctorProfile, IndentStatus, Ward } from "../app/lib/hospital";
@@ -617,7 +617,9 @@ function addMonths(iso: string, n: number) {
   return d.toISOString().slice(0, 10);
 }
 export function addSubscriptionRequest(state: PharmacyState, plan: Plan, cycle: BillingCycle, kind?: string) {
-  if (plan !== "Free" && plan !== "Starter" && plan !== "Growth" && plan !== "Pro") fail(400, "VALIDATION", "Choose a plan");
+  const named = asPlan(plan);
+  if (!named) fail(400, "VALIDATION", "Choose a plan");
+  plan = named;
   if (cycle !== "monthly" && cycle !== "annual") fail(400, "VALIDATION", "Choose a billing cycle");
   const row = {
     id: "REQ-" + bump(state, "request"),

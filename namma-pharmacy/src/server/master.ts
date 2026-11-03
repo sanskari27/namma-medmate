@@ -1,7 +1,7 @@
 import { randomBytes } from "crypto";
 import type { PoolClient } from "pg";
 import {
-  PREMIUM_ROUTES, Plan, BillingCycle, ScreenGrant, includedSeats, seatCeiling, SEAT_CAP, subscriptionLapsed, todayISO,
+  PREMIUM_ROUTES, Plan, BillingCycle, ScreenGrant, asPlan, includedSeats, isFreePlan, seatCeiling, SEAT_CAP, subscriptionLapsed, todayISO,
 } from "../app/data";
 import { REFERRAL_REWARD } from "../app/lib/referrals";
 import { createSession, destroySession, e164, getPool, loadState, migrate, readSession, withState } from "./db";
@@ -97,8 +97,9 @@ async function insertAudit(client: PoolClient, phone: string, pharmacyId: string
 }
 
 function planOf(value: unknown): Plan {
-  if (value === "Free" || value === "Starter" || value === "Growth" || value === "Pro") return value;
-  fail(400, "VALIDATION", "Choose a plan");
+  const plan = asPlan(value);
+  if (!plan) fail(400, "VALIDATION", "Choose a plan");
+  return plan;
 }
 function cycleOf(value: unknown): BillingCycle {
   if (value === "monthly" || value === "annual") return value;
@@ -167,7 +168,7 @@ export async function listPharmacies(query: URLSearchParams) {
     `SELECT id, phone, business_type,
             COALESCE(state#>>'{profile,name}', '') AS name,
             COALESCE(state#>>'{profile,city}', '') AS city,
-            COALESCE(state#>>'{subscription,plan}', 'Free') AS plan,
+            COALESCE(state#>>'{subscription,plan}', 'Essential') AS plan,
             COALESCE(state#>>'{subscription,cycle}', 'monthly') AS cycle,
             COALESCE(state#>>'{subscription,status}', 'active') AS status,
             COALESCE(state#>>'{subscription,renewsOn}', '') AS renews_on,
@@ -193,7 +194,7 @@ export async function listPharmacies(query: URLSearchParams) {
       const hit = String(row.name).toLowerCase().includes(q) || String(row.city).toLowerCase().includes(q) || (qDigits.length >= 4 && phone.replace(/\D/g, "").includes(qDigits));
       if (!hit) return false;
     }
-    if (plan && row.plan !== plan) return false;
+    if (plan && (asPlan(row.plan) ?? row.plan) !== (asPlan(plan) ?? plan)) return false;
     if (businessType && row.business_type !== businessType) return false;
     if (window === "expired") return subscriptionLapsed(sub, today);
     if (window === "7" || window === "15" || window === "30") {
@@ -208,7 +209,7 @@ export async function listPharmacies(query: URLSearchParams) {
     phone: row.phone as string,
     name: row.name as string,
     city: row.city as string,
-    plan: row.plan as string,
+    plan: (asPlan(row.plan) ?? row.plan) as string,
     cycle: row.cycle as string,
     status: row.status as string,
     renewsOn: row.renews_on as string,
@@ -283,7 +284,7 @@ export async function listRequests() {
   for (const row of rows) {
     const requests = Array.isArray(row.requests) ? row.requests : [];
     for (const request of requests) {
-      list.push({ ...request, pharmacyId: row.id, pharmacyName: row.name, phone: row.phone });
+      list.push({ ...request, plan: asPlan(request.plan) ?? request.plan, pharmacyId: row.id, pharmacyName: row.name, phone: row.phone });
     }
   }
   list.sort((a, b) => Number(b.createdAt) - Number(a.createdAt));
@@ -297,10 +298,10 @@ function markRequests(state: PharmacyState) {
 export function assignPlan(master: MasterSession, id: string, body: Record<string, unknown>) {
   const plan = planOf(body.plan);
   const cycle = cycleOf(body.cycle);
-  const renewsOn = plan === "Free" && (body.renewsOn === "—" || body.renewsOn == null || body.renewsOn === "") ? "—" : dateOf(body.renewsOn);
+  const renewsOn = isFreePlan(plan) && (body.renewsOn === "—" || body.renewsOn == null || body.renewsOn === "") ? "—" : dateOf(body.renewsOn);
   return writePharmacy(master.phone, id, "plan", String(body.reason || ""), (state) => {
     const before = { plan: state.subscription.plan, cycle: state.subscription.cycle, renewsOn: state.subscription.renewsOn };
-    const lapsed = plan !== "Free" && renewsOn !== "—" && renewsOn < todayISO();
+    const lapsed = !isFreePlan(plan) && renewsOn !== "—" && renewsOn < todayISO();
     const next = { ...state.subscription, plan, cycle, renewsOn, status: lapsed ? "expired" as const : "active" as const };
     state.subscription = next;
     markRequests(state);
@@ -435,7 +436,7 @@ function couponCode(value: unknown) {
 
 function couponPlan(value: unknown): Plan {
   const plan = planOf(value);
-  if (plan === "Free") fail(400, "VALIDATION", "Choose a paid plan");
+  if (isFreePlan(plan)) fail(400, "VALIDATION", "Choose a paid plan");
   return plan;
 }
 
@@ -452,7 +453,7 @@ function presentCoupon(row: CouponRow) {
   const validDays = Number(row.valid_days);
   return {
     code: row.code,
-    plan: row.plan,
+    plan: asPlan(row.plan) ?? row.plan,
     expiresOn,
     validDays,
     expired: expiresOn < todayISO(),

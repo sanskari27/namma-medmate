@@ -35,7 +35,7 @@ export const FAQS: [string, string][] = [
   ["How will I pay?", "UPI, credit or debit card, or cash on delivery. Refunds for cancelled orders will go back to your original payment method."],
   ["Which areas will MedMate deliver to?", "MedMate starts in Bengaluru. Find your area on the Bengaluru page and join the waitlist, and we will message you when pharmacies near you go live."],
   ["Is there a MedMate app for Android and iPhone?", "The apps are coming soon. Join the waitlist and we will message you when you can download MedMate."],
-  ["I own a pharmacy. Can I join?", "Yes. The MedMate Partner console runs billing, inventory, prescriptions and credit for your shop, and your online store and delivery go live when MedMate launches in Bengaluru. You set your own prices. Partner console plans start at ₹299 a month, with the first 3 months free. Book a free demo on the For pharmacies page."],
+  ["I own a pharmacy. Can I join?", "Yes. The MedMate Partner console runs billing, inventory, prescriptions and credit for your shop, and your online store and delivery go live when MedMate launches in Bengaluru. You set your own prices. Essential is free. Paid plans start at ₹999 a month, with the first 3 months free. Book a free demo on the For pharmacies page."],
 ];
 
 export const PARTNER: [string, string][] = [

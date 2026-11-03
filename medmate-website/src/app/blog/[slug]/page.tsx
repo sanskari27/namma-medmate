@@ -97,7 +97,7 @@ export default async function PostPage({ params }: Props) {
             <div className="brand-zone flex flex-col items-start gap-4 rounded-3xl p-5 text-white sm:p-7">
               <p className="d-eyebrow text-gold">MedMate for pharmacies</p>
               <h2 className="d-h3">Turn your counter into a 10-minute pharmacy</h2>
-              <p className="text-mint-200">One console for billing, inventory, prescriptions and credit, with your online store and delivery launching soon. From ₹299 a month, first 3 months free.</p>
+              <p className="text-mint-200">One console for billing, inventory, prescriptions and credit, with your online store and delivery launching soon. Essential is free. Paid plans from ₹999 a month, first 3 months free.</p>
               <Link href="/pharmacy-partner#register" className="press d-btn inline-flex h-12 items-center justify-center gap-2 rounded-xl bg-gold px-5 text-forest hover:bg-gold-200 max-sm:w-full">Book a free demo<Icon name="chev-r" size={18} /></Link>
             </div>
           ) : (

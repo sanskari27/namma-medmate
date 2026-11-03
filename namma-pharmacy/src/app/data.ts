@@ -907,33 +907,39 @@ export const suggestUsername = (name: string, role: UserRole): string => {
 };
 
 // ── subscription / SaaS plan ────────────────────────────────────
-export type Plan = "Free" | "Starter" | "Growth" | "Pro";
-export type PlanInfo = { key: Plan; name: string; price: number; seats: string; tagline: string; features: string[] };
+export type Plan = "Essential" | "Care" | "Growth" | "Flagship";
+export type PlanInfo = { key: Plan; name: string; price: number; annual: number; seats: string; tagline: string; features: string[] };
 export const PLANS: PlanInfo[] = [
-  { key: "Free", name: "Free", price: 0, seats: "2 users", tagline: "Core billing", features: ["Billing / POS & GST invoices", "Inventory, batches & expiry", "Purchases & goods-inward", "Up to 2 users"] },
-  { key: "Starter", name: "Starter", price: 699, seats: "2 users", tagline: "Single counter", features: ["Everything in Free", "All paid screens on any active plan", "Email support"] },
-  { key: "Growth", name: "Growth", price: 1499, seats: "5 users", tagline: "Most popular", features: ["Everything in Starter", "All paid screens on any active plan", "Up to 5 users"] },
-  { key: "Pro", name: "Pro", price: 2999, seats: "Unlimited", tagline: "Hospital, kiosk & more", features: ["Everything in Growth", "All paid screens on any active plan", "Unlimited users & branches", "Priority support"] },
+  { key: "Essential", name: "Essential", price: 0, annual: 0, seats: "2 users", tagline: "Core billing", features: ["Billing / POS & GST invoices", "Inventory, batches & expiry", "Purchases & goods-inward", "Up to 2 users"] },
+  { key: "Care", name: "Care", price: 999, annual: 899, seats: "2 users", tagline: "Single counter", features: ["Everything in Essential", "All paid screens on any active plan", "Email support"] },
+  { key: "Growth", name: "Growth", price: 1499, annual: 1299, seats: "5 users", tagline: "Most popular", features: ["Everything in Care", "All paid screens on any active plan", "Up to 5 users"] },
+  { key: "Flagship", name: "Flagship", price: 2499, annual: 2199, seats: "Unlimited", tagline: "Hospital, kiosk & more", features: ["Everything in Growth", "All paid screens on any active plan", "Unlimited users & branches", "Priority support"] },
 ];
 export type BillingCycle = "monthly" | "annual";
-// annual-billing discount per plan tier (paid yearly upfront)
-export const ANNUAL_DISCOUNT: Record<Plan, number> = { Free: 0, Starter: 0.05, Growth: 0.15, Pro: 0.20 };
 export const GST_RATE = 0.18; // SaaS subscription GST
-// list price for a plan on the chosen billing cycle (annual = 12 mo less tier discount)
+// Stored rows may still say Free, Starter, or Pro. Reads accept those names.
+export const asPlan = (value: unknown): Plan | null => {
+  if (value === "Essential" || value === "Free") return "Essential";
+  if (value === "Care" || value === "Starter") return "Care";
+  if (value === "Growth") return "Growth";
+  if (value === "Flagship" || value === "Pro") return "Flagship";
+  return null;
+};
+export const isFreePlan = (plan: string) => asPlan(plan) === "Essential";
+// list price for a plan on the chosen billing cycle (annual = 12 × the annual per-month rate)
 export const planPrice = (p: PlanInfo, cycle: BillingCycle): number =>
-  cycle === "annual" ? Math.round(p.price * 12 * (1 - ANNUAL_DISCOUNT[p.key])) : p.price;
-// what you save in a year by paying annually vs 12 monthly bills
-export const annualSavings = (p: PlanInfo): number => Math.round(p.price * 12 * ANNUAL_DISCOUNT[p.key]);
-// effective per-month price when billed annually
-export const annualPerMonth = (p: PlanInfo): number => Math.round(planPrice(p, "annual") / 12);
+  cycle === "annual" ? p.annual * 12 : p.price;
+export const annualSavings = (p: PlanInfo): number => (p.price - p.annual) * 12;
+export const annualPerMonth = (p: PlanInfo): number => p.annual;
+export const annualOff = (p: PlanInfo): number => (p.price ? Math.round(((p.price - p.annual) / p.price) * 100) : 0);
 export const cycleNoun = (c: BillingCycle) => (c === "annual" ? "year" : "month");
 
 export type Subscription = { plan: Plan; cycle: BillingCycle; status: "active" | "expiring" | "expired"; renewsOn: string; since: string; autoRenew: boolean };
 export type SubRequest = { id: string; plan: Plan; cycle: BillingCycle; kind: "plan" | "renewal"; createdAt: number; status: "open" | "handled" };
-export const DEFAULT_SUBSCRIPTION: Subscription = { plan: "Free", cycle: "monthly", status: "active", renewsOn: "—", since: "2026-07-01", autoRenew: false };
+export const DEFAULT_SUBSCRIPTION: Subscription = { plan: "Essential", cycle: "monthly", status: "active", renewsOn: "—", since: "2026-07-01", autoRenew: false };
 export const todayISO = (now = new Date()) => now.toISOString().slice(0, 10);
 export const subscriptionLapsed = (sub: Subscription, today = todayISO()) =>
-  sub.plan !== "Free" && (sub.status === "expired" || (/^\d{4}-\d{2}-\d{2}$/.test(sub.renewsOn) && sub.renewsOn < today));
+  !isFreePlan(sub.plan) && (sub.status === "expired" || (/^\d{4}-\d{2}-\d{2}$/.test(sub.renewsOn) && sub.renewsOn < today));
 
 // ── freemium gating ─────────────────────────────────────────────
 // Core features that are FREE FOR EVERYONE, forever — no subscription needed.
@@ -947,10 +953,13 @@ export const PREMIUM_ROUTES = [
 ];
 export type ScreenGrant = { route: string; until?: string };
 export type AccessOpts = { grants?: ScreenGrant[]; businessType?: "pharmacy" | "hospital"; today?: string };
-// a paid plan (Free never unlocks the premium modules; expired plans lock too)
-export const planUnlocksAll = (sub: Subscription) => sub.plan !== "Free" && !subscriptionLapsed(sub);
+// a paid plan (Essential never unlocks the premium modules; expired plans lock too)
+export const planUnlocksAll = (sub: Subscription) => !isFreePlan(sub.plan) && !subscriptionLapsed(sub);
 export const routeIsFree = (route: string) => FREE_ROUTES.includes(route) || ALWAYS_ROUTES.includes(route);
-export const includedSeats = (plan: Plan): number | null => (plan === "Pro" ? null : plan === "Growth" ? 5 : 2);
+export const includedSeats = (plan: string): number | null => {
+  const named = asPlan(plan);
+  return named === "Flagship" ? null : named === "Growth" ? 5 : 2;
+};
 export const SEAT_CAP = 50;
 export const seatCeiling = (plan: Plan, extraSeats: number): number | null => {
   const included = includedSeats(plan);
@@ -958,7 +967,7 @@ export const seatCeiling = (plan: Plan, extraSeats: number): number | null => {
 };
 const grantOpen = (grant: ScreenGrant, today: string) => !grant.until || grant.until >= today;
 // Hospital screens need a hospital pharmacy. A paid plan opens every other premium screen.
-// Grants apply only while the plan is Free or the paid term has lapsed.
+// Grants apply only while the plan is Essential or the paid term has lapsed.
 export const routeLocked = (route: string, sub: Subscription, access?: AccessOpts) => {
   if (HOSPITAL_ROUTES.includes(route) && access?.businessType !== "hospital") return true;
   if (routeIsFree(route)) return false;
@@ -968,8 +977,8 @@ export const routeLocked = (route: string, sub: Subscription, access?: AccessOpt
 };
 // smallest paid plan that unlocks a given premium route (for the upsell copy)
 export const planForRoute = (route: string): Plan => {
-  if (route === "prescriptions" || route === "customers" || route === "khata") return "Starter";
-  if (["wards", "hospbill", "ptbills", "salesreg", "indents", "departments", "doctors", "kiosk"].includes(route)) return "Pro";
+  if (route === "prescriptions" || route === "customers" || route === "khata") return "Care";
+  if (["wards", "hospbill", "ptbills", "salesreg", "indents", "departments", "doctors", "kiosk"].includes(route)) return "Flagship";
   return "Growth";
 };
 

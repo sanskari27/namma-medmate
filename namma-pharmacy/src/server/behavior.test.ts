@@ -316,7 +316,7 @@ test("one session snapshot carries the pharmacy and hides locked hospital wards"
   const locked = sessionView(state, session);
   assert.equal(locked.profile.name, "City Pharmacy");
   assert.deepEqual(locked.wards, []);
-  state.subscription = { ...state.subscription, plan: "Pro", status: "active", renewsOn: "2099-01-01" };
+  state.subscription = { ...state.subscription, plan: "Flagship", status: "active", renewsOn: "2099-01-01" };
   assert.equal(sessionView(state, session).wards[0].id, "W1");
 });
 
@@ -414,7 +414,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     const id = login.pharmacy_id;
     ids.push(id);
     assert.equal((await call("GET", "/master/pharmacies", pharmacyCookie)).status, 403);
-    assert.equal((await call("PATCH", "/subscription", pharmacyCookie, { plan: "Pro", cycle: "annual" })).status, 403);
+    assert.equal((await call("PATCH", "/subscription", pharmacyCookie, { plan: "Flagship", cycle: "annual" })).status, 403);
     assert.equal((await call("PUT", `/master/pharmacies/${id}/grants`, pharmacyCookie, { grants: [{ route: "customers" }] })).status, 403);
 
     await pool.query("INSERT INTO master_phones (phone) VALUES ($1) ON CONFLICT DO NOTHING", [owner]);
@@ -432,7 +432,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
       state.tickets = [{ id: "TKT-1", subject: "Printer", category: "Help", status: "Open", createdAt: Date.now() }];
     });
     await call("POST", "/referrals", pharmacyCookie, { name: "Hill Pharmacy", area: "Mysuru" });
-    await call("POST", "/subscription/requests", pharmacyCookie, { plan: "Starter", cycle: "monthly", kind: "plan" });
+    await call("POST", "/subscription/requests", pharmacyCookie, { plan: "Care", cycle: "monthly", kind: "plan" });
     await call("POST", "/subscription/requests", pharmacyCookie, { plan: "Growth", cycle: "annual", kind: "plan" });
 
     const byName = await call("GET", "/master/pharmacies?q=Lake", masterCookie);
@@ -463,18 +463,18 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     assert.equal((await call("GET", "/prescriptions", pharmacyCookie)).status, 403);
     assert.equal((await call("GET", "/hospital/wards", pharmacyCookie)).status, 403);
 
-    const paid = await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Starter", cycle: "annual", renewsOn: utcShift(40), reason: "first year" });
+    const paid = await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Care", cycle: "annual", renewsOn: utcShift(40), reason: "first year" });
     assert.equal(paid.status, 200, await paid.clone().text());
     const afterPay = await loadState(id);
-    assert.equal(afterPay.subscription.plan, "Starter");
+    assert.equal(afterPay.subscription.plan, "Care");
     assert.equal(afterPay.subscription.cycle, "annual");
     assert.equal(afterPay.grants.length, 2);
     assert.ok(afterPay.subscriptionRequests.every((row) => row.status === "handled"));
     assert.equal((await call("GET", "/prescriptions", pharmacyCookie)).status, 200);
     assert.equal((await call("GET", "/reports/catalog", pharmacyCookie)).status, 200);
     assert.equal((await call("GET", "/customers", pharmacyCookie)).status, 200);
-    assert.equal((await call("GET", "/master/pharmacies?plan=Starter&window=30", masterCookie)).status, 200);
-    const in30 = await (await call("GET", "/master/pharmacies?plan=Starter&window=30", masterCookie)).json() as { id: string }[];
+    assert.equal((await call("GET", "/master/pharmacies?plan=Care&window=30", masterCookie)).status, 200);
+    const in30 = await (await call("GET", "/master/pharmacies?plan=Care&window=30", masterCookie)).json() as { id: string }[];
     assert.equal(in30.some((row) => row.id === id), false);
 
     await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Growth", cycle: "monthly", renewsOn: utcShift(5), reason: "inside seven days" });
@@ -484,7 +484,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
 
     await call("PATCH", `/master/pharmacies/${id}/business-type`, masterCookie, { businessType: "hospital", reason: "ward counter" });
     assert.equal((await call("GET", "/hospital/wards", pharmacyCookie)).status, 200);
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Free", cycle: "monthly", renewsOn: "—", reason: "back to free" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Essential", cycle: "monthly", renewsOn: "—", reason: "back to free" });
     assert.equal((await call("GET", "/hospital/wards", pharmacyCookie)).status, 200);
     assert.equal((await call("GET", "/hospital/doctors", pharmacyCookie)).status, 403);
     await call("PATCH", `/master/pharmacies/${id}/business-type`, masterCookie, { businessType: "pharmacy", reason: "retail again" });
@@ -495,11 +495,11 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     await call("PATCH", `/master/pharmacies/${id}/business-type`, masterCookie, { businessType: "hospital", reason: "restore hospital" });
     assert.equal((await call("GET", "/hospital/wards", pharmacyCookie)).status, 200);
 
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Pro", cycle: "monthly", renewsOn: utcShift(20), reason: "pro trial" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Flagship", cycle: "monthly", renewsOn: utcShift(20), reason: "pro trial" });
     assert.equal((await call("GET", "/offers", pharmacyCookie)).status, 200);
     await call("PUT", `/master/pharmacies/${id}/grants`, masterCookie, { grants: [{ route: "customers", until: utcShift(-1) }], reason: "grant already expired" });
     assert.equal((await call("GET", "/customers", pharmacyCookie)).status, 200);
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Pro", cycle: "monthly", renewsOn: utcShift(-1), reason: "lapsed" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Flagship", cycle: "monthly", renewsOn: utcShift(-1), reason: "lapsed" });
     assert.equal((await call("GET", "/customers", pharmacyCookie)).status, 403);
     assert.equal((await call("GET", "/offers", pharmacyCookie)).status, 403);
     assert.equal((await call("GET", "/inventory", pharmacyCookie)).status, 200);
@@ -510,7 +510,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     await withState(id, (state) => {
       state.users.push({ id: "cash", name: "Cash", role: "Cashier", phone: "+910000000000", email: "", active: true, lastActiveMins: 0, pin: "", permissions: ["pos", "orders", "credit"] });
     });
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Starter", cycle: "monthly", renewsOn: utcShift(15), reason: "cashier check" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Care", cycle: "monthly", renewsOn: utcShift(15), reason: "cashier check" });
     const cashier = "namma_session=" + await createSession(id, "cash", "+910000000000");
     assert.equal((await call("GET", "/reports/catalog", cashier)).status, 403);
     assert.equal((await call("GET", "/reports/catalog", pharmacyCookie)).status, 200);
@@ -527,7 +527,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     assert.ok(viewed.seats.inUse >= 1);
     assert.ok(viewed.tickets.length >= 1);
     assert.ok(viewed.referrals.length >= 1);
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Free", cycle: "monthly", renewsOn: "—", reason: "seat drop" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Essential", cycle: "monthly", renewsOn: "—", reason: "seat drop" });
     await call("PATCH", `/master/pharmacies/${id}/seats`, masterCookie, { extraSeats: 0, reason: "no extras" });
     const crowded = await loadState(id);
     const beforeUsers = crowded.users.length;
@@ -535,7 +535,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     assert.equal(blocked.status, 403);
     assert.equal((await loadState(id)).users.length, beforeUsers);
 
-    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Pro", cycle: "annual", renewsOn: utcShift(30), reason: "unlimited seats" });
+    await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Flagship", cycle: "annual", renewsOn: utcShift(30), reason: "unlimited seats" });
     assert.equal((await call("PATCH", `/master/pharmacies/${id}/seats`, masterCookie, { extraSeats: 51, reason: "over cap" })).status, 400);
     const added = await call("POST", "/users", pharmacyCookie, { name: "Sixth", role: "Cashier", phone: "9000000088", email: "", active: true, pin: "2222" });
     assert.equal(added.status, 200, await added.text());
@@ -614,18 +614,18 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
     assert.equal(both.extraSeats, 1);
 
     const [planWrite, seatAgain] = await Promise.all([
-      call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Starter", cycle: "monthly", renewsOn: utcShift(9), reason: "two masters" }),
+      call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Care", cycle: "monthly", renewsOn: utcShift(9), reason: "two masters" }),
       call("PATCH", `/master/pharmacies/${id}/business-type`, masterCookie, { businessType: "pharmacy", reason: "two masters type" }),
     ]);
     assert.equal(planWrite.status, 200);
     assert.equal(seatAgain.status, 200);
     const raced = await loadState(id);
-    assert.equal(raced.subscription.plan, "Starter");
+    assert.equal(raced.subscription.plan, "Care");
     assert.equal(raced.subscription.cycle, "monthly");
     assert.equal(raced.businessType, "pharmacy");
     assert.equal(raced.extraSeats, 1);
 
-    assert.equal((await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Starter", cycle: "monthly", renewsOn: utcShift(-2), reason: "lapsed billing" })).status, 200);
+    assert.equal((await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Care", cycle: "monthly", renewsOn: utcShift(-2), reason: "lapsed billing" })).status, 200);
     assert.equal((await call("GET", "/offers", pharmacyCookie)).status, 403);
     assert.equal((await call("GET", "/inventory", pharmacyCookie)).status, 200);
     assert.equal((await call("POST", "/subscription/requests", pharmacyCookie, { plan: "Growth", cycle: "monthly", kind: "renewal" })).status, 200);
@@ -703,7 +703,7 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     assert.equal((await call("POST", "/master/coupons", undefined, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 401);
     const pharmacy = await sign(phones[0].slice(3));
     assert.equal((await call("POST", "/master/coupons", pharmacy.cookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 403);
-    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Free", expiresOn: utcShift(10), validDays: 30 })).status, 400);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Essential", expiresOn: utcShift(10), validDays: 30 })).status, 400);
     assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(-1), validDays: 30 })).status, 400);
     assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 200);
     assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[0], plan: "Growth", expiresOn: utcShift(10), validDays: 30 })).status, 400);
@@ -718,7 +718,7 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     assert.equal(offer.validDays, 30);
     assert.equal(offer.expired, false);
     assert.equal(offer.renewsOn, utcShift(30));
-    await call("POST", "/subscription/requests", pharmacy.cookie, { plan: "Starter", cycle: "monthly", kind: "plan" });
+    await call("POST", "/subscription/requests", pharmacy.cookie, { plan: "Care", cycle: "monthly", kind: "plan" });
     const redeemed = await call("POST", "/subscription/coupons/redeem", pharmacy.cookie, { code: codes[0] });
     assert.equal(redeemed.status, 200);
     const session = await (await call("GET", "/session", pharmacy.cookie)).json() as { couponRedeemed: boolean; subscription: { plan: string; cycle: string; renewsOn: string }; subscriptionRequests: { status: string }[] };
@@ -728,7 +728,7 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     assert.equal(session.subscription.renewsOn, utcShift(30));
     assert.equal(session.subscriptionRequests.length, 1);
     assert.equal(session.subscriptionRequests.every((row) => row.status === "handled"), true);
-    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[1], plan: "Pro", expiresOn: utcShift(5), validDays: 15 })).status, 200);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[1], plan: "Flagship", expiresOn: utcShift(5), validDays: 15 })).status, 200);
     assert.equal((await call("POST", "/subscription/coupons/redeem", pharmacy.cookie, { code: codes[1] })).status, 400);
 
     const second = await sign(phones[1].slice(3));
@@ -736,16 +736,16 @@ test("a pharmacy can redeem one coupon, and the code still works for the next ph
     const shared = await (await call("GET", "/master/coupons", masterCookie)).json() as { code: string; redeemed: number }[];
     assert.equal(shared.find((row) => row.code === codes[0])?.redeemed, 2);
 
-    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[2], plan: "Starter", expiresOn: utcShift(3), validDays: 7 })).status, 200);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[2], plan: "Care", expiresOn: utcShift(3), validDays: 7 })).status, 200);
     await pool.query("UPDATE coupons SET expires_on = $2 WHERE code = $1", [codes[2], utcShift(-1)]);
     const third = await sign(phones[2].slice(3));
     const late = await (await call("POST", "/subscription/coupons/preview", third.cookie, { code: codes[2] })).json() as { expired: boolean };
     assert.equal(late.expired, true);
     assert.equal((await call("POST", "/subscription/coupons/redeem", third.cookie, { code: codes[2] })).status, 400);
-    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[3], plan: "Pro", expiresOn: utcShift(20), validDays: 365 })).status, 200);
+    assert.equal((await call("POST", "/master/coupons", masterCookie, { code: codes[3], plan: "Flagship", expiresOn: utcShift(20), validDays: 365 })).status, 200);
     assert.equal((await call("POST", "/subscription/coupons/redeem", third.cookie, { code: codes[3] })).status, 200);
     const year = await (await call("GET", "/session", third.cookie)).json() as { subscription: { plan: string; cycle: string; renewsOn: string } };
-    assert.equal(year.subscription.plan, "Pro");
+    assert.equal(year.subscription.plan, "Flagship");
     assert.equal(year.subscription.cycle, "annual");
     assert.equal(year.subscription.renewsOn, utcShift(365));
   } finally {

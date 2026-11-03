@@ -2,8 +2,8 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import {
-  PLANS, Plan, BillingCycle, inr, planPrice, annualSavings, annualPerMonth,
-  cycleNoun, ANNUAL_DISCOUNT, GST_RATE, subscriptionLapsed,
+  PLANS, Plan, BillingCycle, inr, planPrice, annualSavings, annualPerMonth, annualOff,
+  cycleNoun, GST_RATE, subscriptionLapsed,
 } from "../data";
 import { ApiError, api } from "../lib/api";
 import { IconCheck, IconCrown, IconStar } from "../components/Icon";
@@ -17,7 +17,7 @@ export default function SubscriptionScreen() {
 
   const curPrice = planPrice(current, subscription.cycle);
 
-  const isFree = subscription.plan === "Free";
+  const isFree = subscription.plan === "Essential";
   const lapsed = subscriptionLapsed(subscription);
   const statusLabel = lapsed ? "expired" : subscription.status;
   return (
@@ -52,14 +52,14 @@ export default function SubscriptionScreen() {
       <div className="pd-flex" style={{ justifyContent: "center", margin: "4px 0 18px" }}>
         <div className="pd-seg">
           <button className={cycle === "monthly" ? "on" : ""} onClick={() => setCycle("monthly")}>Monthly</button>
-          <button className={cycle === "annual" ? "on" : ""} onClick={() => setCycle("annual")}>Annual <span className="pd-pill pill-green" style={{ marginLeft: 4 }}>save up to {Math.round(Math.max(...Object.values(ANNUAL_DISCOUNT)) * 100)}%</span></button>
+          <button className={cycle === "annual" ? "on" : ""} onClick={() => setCycle("annual")}>Annual <span className="pd-pill pill-green" style={{ marginLeft: 4 }}>save up to {Math.max(...PLANS.map(annualOff))}%</span></button>
         </div>
       </div>
 
       <div id="pd-plans" className="pd-plans">
         {PLANS.map((p) => {
-          const isCurrent = p.key === subscription.plan && (p.key === "Free" || cycle === subscription.cycle);
-          const free = p.key === "Free";
+          const isCurrent = p.key === subscription.plan && (p.key === "Essential" || cycle === subscription.cycle);
+          const free = p.key === "Essential";
           const price = planPrice(p, cycle);
           return (
             <div className="pd-card pd-card-pad" key={p.key} style={{ borderColor: isCurrent ? "var(--mid)" : "var(--line)", borderWidth: isCurrent ? 2 : 1, position: "relative" }}>
@@ -74,8 +74,8 @@ export default function SubscriptionScreen() {
               {free
                 ? <div style={{ fontSize: 11.5, marginBottom: 12 }} className="pd-muted">no card · no expiry</div>
                 : cycle === "annual"
-                  ? <div style={{ fontSize: 11.5, marginBottom: 12 }}><span className="pd-pill pill-green">{Math.round(ANNUAL_DISCOUNT[p.key] * 100)}% off</span> <span className="pd-muted">≈ {inr(annualPerMonth(p))}/mo · save {inr(annualSavings(p))}</span></div>
-                  : <div style={{ fontSize: 11.5, marginBottom: 12 }} className="pd-muted">or {inr(planPrice(p, "annual"))}/yr (save {Math.round(ANNUAL_DISCOUNT[p.key] * 100)}%)</div>}
+                  ? <div style={{ fontSize: 11.5, marginBottom: 12 }}><span className="pd-pill pill-green">{annualOff(p)}% off</span> <span className="pd-muted">{inr(annualPerMonth(p))}/mo · save {inr(annualSavings(p))}</span></div>
+                  : <div style={{ fontSize: 11.5, marginBottom: 12 }} className="pd-muted">or {inr(annualPerMonth(p))}/mo billed yearly (save {annualOff(p)}%)</div>}
               <div className="pd-plan-feats">
                 {p.features.map((f) => <div key={f} className="pd-flex pd-gap6" style={{ fontSize: 12.5, padding: "3px 0", alignItems: "flex-start" }}><span style={{ color: "var(--green)", marginTop: 1 }}><IconCheck size={13} /></span><span>{f}</span></div>)}
               </div>

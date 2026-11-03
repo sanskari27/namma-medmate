@@ -49,12 +49,12 @@ export const COMPARE: [string, Cell, Cell, Cell, Cell][] = [
   ["One console for walk-in and online orders", 0, 0.5, 0, 1],
 ];
 
-export type Plan = { name: string; price: number; line: string; plus?: string; features: string[]; popular?: boolean };
+export type Plan = { name: string; price: number; annual: number; line: string; plus?: string; features: string[]; popular?: boolean };
 export const PLANS: Plan[] = [
-  { name: "Essential", price: 299, line: "Your shop, online: the essentials, done right.", features: ["Business dashboard", "Billing & GST invoices", "Sales history", "Inventory with expiry and restock alerts", "Purchase entry", "Online store (at launch)", "2 user logins"] },
-  { name: "Care", price: 499, line: "Keep every patient close.", plus: "Essential", features: ["Prescriptions & customers", "Credit khata", "WhatsApp reminders & invoices", "Email support", "Up to 2 user logins"] },
-  { name: "Growth", price: 999, line: "Run and grow like a pro.", plus: "Care", popular: true, features: ["Reports & insights", "CRM & CA sharing", "Reorder & distributors", "Up to 3 user logins"] },
-  { name: "Flagship", price: 1499, line: "The complete pharmacy, front to back.", plus: "Growth", features: ["Hospital billing & ward indents", "Self-order kiosk", "Rack & location", "Priority support", "3 to 4 user logins"] },
+  { name: "Essential", price: 0, annual: 0, line: "Your shop, online: the essentials, done right.", features: ["Business dashboard", "Billing & GST invoices", "Sales history", "Inventory with expiry and restock alerts", "Purchase entry", "Online store (at launch)", "2 user logins"] },
+  { name: "Care", price: 999, annual: 899, line: "Keep every patient close.", plus: "Essential", features: ["Prescriptions & customers", "Credit khata", "WhatsApp reminders & invoices", "Email support", "Up to 2 user logins"] },
+  { name: "Growth", price: 1499, annual: 1299, line: "Run and grow like a pro.", plus: "Care", popular: true, features: ["Reports & insights", "CRM & CA sharing", "Reorder & distributors", "Up to 3 user logins"] },
+  { name: "Flagship", price: 2499, annual: 2199, line: "The complete pharmacy, front to back.", plus: "Growth", features: ["Hospital billing & ward indents", "Self-order kiosk", "Rack & location", "Priority support", "3 to 4 user logins"] },
 ];
 
 export const ECOSYSTEM: [string, string, string, "Live" | "Rolling out" | "Coming soon"][] = [
@@ -67,7 +67,7 @@ export const ECOSYSTEM: [string, string, string, "Live" | "Rolling out" | "Comin
 export const FAQS: [string, string][] = [
   ["How long does setup take?", "Most pharmacies are live in about 7 days. We migrate your existing stock, distributor list and GST details, then train your staff on WhatsApp or on-site."],
   ["Do I need to buy new hardware?", "No. The console runs on any laptop, tablet or phone you already have: desktop for the full ERP, tablet at the counter, phone on the move. A basic thermal printer is all you need for bills."],
-  ["How much does the Partner console cost?", "Plans start at ₹299 a month (Essential) and go up to ₹1,499 a month (Flagship). Every plan is free for the first 3 months, with no setup fee and no lock-in. Pharmacies with two or more branches get a custom quote."],
+  ["How much does the Partner console cost?", "Essential is free. Paid plans are ₹999 a month for Care, ₹1,499 for Growth and ₹2,499 for Flagship, or ₹899, ₹1,299 and ₹2,199 a month on annual billing. Paid plans are free for the first 3 months, with no setup fee and no lock-in. Pharmacies with two or more branches get a custom quote."],
   ["Is my data safe and GST-compliant?", "Yes. Invoices are GST-ready, data is encrypted and backed up daily, and you can export everything any time. We are working towards ISO 27001 and DPDP Act compliance."],
   ["Can I keep my current suppliers?", "Yes. The console manages purchases, batches and reorders with your existing distributors, with one-tap reorder when stock runs low."],
   ["How does the online store work?", "Your online store is part of every plan and is launching soon in Bengaluru. Set up the console now and your shop goes live online the day it opens. Orders come straight to your counter at your prices, and every customer stays yours. We walk you through how online orders work in your free demo."],

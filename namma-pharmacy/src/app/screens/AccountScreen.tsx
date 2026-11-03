@@ -16,7 +16,7 @@ export default function AccountScreen() {
   const { profile, subscription, grants, extraSeats, businessType, users, sales, inventory, bankAccount, go, startSetup, signOut } = usePharma();
   const openBank = () => document.getElementById("pd-bank")?.scrollIntoView({ behavior: "smooth", block: "center" });
   const plan = PLANS.find((p) => p.key === subscription.plan)!;
-  const isFree = subscription.plan === "Free";
+  const isFree = subscription.plan === "Essential";
 
   // ── metrics ──
   const activeUsers = users.filter((u) => u.active).length;
@@ -61,7 +61,7 @@ export default function AccountScreen() {
   const links: { key: Route; label: string; sub: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
     { key: "users", label: "Manage Users", sub: `${users.length} team members`, Icon: IconUsers },
     { key: "invoicing", label: "Invoice Settings", sub: "Templates, logo & stamp", Icon: IconReceipt },
-    { key: "subscription", label: "Subscription", sub: isFree ? "Free · upgrade anytime" : `${subscription.plan} · renews ${subscription.renewsOn}`, Icon: IconCrown },
+    { key: "subscription", label: "Subscription", sub: isFree ? "Essential · upgrade anytime" : `${subscription.plan} · renews ${subscription.renewsOn}`, Icon: IconCrown },
     { key: "ca", label: "CA / Accountant", sub: "Share reports", Icon: IconShare },
     { key: "refer", label: "Refer & Earn", sub: "Invite & earn ₹500", Icon: IconGift },
     { key: "settings", label: "Pharmacy Profile", sub: "Licences & GSTIN", Icon: IconSettings },

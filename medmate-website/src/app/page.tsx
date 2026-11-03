@@ -259,7 +259,7 @@ export default async function Home() {
             <div className="flex flex-col gap-4 p-5 sm:p-8 md:p-12">
               <p className="d-eyebrow text-gold">MedMate for pharmacies</p>
               <h2 className="d-h2">Own a pharmacy? Turn your counter into a <span className="text-gold">10-minute pharmacy.</span></h2>
-              <p className="d-lead text-mint-200">One console for GST billing, inventory, prescriptions, CRM and credit khata, with your own online store and delivery launching soon. Your prices, your customers, your name on the store. Plans from ₹299 a month.</p>
+              <p className="d-lead text-mint-200">One console for GST billing, inventory, prescriptions, CRM and credit khata, with your own online store and delivery launching soon. Your prices, your customers, your name on the store. Essential is free. Paid plans from ₹999 a month.</p>
               <div className="mt-2 flex flex-wrap gap-3">
                 <Link href="/pharmacy-partner#register" className="press d-btn inline-flex h-12 w-fit items-center justify-center gap-2 rounded-xl bg-gold px-5 text-forest hover:bg-gold-200 max-sm:w-full">Book a free demo<Icon name="chev-r" size={18} /></Link>
                 <Link href="/pharmacy-partner" className="press d-btn inline-flex h-12 items-center justify-center rounded-xl px-5 text-white ring-[1.5px] ring-white/40 hover:bg-white/10 max-sm:w-full">See plans and features</Link>

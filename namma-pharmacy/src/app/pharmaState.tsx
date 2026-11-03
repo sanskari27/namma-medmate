@@ -7,7 +7,7 @@ import {
   Rider, packComplete,
   computeInvoice, InvoiceTotals, billUnit, earliestBatch, stockOf, findScan,
   normalizeRack,
-  StaffUser, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, ScreenGrant, SubRequest, routeLocked, todayISO,
+  StaffUser, Subscription, DEFAULT_SUBSCRIPTION, Plan, BillingCycle, ScreenGrant, SubRequest, routeLocked, todayISO, asPlan,
   InvoiceSettings, DEFAULT_INVOICE_SETTINGS, KioskConfig, DEFAULT_KIOSK,
   Advisor, CAShare, isValidGstin,
   PurchaseOrder, POItem,
@@ -526,10 +526,10 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
       setImpersonator(session.impersonator || null);
       setBusinessType(session.businessType);
       if (!holdSetup.current) setSetupComplete(session.setupComplete);
-      setSubscription(session.subscription);
+      setSubscription({ ...session.subscription, plan: asPlan(session.subscription.plan) ?? "Essential" });
       setGrants(session.grants || []);
       setExtraSeats(session.extraSeats || 0);
-      setSubscriptionRequests(session.subscriptionRequests || []);
+      setSubscriptionRequests((session.subscriptionRequests || []).map((request) => ({ ...request, plan: asPlan(request.plan) ?? request.plan })));
       setCouponRedeemed(session.couponRedeemed === true);
       setMe(session.user ? { id: session.user.id, role: session.user.role, permissions: session.user.permissions ?? [] } : null);
       setCreditPayments(session.creditPayments || []);

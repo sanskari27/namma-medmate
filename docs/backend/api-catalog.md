@@ -186,7 +186,7 @@ A master session uses the `namma_master` cookie. It is separate from `namma_sess
 | GET | `/master/pharmacies/:id` | Plan, seats, business type, KYC, open tickets, referrals, grants, and requests. |
 | PATCH | `/master/pharmacies/:id/plan` | Plan, cycle, and renewal date. Marks that pharmacy's open requests handled. |
 | PUT | `/master/pharmacies/:id/grants` | Replaces screen grants. `until` is optional. |
-| PATCH | `/master/pharmacies/:id/seats` | Extra seats. Included plus extra cannot exceed 50, except Pro, which stays unlimited and rejects an extra count above 50. |
+| PATCH | `/master/pharmacies/:id/seats` | Extra seats. Included plus extra cannot exceed 50, except Flagship, which stays unlimited and rejects an extra count above 50. |
 | PATCH | `/master/pharmacies/:id/business-type` | `pharmacy` or `hospital`. Grants are kept. |
 | PATCH | `/master/pharmacies/:id/tickets/:ticketId` | `Open` or `Resolved`. |
 | POST | `/master/pharmacies/:id/referrals/:referralId/earn` | Sets the reward to ₹500. |

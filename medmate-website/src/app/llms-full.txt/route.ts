@@ -24,7 +24,7 @@ ${FAQS.map(([q, a]) => `Q: ${q}\nA: ${a}`).join("\n\n")}
 ## Pharmacy partner questions
 ${PARTNER_FAQS.map(([q, a]) => `Q: ${q}\nA: ${a}`).join("\n\n")}
 
-Partner plans (per month, first 3 months free): ${PLANS.map((p) => `${p.name} ₹${p.price}`).join(", ")}.
+Partner plans: ${PLANS.map((p) => p.price ? `${p.name} ₹${p.price}/month or ₹${p.annual}/month annually` : `${p.name} ₹0`).join(", ")}. Paid plans are free for the first 3 months.
 
 ## Bengaluru areas
 ${AREAS.map((a) => `${a.name}${a.pins.length ? ` (${a.pins.join(", ")})` : ""}: ${SITE_URL}/bengaluru/${a.slug}`).join("\n")}

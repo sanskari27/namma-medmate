@@ -1,7 +1,7 @@
 "use client";
 import { useEffect, useState } from "react";
 import { api } from "../lib/api";
-import { BillingCycle, HOSPITAL_ROUTES, Plan, PREMIUM_ROUTES, subscriptionLapsed, todayISO } from "../data";
+import { BillingCycle, HOSPITAL_ROUTES, Plan, PREMIUM_ROUTES, isFreePlan, subscriptionLapsed, todayISO } from "../data";
 import {
   IconChevronLeft, IconCrown, IconDashboard, IconGift, IconHelp, IconOffer, IconReports, IconRx, IconSend, IconStore, IconUser,
 } from "../components/Icon";
@@ -26,7 +26,7 @@ const LABELS: Record<string, string> = {
   wards: "IPD · Wards", hospbill: "Hospital Billing", ptbills: "Active Patients", salesreg: "Sales Register",
   indents: "Ward Indents", departments: "Departments", doctors: "Doctors",
 };
-const PLANS: Plan[] = ["Free", "Starter", "Growth", "Pro"];
+const PLANS: Plan[] = ["Essential", "Care", "Growth", "Flagship"];
 const NAV: { key: Desk; label: string; group?: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
   { key: "dashboard", label: "Dashboard", Icon: IconDashboard },
   { key: "pharmacies", label: "Pharmacies", Icon: IconStore, group: "Tenants" },
@@ -61,7 +61,7 @@ function subOf(row: Row) {
   return { plan: row.plan as Plan, cycle: (row.cycle === "annual" ? "annual" : "monthly") as BillingCycle, status: (row.status === "expired" ? "expired" : "active") as "active" | "expired", renewsOn: row.renewsOn, since: "", autoRenew: false };
 }
 function renewalDue(row: Row) {
-  if (row.plan === "Free") return false;
+  if (isFreePlan(row.plan)) return false;
   if (subscriptionLapsed(subOf(row))) return true;
   return /^\d{4}-\d{2}-\d{2}$/.test(row.renewsOn) && row.renewsOn <= plusDays(30);
 }
@@ -93,7 +93,7 @@ export default function MasterPortal({ phone, onPharmacy, pharmacyLabel, onSigne
   const [reason, setReason] = useState("");
   const [renewsOn, setRenewsOn] = useState(plusDays(30));
   const [cycle, setCycle] = useState<BillingCycle>("monthly");
-  const [nextPlan, setNextPlan] = useState<Plan>("Starter");
+  const [nextPlan, setNextPlan] = useState<Plan>("Care");
   const [extra, setExtra] = useState(0);
   const [grants, setGrants] = useState<Grant[]>([]);
   const [error, setError] = useState("");
@@ -394,7 +394,7 @@ function PharmacyFile({ profile, reason, setReason, nextPlan, setNextPlan, cycle
         <select className="pd-select" value={nextPlan} onChange={(e) => setNextPlan(e.target.value as Plan)} aria-label="Plan">{PLANS.map((item) => <option key={item}>{item}</option>)}</select>
         <select className="pd-select" value={cycle} onChange={(e) => setCycle(e.target.value as BillingCycle)} aria-label="Billing cycle"><option value="monthly">Monthly</option><option value="annual">Annual</option></select>
         <input className="pd-input" type="date" value={renewsOn} onChange={(e) => setRenewsOn(e.target.value)} aria-label="Renewal date" />
-        <button className="pd-btn pd-btn-primary" onClick={() => save(`/master/pharmacies/${profile.id}/plan`, "PATCH", { plan: nextPlan, cycle, renewsOn: nextPlan === "Free" ? "—" : renewsOn })}>Save plan</button>
+        <button className="pd-btn pd-btn-primary" onClick={() => save(`/master/pharmacies/${profile.id}/plan`, "PATCH", { plan: nextPlan, cycle, renewsOn: nextPlan === "Essential" ? "—" : renewsOn })}>Save plan</button>
       </div>
       <div className="pd-flex pd-gap6" style={{ flexWrap: "wrap", marginBottom: 12 }}>
         <input className="pd-input" type="number" min={0} max={50} value={extra} onChange={(e) => setExtra(Number(e.target.value))} aria-label="Extra seats" />
@@ -475,7 +475,7 @@ function CouponDesk() {
           <div className="pd-field"><label htmlFor="issue-code">Code</label><input id="issue-code" className="pd-input" value={code} autoComplete="off" onChange={(e) => setCode(e.target.value.toUpperCase())} /></div>
           <button className="pd-btn pd-btn-ghost" type="button" onClick={() => setCode(makeCode())}>Generate</button>
           <div className="pd-field"><label htmlFor="issue-plan">Plan</label>
-            <select id="issue-plan" className="pd-select" value={plan} onChange={(e) => setPlan(e.target.value as Plan)}>{(["Starter", "Growth", "Pro"] as Plan[]).map((item) => <option key={item}>{item}</option>)}</select>
+            <select id="issue-plan" className="pd-select" value={plan} onChange={(e) => setPlan(e.target.value as Plan)}>{(["Care", "Growth", "Flagship"] as Plan[]).map((item) => <option key={item}>{item}</option>)}</select>
           </div>
           <div className="pd-field"><label htmlFor="issue-expiry">Coupon expiry</label><input id="issue-expiry" className="pd-input" type="date" value={expiresOn} onChange={(e) => setExpiresOn(e.target.value)} /></div>
           <div className="pd-field"><label htmlFor="issue-days">Plan validity (days)</label><input id="issue-days" className="pd-input" type="number" min={1} max={3650} value={validDays} onChange={(e) => setValidDays(Number(e.target.value))} /></div>

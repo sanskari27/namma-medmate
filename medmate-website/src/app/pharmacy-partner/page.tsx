@@ -9,7 +9,7 @@ import { SITE_URL, pageMeta } from "@/lib/site";
 export const metadata = {
   ...pageMeta({
     title: "Pharmacy billing software & online store for chemists in Bengaluru",
-    description: "MedMate Partner console for pharmacies: GST billing and POS, batch-wise inventory with expiry alerts, prescriptions, CRM and credit khata in one console, plus your own online store and 10-minute delivery (launching soon). From ₹299 a month, first 3 months free.",
+    description: "MedMate Partner console for pharmacies: GST billing and POS, batch-wise inventory with expiry alerts, prescriptions, CRM and credit khata in one console, plus your own online store and 10-minute delivery (launching soon). Essential is free. Paid plans from ₹999 a month, first 3 months free.",
     path: "/pharmacy-partner",
   }),
   keywords: ["pharmacy billing software", "pharmacy ERP", "GST billing software for pharmacy", "medical store software Bengaluru", "sell medicines online", "online store for pharmacy", "pharmacy POS", "credit khata app", "MedMate Partner console", "Namma MedMate"],
@@ -196,7 +196,8 @@ export default function PharmacyPartner() {
                   <p className={`text-[15px] ${p.popular ? "text-mint-200" : "text-ink-2"}`}>{p.line}</p>
                 </div>
                 <p className="flex items-end gap-1"><span className={`text-[40px] font-extrabold leading-none tracking-[-0.03em] ${p.popular ? "text-gold" : "text-forest"}`}>{inr(p.price)}</span><span className={`pb-1 ${p.popular ? "text-mint-200" : "text-muted"}`}>/month</span></p>
-                <p className={`d-caption w-fit rounded-md px-2 py-1 font-semibold ${p.popular ? "bg-white/10 text-gold" : "bg-gold-50 text-gold-ink"}`}>First 3 months free</p>
+                {p.annual > 0 && <p className={`-mt-2 text-[14px] ${p.popular ? "text-mint-200" : "text-muted"}`}>or {inr(p.annual)}/month billed yearly</p>}
+                <p className={`d-caption w-fit rounded-md px-2 py-1 font-semibold ${p.popular ? "bg-white/10 text-gold" : "bg-gold-50 text-gold-ink"}`}>{p.price ? "First 3 months free" : "Free forever"}</p>
                 <ul className="flex flex-1 flex-col gap-2 text-[15px]">
                   {p.plus && <li className={`font-semibold ${p.popular ? "text-white" : "text-ink"}`}>Everything in {p.plus}, plus:</li>}
                   {p.features.map((f) => <li key={f} className="flex items-start gap-2"><Icon name="check" size={16} className={`mt-1 ${p.popular ? "text-gold" : "text-green"}`} /><span className={p.popular ? "text-mint-200" : "text-ink-2"}>{f}</span></li>)}
@@ -317,7 +318,7 @@ export default function PharmacyPartner() {
           lowPrice: Math.min(...PLANS.map((p) => p.price)),
           highPrice: Math.max(...PLANS.map((p) => p.price)),
           offerCount: PLANS.length,
-          offers: PLANS.map((p) => ({ "@type": "Offer", name: p.name, price: p.price, priceCurrency: "INR", description: `${p.line} First 3 months free.`, priceSpecification: { "@type": "UnitPriceSpecification", price: p.price, priceCurrency: "INR", unitText: "MONTH" } })),
+          offers: PLANS.map((p) => ({ "@type": "Offer", name: p.name, price: p.price, priceCurrency: "INR", description: `${p.line} ${p.price ? `₹${p.annual.toLocaleString("en-IN")}/month on annual billing. First 3 months free.` : "Free."}`, priceSpecification: { "@type": "UnitPriceSpecification", price: p.price, priceCurrency: "INR", unitText: "MONTH" } })),
         },
       }} />
     </main>

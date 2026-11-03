@@ -16,7 +16,7 @@ Key facts:
 - One rider can collect from up to three nearby pharmacies when one shop lacks an item (planned).
 - Prescription medicines are dispensed only by a licensed pharmacy against a valid prescription, checked by a registered pharmacist. Customers can upload a prescription or book a consultation with a registered doctor, who decides independently.
 - Payments (at launch): UPI, card or cash on delivery.
-- For pharmacies: the MedMate Partner console (Namma MedMate) is one ERP and POS for GST billing, batch-wise inventory with expiry alerts, purchases, prescriptions, CRM and credit khata. Pharmacies set their own prices and keep their customers; each shop's online store and delivery are launching soon in Bengaluru. Plans: Essential ₹299, Care ₹499, Growth ₹999, Flagship ₹1,499 a month, first 3 months free, no setup fee, no lock-in.
+- For pharmacies: the MedMate Partner console (Namma MedMate) is one ERP and POS for GST billing, batch-wise inventory with expiry alerts, purchases, prescriptions, CRM and credit khata. Pharmacies set their own prices and keep their customers; each shop's online store and delivery are launching soon in Bengaluru. Plans: Essential ₹0, Care ₹999 (₹899 annually), Growth ₹1,499 (₹1,299 annually), Flagship ₹2,499 (₹2,199 annually) a month. Paid plans are free for the first 3 months, no setup fee, no lock-in.
 
 Full text of every article and FAQ: ${SITE_URL}/llms-full.txt
 
