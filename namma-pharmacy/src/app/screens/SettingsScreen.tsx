@@ -18,9 +18,8 @@ export default function SettingsScreen() {
 
   const dirty = JSON.stringify(f) !== JSON.stringify(profile) || terms !== invoiceSettings.terms;
   const save = async () => {
-    if (f.phone.trim() && f.phone.replace(/\D/g, "").length < 10) { showFault("Enter a valid mobile number"); return; }
     if (f.gstin.trim() && !isValidGstin(f.gstin)) { showFault("Enter a valid GSTIN"); return; }
-    const err = await updateProfile(f);
+    const err = await updateProfile({ ...f, gstRegistered: true, phone: profile.phone });
     if (err) return;
     updateInvoiceSettings({ terms });
     toast("Business settings saved");
@@ -72,7 +71,7 @@ export default function SettingsScreen() {
           </div>
 
           <div className="pd-form-grid">
-            <div className="pd-field" data-field="phone"><label>Company Phone Number</label><input className="pd-input" value={f.phone} onChange={(e) => set({ phone: e.target.value })} /></div>
+            <div className="pd-field" data-field="phone"><label>Company Phone Number</label><input className="pd-input" value={profile.phone} readOnly aria-readonly="true" style={{ background: "var(--wash2)" }} /><span className="pd-muted" style={{ fontSize: 12 }}>Login uses this number, so it cannot be changed.</span></div>
             <div className="pd-field"><label>Company E-Mail</label><input className="pd-input" value={f.email} onChange={(e) => set({ email: e.target.value })} /></div>
             <div className="pd-field pd-span2"><label>Billing Address</label><textarea className="pd-textarea" value={f.address} onChange={(e) => set({ address: e.target.value })} /></div>
             <div className="pd-field"><label>State</label>
@@ -86,13 +85,7 @@ export default function SettingsScreen() {
         {/* ───── Tax & registration ───── */}
         <div className="pd-card pd-card-pad">
           <div className="pd-pl-head">Tax & registration</div>
-          <div className="pd-field"><label>Are you GST Registered?</label>
-            <div className="pd-flex pd-gap6" style={{ marginTop: 4 }}>
-              <button className={`pd-chip${f.gstRegistered ? " on" : ""}`} onClick={() => set({ gstRegistered: true })}>Yes</button>
-              <button className={`pd-chip${!f.gstRegistered ? " on" : ""}`} onClick={() => set({ gstRegistered: false })}>No</button>
-            </div>
-          </div>
-          {f.gstRegistered && <div className="pd-field" data-field="gstin" style={{ marginTop: 10 }}><label>GSTIN *</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value })} /></div>}
+          <div className="pd-field" data-field="gstin"><label>GSTIN *</label><input className="pd-input pd-mono" value={f.gstin} onChange={(e) => set({ gstin: e.target.value.toUpperCase(), gstRegistered: true })} /></div>
 
           <ToggleRow label="Enable e-Invoicing" badge="New" on={f.eInvoicing} onClick={() => set({ eInvoicing: !f.eInvoicing })} />
 

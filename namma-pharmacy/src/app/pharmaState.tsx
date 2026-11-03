@@ -343,6 +343,7 @@ type Ctx = {
   setupComplete: boolean;
   startSetup: () => void;
   completeSetup: () => void;
+  commitSetup: (input: { profile: Partial<PharmacyProfile>; invoice: Partial<InvoiceSettings>; kioskEnabled: boolean; loose: boolean }) => Promise<SaveFault | null>;
   wipeData: () => void;
   setLooseDefault: (allowed: boolean) => void;
   // ui
@@ -574,23 +575,23 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     setFormFault(fault);
   };
   const clearFault = () => { faultRef.current = null; setFormFault(null); };
-  const askSave = (kind: "save" | "edit") => {
+  const askSave = (kind: "save" | "edit", copy?: { title: string; body: string }) => {
     const job = saveQueue.current.then(() => new Promise<boolean>((resolve) => {
       setSaveAsk({
-        title: kind === "edit" ? "Save these changes?" : "Save this?",
-        body: "Nothing already stored will be deleted.",
+        title: copy?.title ?? (kind === "edit" ? "Save these changes?" : "Save this?"),
+        body: copy?.body ?? "Nothing already stored will be deleted.",
         resolve,
       });
     }));
     saveQueue.current = job.then(() => undefined, () => undefined);
     return job;
   };
-  const post = (path: string, method: string, body?: unknown, opts?: { idem?: boolean; pull?: boolean }) => {
+  const post = (path: string, method: string, body?: unknown, opts?: { idem?: boolean; pull?: boolean; confirmed?: boolean }) => {
     if (!signedRef.current) { showFault("Sign in required"); return Promise.resolve(null); }
     const quietWrite = /\/packing\/(scan|pick)$/.test(path) || path === "/crm/reminders";
     return (async () => {
       if (method === "DELETE" || path === "/setup/wipe") { toast("Records cannot be deleted"); return null; }
-      if (!quietWrite && (method === "POST" || method === "PATCH" || method === "PUT")) {
+      if (!opts?.confirmed && !quietWrite && (method === "POST" || method === "PATCH" || method === "PUT")) {
         const yes = await askSave(method === "POST" ? "save" : "edit");
         if (!yes) { saveCancelled.current = true; return null; }
       }
@@ -987,6 +988,30 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
   // ── store setup wizard ──
   const startSetup = () => { holdSetup.current = true; setSetupComplete(false); go("dashboard"); };
   const completeSetup = () => { whenSaved(post("/setup/complete", "POST"), () => { holdSetup.current = false; setSetupComplete(true); toast("Store setup complete"); }); };
+  const commitSetup = async (input: { profile: Partial<PharmacyProfile>; invoice: Partial<InvoiceSettings>; kioskEnabled: boolean; loose: boolean }): Promise<SaveFault | null> => {
+    if (!(await askSave("save", { title: "Finish setup?", body: "Your pharmacy details will be saved." }))) return { message: "Save cancelled" };
+    const phone = profileRef.current.phone;
+    const next = { ...profileRef.current, ...input.profile, gstRegistered: true, phone: phone.replace(/\D/g, "").length >= 10 ? phone : input.profile.phone || phone };
+    quiet.current = true;
+    const saved = await post("/pharmacy/profile", "PATCH", next, { confirmed: true });
+    const fault = ok(saved, () => { profileRef.current = next; setProfile(next); });
+    if (fault) { quiet.current = false; return fault; }
+    const invoice = { ...invoiceRef.current, ...input.invoice };
+    const inv = await post("/settings/invoice", "PATCH", invoice, { confirmed: true });
+    if (inv == null) { quiet.current = false; return ok(inv); }
+    invoiceRef.current = invoice; invoiceSaved.current = invoice; setInvoiceSettings(invoice);
+    if (!featureLocked("kiosk")) {
+      const kioskNext = { ...kioskRef.current, enabled: input.kioskEnabled };
+      const kioskRes = await post("/settings/kiosk", "PATCH", kioskNext, { confirmed: true });
+      if (kioskRes != null) { kioskRef.current = kioskNext; kioskSaved.current = kioskNext; setKiosk(kioskNext); }
+    }
+    const looseRes = await post("/inventory/loose-default", "POST", { allowed: input.loose }, { confirmed: true }) as { inventory?: InvProduct[] } | null;
+    if (looseRes == null) { quiet.current = false; return ok(looseRes); }
+    if (looseRes.inventory) setInventory(looseRes.inventory);
+    const done = await post("/setup/complete", "POST", {}, { confirmed: true });
+    quiet.current = false;
+    return ok(done, () => { holdSetup.current = false; setSetupComplete(true); clearFault(); toast("Store setup complete"); });
+  };
   const wipeData = () => { toast("Records cannot be deleted"); };
   const setLooseDefault = (allowed: boolean) => { void post("/inventory/loose-default", "POST", { allowed }, { pull: true }); };
   const toggleStoreOpen = () => { whenSaved(post("/pharmacy/store-open", "POST"), () => setProfile((p) => ({ ...p, storeOpen: !p.storeOpen }))); };
@@ -1192,7 +1217,7 @@ export function PharmaProvider({ children }: { children: React.ReactNode }) {
     supplyList, addSupply, updateSupply, removeSupply, setPreferredSupply,
     updateProfile, toggleStoreOpen,
     bankAccount, saveBankAccount, verifyBankAccount, removeBankAccount,
-    setupComplete, startSetup, completeSetup, wipeData, setLooseDefault,
+    setupComplete, startSetup, completeSetup, commitSetup, wipeData, setLooseDefault,
     toast, toastMsg, formFault, showFault, clearFault, tickets, raiseTicket, me,
   };
   if (!hydrated) return <div className="pd-boot">Loading pharmacy…</div>;
