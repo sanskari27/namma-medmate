@@ -37,9 +37,10 @@ export default function SettingsScreen() {
   return (
     <div className="pd-canvas-wide">
       {/* header / save bar */}
-      <div className="pd-toolbar" style={{ position: "sticky", top: -22, zIndex: 5, background: "var(--bg)", paddingTop: 4, paddingBottom: 8 }}>
+      <div className="pd-toolbar pd-sticky-bar" style={{ position: "sticky", top: -22, zIndex: 5 }}>
         <div><h2 style={{ fontSize: 16 }}>Business Settings</h2><span className="pd-muted" style={{ fontSize: 12.5 }}>Edit your pharmacy details — shown on invoices & reports</span></div>
         <div className="pd-spacer" />
+        {dirty && <span className="pd-muted" style={{ fontSize: 12.5 }}>Unsaved changes</span>}
         <button className="pd-btn pd-btn-ghost" disabled={!dirty} onClick={discard}>Discard</button>
         <button className="pd-btn pd-btn-primary" disabled={!dirty} onClick={save}><IconCheck size={16} /> Save changes</button>
       </div>
@@ -80,8 +81,10 @@ export default function SettingsScreen() {
             <div className="pd-field"><label>Pincode</label><input className="pd-input" value={f.pincode} onChange={(e) => set({ pincode: e.target.value })} /></div>
             <div className="pd-field pd-span2"><label>City</label><input className="pd-input" value={f.city} onChange={(e) => set({ city: e.target.value })} /></div>
           </div>
+        </div>
 
-          {/* GST */}
+        {/* ───── Tax & registration ───── */}
+        <div className="pd-card pd-card-pad">
           <div className="pd-pl-head">Tax & registration</div>
           <div className="pd-field"><label>Are you GST Registered?</label>
             <div className="pd-flex pd-gap6" style={{ marginTop: 4 }}>
@@ -105,9 +108,11 @@ export default function SettingsScreen() {
           <div className="pd-field" style={{ marginTop: 12 }}><label>Registered pharmacist (on invoice)</label><input className="pd-input" value={f.pharmacist} onChange={(e) => set({ pharmacist: e.target.value })} /></div>
         </div>
 
-        {/* ───── RIGHT column ───── */}
-        <div>
-          <div className="pd-card pd-card-pad" style={{ marginBottom: 16 }}>
+      </div>
+
+      {/* ───── store categories + invoice terms ───── */}
+      <div className="pd-grid-2b" style={{ alignItems: "stretch", marginTop: 16 }}>
+          <div className="pd-card pd-card-pad">
             <div className="pd-field"><label>Store categories (select multiple, if applicable)</label>
               <div className="pd-flex pd-gap6" style={{ marginTop: 6, flexWrap: "wrap" }}>
                 {PHARMACY_BUSINESS_TYPES.map((t) => <button key={t} className={`pd-chip${f.businessTypes.includes(t) ? " on" : ""}`} onClick={() => toggleType(t)}>{t}</button>)}
@@ -138,9 +143,10 @@ export default function SettingsScreen() {
               )}
             </div>
           </div>
+      </div>
 
-          {/* additional business details */}
-          <div className="pd-card pd-card-pad">
+      {/* additional business details */}
+      <div className="pd-card pd-card-pad">
             <h3 style={{ fontSize: 14 }}>Add Business Details</h3>
             <p className="pd-muted" style={{ fontSize: 12.5, marginBottom: 12 }}>Additional info such as MSME number, Website, etc.</p>
             <div className="pd-flex pd-gap6" style={{ alignItems: "stretch" }}>
@@ -159,8 +165,6 @@ export default function SettingsScreen() {
               </div>
             )}
           </div>
-        </div>
-      </div>
 
       {/* suppliers */}
       <div className="pd-card" style={{ marginTop: 16 }}>

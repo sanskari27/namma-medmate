@@ -60,10 +60,10 @@ export const effectiveDiscountPct = (p: InvProduct, account: HospitalAccount, ru
 
 // ── ward supply transactions (stock moving pharmacy → ward) ──────
 export type WardSupplyReason = "floor" | "consumption" | "refill";
-export const SUPPLY_REASONS: { key: WardSupplyReason; label: string; tag: string; emoji: string }[] = [
-  { key: "floor", label: "Ward floor stock", tag: "FLOOR_STOCK", emoji: "📦" },
-  { key: "consumption", label: "Patient consumption", tag: "CONSUMPTION", emoji: "💉" },
-  { key: "refill", label: "Patient refill", tag: "PATIENT_REFILL", emoji: "🔄" },
+export const SUPPLY_REASONS: { key: WardSupplyReason; label: string; tag: string }[] = [
+  { key: "floor", label: "Ward floor stock", tag: "FLOOR_STOCK" },
+  { key: "consumption", label: "Patient consumption", tag: "CONSUMPTION" },
+  { key: "refill", label: "Patient refill", tag: "PATIENT_REFILL" },
 ];
 export const reasonMeta = (r: WardSupplyReason) => SUPPLY_REASONS.find((x) => x.key === r)!;
 

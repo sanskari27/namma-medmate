@@ -13,7 +13,8 @@ import {
   IconSearch, IconPlus, IconX, IconRupee, IconReports, IconPrint, IconTrash, IconLock, IconUnlock,
   IconHospital, IconReceipt, IconTag, IconKey, IconCamera, IconArrowRight, IconAlert, IconChart,
   IconWhatsApp, IconMail, IconSend, IconWallet, IconBox, IconShield, IconCalendar, IconCheck, IconCopy, IconStore,
-} from "../components/Icon";
+} from "../components/Icon"
+import { SupplyReasonIcon, monogramOf } from "../components/entityIcon";;
 import { buildReportPdf } from "../lib/pdf";
 import { useDateRange } from "../components/DateRangeField";
 import WardSupplyInvoice, { SupplyInvoiceData } from "../components/WardSupplyInvoice";
@@ -569,7 +570,7 @@ function PriceListTab() {
               const setMode = (m: PriceMode) => setHospitalPriceRule(p.id, { mode: m, value: rule?.value ?? (m === "percent" ? hospitalAccount.discountPct : 0) });
               return (
                 <tr key={p.id}>
-                  <td><div className="prod"><span className="em">{p.emoji}</span><span className="nm">{p.name}</span></div></td>
+                  <td><div className="prod"><span className="em">{monogramOf(p.name)}</span><span className="nm">{p.name}</span></div></td>
                   <td className="num">{inr(mrp)}</td>
                   <td>
                     <div className="pd-seg" style={{ display: "inline-flex", opacity: locked ? .55 : 1 }}>
@@ -678,7 +679,7 @@ function SupplyModal({ mode, onClose, prefillIndentId }: { mode: "issue" | "retu
           {mode === "issue" && (
             <div className="pd-field" style={{ marginTop: 12 }}><label>Reason (informational — bill always goes to the hospital)</label>
               <div className="pd-flex pd-gap6" style={{ marginTop: 4, flexWrap: "wrap" }}>
-                {SUPPLY_REASONS.map((r) => <button key={r.key} className={`pd-chip${reason === r.key ? " on" : ""}`} onClick={() => setReason(r.key)}>{r.emoji} {r.label}</button>)}
+                {SUPPLY_REASONS.map((r) => <button key={r.key} className={`pd-chip${reason === r.key ? " on" : ""}`} onClick={() => setReason(r.key)}><SupplyReasonIcon k={r.key} size={15} /> {r.label}</button>)}
               </div>
             </div>
           )}

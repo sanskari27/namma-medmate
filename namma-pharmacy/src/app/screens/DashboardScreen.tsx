@@ -6,7 +6,8 @@ import {
   stockOf, timeAgo, catLabel, Sale, PayMode, PAY_LABEL, SaleSource, saleSourceOf,
 } from "../data";
 import { StatusPill, ChannelPill, Thumb } from "../components/bits";
-import { IconRupee, IconOrders, IconRx, IconAlert, IconArrowRight, IconCheck, IconGlobe, IconBox, IconCalendar, IconDonut, IconBars, IconTrendUp, IconTrendDown, IconPos, IconTruck, IconSend, IconStore, IconStar } from "../components/Icon";
+import { IconRupee, IconOrders, IconRx, IconAlert, IconArrowRight, IconCheck, IconGlobe, IconBox, IconCalendar, IconDonut, IconBars, IconTrendUp, IconTrendDown, IconPos, IconTruck, IconSend, IconStore, IconStar } from "../components/Icon"
+import { monogramOf } from "../components/entityIcon";;
 
 const saleTotal = (s: Sale) => computeInvoice(s.items, s.discount).payable;
 const DAY_MS = 86400000;
@@ -46,6 +47,25 @@ export default function DashboardScreen() {
     }
     return out;
   }, [sales, now]);
+  const dayOrders = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d0 = new Date(now); d0.setHours(0, 0, 0, 0); d0.setDate(d0.getDate() - i);
+      const a = d0.getTime(), b = a + DAY_MS;
+      out.push(sales.filter((s) => s.status !== "cancelled" && s.createdAt >= a && s.createdAt < b).length);
+    }
+    return out;
+  }, [sales, now]);
+  const dayRx = useMemo(() => {
+    const out: number[] = [];
+    for (let i = 6; i >= 0; i--) {
+      const d0 = new Date(now); d0.setHours(0, 0, 0, 0); d0.setDate(d0.getDate() - i);
+      const a = d0.getTime(), b = a + DAY_MS;
+      out.push(prescriptions.filter((r) => r.uploadedAt >= a && r.uploadedAt < b).length);
+    }
+    return out;
+  }, [prescriptions, now]);
+  const alertTotal = lowStock.length + expiring.length;
   const yday = dayTotals[5] ?? 0;
   const salesDelta = yday > 0 ? Math.round(((totalRev - yday) / yday) * 100) : (totalRev > 0 ? 100 : 0);
   const itemsToday = todays.reduce((a, s) => a + s.items.reduce((x, i) => x + i.qty, 0), 0);
@@ -66,34 +86,36 @@ export default function DashboardScreen() {
   const topMax = Math.max(...topSellers.map((t) => t.rev), 1);
 
   const QA = [
-    { label: "New sale", sub: "Counter / POS", Icon: IconPos, tone: "green", go: () => go("pos") },
-    { label: "New purchase", sub: "Goods inward", Icon: IconTruck, tone: "blue", go: () => go("purchases") },
-    { label: "Prescriptions", sub: pendingRx.length ? `${pendingRx.length} pending` : "All clear", Icon: IconRx, tone: "gold", go: () => go("prescriptions") },
-    { label: "Reorder", sub: lowStock.length ? `${lowStock.length} low` : "Stock healthy", Icon: IconSend, tone: "violet", go: () => go("reorder") },
+    { label: "New sale", sub: "Counter / POS", Icon: IconPos, go: () => go("pos") },
+    { label: "New purchase", sub: "Goods inward", Icon: IconTruck, go: () => go("purchases") },
+    { label: "Prescriptions", sub: pendingRx.length ? `${pendingRx.length} pending` : "All clear", Icon: IconRx, go: () => go("prescriptions") },
+    { label: "Reorder", sub: lowStock.length ? `${lowStock.length} low` : "Stock healthy", Icon: IconSend, go: () => go("reorder") },
   ];
 
   return (
     <div className="pd-canvas-wide">
-      {/* ── hero greeting + quick actions ── */}
-      <div className="pd-hero">
-        <div className="pd-hero-l">
-          <div className="pd-hero-greet">{greet}, {who}</div>
-          <div className="pd-hero-sub">{dateStr} · <span className={`pd-dotpill ${profile.storeOpen ? "on" : "off"}`}><i />{profile.storeOpen ? "Store open" : "Store paused"}</span></div>
-          <div className="pd-hero-mini">
-            <span><small>This month</small><b>{inr(monthRev)}</b></span>
-            <span><small>Avg bill today</small><b>{inr(avgBill)}</b></span>
-            <span><small>Items sold today</small><b>{itemsToday}</b></span>
-            {dueCount > 0 && <span className="warn" role="button" onClick={() => go("khata")}><small>Dues to collect</small><b>{dueCount}</b></span>}
-          </div>
+      {/* ── today strip + quick actions ── */}
+      <div className="pd-hello">
+        <div className="pd-hello-l">
+          <div className="pd-hello-greet">{greet}, {who}</div>
+          <div className="pd-hello-sub">{dateStr} · <span className={`pd-dotpill ${profile.storeOpen ? "on" : "off"}`}><i />{profile.storeOpen ? "Store open" : "Store paused"}</span></div>
         </div>
         <div className="pd-qa">
           {QA.map((a) => (
-            <button key={a.label} className={`pd-qa-tile ${a.tone}`} onClick={a.go}>
-              <span className="ic"><a.Icon size={18} /></span>
+            <button key={a.label} className="pd-qa-tile" onClick={a.go}>
+              <span className="ic"><a.Icon size={16} /></span>
               <span className="tx"><b>{a.label}</b><small>{a.sub}</small></span>
             </button>
           ))}
         </div>
+      </div>
+
+      {/* ── metrics rail: context numbers, deliberately not competing cards ── */}
+      <div className="pd-mini">
+        <span><small>This month</small><b>{inr(monthRev)}</b></span>
+        <span><small>Avg bill today</small><b>{inr(avgBill)}</b></span>
+        <span><small>Items sold today</small><b>{itemsToday}</b></span>
+        {dueCount > 0 && <span className="warn" role="button" onClick={() => go("khata")}><small>Dues to collect</small><b>{dueCount}</b></span>}
       </div>
 
       {/* ── KPI cards — each opens its section ── */}
@@ -103,14 +125,15 @@ export default function DashboardScreen() {
           <div className="kpi-top"><div className="ic ic-green"><IconRupee size={19} /></div>{salesDelta !== 0 && <span className={`pd-trend ${salesDelta >= 0 ? "up" : "down"}`}>{salesDelta >= 0 ? <IconTrendUp size={12} /> : <IconTrendDown size={12} />}{Math.abs(salesDelta)}%</span>}</div>
           <div className="lbl">Today’s sales</div>
           <div className="val">{inr(totalRev)}</div>
-          <div className="split"><span className="dt"><IconGlobe size={11} /> {inr(onlineRev)}</span> <span className="dt"><IconStore size={11} /> {inr(offlineRev)}</span></div>
-          <Spark data={dayTotals} />
+          <div className="pd-kpi-spark"><Spark data={dayTotals} /></div>
+          <div className="split-pair"><span><b><IconGlobe size={12} /> {inr(onlineRev)}</b><small>Online</small></span><span><b><IconStore size={12} /> {inr(offlineRev)}</b><small>Counter</small></span></div>
         </div>
         <div className="pd-stat link kpi accent-blue" role="button" tabIndex={0} onClick={() => go("orders")} onKeyDown={kpiKey(() => go("orders"))} title="View orders">
           <span className="go"><IconArrowRight size={16} /></span>
           <div className="kpi-top"><div className="ic ic-blue"><IconOrders size={19} /></div>{newOrders.length > 0 && <span className="pd-trend gold">{newOrders.length} new</span>}</div>
           <div className="lbl">Orders today</div>
           <div className="val">{todays.length}</div>
+          <div className="pd-kpi-spark"><Spark data={dayOrders} /></div>
           <div className="split">{newOrders.length > 0 ? <><b style={{ color: "var(--gold-d)" }}>{newOrders.length}</b> awaiting action</> : <><IconCheck size={12} /> all caught up</>}</div>
         </div>
         <div className="pd-stat link kpi accent-gold" role="button" tabIndex={0} onClick={() => go("prescriptions")} onKeyDown={kpiKey(() => go("prescriptions"))} title="Review prescriptions">
@@ -118,6 +141,7 @@ export default function DashboardScreen() {
           <div className="kpi-top"><div className="ic ic-gold"><IconRx size={19} /></div>{pendingRx.length > 0 && <span className="pd-trend gold">to verify</span>}</div>
           <div className="lbl">Prescriptions</div>
           <div className="val">{pendingRx.length}</div>
+          <div className="pd-kpi-spark"><Spark data={dayRx} /></div>
           <div className="split">pending review</div>
         </div>
         <div className="pd-stat link kpi accent-rose" role="button" tabIndex={0} onClick={openAlerts} onKeyDown={kpiKey(openAlerts)} title="See medicines to reorder & expiring stock">
@@ -125,14 +149,21 @@ export default function DashboardScreen() {
           <div className="kpi-top"><div className="ic ic-rose"><IconAlert size={19} /></div>{lowStock.length + expiring.length > 0 && <span className="pd-trend down">action</span>}</div>
           <div className="lbl">Stock alerts</div>
           <div className="val">{lowStock.length + expiring.length}</div>
-          <div className="split"><b>{lowStock.length}</b> low · <b>{expiring.length}</b> expiring</div>
+          <div className="pd-kpi-spark">
+            {/* stock health mix — the same footprint as a sparkline, so the row stays uniform */}
+            <div className="pd-healthbar">
+              <i style={{ width: `${alertTotal ? (lowStock.length / alertTotal) * 100 : 0}%`, background: "var(--gold)" }} />
+              <i style={{ width: `${alertTotal ? (expiring.length / alertTotal) * 100 : 0}%`, background: "var(--rose)" }} />
+            </div>
+            <div className="pd-healthkey"><span><i style={{ background: "var(--gold)" }} />Low stock</span><span><i style={{ background: "var(--rose)" }} />Expiring</span></div>
+          </div>
+          <div className="split-pair"><span><b>{lowStock.length}</b><small>Low stock</small></span><span><b>{expiring.length}</b><small>Expiring</small></span></div>
         </div>
       </div>
 
       {/* sales analytics (filterable) */}
-      <SalesAnalytics sales={sales} inventory={inventory} now={now} onlineRev={onlineRev} offlineRev={offlineRev} isHospital={isHospital} />
-
       <div className="pd-grid-2" style={{ marginTop: 16 }}>
+        <SalesAnalytics sales={sales} inventory={inventory} now={now} onlineRev={onlineRev} offlineRev={offlineRev} isHospital={isHospital} />
         {/* action queue */}
         <div className="pd-card">
           <div className="pd-card-head"><h3>Needs your attention</h3></div>
@@ -167,6 +198,9 @@ export default function DashboardScreen() {
           </div>
         </div>
 
+      </div>
+
+      <div className="pd-grid-3" style={{ marginTop: 16 }}>
         {/* expiring soon */}
         <div className="pd-card">
           <div className="pd-card-head">
@@ -182,7 +216,7 @@ export default function DashboardScreen() {
               const expired = mo < 0;
               return (
                 <div className="pd-row" key={p.id}>
-                  <span className="em">{p.emoji}</span>
+                  <span className="em">{monogramOf(p.name)}</span>
                   <span className="gw"><div className="t">{p.name}</div><div className="s">Batch {b.batchNo} · {catLabel(p.category)} · {b.qty} units</div></span>
                   <span className={`pd-pill ${expired ? "pill-rose" : "pill-gold"}`}>{expired ? "Expired" : `${mo} mo · ${b.expiry}`}</span>
                 </div>
@@ -190,10 +224,6 @@ export default function DashboardScreen() {
             })}
           </div>
         </div>
-      </div>
-
-      {/* top sellers + recent transactions */}
-      <div className="pd-grid-2b" style={{ marginTop: 16 }}>
         <div className="pd-card">
           <div className="pd-card-head">
             <h3><IconStar size={15} /> Top sellers <span className="pd-muted" style={{ fontWeight: 600, fontSize: 12 }}>· last 7 days</span></h3>
@@ -272,7 +302,7 @@ const DAY = 86400000;
 const SRC_COLOR: Record<SaleSource, string> = { opd: "var(--blue)", counter: "var(--gold)", ward: "var(--rose)", emergency: "var(--amber)", online: "var(--mid)" };
 // always show every source, in this order, each on its own line
 const SRC_ORDER: SaleSource[] = ["online", "counter", "ward", "emergency", "opd"];
-const SRC_LABEL: Record<SaleSource, string> = { online: "🌐 Online", counter: "🧾 Counter sale", ward: "🛏️ Ward sale", emergency: "🚑 Emergency sale", opd: "📋 OPD Rx" };
+const SRC_LABEL: Record<SaleSource, string> = { online: "Online", counter: "Counter sale", ward: "Ward sale", emergency: "Emergency sale", opd: "OPD Rx" };
 
 type ChartType = "donut" | "group" | "line";
 const CHART_OPTS: { k: ChartType; label: string; Icon: (p: { size?: number }) => React.ReactNode }[] = [
@@ -364,8 +394,8 @@ function SalesAnalytics({ sales, inventory, now, onlineRev, offlineRev, isHospit
   const toggle = (k: SaleSource) => setHidden((h) => { const n = new Set(h); n.has(k) ? n.delete(k) : n.add(k); if (n.size >= series.length) return h; return n; });
 
   return (
-    <>
-      <div className="pd-card" style={{ marginTop: 16 }}>
+    <div>
+      <div className="pd-card">
         <div className="pd-card-head" style={{ flexWrap: "wrap", gap: 10 }}>
           <div>
             <h3>Sales analytics {isHospital && <span className="pd-muted" style={{ fontWeight: 600, fontSize: 12 }}>· all sources</span>}</h3>
@@ -433,7 +463,7 @@ function SalesAnalytics({ sales, inventory, now, onlineRev, offlineRev, isHospit
           </div>
         </div>
       </div>
-    </>
+    </div>
   );
 }
 
@@ -509,12 +539,12 @@ function DonutChart({ rows, fmt }: { rows: { key: string; label: string; color: 
     <div className="pd-flex" style={{ gap: 24, flexWrap: "wrap", alignItems: "center", justifyContent: "center", padding: "6px 0" }}>
       {total <= 0 ? <div className="pd-empty" style={{ padding: 30 }}><p>No data for the selected sources.</p></div> : (
         <>
-          <svg viewBox="0 0 220 220" style={{ width: 200, height: 200, flexShrink: 0 }} role="img">
+          <svg viewBox="0 0 220 220" style={{ width: 260, height: 260, flexShrink: 0 }} role="img">
             {arcs.map((s) => <path key={s.key} d={s.d} fill={s.color}><title>{`${s.label}: ${fmt(s.amt)} · ${Math.round(s.frac * 100)}%`}</title></path>)}
             <text x={cx} y={cy - 4} textAnchor="middle" style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 19, fill: "var(--dark)" }}>{fmt(total)}</text>
             <text x={cx} y={cy + 15} textAnchor="middle" className="ax">total</text>
           </svg>
-          <div style={{ minWidth: 200, flex: "1 1 200px" }}>
+          <div style={{ minWidth: 210, maxWidth: 300, flex: "0 1 260px", background: "var(--wash2)", borderRadius: 12, padding: "10px 14px" }}>
             {arcs.map((s) => (
               <div className="pd-flex" key={s.key} style={{ justifyContent: "space-between", marginBottom: 9, fontSize: 12.5 }}>
                 <span className="pd-flex" style={{ gap: 8, fontWeight: 600 }}><i style={{ width: 11, height: 11, borderRadius: 3, background: s.color, display: "inline-block" }} />{s.label}</span>

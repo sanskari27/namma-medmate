@@ -101,8 +101,7 @@ export function parsePurchaseCsv(text: string, inventory: InvProduct[]): CsvPars
       category: catKey(get(r, "category")) || "fever",
       schedule: sched(get(r, "schedule")) || "OTC",
       reorderLevel: num(get(r, "reorder")) || 20,
-      emoji: "💊",
-    });
+      });
   }
   return { items, matched, created, skipped, errors };
 }
@@ -149,8 +148,7 @@ export function parseMedicineCsv(text: string): { products: InvProduct[]; errors
       id: "", name, composition: get(rows[i], "composition"), manufacturer: get(rows[i], "manufacturer"),
       form: form(get(rows[i], "form")) || "Tablet", pack: get(rows[i], "pack"), category: catKey(get(rows[i], "category")) || "fever",
       hsn: get(rows[i], "hsn") || "3004", gst: gstRaw === "" ? 12 : num(gstRaw), schedule: sched(get(rows[i], "schedule")) || "OTC",
-      rack: get(rows[i], "rack") || "—", reorderLevel: num(get(rows[i], "reorder")) || 20, online: false, emoji: "💊",
-      batches: batch || qty > 0 ? [{ batchNo: batch || "OPENING", expiry: get(rows[i], "expiry") || "2027-12", qty, ptr: num(get(rows[i], "ptr")), mrp: num(get(rows[i], "mrp")) }] : [],
+      rack: get(rows[i], "rack") || "—", reorderLevel: num(get(rows[i], "reorder")) || 20, online: false, batches: batch || qty > 0 ? [{ batchNo: batch || "OPENING", expiry: get(rows[i], "expiry") || "2027-12", qty, ptr: num(get(rows[i], "ptr")), mrp: num(get(rows[i], "mrp")) }] : [],
     });
   }
   return { products, errors };

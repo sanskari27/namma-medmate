@@ -163,7 +163,6 @@ function PurchaseModal({ onClose }: { onClose: () => void }) {
                     <div className="pd-field"><label>Manufacturer</label><input className="pd-input" value={line.manufacturer} onChange={(e) => update(i, { manufacturer: e.target.value })} /></div>
                     <div className="pd-field"><label>Pack</label><input className="pd-input" value={line.pack} onChange={(e) => update(i, { pack: e.target.value })} placeholder="Strip of 10" /></div>
                     <div className="pd-field"><label>Form</label><select className="pd-select" value={line.form} onChange={(e) => update(i, { form: e.target.value as DosageForm })}>{FORMS.map((x) => <option key={x}>{x}</option>)}</select></div>
-                    <div className="pd-field"><label>Emoji</label><input className="pd-input" value={line.emoji} onChange={(e) => update(i, { emoji: e.target.value })} maxLength={2} /></div>
                   </div>
                 )}
 

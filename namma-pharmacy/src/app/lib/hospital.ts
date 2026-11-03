@@ -113,7 +113,7 @@ export type Department = {
   name: string;
   head: string;
   type: "OPD" | "IPD" | "Diagnostic" | "Support";
-  emoji: string;
+  emoji?: string;      // legacy field — the UI renders a department icon
   doctors: Doctor[];
 };
 
@@ -123,7 +123,7 @@ export type DoctorProfile = {
   id: string;
   name: string;
   photo?: string;          // data URL (uploaded), else emoji avatar
-  emoji: string;           // fallback avatar
+  emoji?: string;          // legacy field — the UI renders an initials avatar
   gender: "Male" | "Female" | "Other";
   qualification: string;   // MBBS, MD, MS, DM, DNB…
   specialty: string;
@@ -154,16 +154,16 @@ export const DOCTOR_SPECIALTIES = [
 ];
 
 export const SEED_DOCTORS: DoctorProfile[] = [
-  { id: "DR-001", name: "Dr. R. Menon", emoji: "👨‍⚕️", gender: "Male", qualification: "MBBS, MD (General Medicine)", specialty: "General Physician", department: "General Medicine", regNo: "KMC-58820", experience: 18, phone: "+91 98450 11223", email: "r.menon@citycare.in", opdRoom: "OPD-1", days: "Mon–Sat", timing: "9:30 AM – 1:00 PM", fee: 600, languages: "English, Hindi, Kannada", status: "active", bio: "Senior physician — internal medicine, diabetes & hypertension." },
-  { id: "DR-002", name: "Dr. S. Banerjee", emoji: "👩‍⚕️", gender: "Female", qualification: "MBBS, MD, DM (Endocrinology)", specialty: "Diabetologist", department: "General Medicine", regNo: "KMC-61190", experience: 12, phone: "+91 98451 22330", email: "s.banerjee@citycare.in", opdRoom: "OPD-2", days: "Mon, Wed, Fri", timing: "11:00 AM – 2:00 PM", fee: 700, languages: "English, Hindi, Bengali", status: "active", bio: "Diabetes, thyroid & hormonal disorders." },
-  { id: "DR-003", name: "Dr. A. Kapoor", emoji: "👨‍⚕️", gender: "Male", qualification: "MBBS, MS (General Surgery)", specialty: "General Surgeon", department: "General Surgery", regNo: "KMC-49021", experience: 22, phone: "+91 98452 33441", email: "a.kapoor@citycare.in", opdRoom: "OPD-5", days: "Tue, Thu, Sat", timing: "10:00 AM – 12:30 PM", fee: 800, languages: "English, Hindi", status: "active", bio: "Laparoscopic & general surgery, 5000+ procedures." },
-  { id: "DR-004", name: "Dr. M. Iyer", emoji: "👨‍⚕️", gender: "Male", qualification: "MBBS, DCH, MD (Pediatrics)", specialty: "Pediatrician", department: "Pediatrics", regNo: "KMC-55712", experience: 15, phone: "+91 98860 33445", email: "m.iyer@citycare.in", opdRoom: "OPD-3", days: "Mon–Sat", timing: "5:00 PM – 8:00 PM", fee: 550, languages: "English, Tamil, Kannada", status: "active", bio: "Child health, vaccination & neonatal care." },
-  { id: "DR-005", name: "Dr. P. Sharma", emoji: "👩‍⚕️", gender: "Female", qualification: "MBBS, MS (OBG)", specialty: "Obstetrician & Gynaecologist", department: "Obstetrics & Gynaecology", regNo: "KMC-60044", experience: 14, phone: "+91 98453 55667", email: "p.sharma@citycare.in", opdRoom: "OPD-4", days: "Mon–Fri", timing: "10:00 AM – 1:00 PM", fee: 700, languages: "English, Hindi", status: "on-leave", bio: "High-risk pregnancy, laparoscopy & infertility." },
-  { id: "DR-006", name: "Dr. V. Desai", emoji: "👨‍⚕️", gender: "Male", qualification: "MBBS, MD, DM (Cardiology)", specialty: "Cardiologist", department: "Cardiology", regNo: "KMC-47780", experience: 20, phone: "+91 98454 77889", email: "v.desai@citycare.in", opdRoom: "OPD-6", days: "Wed, Sat", timing: "2:00 PM – 5:00 PM", fee: 900, languages: "English, Hindi, Marathi", status: "visiting", bio: "Interventional cardiology, angioplasty & echo." },
+  { id: "DR-001", name: "Dr. R. Menon", gender: "Male", qualification: "MBBS, MD (General Medicine)", specialty: "General Physician", department: "General Medicine", regNo: "KMC-58820", experience: 18, phone: "+91 98450 11223", email: "r.menon@citycare.in", opdRoom: "OPD-1", days: "Mon–Sat", timing: "9:30 AM – 1:00 PM", fee: 600, languages: "English, Hindi, Kannada", status: "active", bio: "Senior physician — internal medicine, diabetes & hypertension." },
+  { id: "DR-002", name: "Dr. S. Banerjee", gender: "Female", qualification: "MBBS, MD, DM (Endocrinology)", specialty: "Diabetologist", department: "General Medicine", regNo: "KMC-61190", experience: 12, phone: "+91 98451 22330", email: "s.banerjee@citycare.in", opdRoom: "OPD-2", days: "Mon, Wed, Fri", timing: "11:00 AM – 2:00 PM", fee: 700, languages: "English, Hindi, Bengali", status: "active", bio: "Diabetes, thyroid & hormonal disorders." },
+  { id: "DR-003", name: "Dr. A. Kapoor", gender: "Male", qualification: "MBBS, MS (General Surgery)", specialty: "General Surgeon", department: "General Surgery", regNo: "KMC-49021", experience: 22, phone: "+91 98452 33441", email: "a.kapoor@citycare.in", opdRoom: "OPD-5", days: "Tue, Thu, Sat", timing: "10:00 AM – 12:30 PM", fee: 800, languages: "English, Hindi", status: "active", bio: "Laparoscopic & general surgery, 5000+ procedures." },
+  { id: "DR-004", name: "Dr. M. Iyer", gender: "Male", qualification: "MBBS, DCH, MD (Pediatrics)", specialty: "Pediatrician", department: "Pediatrics", regNo: "KMC-55712", experience: 15, phone: "+91 98860 33445", email: "m.iyer@citycare.in", opdRoom: "OPD-3", days: "Mon–Sat", timing: "5:00 PM – 8:00 PM", fee: 550, languages: "English, Tamil, Kannada", status: "active", bio: "Child health, vaccination & neonatal care." },
+  { id: "DR-005", name: "Dr. P. Sharma", gender: "Female", qualification: "MBBS, MS (OBG)", specialty: "Obstetrician & Gynaecologist", department: "Obstetrics & Gynaecology", regNo: "KMC-60044", experience: 14, phone: "+91 98453 55667", email: "p.sharma@citycare.in", opdRoom: "OPD-4", days: "Mon–Fri", timing: "10:00 AM – 1:00 PM", fee: 700, languages: "English, Hindi", status: "on-leave", bio: "High-risk pregnancy, laparoscopy & infertility." },
+  { id: "DR-006", name: "Dr. V. Desai", gender: "Male", qualification: "MBBS, MD, DM (Cardiology)", specialty: "Cardiologist", department: "Cardiology", regNo: "KMC-47780", experience: 20, phone: "+91 98454 77889", email: "v.desai@citycare.in", opdRoom: "OPD-6", days: "Wed, Sat", timing: "2:00 PM – 5:00 PM", fee: 900, languages: "English, Hindi, Marathi", status: "visiting", bio: "Interventional cardiology, angioplasty & echo." },
 ];
 
 export const blankDoctor = (): Omit<DoctorProfile, "id"> => ({
-  name: "", photo: undefined, emoji: "👨‍⚕️", gender: "Male", qualification: "", specialty: DOCTOR_SPECIALTIES[0],
+  name: "", photo: undefined, gender: "Male", qualification: "", specialty: DOCTOR_SPECIALTIES[0],
   department: "", regNo: "", experience: 0, phone: "", email: "", opdRoom: "", days: "Mon–Sat",
   timing: "10:00 AM – 1:00 PM", fee: 500, languages: "English", status: "active", bio: "",
 });

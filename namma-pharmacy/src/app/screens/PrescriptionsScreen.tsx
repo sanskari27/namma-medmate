@@ -11,7 +11,8 @@ import {
   IconCheck, IconX, IconRx, IconArrowRight, IconClock, IconDoc, IconPill, IconAlert,
   IconPhone, IconWhatsApp, IconRupee, IconBox, IconStethoscope, IconUser, IconSearch,
   IconBolt, IconCalendar, IconChart, IconShield,
-} from "../components/Icon";
+} from "../components/Icon"
+import { monogramOf } from "../components/entityIcon";;
 import RxView from "../components/RxView";
 
 const RX_PILL: Record<RxStatus, string> = { pending: "pill-gold", approved: "pill-blue", dispensed: "pill-green", rejected: "pill-rose" };
@@ -216,7 +217,7 @@ function RxCard({ r, now, inventory, onOpen, onApprove, onReject, onDispense }: 
           <div className="pd-rx-medlbl">Verified medicines <span>{av.inStock}/{av.total} in stock{scheduled ? ` · ${scheduled} Rx-only` : ""}</span></div>
           {meds.slice(0, 3).map(({ p, stock, price, rx }) => (
             <div className="pd-rx-medrow" key={p.id}>
-              <span className="nm"><span className="em">{p.emoji}</span> {p.name}{rx && <span className="pd-schtag">{SCHEDULE_META[p.schedule].label}</span>}</span>
+              <span className="nm"><span className="em">{monogramOf(p.name)}</span> {p.name}{rx && <span className="pd-schtag">{SCHEDULE_META[p.schedule].label}</span>}</span>
               <span className={`st ${stock > 0 ? "" : "out"}`}>{stock > 0 ? inr(price) : "Out"}</span>
             </div>
           ))}
@@ -305,7 +306,7 @@ function RxDetail({ rx, inventory, now, onClose, onApprove, onReject, onDispense
                     <tbody>
                       {av.items.map(({ p, stock, price, rx: isRx }) => (
                         <tr key={p.id}>
-                          <td><span className="em" style={{ marginRight: 6 }}>{p.emoji}</span>{p.name}{isRx && <span className="pd-schtag">{SCHEDULE_META[p.schedule].label}</span>}</td>
+                          <td><span className="em" style={{ marginRight: 6 }}>{monogramOf(p.name)}</span>{p.name}{isRx && <span className="pd-schtag">{SCHEDULE_META[p.schedule].label}</span>}</td>
                           <td className={stock > 0 ? "" : "pd-oos-txt"} style={{ textAlign: "right", fontSize: 12 }}>{stock > 0 ? `${stock} in stock` : "Out of stock"}</td>
                           <td style={{ textAlign: "right", fontWeight: 700 }}>{inr(price)}</td>
                         </tr>

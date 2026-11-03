@@ -9,7 +9,8 @@ import {
 } from "../data";
 import { barcodeSvg, saveBarcodeSvg } from "../lib/barcode";
 import { ScheduleTag, StockPill, Thumb } from "../components/bits";
-import { IconSearch, IconEdit, IconX, IconInventory, IconUpload, IconTruck, IconCash, IconTrendDown, IconCalendar, IconMap, IconBox, IconUnlock, IconLock, IconArrowRight, IconRupee, IconTag, IconAlert, IconClock, IconReceipt, IconPin, IconRefresh, IconDownload, IconPrint } from "../components/Icon";
+import { IconSearch, IconEdit, IconX, IconInventory, IconUpload, IconTruck, IconCash, IconTrendDown, IconCalendar, IconMap, IconBox, IconUnlock, IconLock, IconArrowRight, IconRupee, IconTag, IconAlert, IconClock, IconReceipt, IconPin, IconRefresh, IconDownload, IconPrint } from "../components/Icon"
+import { monogramOf } from "../components/entityIcon";;
 import { exportStockCsv, exportStockPdf } from "../lib/stockExport";
 import { downloadMedicineTemplate, parseMedicineCsv } from "../lib/purchaseCsv";
 
@@ -35,6 +36,7 @@ export default function InventoryScreen() {
   const medFile = useRef<HTMLInputElement>(null);
   const [filter, setFilter] = useState<Filter>("all");
   const [q, setQ] = useState("");
+  const [showMore, setShowMore] = useState(false);
   const [edit, setEdit] = useState<InvProduct | null>(null);
   const [detail, setDetail] = useState<InvProduct | null>(null);
 
@@ -103,7 +105,7 @@ export default function InventoryScreen() {
       </div>
 
       <div className="pd-toolbar">
-        <div className="pd-seg">
+        <div className="pd-seg pd-seg-scroll">
           {([["all", "All"], ["alerts", `Alerts${alertCount ? " · " + alertCount : ""}`], ["low", "Low stock"], ["expiring", "Expiring"], ["rx", "Rx-only"], ["out", "Out of stock"], ["noloc", `Unallocated${noLocCount ? " · " + noLocCount : ""}`]] as [Filter, string][]).map(([f, l]) => (
             <button key={f} className={filter === f ? "on" : ""} onClick={() => setFilter(f)}>{l}</button>
           ))}
@@ -113,9 +115,8 @@ export default function InventoryScreen() {
           <span className="ic"><IconSearch size={17} /></span>
           <input placeholder="Search by name, salt, brand…" value={q} onChange={(e) => setQ(e.target.value)} />
         </div>
-        <button className="pd-btn pd-btn-ghost" disabled={!list.length} title="Download this view as Excel (CSV)" onClick={() => exportStockCsv(list, FILTER_LABEL[filter], now)}><IconDownload size={15} /> Excel</button>
-        <button className="pd-btn pd-btn-ghost" disabled={!list.length} title="Download this view as PDF" onClick={() => exportStockPdf(list, profile, FILTER_LABEL[filter], now)}><IconPrint size={15} /> PDF</button>
-        <button className="pd-btn pd-btn-ghost" onClick={() => go("rackmap")} title="Arrange where each medicine is stored on the shelves"><IconMap size={16} /> Rack & Locations</button>
+        <button className="pd-btn pd-btn-ghost pd-btn-sm" disabled={!list.length} title="Download this view as Excel (CSV)" onClick={() => exportStockCsv(list, FILTER_LABEL[filter], now)}><IconDownload size={15} /> Excel</button>
+        <button className="pd-btn pd-btn-ghost pd-btn-sm" disabled={!list.length} title="Download this view as PDF" onClick={() => exportStockPdf(list, profile, FILTER_LABEL[filter], now)}><IconPrint size={15} /> PDF</button>
         <input ref={medFile} type="file" accept=".csv,text/csv" hidden onChange={(e) => {
           const f = e.target.files?.[0]; if (!f) return;
           const r = new FileReader();
@@ -127,16 +128,24 @@ export default function InventoryScreen() {
           };
           r.readAsText(f); e.target.value = "";
         }} />
-        <button className="pd-btn pd-btn-ghost" onClick={downloadMedicineTemplate}><IconDownload size={15} /> Sample sheet</button>
-        <button className="pd-btn pd-btn-ghost" onClick={() => medFile.current?.click()}><IconUpload size={15} /> Import medicines</button>
-        <button className="pd-btn pd-btn-primary" onClick={() => go("purchases")} title="Products are added by entering a distributor purchase bill"><IconTruck size={16} /> Add stock via purchase</button>
+        <div className="nm-dr">
+          <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => setShowMore((v) => !v)}>More ▾</button>
+          {showMore && (
+            <div className="pd-menu" style={{ position: "absolute", right: 0, top: "110%", zIndex: 20, minWidth: 210 }}>
+              <button className="pd-menu-item" onClick={() => { setShowMore(false); go("rackmap"); }}>Rack &amp; Locations</button>
+              <button className="pd-menu-item" onClick={() => { setShowMore(false); downloadMedicineTemplate(); }}>Sample sheet</button>
+              <button className="pd-menu-item" onClick={() => { setShowMore(false); medFile.current?.click(); }}>Import medicines</button>
+            </div>
+          )}
+        </div>
+        <button className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => go("purchases")} title="Products are added by entering a distributor purchase bill"><IconTruck size={16} /> Add stock via purchase</button>
       </div>
 
       <div className="pd-card">
         <div className="pd-tbl-wrap">
           <table className="pd-tbl">
             <thead>
-              <tr><th>Product</th><th>Category</th><th>Schedule</th><th>Rack</th><th>Batches · Expiry</th><th>Stock</th><th className="num">MRP</th><th className="num">Value</th><th>Loose</th><th>Online</th><th></th></tr>
+              <tr><th>Product</th><th>Category</th><th>Schedule</th><th>Rack</th><th className="num">Batches</th><th>Expiry</th><th>Stock</th><th className="num">MRP</th><th className="num">Value</th><th>Loose / Online</th><th></th></tr>
             </thead>
             <tbody>
               {list.map((p) => {
@@ -151,27 +160,27 @@ export default function InventoryScreen() {
                         <span><span className="nm">{p.name}</span><div className="sub">{p.composition} · {p.manufacturer}</div></span>
                       </div>
                     </td>
-                    <td>{catLabel(p.category)}</td>
+                    <td className="nowrap">{catLabel(p.category)}</td>
                     <td><ScheduleTag schedule={p.schedule} /></td>
                     <td onClick={(e) => e.stopPropagation()}>{hasLocation(p)
                       ? <span className="pd-rackchip" style={{ marginLeft: 0 }}><IconPin size={11} /> {locationCodes(p).join(" · ")}</span>
                       : <button className="pd-pill pill-gold" style={{ cursor: "pointer", border: 0 }} title="Not assigned to a rack — click to allocate" onClick={() => go("rackmap")}><IconAlert size={11} /> Unallocated</button>}</td>
-                    <td>
-                      <span style={{ fontWeight: 700 }}>{p.batches.length} batch{p.batches.length !== 1 ? "es" : ""}</span>
-                      {b && <div className={`pd-pill ${exp ? "pill-rose" : mo <= 4 ? "pill-gold" : "pill-gray"}`} style={{ marginTop: 4 }}>{exp ? "Expired" : b.expiry}</div>}
-                    </td>
+                    <td className="num">{p.batches.length}</td>
+                    <td>{b && <span className={`pd-pill ${exp ? "pill-rose" : mo <= 4 ? "pill-gold" : "pill-gray"}`}>{exp ? "Expired" : b.expiry}</span>}</td>
                     <td><StockPill p={p} now={now} /></td>
                     <td className="num" style={{ fontWeight: 700 }}>{inr(mrpOf(p))}</td>
                     <td className="num">{inr(stockValue(p))}</td>
                     <td onClick={(e) => e.stopPropagation()}>
-                      {isLooseEligible(p) ? (
-                        <div className="pd-flex pd-gap6">
-                          <button className={`pd-switch${(p.looseAllowed ?? true) ? " on" : ""}`} onClick={() => toggleLoose(p.id)} aria-label="Toggle loose selling" />
-                          {(p.looseAllowed ?? true) && <span className="pd-muted" style={{ fontSize: 11 }}>{inr2(perUnitPrice(p))}/{unitNoun(p)}</span>}
-                        </div>
-                      ) : <span className="pd-muted" style={{ fontSize: 12 }}>—</span>}
+                      <div className="pd-flex pd-gap6">
+                        {isLooseEligible(p) ? (
+                          <>
+                            <button className={`pd-switch${(p.looseAllowed ?? true) ? " on" : ""}`} onClick={() => toggleLoose(p.id)} aria-label="Toggle loose selling" />
+                            {(p.looseAllowed ?? true) && <span className="pd-muted" style={{ fontSize: 11 }}>{inr2(perUnitPrice(p))}/{unitNoun(p)}</span>}
+                          </>
+                        ) : <span className="pd-muted" style={{ fontSize: 12 }}>—</span>}
+                        <button className={`pd-switch${p.online ? " on" : ""}`} onClick={() => toggleOnline(p.id)} aria-label="Toggle online" />
+                      </div>
                     </td>
-                    <td onClick={(e) => e.stopPropagation()}><button className={`pd-switch${p.online ? " on" : ""}`} onClick={() => toggleOnline(p.id)} aria-label="Toggle online" /></td>
                     <td onClick={(e) => e.stopPropagation()}>
                       <div className="pd-flex pd-gap6" style={{ justifyContent: "flex-end" }}>
                         <button className="pd-iconbtn" title="Edit" onClick={() => setEdit(p)}><IconEdit size={15} /></button>
@@ -239,13 +248,16 @@ function ProductDetailModal({ product: p, sales, now, onClose, onEdit, toggleOnl
             <button className={`pd-btn pd-btn-sm ${p.online ? "pd-btn-ghost" : "pd-btn-ghost"}`} onClick={() => toggleOnline(p.id)}>{p.online ? "● Online" : "○ Offline"}</button>
           </div>
 
-          <div className="pd-card" style={{ display: "flex", gap: 16, alignItems: "center", padding: 12, marginBottom: 14, flexWrap: "wrap" }}>
-            <div style={{ width: 220, flex: "0 0 auto" }} dangerouslySetInnerHTML={{ __html: barcodeSvg(code) }} />
-            <div style={{ minWidth: 160 }}>
+          <div className="pd-card" style={{ display: "grid", gridTemplateColumns: "200px minmax(0,1fr) auto", gap: 18, alignItems: "center", padding: 14, marginBottom: 14 }}>
+            <div style={{ width: 200 }} dangerouslySetInnerHTML={{ __html: barcodeSvg(code) }} />
+            <div style={{ minWidth: 0 }}>
               <div style={{ fontWeight: 700 }}>{p.name}</div>
-              <div className="pd-mono" style={{ letterSpacing: ".12em", margin: "4px 0 8px" }}>{code}</div>
-              <button className="pd-btn pd-btn-primary pd-btn-sm" onClick={() => saveBarcodeSvg(code)}><IconDownload size={14} /> Save SVG</button>
+              <div className="pd-mono" style={{ letterSpacing: ".12em", marginTop: 4 }}>{code}</div>
+              <div style={{ fontSize: 12, color: "var(--muted)", marginTop: 2 }}>
+                {catLabel(p.category)} · {p.manufacturer} · {p.pack}
+              </div>
             </div>
+            <button className="pd-btn pd-btn-primary pd-btn-sm" style={{ whiteSpace: "nowrap" }} onClick={() => saveBarcodeSvg(code)}><IconDownload size={14} /> Save SVG</button>
           </div>
 
           {/* KPI tiles */}
@@ -353,17 +365,13 @@ function ProductModal({ product, onClose, onSave }: { product: InvProduct; onClo
             <label>Product photo</label>
             <div className="pd-flex" style={{ gap: 14 }}>
               <div className="em" style={{ width: 64, height: 64, borderRadius: 12, background: "var(--wash)", display: "grid", placeItems: "center", fontSize: 30, overflow: "hidden", flexShrink: 0 }}>
-                {f.image ? <img className="pd-thumb" src={f.image} alt="" /> : f.emoji}
+                {f.image ? <img className="pd-thumb" src={f.image} alt="" /> : monogramOf(f.name)}
               </div>
               <input ref={photoRef} type="file" accept="image/*" hidden onChange={onPhoto} />
               <div className="pd-flex" style={{ flexDirection: "column", alignItems: "flex-start", gap: 6 }}>
                 <div className="pd-flex pd-gap6">
                   <button type="button" className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => photoRef.current?.click()}><IconUpload size={14} /> {f.image ? "Change photo" : "Upload photo"}</button>
                   {f.image && <button type="button" className="pd-btn pd-btn-sm" style={{ color: "var(--rose)", background: "none" }} onClick={() => set({ image: undefined })}>Remove</button>}
-                </div>
-                <div className="pd-flex pd-gap6">
-                  <span className="pd-muted" style={{ fontSize: 12 }}>or emoji:</span>
-                  <input className="pd-input" style={{ width: 70, padding: "5px 8px", textAlign: "center" }} value={f.emoji} maxLength={2} onChange={(e) => set({ emoji: e.target.value })} />
                 </div>
               </div>
             </div>

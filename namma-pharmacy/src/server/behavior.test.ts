@@ -34,7 +34,7 @@ test("checkout deducts stock once and an idempotent replay does not deduct again
   state.inventory = [{
     id: "p1", name: "Dolo", composition: "", manufacturer: "", form: "Tablet", pack: "Strip of 10",
     category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 5,
-    online: true, emoji: "💊", batches: [{ batchNo: "B1", expiry: "2027-01", qty: 5, mrp: 30, ptr: 20 }],
+    online: true, batches: [{ batchNo: "B1", expiry: "2027-01", qty: 5, mrp: 30, ptr: 20 }],
   }];
   const input = { lines: [{ productId: "p1", qty: 1 }], payMode: "cash" as const, customer: { name: "Walk-in" } };
   const seen = new Map<string, unknown>();
@@ -55,7 +55,7 @@ test("cancelling an order restocks only the quantity already packed", () => {
   state.inventory = [{
     id: "p1", name: "Dolo", composition: "", manufacturer: "", form: "Tablet", pack: "10",
     category: "fever", hsn: "3004", gst: 5, schedule: "OTC", rack: "A1", reorderLevel: 1,
-    online: false, emoji: "💊", batches: [{ batchNo: "B1", expiry: "2027-01", qty: 3, mrp: 10, ptr: 8 }],
+    online: false, batches: [{ batchNo: "B1", expiry: "2027-01", qty: 3, mrp: 10, ptr: 8 }],
   }];
   state.sales = [{
     id: "INV-1", channel: "online", status: "accepted", customer: { name: "Asha" },
@@ -73,7 +73,7 @@ test("goods receipt increases stock once for the same idempotency key", () => {
   state.inventory = [{
     id: "p1", name: "Dolo", composition: "", manufacturer: "", form: "Tablet", pack: "10",
     category: "fever", hsn: "3004", gst: 5, schedule: "OTC", rack: "A1", reorderLevel: 1,
-    online: false, emoji: "💊", batches: [{ batchNo: "B1", expiry: "2027-01", qty: 1, mrp: 10, ptr: 8 }],
+    online: false, batches: [{ batchNo: "B1", expiry: "2027-01", qty: 1, mrp: 10, ptr: 8 }],
   }];
   const draft = { supplierId: "s1", supplierName: "Dist", invoiceNo: "1", invoiceDate: "2026-10-01", items: [{ productId: "p1", name: "Dolo", batchNo: "B1", expiry: "2027-01", qty: 4, freeQty: 0, ptr: 8, mrp: 10, gst: 5, hsn: "3004" }] };
   const seen = new Map<string, unknown>();
@@ -100,7 +100,7 @@ test("setting a batch quantity is the value sent, not an extra increment", () =>
   state.inventory = [{
     id: "p1", name: "Dolo", composition: "", manufacturer: "", form: "Tablet", pack: "10",
     category: "fever", hsn: "3004", gst: 5, schedule: "OTC", rack: "A1", reorderLevel: 1,
-    online: false, emoji: "💊", batches: [{ batchNo: "B1", expiry: "2027-01", qty: 9, mrp: 10, ptr: 8 }],
+    online: false, batches: [{ batchNo: "B1", expiry: "2027-01", qty: 9, mrp: 10, ptr: 8 }],
   }];
   setBatchQty(state, "p1", "B1", 4);
   assert.equal(state.inventory[0].batches[0].qty, 4);
@@ -110,7 +110,7 @@ function stocked(batches: { batchNo: string; expiry: string; qty: number; mrp: n
   return {
     id: "p1", name: "Dolo", composition: "", manufacturer: "", form: extra.form ?? "Tablet", pack: extra.pack ?? "Strip of 10",
     category: "fever", hsn: "3004", gst: 12, schedule: "OTC" as const, rack: "A1", reorderLevel: 5,
-    online: true, emoji: "💊", looseAllowed: extra.looseAllowed, batches,
+    online: true, looseAllowed: extra.looseAllowed, batches,
   };
 }
 
@@ -196,7 +196,7 @@ test("production drops an untouched demo store and keeps the owner phone", () =>
   assert.equal(demo.users[0].phone, "+919000077701");
 
   const real = emptyState({ phone: "+919000077701", businessType: "pharmacy" });
-  real.inventory = [{ id: "p9", name: "Metformin 500mg", composition: "", manufacturer: "", form: "Tablet", pack: "", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "A1", reorderLevel: 1, online: false, emoji: "", batches: [] }];
+  real.inventory = [{ id: "p9", name: "Metformin 500mg", composition: "", manufacturer: "", form: "Tablet", pack: "", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "A1", reorderLevel: 1, online: false, batches: [] }];
   assert.equal(stripDemo(real, "production"), false);
   assert.equal(real.inventory.length, 1);
   assert.equal(stripDemo(demoState(Date.now(), "pharmacy"), "development"), false);
@@ -255,7 +255,7 @@ test("a past renewal date locks a paid route and still allows POS", () => {
 test("departments and referrals stay on the pharmacy after create, edit, and delete", () => {
   const state = emptyState({ phone: "+919000000000", businessType: "hospital" });
   state.doctors = [{ id: "DR-001", name: "Dr. A", department: "ICU" } as PharmacyState["doctors"][number]];
-  const dep = addDepartment(state, { name: "ICU", head: "Dr. A", type: "IPD", emoji: "🏥" });
+  const dep = addDepartment(state, { name: "ICU", head: "Dr. A", type: "IPD" });
   assert.equal(dep.id, "DEP-1");
   assert.equal(state.departments[0].name, "ICU");
   updateDepartment(state, dep.id, { name: "Critical care" });

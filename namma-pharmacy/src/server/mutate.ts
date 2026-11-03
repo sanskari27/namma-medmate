@@ -276,7 +276,7 @@ export function receivePurchase(state: PharmacyState, draft: { supplierId: strin
         id: "p" + bump(state, "prod"), name: it.name || "New product", composition: it.composition || "",
         manufacturer: it.manufacturer || "", form: (it.form as DosageForm) || "Tablet", pack: it.pack || "",
         category: it.category || "fever", hsn: it.hsn || "3004", gst: it.gst, schedule: (it.schedule as Schedule) || "OTC",
-        rack: "—", reorderLevel: it.reorderLevel ?? 20, online: false, emoji: it.emoji || "💊",
+        rack: "—", reorderLevel: it.reorderLevel ?? 20, online: false,
         batches: [{ batchNo: it.batchNo, expiry: it.expiry, qty: received, mrp: it.mrp, ptr: it.ptr }],
       }, ...inventory];
     }
@@ -780,7 +780,6 @@ export function addDepartment(state: PharmacyState, d: Omit<Department, "id" | "
     name,
     head: String(d.head || "").trim(),
     type: d.type === "IPD" || d.type === "Diagnostic" || d.type === "Support" ? d.type : "OPD",
-    emoji: String(d.emoji || "🏥").trim() || "🏥",
     doctors: [],
   };
   state.departments = [row, ...(state.departments || [])];

@@ -51,8 +51,8 @@ export default function ReferScreen() {
 
           {/* earnings */}
           <div className="pd-stats-2">
-            <div className="pd-stat"><div className="ic ic-gold"><IconGift size={18} /></div><div className="lbl">Total earned</div><div className="val">{inr(earned)}</div></div>
-            <div className="pd-stat"><div className="ic ic-green"><IconStore size={18} /></div><div className="lbl">Pharmacies referred</div><div className="val">{referrals.length}</div></div>
+            <div className="pd-stat"><div className="ic ic-gold"><IconGift size={18} /></div><div className="lbl">Total earned</div><div className="val">{inr(earned)}</div><div className="split">referral rewards</div></div>
+            <div className="pd-stat"><div className="ic ic-green"><IconStore size={18} /></div><div className="lbl">Pharmacies referred</div><div className="val">{referrals.length}</div><div className="split">joined via you</div></div>
           </div>
         </div>
 

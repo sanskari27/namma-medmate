@@ -41,7 +41,7 @@ export default function UsersScreen() {
   const withLogin = users.filter((u) => u.username && u.password).length;
 
   return (
-    <div className="pd-canvas-wide" style={{ maxWidth: 1040 }}>
+    <div className="pd-canvas-wide">
       <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUsers size={18} /></div><div className="lbl">Team members</div><div className="val">{users.length}</div><div className="split">{activeCount} active</div></div>
         <div className="pd-stat"><div className="ic ic-blue"><IconKey size={18} /></div><div className="lbl">Seats used</div><div className="val">{activeCount} / {seatLimit == null ? "∞" : seatLimit}</div><div className="split">{included == null ? "Unlimited" : `${included} included`}{extraSeats ? ` + ${extraSeats} extra` : ""}</div></div>
@@ -69,7 +69,7 @@ export default function UsersScreen() {
                   <tr key={u.id}>
                     <td><div className="prod"><span className="em" style={{ background: "var(--wash)", color: "var(--mid)", fontWeight: 800 }}>{u.name[0]}</span><span><span className="nm">{u.name}</span><div className="sub">{u.email || u.phone}</div></span></div></td>
                     <td>
-                      <select className="pd-select" style={{ padding: "5px 8px", maxWidth: 130 }} value={u.role} disabled={u.role === "Owner"} onChange={(e) => updateUser(u.id, { role: e.target.value as UserRole })}>
+                      <select className="pd-select pd-compact" style={{ maxWidth: 130 }} value={u.role} disabled={u.role === "Owner"} onChange={(e) => updateUser(u.id, { role: e.target.value as UserRole })}>
                         {ROLES.map((r) => <option key={r} value={r}>{r}</option>)}
                       </select>
                     </td>

@@ -4,7 +4,8 @@ import { usePharma } from "../pharmaState";
 import {
   CATEGORIES, catLabel, inr, mrpOf, sellPrice, stockOf, InvProduct, Offer, OfferType, directOfferId, directOfferOf, onlineOfferPrice,
 } from "../data";
-import { IconSearch, IconStore, IconX, IconGlobe, IconTag, IconBulb, IconCart } from "../components/Icon";
+import { IconSearch, IconStore, IconX, IconGlobe, IconTag, IconBulb, IconCart } from "../components/Icon"
+import { CategoryIcon, monogramOf } from "../components/entityIcon";;
 import { Thumb } from "../components/bits";
 
 export default function OnlineStoreScreen() {
@@ -57,7 +58,7 @@ export default function OnlineStoreScreen() {
         <>
           <div className="pd-pos-cat" style={{ marginBottom: 14 }}>
             <button className={`pd-chip${cat === "all" ? " on" : ""}`} onClick={() => setCat("all")}>All</button>
-            {CATEGORIES.map((c) => <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}>{c.emoji} {c.label}</button>)}
+            {CATEGORIES.map((c) => <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}><CategoryIcon k={c.key} size={15} /> {c.label}</button>)}
           </div>
           <div className="pd-card">
             <div className="pd-tbl-wrap">
@@ -81,7 +82,7 @@ export default function OnlineStoreScreen() {
                         </td>
                         <td>
                           <div className="pd-flex pd-gap6">
-                            <select className="pd-select" style={{ padding: "6px 8px", maxWidth: 150 }} value={p.offerId && p.offerId !== directOfferId(p.id) ? p.offerId : ""} onChange={(e) => { const id = e.target.value; if (id) setProductOffer(p.id, id); else if (direct) setDirectOffer(p.id, direct.type, direct.value); else setProductOffer(p.id, undefined); }}>
+                            <select className="pd-select pd-compact" style={{ maxWidth: 150 }} value={p.offerId && p.offerId !== directOfferId(p.id) ? p.offerId : ""} onChange={(e) => { const id = e.target.value; if (id) setProductOffer(p.id, id); else if (direct) setDirectOffer(p.id, direct.type, direct.value); else setProductOffer(p.id, undefined); }}>
                               <option value="">No store offer</option>
                               {storeOffers.map((o) => <option key={o.id} value={o.id}>{o.title}</option>)}
                             </select>
@@ -119,7 +120,7 @@ export default function OnlineStoreScreen() {
                 return (
                   <div key={p.id} style={{ border: "1px solid var(--line)", borderRadius: 14, padding: 12, position: "relative", background: "#fff" }}>
                     {off > 0 && <span className="pd-pill pill-rose" style={{ position: "absolute", top: 8, left: 8 }}>{Math.round((off / base) * 100)}% OFF</span>}
-                    <div style={{ height: 70, borderRadius: 10, background: "var(--wash)", display: "grid", placeItems: "center", fontSize: 34, marginBottom: 8, overflow: "hidden" }}>{p.image ? <img className="pd-thumb" src={p.image} alt={p.name} /> : p.emoji}</div>
+                    <div style={{ height: 70, borderRadius: 10, background: "var(--wash)", display: "grid", placeItems: "center", fontSize: 34, marginBottom: 8, overflow: "hidden" }}>{p.image ? <img className="pd-thumb" src={p.image} alt={p.name} /> : monogramOf(p.name)}</div>
                     <div style={{ fontWeight: 700, fontSize: 13, lineHeight: 1.25 }}>{p.name}</div>
                     <div style={{ fontSize: 11, color: "var(--muted)" }}>{p.pack}</div>
                     <div className="pd-flex" style={{ marginTop: 8, justifyContent: "space-between" }}>

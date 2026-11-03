@@ -8,7 +8,8 @@ import {
   buildPatients, Patient, PatientMed, Segment, SEGMENTS, segLabel, TIERS, tierOf, refillsDue, atRisk,
   attributedSales, crmMsg, Campaign,
 } from "../lib/crm";
-import { IconSearch, IconX, IconWhatsApp, IconMessage, IconCheck, IconUser, IconRupee, IconReports, IconAlert, IconClock, IconGift, IconStar, IconSparkle, IconStethoscope, IconHeart, IconDot, IconMail, IconRefresh, IconTrendDown, IconMega, IconPhone, IconReceipt, IconPin, IconCalendar, IconBox, IconPill } from "../components/Icon";
+import { IconSearch, IconX, IconWhatsApp, IconMessage, IconCheck, IconUser, IconRupee, IconReports, IconAlert, IconClock, IconGift, IconStar, IconSparkle, IconStethoscope, IconHeart, IconDot, IconMail, IconRefresh, IconTrendDown, IconMega, IconPhone, IconReceipt, IconPin, IconCalendar, IconBox, IconPill } from "../components/Icon"
+import { SegmentIcon } from "../components/entityIcon";;
 
 type Tab = "overview" | "patients" | "reminders" | "loyalty" | "campaigns" | "feedback" | "analytics";
 const TABS: { k: Tab; label: string }[] = [
@@ -72,12 +73,12 @@ function Overview(s: any) {
   return (
     <>
       <div className="pd-stats" >
-        <div className="pd-stat"><div className="ic ic-green"><IconUser size={18} /></div><div className="lbl">Patients</div><div className="val">{patients.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconCheck size={18} /></div><div className="lbl">Active (30d)</div><div className="val">{active}</div></div>
-        <div className="pd-stat"><div className="ic ic-rose"><IconAlert size={18} /></div><div className="lbl">At-risk</div><div className="val">{risk.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconClock size={18} /></div><div className="lbl">Refills due (7d)</div><div className="val">{dueSoon.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconGift size={18} /></div><div className="lbl">Loyalty points</div><div className="val">{pts.toLocaleString("en-IN")}</div></div>
-        <div className="pd-stat"><div className="ic ic-green"><IconStar size={18} /></div><div className="lbl">Avg rating</div><div className="val">{avg ? avg.toFixed(1) : "—"}</div></div>
+        <div className="pd-stat"><div className="ic ic-green"><IconUser size={18} /></div><div className="lbl">Patients</div><div className="val">{patients.length}</div><div className="split">total on file</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconCheck size={18} /></div><div className="lbl">Active (30d)</div><div className="val">{active}</div><div className="split">ordered recently</div></div>
+        <div className="pd-stat"><div className="ic ic-rose"><IconAlert size={18} /></div><div className="lbl">At-risk</div><div className="val">{risk.length}</div><div className="split">churn candidates</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconClock size={18} /></div><div className="lbl">Refills due (7d)</div><div className="val">{dueSoon.length}</div><div className="split">medicines to reorder</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconGift size={18} /></div><div className="lbl">Loyalty points</div><div className="val">{pts.toLocaleString("en-IN")}</div><div className="split">redeemable rewards</div></div>
+        <div className="pd-stat"><div className="ic ic-green"><IconStar size={18} /></div><div className="lbl">Avg rating</div><div className="val">{avg ? avg.toFixed(1) : "—"}</div><div className="split">out of 5</div></div>
       </div>
 
       <div className="pd-grid-2">
@@ -99,7 +100,7 @@ function Overview(s: any) {
           <div className="pd-card-pad">
             {dist.map((d) => (
               <div key={d.seg.key} style={{ marginBottom: 10 }}>
-                <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}><span>{d.seg.emoji} {d.seg.label}</span><b>{d.n}</b></div>
+                <div className="pd-flex" style={{ justifyContent: "space-between", fontSize: 13, marginBottom: 4 }}><span className="pd-hstack" style={{ gap: 6 }}><SegmentIcon k={d.seg.key} size={14} /> {d.seg.label}</span><b>{d.n}</b></div>
                 <div className="pd-prog"><i style={{ width: `${(d.n / maxN) * 100}%` }} /></div>
               </div>
             ))}
@@ -139,7 +140,7 @@ function Patients(s: any) {
         <div className="pd-search-inline"><span className="ic"><IconSearch size={17} /></span><input placeholder="Search patient…" value={q} onChange={(e) => setQ(e.target.value)} /></div>
         <select className="pd-select" value={seg} onChange={(e) => setSeg(e.target.value as any)} style={{ width: 180 }}>
           <option value="all">All segments ({patients.length})</option>
-          {SEGMENTS.map((x) => <option key={x.key} value={x.key}>{x.emoji} {x.label} ({patients.filter((p: Patient) => p.segments.includes(x.key)).length})</option>)}
+          {SEGMENTS.map((x) => <option key={x.key} value={x.key}>{x.label} ({patients.filter((p: Patient) => p.segments.includes(x.key)).length})</option>)}
         </select>
       </div>
       <div className="pd-card"><div className="pd-tbl-wrap"><table className="pd-tbl">
@@ -260,7 +261,7 @@ function Campaigns(s: any) {
       <div className="pd-card">
         <div className="pd-card-head"><h3>New campaign</h3><span className="sub">{recipients.length} recipients</span></div>
         <div className="pd-card-pad" style={{ display: "grid", gap: 12 }}>
-          <div className="pd-field"><label>Target segment</label><select className="pd-select" value={seg} onChange={(e) => setSeg(e.target.value as any)}><option value="all">Everyone with phone</option>{SEGMENTS.map((x) => <option key={x.key} value={x.key}>{x.emoji} {x.label}</option>)}</select></div>
+          <div className="pd-field"><label>Target segment</label><select className="pd-select" value={seg} onChange={(e) => setSeg(e.target.value as any)}><option value="all">Everyone with phone</option>{SEGMENTS.map((x) => <option key={x.key} value={x.key}>{x.label}</option>)}</select></div>
           <div className="pd-field"><label>Channel</label><div className="pd-seg"><button className={channel === "whatsapp" ? "on" : ""} onClick={() => setChannel("whatsapp")}>WhatsApp</button><button className={channel === "sms" ? "on" : ""} onClick={() => setChannel("sms")}>SMS</button></div></div>
           <div className="pd-field"><label>Offer (optional)</label><input className="pd-input" value={offer} onChange={(e) => setOffer(e.target.value)} placeholder="e.g. 10% off all diabetes meds" /></div>
           <div className="pd-field"><label>Message</label><textarea className="pd-input" rows={4} value={text} onChange={(e) => setMessage(e.target.value)} /></div>
@@ -306,7 +307,7 @@ function FeedbackTab(s: any) {
         <div className="pd-card-head"><h3>Log feedback</h3></div>
         <div className="pd-card-pad" style={{ display: "grid", gap: 12 }}>
           <div className="pd-field"><label>Patient</label><select className="pd-select" value={pk} onChange={(e) => setPk(e.target.value)}><option value="">Select patient…</option>{patients.map((p: Patient) => <option key={p.key} value={p.key}>{p.name}</option>)}</select></div>
-          <div className="pd-field"><label>Rating</label><div className="pd-flex" style={{ gap: 6 }}>{[1, 2, 3, 4, 5].map((n) => <button key={n} className={`pd-btn ${rating >= n ? "pd-btn-primary" : "pd-btn-ghost"}`} onClick={() => setRating(n)}>★</button>)}</div></div>
+          <div className="pd-field"><label>Rating</label><div className="pd-flex" style={{ gap: 6 }}>{[1, 2, 3, 4, 5].map((n) => <button key={n} className={`pd-btn ${rating >= n ? "pd-btn-primary" : "pd-btn-ghost"}`} onClick={() => setRating(n)}><IconStar size={15} /></button>)}</div></div>
           <div className="pd-field"><label>NPS (0–10): would they recommend us?</label><input className="pd-input" type="number" min={0} max={10} value={nps} onChange={(e) => setNps(Math.max(0, Math.min(10, Number(e.target.value) || 0)))} style={{ width: 90 }} /></div>
           <div className="pd-field"><label>Comment</label><textarea className="pd-input" rows={3} value={comment} onChange={(e) => setComment(e.target.value)} placeholder="What did they say?" /></div>
           <div className="pd-flex" style={{ gap: 8 }}>
@@ -319,7 +320,7 @@ function FeedbackTab(s: any) {
         <div className="pd-card-head"><h3>Feedback & NPS</h3><span className="sub">{fb.length} responses</span></div>
         <div className="pd-card-pad">
           <div className="pd-summary-chips" style={{ marginBottom: 12 }}>
-            <div className="pd-schip">Avg rating<b>{avg ? avg.toFixed(1) + "★" : "—"}</b></div>
+            <div className="pd-schip">Avg rating<b>{avg ? avg.toFixed(1) : "—"} <IconStar size={11} /></b></div>
             <div className="pd-schip">NPS<b>{fb.length ? npsScore : "—"}</b></div>
             <div className="pd-schip">Promoters<b>{promoters}</b></div>
             <div className="pd-schip">Detractors<b>{detractors}</b></div>
@@ -327,7 +328,7 @@ function FeedbackTab(s: any) {
           {fb.length === 0 && <div className="pd-empty" style={{ padding: 16 }}><p>No feedback yet.</p></div>}
           {fb.slice(0, 10).map((f: any) => (
             <div className="pd-row" key={f.id}>
-              <span className="em">{"★".repeat(f.rating)}</span>
+              <span className="pd-rating">{[1, 2, 3, 4, 5].slice(0, f.rating).map((n) => <IconStar key={n} size={13} />)}</span>
               <span className="gw"><div className="t">{f.custName} {f.nps != null && <span className="pd-muted" style={{ fontSize: 11 }}>· NPS {f.nps}</span>}</div><div className="s">{f.comment || "—"}</div></span>
               <span className="pd-muted" style={{ fontSize: 11.5 }}>{timeAgo(f.at, s.now)}</span>
             </div>
@@ -350,11 +351,11 @@ function Analytics(s: any) {
   return (
     <>
       <div className="pd-stats" >
-        <div className="pd-stat"><div className="ic ic-green"><IconRupee size={18} /></div><div className="lbl">Avg lifetime value</div><div className="val">{inr(ltv)}</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconRefresh size={18} /></div><div className="lbl">Retention (repeat)</div><div className="val">{retention}%</div></div>
-        <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Churn risk</div><div className="val">{risk.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconMega size={18} /></div><div className="lbl">Campaign sales</div><div className="val">{inr(campRev)}</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconStar size={18} /></div><div className="lbl">RFM leaders</div><div className="val">{rfm.length}</div></div>
+        <div className="pd-stat"><div className="ic ic-green"><IconRupee size={18} /></div><div className="lbl">Avg lifetime value</div><div className="val">{inr(ltv)}</div><div className="split">per patient</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconRefresh size={18} /></div><div className="lbl">Retention (repeat)</div><div className="val">{retention}%</div><div className="split">came back</div></div>
+        <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Churn risk</div><div className="val">{risk.length}</div><div className="split">at-risk patients</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconMega size={18} /></div><div className="lbl">Campaign sales</div><div className="val">{inr(campRev)}</div><div className="split">attributed revenue</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconStar size={18} /></div><div className="lbl">RFM leaders</div><div className="val">{rfm.length}</div><div className="split">best customers</div></div>
       </div>
       <div className="pd-card">
         <div className="pd-card-head"><h3>Top patients by RFM</h3><span className="sub">recency · frequency · monetary</span></div>
@@ -547,7 +548,7 @@ function PatientModal(props: any) {
                   <div className="pd-card-head"><h3 style={{ fontSize: 13 }}>Feedback</h3><span className="sub">{ptFeedback.length}</span></div>
                   <div className="pd-card-pad" style={{ paddingTop: 4 }}>
                     {ptFeedback.length === 0 ? <p className="pd-muted" style={{ fontSize: 12 }}>None yet.</p> :
-                      ptFeedback.slice(0, 5).map((fb: any) => <div className="pd-medrow" key={fb.id}><span className="em" style={{ color: "var(--gold-d)" }}>{"★".repeat(fb.rating)}</span><span className="gw"><div className="t">{fb.comment || "—"}</div><div className="s">{fb.nps != null ? `NPS ${fb.nps}` : ""}</div></span><span className="pd-muted" style={{ fontSize: 11 }}>{timeAgo(fb.at, now)}</span></div>)}
+                      ptFeedback.slice(0, 5).map((fb: any) => <div className="pd-medrow" key={fb.id}><span className="pd-rating gold">{[1, 2, 3, 4, 5].slice(0, fb.rating).map((n) => <IconStar key={n} size={12} />)}</span><span className="gw"><div className="t">{fb.comment || "—"}</div><div className="s">{fb.nps != null ? `NPS ${fb.nps}` : ""}</div></span><span className="pd-muted" style={{ fontSize: 11 }}>{timeAgo(fb.at, now)}</span></div>)}
                   </div>
                 </div>
               </div>

@@ -50,8 +50,8 @@ export type InvProduct = {
   supplierId?: string;     // allotted distributor for reordering
   looseAllowed?: boolean;  // owner's choice: allow per-tablet/loose selling (default on for eligible)
   looseUnits?: number;     // opened loose tablets/capsules currently in stock (from a broken strip)
-  emoji: string;
-  image?: string;          // product photo (data URL) — falls back to emoji
+  emoji?: string;          // legacy field — the UI renders a monogram tile, not an emoji
+  image?: string;          // product photo (data URL) — falls back to the monogram tile
   batches: Batch[];
 };
 
@@ -59,77 +59,51 @@ export type CategoryKey =
   | "fever" | "cold" | "diabetes" | "heart" | "stomach" | "vitamins"
   | "skin" | "baby" | "devices" | "personal" | "ayush" | "firstaid";
 
-export const CATEGORIES: { key: CategoryKey; label: string; emoji: string }[] = [
-  { key: "fever", label: "Fever & Pain", emoji: "🤒" },
-  { key: "cold", label: "Cough & Cold", emoji: "🤧" },
-  { key: "diabetes", label: "Diabetes", emoji: "🩸" },
-  { key: "heart", label: "Heart & BP", emoji: "🫀" },
-  { key: "stomach", label: "Stomach", emoji: "🍽️" },
-  { key: "vitamins", label: "Vitamins", emoji: "💊" },
-  { key: "skin", label: "Skin Care", emoji: "🧴" },
-  { key: "baby", label: "Baby Care", emoji: "🍼" },
-  { key: "devices", label: "Devices", emoji: "🩺" },
-  { key: "personal", label: "Personal", emoji: "🪥" },
-  { key: "ayush", label: "Ayurveda", emoji: "🌿" },
-  { key: "firstaid", label: "First Aid", emoji: "🩹" },
+export const CATEGORIES: { key: CategoryKey; label: string }[] = [
+  { key: "fever", label: "Fever & Pain" },
+  { key: "cold", label: "Cough & Cold" },
+  { key: "diabetes", label: "Diabetes" },
+  { key: "heart", label: "Heart & BP" },
+  { key: "stomach", label: "Stomach" },
+  { key: "vitamins", label: "Vitamins" },
+  { key: "skin", label: "Skin Care" },
+  { key: "baby", label: "Baby Care" },
+  { key: "devices", label: "Devices" },
+  { key: "personal", label: "Personal" },
+  { key: "ayush", label: "Ayurveda" },
+  { key: "firstaid", label: "First Aid" },
 ];
 export const catLabel = (key: string) => CATEGORIES.find((c) => c.key === key)?.label ?? key;
 
 // ── seed inventory ──────────────────────────────────────────────
 // expiries are written for June 2026. demoState shifts them onto the reset month.
 export const SEED_INVENTORY: InvProduct[] = [
-  { id: "p1", name: "Dolo 650", composition: "Paracetamol 650mg", manufacturer: "Micro Labs", form: "Tablet", pack: "Strip of 15", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 40, online: true, emoji: "💊",
-    batches: [ { batchNo: "DL6A229", expiry: "2027-03", qty: 120, mrp: 34, ptr: 24.5 }, { batchNo: "DL6A187", expiry: "2026-09", qty: 36, mrp: 34, ptr: 24.5 } ] },
-  { id: "p2", name: "Crocin Advance", composition: "Paracetamol 500mg", manufacturer: "GSK", form: "Tablet", pack: "Strip of 15", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 30, online: true, emoji: "💊",
-    batches: [ { batchNo: "CRA5521", expiry: "2027-01", qty: 64, mrp: 33, ptr: 23 } ] },
-  { id: "p3", name: "Combiflam", composition: "Ibuprofen 400mg + Paracetamol 325mg", manufacturer: "Sanofi", form: "Tablet", pack: "Strip of 20", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A2", reorderLevel: 25, online: true, emoji: "💊",
-    batches: [ { batchNo: "CMB8830", expiry: "2026-08", qty: 18, mrp: 52, ptr: 38 } ] },
-  { id: "p4", name: "Volini Gel", composition: "Diclofenac Diethylamine 1.16%", manufacturer: "Sun Pharma", form: "Cream", pack: "30 g tube", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A3", reorderLevel: 15, online: true, emoji: "🧴",
-    batches: [ { batchNo: "VOL3092", expiry: "2027-06", qty: 40, mrp: 165, ptr: 120 } ] },
-  { id: "p5", name: "Vicks Action 500", composition: "Paracetamol + Phenylephrine + Caffeine", manufacturer: "P&G", form: "Tablet", pack: "Strip of 10", category: "cold", hsn: "3004", gst: 12, schedule: "OTC", rack: "B1", reorderLevel: 25, online: true, emoji: "💊",
-    batches: [ { batchNo: "VA51120", expiry: "2026-12", qty: 52, mrp: 49, ptr: 35 } ] },
-  { id: "p6", name: "Cetirizine 10mg", composition: "Cetirizine HCl 10mg", manufacturer: "Cipla", form: "Tablet", pack: "Strip of 10", category: "cold", hsn: "3004", gst: 5, schedule: "H", rack: "B1", reorderLevel: 30, online: true, emoji: "💊",
-    batches: [ { batchNo: "CTZ4471", expiry: "2027-04", qty: 88, mrp: 24, ptr: 15 } ] },
-  { id: "p7", name: "Benadryl Cough Syrup", composition: "Diphenhydramine + Ammonium Chloride", manufacturer: "J&J", form: "Syrup", pack: "150 ml bottle", category: "cold", hsn: "3004", gst: 12, schedule: "H", rack: "B2", reorderLevel: 12, online: true, emoji: "🍯",
-    batches: [ { batchNo: "BDL7781", expiry: "2026-07", qty: 9, mrp: 138, ptr: 104 } ] },
-  { id: "p9", name: "Metformin 500mg", composition: "Metformin HCl 500mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 15", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "C1", reorderLevel: 50, online: true, emoji: "💊",
-    batches: [ { batchNo: "MET2218", expiry: "2027-02", qty: 140, mrp: 38, ptr: 22 }, { batchNo: "MET1990", expiry: "2026-10", qty: 60, mrp: 38, ptr: 22 } ] },
-  { id: "p10", name: "Accu-Chek Active Strips", composition: "Glucose test strips", manufacturer: "Roche", form: "Device", pack: "Box of 50", category: "diabetes", hsn: "3822", gst: 12, schedule: "OTC", rack: "C2", reorderLevel: 8, online: true, emoji: "🩸",
-    batches: [ { batchNo: "ACS5540", expiry: "2027-05", qty: 22, mrp: 1100, ptr: 880 } ] },
-  { id: "p11", name: "Glycomet GP1", composition: "Metformin 500mg + Glimepiride 1mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 15", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "C1", reorderLevel: 30, online: false, emoji: "💊",
-    batches: [ { batchNo: "GMP3361", expiry: "2026-11", qty: 45, mrp: 124, ptr: 92 } ] },
-  { id: "p12", name: "Amlodipine 5mg", composition: "Amlodipine 5mg", manufacturer: "Cipla", form: "Tablet", pack: "Strip of 15", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D1", reorderLevel: 40, online: true, emoji: "💊",
-    batches: [ { batchNo: "AML6612", expiry: "2027-07", qty: 96, mrp: 32, ptr: 18 } ] },
-  { id: "p13", name: "Atorvastatin 10mg", composition: "Atorvastatin 10mg", manufacturer: "Sun Pharma", form: "Tablet", pack: "Strip of 15", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D1", reorderLevel: 30, online: true, emoji: "💊",
-    batches: [ { batchNo: "ATR8120", expiry: "2026-08", qty: 14, mrp: 112, ptr: 78 } ] },
-  { id: "p14", name: "Ecosprin 75", composition: "Aspirin 75mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 14", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D2", reorderLevel: 30, online: true, emoji: "💊",
-    batches: [ { batchNo: "ECO1145", expiry: "2027-03", qty: 110, mrp: 16, ptr: 9 } ] },
-  { id: "p15", name: "Pan-D", composition: "Pantoprazole 40mg + Domperidone 30mg", manufacturer: "Alkem", form: "Capsule", pack: "Strip of 15", category: "stomach", hsn: "3004", gst: 12, schedule: "H", rack: "E1", reorderLevel: 30, online: true, emoji: "💊",
-    batches: [ { batchNo: "PND9912", expiry: "2027-01", qty: 70, mrp: 168, ptr: 120 } ] },
-  { id: "p16", name: "Digene Gel Mint", composition: "Antacid suspension", manufacturer: "Abbott", form: "Syrup", pack: "200 ml bottle", category: "stomach", hsn: "3004", gst: 12, schedule: "OTC", rack: "E2", reorderLevel: 15, online: true, emoji: "🍯",
-    batches: [ { batchNo: "DIG3320", expiry: "2026-09", qty: 30, mrp: 168, ptr: 124 } ] },
-  { id: "p17", name: "ORS Orange", composition: "Oral rehydration salts", manufacturer: "FDC", form: "Other", pack: "5 sachets", category: "stomach", hsn: "3004", gst: 5, schedule: "OTC", rack: "E3", reorderLevel: 20, online: true, emoji: "🥤",
-    batches: [ { batchNo: "ORS7781", expiry: "2027-08", qty: 64, mrp: 120, ptr: 86 } ] },
-  { id: "p19", name: "Shelcal 500", composition: "Calcium Carbonate + Vit D3", manufacturer: "Torrent", form: "Tablet", pack: "Strip of 15", category: "vitamins", hsn: "3004", gst: 12, schedule: "OTC", rack: "F1", reorderLevel: 25, online: true, emoji: "💊",
-    batches: [ { batchNo: "SHL2240", expiry: "2027-05", qty: 80, mrp: 128, ptr: 92 } ] },
-  { id: "p20", name: "Vitamin D3 60K", composition: "Cholecalciferol 60000 IU", manufacturer: "Mankind", form: "Capsule", pack: "4 sachets", category: "vitamins", hsn: "3004", gst: 12, schedule: "OTC", rack: "F1", reorderLevel: 20, online: true, emoji: "🟡",
-    batches: [ { batchNo: "VD36005", expiry: "2027-09", qty: 56, mrp: 140, ptr: 96 } ] },
-  { id: "p22", name: "Ensure Powder Vanilla", composition: "Nutritional supplement", manufacturer: "Abbott", form: "Other", pack: "400 g jar", category: "vitamins", hsn: "2106", gst: 18, schedule: "OTC", rack: "F2", reorderLevel: 10, online: true, emoji: "🥛",
-    batches: [ { batchNo: "ENS4410", expiry: "2026-10", qty: 16, mrp: 670, ptr: 540 } ] },
-  { id: "p25", name: "Sunscreen SPF 50", composition: "Avobenzone + Octinoxate", manufacturer: "Brinton", form: "Cream", pack: "50 g tube", category: "skin", hsn: "3304", gst: 18, schedule: "OTC", rack: "G1", reorderLevel: 12, online: true, emoji: "🧴",
-    batches: [ { batchNo: "SUN5530", expiry: "2027-04", qty: 28, mrp: 399, ptr: 300 } ] },
-  { id: "p28", name: "Omron BP Monitor", composition: "Automatic digital BP monitor", manufacturer: "Omron", form: "Device", pack: "1 unit", category: "devices", hsn: "9018", gst: 12, schedule: "OTC", rack: "H1", reorderLevel: 4, online: true, emoji: "🩺",
-    batches: [ { batchNo: "OMR7702", expiry: "2030-01", qty: 7, mrp: 2495, ptr: 1850 } ] },
-  { id: "p29", name: "Pulse Oximeter", composition: "Fingertip SpO₂ monitor", manufacturer: "BPL", form: "Device", pack: "1 unit", category: "devices", hsn: "9018", gst: 12, schedule: "OTC", rack: "H1", reorderLevel: 5, online: true, emoji: "🫁",
-    batches: [ { batchNo: "PLX2218", expiry: "2030-01", qty: 11, mrp: 1399, ptr: 990 } ] },
-  { id: "p30", name: "Digital Thermometer", composition: "Flexible-tip thermometer", manufacturer: "Dr Trust", form: "Device", pack: "1 unit", category: "devices", hsn: "9025", gst: 12, schedule: "OTC", rack: "H2", reorderLevel: 8, online: true, emoji: "🌡️",
-    batches: [ { batchNo: "THR9091", expiry: "2030-01", qty: 24, mrp: 280, ptr: 180 } ] },
-  { id: "p33", name: "Ashwagandha Tablets", composition: "Withania somnifera extract", manufacturer: "Himalaya", form: "Tablet", pack: "Bottle of 60", category: "ayush", hsn: "3004", gst: 5, schedule: "OTC", rack: "I1", reorderLevel: 10, online: true, emoji: "🌿",
-    batches: [ { batchNo: "ASH3340", expiry: "2027-02", qty: 30, mrp: 450, ptr: 330 } ] },
-  { id: "p35", name: "Band-Aid Washproof", composition: "Adhesive bandages", manufacturer: "J&J", form: "Other", pack: "20 strips", category: "firstaid", hsn: "3005", gst: 12, schedule: "OTC", rack: "J1", reorderLevel: 20, online: true, emoji: "🩹",
-    batches: [ { batchNo: "BND1102", expiry: "2028-03", qty: 60, mrp: 110, ptr: 78 } ] },
-  { id: "p31", name: "Colgate Total", composition: "Toothpaste", manufacturer: "Colgate", form: "Other", pack: "150 g · 2 pack", category: "personal", hsn: "3306", gst: 18, schedule: "OTC", rack: "K1", reorderLevel: 15, online: true, emoji: "🪥",
-    batches: [ { batchNo: "CLG6620", expiry: "2027-11", qty: 44, mrp: 230, ptr: 168 } ] },
+  { id: "p1", name: "Dolo 650", composition: "Paracetamol 650mg", manufacturer: "Micro Labs", form: "Tablet", pack: "Strip of 15", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 40, online: true, batches: [ { batchNo: "DL6A229", expiry: "2027-03", qty: 120, mrp: 34, ptr: 24.5 }, { batchNo: "DL6A187", expiry: "2026-09", qty: 36, mrp: 34, ptr: 24.5 } ] },
+  { id: "p2", name: "Crocin Advance", composition: "Paracetamol 500mg", manufacturer: "GSK", form: "Tablet", pack: "Strip of 15", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A1", reorderLevel: 30, online: true, batches: [ { batchNo: "CRA5521", expiry: "2027-01", qty: 64, mrp: 33, ptr: 23 } ] },
+  { id: "p3", name: "Combiflam", composition: "Ibuprofen 400mg + Paracetamol 325mg", manufacturer: "Sanofi", form: "Tablet", pack: "Strip of 20", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A2", reorderLevel: 25, online: true, batches: [ { batchNo: "CMB8830", expiry: "2026-08", qty: 18, mrp: 52, ptr: 38 } ] },
+  { id: "p4", name: "Volini Gel", composition: "Diclofenac Diethylamine 1.16%", manufacturer: "Sun Pharma", form: "Cream", pack: "30 g tube", category: "fever", hsn: "3004", gst: 12, schedule: "OTC", rack: "A3", reorderLevel: 15, online: true, batches: [ { batchNo: "VOL3092", expiry: "2027-06", qty: 40, mrp: 165, ptr: 120 } ] },
+  { id: "p5", name: "Vicks Action 500", composition: "Paracetamol + Phenylephrine + Caffeine", manufacturer: "P&G", form: "Tablet", pack: "Strip of 10", category: "cold", hsn: "3004", gst: 12, schedule: "OTC", rack: "B1", reorderLevel: 25, online: true, batches: [ { batchNo: "VA51120", expiry: "2026-12", qty: 52, mrp: 49, ptr: 35 } ] },
+  { id: "p6", name: "Cetirizine 10mg", composition: "Cetirizine HCl 10mg", manufacturer: "Cipla", form: "Tablet", pack: "Strip of 10", category: "cold", hsn: "3004", gst: 5, schedule: "H", rack: "B1", reorderLevel: 30, online: true, batches: [ { batchNo: "CTZ4471", expiry: "2027-04", qty: 88, mrp: 24, ptr: 15 } ] },
+  { id: "p7", name: "Benadryl Cough Syrup", composition: "Diphenhydramine + Ammonium Chloride", manufacturer: "J&J", form: "Syrup", pack: "150 ml bottle", category: "cold", hsn: "3004", gst: 12, schedule: "H", rack: "B2", reorderLevel: 12, online: true, batches: [ { batchNo: "BDL7781", expiry: "2026-07", qty: 9, mrp: 138, ptr: 104 } ] },
+  { id: "p9", name: "Metformin 500mg", composition: "Metformin HCl 500mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 15", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "C1", reorderLevel: 50, online: true, batches: [ { batchNo: "MET2218", expiry: "2027-02", qty: 140, mrp: 38, ptr: 22 }, { batchNo: "MET1990", expiry: "2026-10", qty: 60, mrp: 38, ptr: 22 } ] },
+  { id: "p10", name: "Accu-Chek Active Strips", composition: "Glucose test strips", manufacturer: "Roche", form: "Device", pack: "Box of 50", category: "diabetes", hsn: "3822", gst: 12, schedule: "OTC", rack: "C2", reorderLevel: 8, online: true, batches: [ { batchNo: "ACS5540", expiry: "2027-05", qty: 22, mrp: 1100, ptr: 880 } ] },
+  { id: "p11", name: "Glycomet GP1", composition: "Metformin 500mg + Glimepiride 1mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 15", category: "diabetes", hsn: "3004", gst: 5, schedule: "H", rack: "C1", reorderLevel: 30, online: false, batches: [ { batchNo: "GMP3361", expiry: "2026-11", qty: 45, mrp: 124, ptr: 92 } ] },
+  { id: "p12", name: "Amlodipine 5mg", composition: "Amlodipine 5mg", manufacturer: "Cipla", form: "Tablet", pack: "Strip of 15", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D1", reorderLevel: 40, online: true, batches: [ { batchNo: "AML6612", expiry: "2027-07", qty: 96, mrp: 32, ptr: 18 } ] },
+  { id: "p13", name: "Atorvastatin 10mg", composition: "Atorvastatin 10mg", manufacturer: "Sun Pharma", form: "Tablet", pack: "Strip of 15", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D1", reorderLevel: 30, online: true, batches: [ { batchNo: "ATR8120", expiry: "2026-08", qty: 14, mrp: 112, ptr: 78 } ] },
+  { id: "p14", name: "Ecosprin 75", composition: "Aspirin 75mg", manufacturer: "USV", form: "Tablet", pack: "Strip of 14", category: "heart", hsn: "3004", gst: 5, schedule: "H", rack: "D2", reorderLevel: 30, online: true, batches: [ { batchNo: "ECO1145", expiry: "2027-03", qty: 110, mrp: 16, ptr: 9 } ] },
+  { id: "p15", name: "Pan-D", composition: "Pantoprazole 40mg + Domperidone 30mg", manufacturer: "Alkem", form: "Capsule", pack: "Strip of 15", category: "stomach", hsn: "3004", gst: 12, schedule: "H", rack: "E1", reorderLevel: 30, online: true, batches: [ { batchNo: "PND9912", expiry: "2027-01", qty: 70, mrp: 168, ptr: 120 } ] },
+  { id: "p16", name: "Digene Gel Mint", composition: "Antacid suspension", manufacturer: "Abbott", form: "Syrup", pack: "200 ml bottle", category: "stomach", hsn: "3004", gst: 12, schedule: "OTC", rack: "E2", reorderLevel: 15, online: true, batches: [ { batchNo: "DIG3320", expiry: "2026-09", qty: 30, mrp: 168, ptr: 124 } ] },
+  { id: "p17", name: "ORS Orange", composition: "Oral rehydration salts", manufacturer: "FDC", form: "Other", pack: "5 sachets", category: "stomach", hsn: "3004", gst: 5, schedule: "OTC", rack: "E3", reorderLevel: 20, online: true, batches: [ { batchNo: "ORS7781", expiry: "2027-08", qty: 64, mrp: 120, ptr: 86 } ] },
+  { id: "p19", name: "Shelcal 500", composition: "Calcium Carbonate + Vit D3", manufacturer: "Torrent", form: "Tablet", pack: "Strip of 15", category: "vitamins", hsn: "3004", gst: 12, schedule: "OTC", rack: "F1", reorderLevel: 25, online: true, batches: [ { batchNo: "SHL2240", expiry: "2027-05", qty: 80, mrp: 128, ptr: 92 } ] },
+  { id: "p20", name: "Vitamin D3 60K", composition: "Cholecalciferol 60000 IU", manufacturer: "Mankind", form: "Capsule", pack: "4 sachets", category: "vitamins", hsn: "3004", gst: 12, schedule: "OTC", rack: "F1", reorderLevel: 20, online: true, batches: [ { batchNo: "VD36005", expiry: "2027-09", qty: 56, mrp: 140, ptr: 96 } ] },
+  { id: "p22", name: "Ensure Powder Vanilla", composition: "Nutritional supplement", manufacturer: "Abbott", form: "Other", pack: "400 g jar", category: "vitamins", hsn: "2106", gst: 18, schedule: "OTC", rack: "F2", reorderLevel: 10, online: true, batches: [ { batchNo: "ENS4410", expiry: "2026-10", qty: 16, mrp: 670, ptr: 540 } ] },
+  { id: "p25", name: "Sunscreen SPF 50", composition: "Avobenzone + Octinoxate", manufacturer: "Brinton", form: "Cream", pack: "50 g tube", category: "skin", hsn: "3304", gst: 18, schedule: "OTC", rack: "G1", reorderLevel: 12, online: true, batches: [ { batchNo: "SUN5530", expiry: "2027-04", qty: 28, mrp: 399, ptr: 300 } ] },
+  { id: "p28", name: "Omron BP Monitor", composition: "Automatic digital BP monitor", manufacturer: "Omron", form: "Device", pack: "1 unit", category: "devices", hsn: "9018", gst: 12, schedule: "OTC", rack: "H1", reorderLevel: 4, online: true, batches: [ { batchNo: "OMR7702", expiry: "2030-01", qty: 7, mrp: 2495, ptr: 1850 } ] },
+  { id: "p29", name: "Pulse Oximeter", composition: "Fingertip SpO₂ monitor", manufacturer: "BPL", form: "Device", pack: "1 unit", category: "devices", hsn: "9018", gst: 12, schedule: "OTC", rack: "H1", reorderLevel: 5, online: true, batches: [ { batchNo: "PLX2218", expiry: "2030-01", qty: 11, mrp: 1399, ptr: 990 } ] },
+  { id: "p30", name: "Digital Thermometer", composition: "Flexible-tip thermometer", manufacturer: "Dr Trust", form: "Device", pack: "1 unit", category: "devices", hsn: "9025", gst: 12, schedule: "OTC", rack: "H2", reorderLevel: 8, online: true, batches: [ { batchNo: "THR9091", expiry: "2030-01", qty: 24, mrp: 280, ptr: 180 } ] },
+  { id: "p33", name: "Ashwagandha Tablets", composition: "Withania somnifera extract", manufacturer: "Himalaya", form: "Tablet", pack: "Bottle of 60", category: "ayush", hsn: "3004", gst: 5, schedule: "OTC", rack: "I1", reorderLevel: 10, online: true, batches: [ { batchNo: "ASH3340", expiry: "2027-02", qty: 30, mrp: 450, ptr: 330 } ] },
+  { id: "p35", name: "Band-Aid Washproof", composition: "Adhesive bandages", manufacturer: "J&J", form: "Other", pack: "20 strips", category: "firstaid", hsn: "3005", gst: 12, schedule: "OTC", rack: "J1", reorderLevel: 20, online: true, batches: [ { batchNo: "BND1102", expiry: "2028-03", qty: 60, mrp: 110, ptr: 78 } ] },
+  { id: "p31", name: "Colgate Total", composition: "Toothpaste", manufacturer: "Colgate", form: "Other", pack: "150 g · 2 pack", category: "personal", hsn: "3306", gst: 18, schedule: "OTC", rack: "K1", reorderLevel: 15, online: true, batches: [ { batchNo: "CLG6620", expiry: "2027-11", qty: 44, mrp: 230, ptr: 168 } ] },
 ];
 
 // ── suppliers / distributors ────────────────────────────────────
@@ -163,12 +137,12 @@ export const SETTLED_MODES: PayMode[] = ["cash", "upi", "card", "cod"];
 
 // ── hospital sale source (where the sale originated) ─────────────
 export type SaleSource = "opd" | "counter" | "ward" | "emergency" | "online";
-export const SALE_SOURCES: { key: SaleSource; label: string; short: string; emoji: string }[] = [
-  { key: "opd", label: "OPD Prescription", short: "OPD Rx", emoji: "📋" },
-  { key: "counter", label: "Pharmacy Counter", short: "Counter", emoji: "🧾" },
-  { key: "ward", label: "Ward / IPD", short: "Ward", emoji: "🛏️" },
-  { key: "emergency", label: "Emergency / Casualty", short: "Emergency", emoji: "🚑" },
-  { key: "online", label: "Online", short: "Online", emoji: "🌐" },
+export const SALE_SOURCES: { key: SaleSource; label: string; short: string }[] = [
+  { key: "opd", label: "OPD Prescription", short: "OPD Rx" },
+  { key: "counter", label: "Pharmacy Counter", short: "Counter" },
+  { key: "ward", label: "Ward / IPD", short: "Ward" },
+  { key: "emergency", label: "Emergency / Casualty", short: "Emergency" },
+  { key: "online", label: "Online", short: "Online" },
 ];
 export const SALE_SOURCE_LABEL: Record<SaleSource, string> = Object.fromEntries(SALE_SOURCES.map((s) => [s.key, s.label])) as Record<SaleSource, string>;
 // effective source for any sale (falls back to channel for non-hospital / legacy sales)
@@ -809,8 +783,7 @@ export const blankPurchaseItem = (p?: InvProduct): PurchaseItem => ({
   gst: p?.gst ?? 12,
   hsn: p?.hsn ?? "3004",
   composition: "", manufacturer: "", form: "Tablet", pack: "", category: "fever",
-  schedule: "OTC", reorderLevel: 20, emoji: "💊",
-});
+  schedule: "OTC", reorderLevel: 20, });
 
 // ════════════════════════════════════════════════════════════════
 // Staff / users · subscription · invoice settings · kiosk · CA · PO
@@ -900,7 +873,7 @@ export const suggestUsername = (name: string, role: UserRole): string => {
 export type Plan = "Free" | "Starter" | "Growth" | "Pro";
 export type PlanInfo = { key: Plan; name: string; price: number; seats: string; tagline: string; features: string[] };
 export const PLANS: PlanInfo[] = [
-  { key: "Free", name: "Free", price: 0, seats: "2 users", tagline: "Core billing — free forever", features: ["Billing / POS & GST invoices", "Inventory, batches & expiry", "Purchases & goods-inward", "Up to 2 users"] },
+  { key: "Free", name: "Free", price: 0, seats: "2 users", tagline: "Core billing", features: ["Billing / POS & GST invoices", "Inventory, batches & expiry", "Purchases & goods-inward", "Up to 2 users"] },
   { key: "Starter", name: "Starter", price: 699, seats: "2 users", tagline: "Single counter", features: ["Everything in Free", "All paid screens on any active plan", "Email support"] },
   { key: "Growth", name: "Growth", price: 1499, seats: "5 users", tagline: "Most popular", features: ["Everything in Starter", "All paid screens on any active plan", "Up to 5 users"] },
   { key: "Pro", name: "Pro", price: 2999, seats: "Unlimited", tagline: "Hospital, kiosk & more", features: ["Everything in Growth", "All paid screens on any active plan", "Unlimited users & branches", "Priority support"] },
@@ -1040,11 +1013,11 @@ export const SEED_ADVISORS: Advisor[] = [
   { id: "adv2", type: "Accountant", name: "Meena Iyer", firm: "In-house Accounts", email: "meena@srisai.in", phone: "+91 98861 22019" },
 ];
 export const CA_REPORT_TYPES = [
-  { key: "gst", label: "GST summary (GSTR-ready)", icon: "🧾" },
-  { key: "sales", label: "Sales register", icon: "🛒" },
-  { key: "purchase", label: "Purchase register", icon: "🚚" },
-  { key: "pl", label: "Profit & Loss statement", icon: "📈" },
-  { key: "stock", label: "Closing stock valuation", icon: "📦" },
+  { key: "gst", label: "GST summary (GSTR-ready)", icon: "gst" },
+  { key: "sales", label: "Sales register", icon: "sales" },
+  { key: "purchase", label: "Purchase register", icon: "purchase" },
+  { key: "pl", label: "Profit & Loss statement", icon: "pl" },
+  { key: "stock", label: "Closing stock valuation", icon: "stock" },
 ];
 export type CAShare = { id: string; period: string; reports: string[]; sentTo: string; recipient: string; createdAt: number };
 type SeedShare = Omit<CAShare, "createdAt"> & { minsAgo: number };
@@ -1475,7 +1448,7 @@ export type Employee = {
   emergencyName?: string;
   emergencyPhone?: string;
   note?: string;
-  emoji: string;
+  emoji?: string;         // legacy field — the UI renders an initials avatar
   photo?: string;          // employee photo (data URL) — used on the digital ID card
   bloodGroup?: string;     // shown on the ID card
   documents?: EmployeeDoc[]; // uploaded ID proofs / certificates (image or PDF, stored as data URLs)
@@ -1486,16 +1459,16 @@ export const DOC_LABELS = ["Aadhaar card", "PAN card", "Pharmacist licence", "Ap
 export const BLOOD_GROUPS = ["A+", "A−", "B+", "B−", "AB+", "AB−", "O+", "O−"];
 
 export const SEED_EMPLOYEES: Employee[] = [
-  { id: "EMP-001", name: "Rajesh Kumar", position: "Owner", department: "Management", phone: "+91 98860 12345", email: "rajesh@srisai.in", address: "12, 4th Block, Jayanagar, Bengaluru", dob: "1982-03-14", joinedOn: "2019-06-01", employment: "Full-time", salary: 90000, status: "active", pan: "ABCPK1234L", aadhaar: "4321 8765 9012", bankName: "HDFC Bank", accountName: "Rajesh Kumar", accountNumber: "50100234567890", ifsc: "HDFC0001234", upi: "rajesh@okhdfcbank", emergencyName: "Latha Kumar", emergencyPhone: "+91 98861 00011", emoji: "🧑‍💼" },
-  { id: "EMP-002", name: "Anjali Menon", position: "Pharmacist", department: "Dispensing", phone: "+91 99016 55421", email: "anjali@srisai.in", address: "8, 2nd Cross, BTM Layout, Bengaluru", dob: "1994-09-22", joinedOn: "2021-02-15", employment: "Full-time", salary: 38000, status: "active", pan: "BXYPM5678K", aadhaar: "9988 7766 5544", bankName: "ICICI Bank", accountName: "Anjali Menon", accountNumber: "002601567890", ifsc: "ICIC0000026", upi: "anjali@oksbi", emergencyName: "Suresh Menon", emergencyPhone: "+91 99016 22113", emoji: "👩‍⚕️" },
-  { id: "EMP-003", name: "Suresh Babu", position: "Cashier", department: "Billing", phone: "+91 97411 90087", email: "suresh@srisai.in", address: "45, 7th Main, HSR Layout, Bengaluru", dob: "1990-12-05", joinedOn: "2022-08-10", employment: "Full-time", salary: 24000, status: "active", pan: "CLMPB9012J", bankName: "State Bank of India", accountName: "Suresh Babu", accountNumber: "30987654321", ifsc: "SBIN0004567", upi: "suresh@okaxis", emergencyName: "Geetha", emergencyPhone: "+91 97411 33445", emoji: "🧑‍💻" },
-  { id: "EMP-004", name: "Deepa Rao", position: "Manager", department: "Operations", phone: "+91 90080 33219", email: "deepa@srisai.in", address: "23, 1st Stage, Indiranagar, Bengaluru", dob: "1988-07-19", joinedOn: "2020-11-03", employment: "Full-time", salary: 45000, status: "active", pan: "DMNPR3456H", aadhaar: "1122 3344 5566", bankName: "Axis Bank", accountName: "Deepa Rao", accountNumber: "918010098765", ifsc: "UTIB0000123", upi: "deepa@okicici", emergencyName: "Vikram Rao", emergencyPhone: "+91 90080 99887", emoji: "👩‍💼" },
-  { id: "EMP-005", name: "Imran Pasha", position: "Delivery Executive", department: "Logistics", phone: "+91 96320 71145", email: "", address: "Shivajinagar, Bengaluru", dob: "1998-04-02", joinedOn: "2023-05-20", employment: "Part-time", salary: 16000, status: "active", pan: "", bankName: "Kotak Mahindra Bank", accountName: "Imran Pasha", accountNumber: "1234509876", ifsc: "KKBK0000456", upi: "imran@okhdfcbank", emergencyName: "Rahim", emergencyPhone: "+91 96320 11220", emoji: "🛵" },
+  { id: "EMP-001", name: "Rajesh Kumar", position: "Owner", department: "Management", phone: "+91 98860 12345", email: "rajesh@srisai.in", address: "12, 4th Block, Jayanagar, Bengaluru", dob: "1982-03-14", joinedOn: "2019-06-01", employment: "Full-time", salary: 90000, status: "active", pan: "ABCPK1234L", aadhaar: "4321 8765 9012", bankName: "HDFC Bank", accountName: "Rajesh Kumar", accountNumber: "50100234567890", ifsc: "HDFC0001234", upi: "rajesh@okhdfcbank", emergencyName: "Latha Kumar", emergencyPhone: "+91 98861 00011" },
+  { id: "EMP-002", name: "Anjali Menon", position: "Pharmacist", department: "Dispensing", phone: "+91 99016 55421", email: "anjali@srisai.in", address: "8, 2nd Cross, BTM Layout, Bengaluru", dob: "1994-09-22", joinedOn: "2021-02-15", employment: "Full-time", salary: 38000, status: "active", pan: "BXYPM5678K", aadhaar: "9988 7766 5544", bankName: "ICICI Bank", accountName: "Anjali Menon", accountNumber: "002601567890", ifsc: "ICIC0000026", upi: "anjali@oksbi", emergencyName: "Suresh Menon", emergencyPhone: "+91 99016 22113" },
+  { id: "EMP-003", name: "Suresh Babu", position: "Cashier", department: "Billing", phone: "+91 97411 90087", email: "suresh@srisai.in", address: "45, 7th Main, HSR Layout, Bengaluru", dob: "1990-12-05", joinedOn: "2022-08-10", employment: "Full-time", salary: 24000, status: "active", pan: "CLMPB9012J", bankName: "State Bank of India", accountName: "Suresh Babu", accountNumber: "30987654321", ifsc: "SBIN0004567", upi: "suresh@okaxis", emergencyName: "Geetha", emergencyPhone: "+91 97411 33445" },
+  { id: "EMP-004", name: "Deepa Rao", position: "Manager", department: "Operations", phone: "+91 90080 33219", email: "deepa@srisai.in", address: "23, 1st Stage, Indiranagar, Bengaluru", dob: "1988-07-19", joinedOn: "2020-11-03", employment: "Full-time", salary: 45000, status: "active", pan: "DMNPR3456H", aadhaar: "1122 3344 5566", bankName: "Axis Bank", accountName: "Deepa Rao", accountNumber: "918010098765", ifsc: "UTIB0000123", upi: "deepa@okicici", emergencyName: "Vikram Rao", emergencyPhone: "+91 90080 99887" },
+  { id: "EMP-005", name: "Imran Pasha", position: "Delivery Executive", department: "Logistics", phone: "+91 96320 71145", email: "", address: "Shivajinagar, Bengaluru", dob: "1998-04-02", joinedOn: "2023-05-20", employment: "Part-time", salary: 16000, status: "active", pan: "", bankName: "Kotak Mahindra Bank", accountName: "Imran Pasha", accountNumber: "1234509876", ifsc: "KKBK0000456", upi: "imran@okhdfcbank", emergencyName: "Rahim", emergencyPhone: "+91 96320 11220" },
 ];
 
 export const blankEmployee = (): Omit<Employee, "id"> => ({
   name: "", position: EMPLOYEE_POSITIONS[2], phone: "", email: "", address: "",
-  joinedOn: "", employment: "Full-time", salary: 0, status: "active", emoji: "👤", documents: [],
+  joinedOn: "", employment: "Full-time", salary: 0, status: "active", documents: [],
 });
 
 // tenure in whole years/months from joining date to `now`

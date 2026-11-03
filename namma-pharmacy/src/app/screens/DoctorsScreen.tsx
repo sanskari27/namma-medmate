@@ -5,7 +5,8 @@ import { inr } from "../data";
 import {
   DoctorProfile, blankDoctor, DOCTOR_SPECIALTIES, DOCTOR_STATUS_META, DoctorStatus,
 } from "../lib/hospital";
-import { IconSearch, IconPlus, IconX, IconUpload, IconMail, IconTrash, IconPhone } from "../components/Icon";
+import { IconSearch, IconPlus, IconX, IconUpload, IconMail, IconTrash, IconPhone } from "../components/Icon"
+import { Avatar } from "../components/entityIcon";;
 
 const TONE: Record<string, string> = { green: "pill-green", rose: "pill-rose", blue: "pill-blue" };
 
@@ -53,7 +54,7 @@ export default function DoctorsScreen() {
           return (
             <div className="pd-card pd-card-pad pd-doc" key={d.id}>
               <div className="pd-flex" style={{ alignItems: "flex-start", gap: 13 }}>
-                <span className="pd-doc-ava">{d.photo ? <img src={d.photo} alt={d.name} /> : d.emoji}</span>
+                <span className="pd-doc-ava"><Avatar name={d.name} photo={d.photo} size={44} /></span>
                 <div className="pd-grow">
                   <div className="pd-flex" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
                     <h3 style={{ fontSize: 16 }}>{d.name}</h3>
@@ -118,7 +119,7 @@ function DoctorModal({ initial, departments, onClose, onSave, onDelete }: {
           <div className="pd-flex" style={{ gap: 16, marginBottom: 16, alignItems: "center" }}>
             <input ref={fileRef} type="file" accept="image/*" hidden onChange={onPhoto} />
             <button className="pd-doc-ava lg" onClick={() => fileRef.current?.click()} title="Upload photo">
-              {d.photo ? <img src={d.photo} alt="" /> : <span style={{ fontSize: 30 }}>{d.emoji}</span>}
+              <Avatar name={d.name} photo={d.photo} size={64} />
             </button>
             <div>
               <button className="pd-btn pd-btn-ghost pd-btn-sm" onClick={() => fileRef.current?.click()}><IconUpload size={13} /> {d.photo ? "Change photo" : "Upload photo"}</button>
@@ -133,7 +134,7 @@ function DoctorModal({ initial, departments, onClose, onSave, onDelete }: {
             <div className="pd-field"><label>Specialty</label><select className="pd-select" value={d.specialty} onChange={(e) => set({ specialty: e.target.value })}>{DOCTOR_SPECIALTIES.map((s) => <option key={s}>{s}</option>)}</select></div>
             <div className="pd-field"><label>Department</label><select className="pd-select" value={d.department} onChange={(e) => set({ department: e.target.value })}><option value="">— Select —</option>{departments.map((x) => <option key={x}>{x}</option>)}</select></div>
             <div className="pd-field"><label>Medical Reg. No.</label><input className="pd-input pd-mono" value={d.regNo} onChange={(e) => set({ regNo: e.target.value })} placeholder="e.g. KMC-12345" /></div>
-            <div className="pd-field"><label>Gender</label><select className="pd-select" value={d.gender} onChange={(e) => set({ gender: e.target.value as DoctorProfile["gender"], emoji: e.target.value === "Female" ? "👩‍⚕️" : "👨‍⚕️" })}><option>Male</option><option>Female</option><option>Other</option></select></div>
+            <div className="pd-field"><label>Gender</label><select className="pd-select" value={d.gender} onChange={(e) => set({ gender: e.target.value as DoctorProfile["gender"] })}><option>Male</option><option>Female</option><option>Other</option></select></div>
             <div className="pd-field"><label>Experience (years)</label><input className="pd-input" type="number" min={0} value={d.experience || ""} onChange={(e) => set({ experience: Number(e.target.value) || 0 })} /></div>
             <div className="pd-field" data-field="phone"><label>Phone</label><input className="pd-input" value={d.phone} onChange={(e) => set({ phone: e.target.value })} placeholder="+91 …" /></div>
             <div className="pd-field" data-field="email"><label>Email</label><input className="pd-input" value={d.email} onChange={(e) => set({ email: e.target.value })} placeholder="doctor@hospital.in" /></div>

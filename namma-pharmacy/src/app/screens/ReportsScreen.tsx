@@ -6,7 +6,8 @@ import {
   STATUS_LABEL, channelLabel, catLabel, CATEGORIES, purchaseTotals,
   earliestBatch, stockOf, fmtDateTime,
 } from "../data";
-import { IconPrint, IconRupee, IconSearch, IconSparkle, IconReceipt, IconDoc, IconBox, IconUsers, IconDownload, IconChart, IconTrendUp } from "../components/Icon";
+import { IconPrint, IconRupee, IconSearch, IconSparkle, IconReceipt, IconDoc, IconBox, IconUsers, IconDownload, IconChart, IconTrendUp, IconStar } from "../components/Icon"
+import { monogramOf } from "../components/entityIcon";;
 import { usePeriod } from "../components/PeriodFilter";
 import {
   REPORT_CATALOG, CAT_LABEL, ReportCat, ReportMeta, runReport, ReportResult, reportById,
@@ -57,7 +58,7 @@ function ReportHub({ onOpen }: { onOpen: (m: ReportMeta) => void }) {
   const Card = ({ m }: { m: ReportMeta }) => (
     <button className="pd-report-row" onClick={() => onOpen(m)}>
       <span className="nm">{m.name}</span>
-      {m.fav && <span className="star">★</span>}
+      {m.fav && <span className="star"><IconStar size={13} /></span>}
     </button>
   );
 
@@ -65,7 +66,7 @@ function ReportHub({ onOpen }: { onOpen: (m: ReportMeta) => void }) {
     <div className="pd-canvas-wide">
       <div className="pd-toolbar">
         <div className="pd-flex pd-gap6" style={{ flexWrap: "wrap", alignItems: "center" }}>
-          <span className="pd-muted" style={{ fontWeight: 700, fontSize: 13 }}>Filter By</span>
+          <span className="pd-filter-label">Filter by</span>
           {FILTERS.map((f) => (
             <button key={f} className={`pd-chip${active === f ? " on" : ""}`} onClick={() => setActive((a) => (a === f ? null : f))}>{f}</button>
           ))}
@@ -408,7 +409,7 @@ function ProductsReport({ enriched, inventory, costOf }: { enriched: any[]; inve
     const profit = a.revenue - a.cogs;
     const margin = a.revenue > 0 ? (profit / a.revenue) * 100 : 0;
     const stock = p ? stockOf(p) : 0;
-    return { ...a, profit, margin, stock, category: p?.category ?? "—", emoji: p?.emoji ?? "💊" };
+    return { ...a, profit, margin, stock, category: p?.category ?? "—" };
   });
   rows = rows.filter((r) => (cat === "all" || r.category === cat) && (!q || r.name.toLowerCase().includes(q.toLowerCase())));
   rows.sort((a, b) => {
@@ -457,7 +458,7 @@ function ProductsReport({ enriched, inventory, costOf }: { enriched: any[]; inve
             <tbody>
               {rows.map((r) => (
                 <tr key={r.id}>
-                  <td><div className="prod"><span className="em">{r.emoji}</span><span className="nm">{r.name}</span></div></td>
+                  <td><div className="prod"><span className="em">{monogramOf(r.name)}</span><span className="nm">{r.name}</span></div></td>
                   <td>{catLabel(r.category)}</td>
                   <td className="num" style={{ fontWeight: 700 }}>{r.units}</td>
                   <td className="num">{inr(r.revenue)}</td>

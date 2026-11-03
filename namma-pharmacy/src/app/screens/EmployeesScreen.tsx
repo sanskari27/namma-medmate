@@ -6,7 +6,8 @@ import {
   blankEmployee, employeeTenure, monthlyPayroll, maskAccount, isValidIfsc,
   DOC_LABELS, EmployeeDoc,
 } from "../data";
-import { IconPlus, IconSearch, IconPrint, IconUpload, IconIdCard, IconUser, IconX, IconUsers, IconCash, IconRupee, IconDoc, IconImage, IconTrash, IconBriefcase, IconArrowRight } from "../components/Icon";
+import { IconPlus, IconSearch, IconPrint, IconUpload, IconIdCard, IconUser, IconX, IconUsers, IconCash, IconRupee, IconDoc, IconImage, IconTrash, IconBriefcase, IconArrowRight } from "../components/Icon"
+import { Avatar } from "../components/entityIcon";;
 import EmployeeIdCard from "../components/EmployeeIdCard";
 
 const ymd = (ts: number) => { const d = new Date(ts); return `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`; };
@@ -96,7 +97,7 @@ export default function EmployeesScreen() {
               {rows.map((e) => (
                 <tr key={e.id} style={{ cursor: "pointer" }} onClick={() => setEditing(e)}>
                   <td className="pd-mono" style={{ fontWeight: 700 }}>{e.id}</td>
-                  <td><div className="prod"><span className="em" style={{ overflow: "hidden" }}>{e.photo ? <img src={e.photo} alt="" style={{ width: "100%", height: "100%", objectFit: "cover" }} /> : e.emoji}</span><span className="nm">{e.name}</span></div></td>
+                  <td><div className="prod"><span className="em" style={{ overflow: "hidden" }}><Avatar name={e.name} photo={e.photo} size={34} /></span><span className="nm">{e.name}</span></div></td>
                   <td>{e.position}{e.department ? <span className="pd-muted" style={{ fontSize: 11.5 }}> · {e.department}</span> : null}</td>
                   <td style={{ whiteSpace: "nowrap" }}>{e.phone}</td>
                   <td style={{ whiteSpace: "nowrap" }}>{fmtDay(e.joinedOn)}<div className="pd-muted" style={{ fontSize: 11 }}>{employeeTenure(e.joinedOn, now)}</div></td>

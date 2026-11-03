@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import { CA_REPORT_TYPES, inr, computeInvoice, purchaseTotals, fmtDateTime, Advisor, AdvisorType } from "../data";
-import { IconCheck, IconSend, IconPlus, IconEdit, IconTrash, IconX, IconCalc, IconReceipt } from "../components/Icon";
+import { IconCheck, IconSend, IconPlus, IconEdit, IconTrash, IconX, IconCalc, IconReceipt } from "../components/Icon"
+import { CaReportIcon } from "../components/entityIcon";;
 
 const PERIODS = ["June 2026", "May 2026", "April 2026", "Q1 FY 2026-27", "FY 2025-26"];
 const TYPE_PILL: Record<AdvisorType, string> = { CA: "pill-blue", Accountant: "pill-green" };
@@ -42,7 +43,7 @@ export default function CAReportScreen() {
             <div className="pd-pl-head">Include reports</div>
             {CA_REPORT_TYPES.map((r) => (
               <label key={r.key} className="pd-flex" style={{ justifyContent: "space-between", padding: "9px 0", borderBottom: "1px solid var(--line)", cursor: "pointer" }}>
-                <span style={{ fontSize: 13.5 }}>{r.icon} {r.label}</span>
+                <span className="pd-hstack" style={{ gap: 8, fontSize: 13.5 }}><CaReportIcon k={r.icon} size={15} /> {r.label}</span>
                 <button type="button" className={`pd-switch${picked.includes(r.key) ? " on" : ""}`} onClick={() => toggle(r.key)} />
               </label>
             ))}

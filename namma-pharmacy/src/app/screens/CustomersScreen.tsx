@@ -5,7 +5,7 @@ import {
   inr, computeInvoice, fmtDateTime, timeAgo, Sale, PayMode, PAY_LABEL,
   customerCredit, customerLedger, totalCreditOutstanding, SETTLED_MODES, waLink, smsLink, CreditPayment,
 } from "../data";
-import { IconSearch, IconX, IconUser, IconPrint, IconWhatsApp, IconMessage, IconCheck, IconCart, IconRefresh, IconReceipt, IconDownload, IconGlobe, IconStore, IconUsers } from "../components/Icon";
+import { IconSearch, IconX, IconUser, IconPrint, IconWhatsApp, IconMessage, IconCheck, IconCart, IconRefresh, IconReceipt, IconDownload, IconGlobe, IconStore, IconUsers , IconRx } from "../components/Icon";
 import { aggregateCustomers, exportCustomersCsv, exportCustomersPdf } from "../lib/customerExport";
 
 type Cust = {
@@ -48,9 +48,9 @@ export default function CustomersScreen() {
     <div className="pd-canvas-wide">
       <div className="pd-stats" >
         <div className="pd-stat"><div className="ic ic-green"><IconUser size={18} /></div><div className="lbl">Customers</div><div className="val">{named}</div><div className="split">+ walk-ins</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconCart size={18} /></div><div className="lbl">Lifetime sales</div><div className="val">{inr(totalSpent)}</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconRefresh size={18} /></div><div className="lbl">Repeat customers</div><div className="val">{customers.filter((c) => c.orders.length > 1 && c.key !== "walkin").length}</div></div>
-        <div className="pd-stat"><div className="ic ic-rose">℞</div><div className="lbl">On chronic Rx</div><div className="val">{customers.filter((c) => c.rx && c.key !== "walkin").length}</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconCart size={18} /></div><div className="lbl">Lifetime sales</div><div className="val">{inr(totalSpent)}</div><div className="split">across all customers</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconRefresh size={18} /></div><div className="lbl">Repeat customers</div><div className="val">{customers.filter((c) => c.orders.length > 1 && c.key !== "walkin").length}</div><div className="split">ordered more than once</div></div>
+        <div className="pd-stat"><div className="ic ic-rose"><IconRx size={18} /></div><div className="lbl">On chronic Rx</div><div className="val">{customers.filter((c) => c.rx && c.key !== "walkin").length}</div><div className="split">long-term therapy</div></div>
         <div className="pd-stat"><div className="ic ic-gold"><IconReceipt size={18} /></div><div className="lbl">Credit outstanding</div><div className="val">{inr(creditDue)}</div><div className="split">khata / udhaar</div></div>
       </div>
 
@@ -76,7 +76,7 @@ export default function CustomersScreen() {
                   <td><div className="prod"><span className="em"><IconUser size={15} /></span><span className="nm">{c.name}{c.rx && <span className="pd-tag rx" style={{ marginLeft: 6 }}>Rx</span>}{c.key !== "walkin" && customerCredit(c.key, sales, creditPayments).outstanding > 0 && <span className="pd-pill pill-rose" style={{ marginLeft: 6 }}>Due {inr(customerCredit(c.key, sales, creditPayments).outstanding)}</span>}</span></div></td>
                   <td className="pd-mono">{c.phone}</td>
                   <td className="num" style={{ fontWeight: 700 }}>{c.orders.length}</td>
-                  <td><span className="pd-muted" style={{ fontSize: 12 }}>{c.online}<IconGlobe size={13} /> · {c.offline}<IconStore size={13} /></span></td>
+                  <td><span className="pd-split2" title={`${c.online} online · ${c.offline} counter`}><span><IconGlobe size={13} />{c.online}</span><span><IconStore size={13} />{c.offline}</span></span></td>
                   <td className="num">{c.units}</td>
                   <td>{timeAgo(c.last, now)}</td>
                   <td className="num"><span className="pd-pill pill-gold">{Math.floor(c.spent / 100)} pts</span></td>

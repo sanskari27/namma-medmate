@@ -98,3 +98,17 @@ export const IconHeart = (p: P) => (<S {...p}><path d="M12 20s-7-4.6-7-10a4 4 0 
 export const IconDot = ({ size = 10 }: P) => (<svg width={size} height={size} viewBox="0 0 10 10" aria-hidden><circle cx="5" cy="5" r="5" fill="currentColor" /></svg>);
 export const IconDonut = (p: P) => (<S {...p}><circle cx="12" cy="12" r="8.5" /><circle cx="12" cy="12" r="3.5" /><path d="M12 3.5V8.5" /></S>);
 export const IconBars = (p: P) => (<S {...p}><rect x="4" y="10" width="4" height="10" /><rect x="10" y="5" width="4" height="15" /><rect x="16" y="13" width="4" height="7" /></S>);
+
+// ── category / domain set (replaces the emoji catalogue) ─────────────────────
+export const IconThermometer = (p: P) => (<S {...p}><path d="M14 14.8V5a2 2 0 0 0-4 0v9.8a4 4 0 1 0 4 0Z" /><path d="M12 9v7" /></S>);
+export const IconWind = (p: P) => (<S {...p}><path d="M9.5 4.5A2 2 0 1 1 11 8H2" /><path d="M12.5 19.5A2 2 0 1 0 14 16H2" /><path d="M17.5 7.5A2.5 2.5 0 1 1 19.5 12H2" /></S>);
+export const IconDroplet = (p: P) => (<S {...p}><path d="M12 2.7 6.7 8a7.5 7.5 0 1 0 10.6 0Z" /></S>);
+export const IconBowl = (p: P) => (<S {...p}><path d="M3 11h18a9 9 0 0 1-18 0Z" /><path d="M8.5 7.5c0-1.4.9-1.9.9-3" /><path d="M12 7.5c0-1.4.9-1.9.9-3" /><path d="M15.5 7.5c0-1.4.9-1.9.9-3" /></S>);
+export const IconBottle = (p: P) => (<S {...p}><path d="M10 2h4" /><path d="M10 2v4l-1.5 2.2A5 5 0 0 0 8 11v9a2 2 0 0 0 2 2h4a2 2 0 0 0 2-2v-6.8a5 5 0 0 0-.5-2.2L14 6V2" /><path d="M8 13h8" /></S>);
+export const IconBaby = (p: P) => (<S {...p}><circle cx="12" cy="12" r="9" /><path d="M9.5 11h.01" /><path d="M14.5 11h.01" /><path d="M10 15.5c.5.6 1.2.9 2 .9s1.5-.3 2-.9" /></S>);
+export const IconToothbrush = (p: P) => (<S {...p}><path d="m9.5 14.5 4-4" /><path d="M5.5 18a3 3 0 0 1 3-3l2.5 2.5" /><path d="m13.5 10.5 3-3a3.5 3.5 0 0 1 4.5 4.6l-3.2 3.2" /></S>);
+export const IconLeaf = (p: P) => (<S {...p}><path d="M11 20A7 7 0 0 1 9.8 6.1C15.5 5 17 4.5 19 2c1 2 2 4.2 2 8 0 5.5-4.8 10-10 10Z" /><path d="M2 21c0-3 1.9-5.4 5.1-6" /></S>);
+export const IconBandage = (p: P) => (<S {...p}><path d="m14.5 3.5 6 6" /><path d="M9.5 4.5 4.5 9.5a5 5 0 0 0 0 7l3 3a5 5 0 0 0 7 0l5-5Z" /><path d="M12 7.5 16.5 12" /><path d="m14.5 10-4.5 4.5" /></S>);
+export const IconWatch = (p: P) => (<S {...p}><circle cx="12" cy="12" r="5.5" /><path d="M12 10v2.2l1.5 1" /><path d="m16.4 5.6.5-3.6H7.1l.5 3.6" /><path d="m7.6 18.4-.5 3.6h9.8l-.5-3.6" /></S>);
+export const IconSun = (p: P) => (<S {...p}><circle cx="12" cy="12" r="4" /><path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" /></S>);
+export const IconClipboard = (p: P) => (<S {...p}><rect x="8" y="2" width="8" height="4" rx="1" /><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" /><path d="M9 12h6M9 16h4" /></S>);

@@ -5,7 +5,8 @@ import {
   inr, fmtDateTime, computeInvoice, Sale, PayMode, PAY_LABEL,
   SaleSource, SALE_SOURCES, SALE_SOURCE_LABEL, saleSourceOf,
 } from "../data";
-import { IconSearch, IconReports, IconPrint } from "../components/Icon";
+import { IconSearch, IconReports, IconPrint } from "../components/Icon"
+import { SaleSourceIcon } from "../components/entityIcon";;
 import { useDateRange } from "../components/DateRangeField";
 import { buildReportPdf } from "../lib/pdf";
 
@@ -69,7 +70,7 @@ export default function SalesRegisterScreen() {
         {bySource.map((s) => (
           <button key={s.key} className={`pd-card pd-card-pad pd-srccard${src === s.key ? " on" : ""}`} onClick={() => setSrc(src === s.key ? "all" : s.key)} style={{ textAlign: "left", cursor: "pointer" }}>
             <div className="pd-flex" style={{ justifyContent: "space-between" }}>
-              <span style={{ fontSize: 20 }}>{s.emoji}</span>
+              <SaleSourceIcon k={s.key} size={16} />
               <span className="pd-muted" style={{ fontSize: 12, fontWeight: 700 }}>{s.count}</span>
             </div>
             <div style={{ fontFamily: "Manrope", fontWeight: 800, fontSize: 18, marginTop: 6 }}>{inr(s.amount)}</div>

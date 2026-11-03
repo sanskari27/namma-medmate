@@ -77,7 +77,7 @@ export default function AccountScreen() {
   };
 
   return (
-    <div className="pd-canvas-wide" style={{ maxWidth: 1080 }}>
+    <div className="pd-canvas-wide">
       {/* business header */}
       <div className="pd-card pd-card-pad" style={{ marginBottom: 16, display: "flex", gap: 16, alignItems: "center", flexWrap: "wrap" }}>
         <span className="pd-acct-av">{profile.logo ? <img src={profile.logo} alt="" /> : profile.name[0]}</span>

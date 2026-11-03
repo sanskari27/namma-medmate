@@ -9,7 +9,8 @@ import {
 } from "../data";
 import { INSURERS } from "../lib/hospital";
 import { ScheduleTag, Thumb } from "../components/bits";
-import { IconSearch, IconPrint, IconX, IconAlert, IconShare, IconCamera, IconPin, IconHash, IconReceipt, IconHospital, IconCheck, IconCash, IconPhone, IconCard, IconTruck, IconShield, IconUser, IconArrowRight } from "../components/Icon";
+import { IconSearch, IconPrint, IconX, IconAlert, IconShare, IconCamera, IconPin, IconHash, IconReceipt, IconHospital, IconCheck, IconCash, IconPhone, IconCard, IconTruck, IconShield, IconUser, IconArrowRight } from "../components/Icon"
+import { CategoryIcon, SaleSourceIcon } from "../components/entityIcon";;
 import Invoice from "../components/Invoice";
 import ShareSheet from "../components/ShareSheet";
 
@@ -103,7 +104,7 @@ export default function PosScreen() {
             <div className="pd-pos-cat">
               <button className={`pd-chip${cat === "all" ? " on" : ""}`} onClick={() => setCat("all")}>All</button>
               {CATEGORIES.map((c) => (
-                <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}>{c.emoji} {c.label}</button>
+                <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}><CategoryIcon k={c.key} size={15} /> {c.label}</button>
               ))}
             </div>
             <div className="pd-pos-grid">
@@ -123,11 +124,14 @@ export default function PosScreen() {
                     <div className={`st ${out ? "out" : isLowStock(p) ? "low" : "ok"}`}>
                       {out ? "Out of stock" : isLowStock(p) ? `Low · ${stockLabel(p)}` : stockLabel(p)}
                     </div>
-                    {loose && !out && (
-                      <span className={`pd-loose-btn${ln > 0 ? " on" : ""}`} role="button" title={`Sell loose ${unitNoun(p)}s @ ${inr2(billUnit(p, { loose: true }).price)} each`} onClick={(e) => { e.stopPropagation(); posAdd(p.id, true); }}>
-                        <IconHash size={13} /> Loose · {inr2(billUnit(p, { loose: true }).price)}/{unitNoun(p)}{ln > 0 ? ` · ${ln}` : ""}
-                      </span>
-                    )}
+                    {/* the slot is always reserved, so every card in the grid is the same height */}
+                    <span className="pd-loose-slot">
+                      {loose && !out && (
+                        <span className={`pd-loose-btn${ln > 0 ? " on" : ""}`} role="button" title={`Sell loose ${unitNoun(p)}s @ ${inr2(billUnit(p, { loose: true }).price)} each`} onClick={(e) => { e.stopPropagation(); posAdd(p.id, true); }}>
+                          <IconHash size={13} /> Loose · {inr2(billUnit(p, { loose: true }).price)}/{unitNoun(p)}{ln > 0 ? ` · ${ln}` : ""}
+                        </span>
+                      )}
+                    </span>
                   </button>
                 );
               })}
@@ -194,7 +198,7 @@ export default function PosScreen() {
                   <div className="pd-src-chips">
                     {SALE_SOURCES.filter((s) => s.key === "opd" || s.key === "counter" || s.key === posSource).map((s) => (
                       <button key={s.key} className={`pd-src-chip${posSource === s.key ? " on" : ""}`} onClick={() => setPosSource(s.key)}>
-                        <span>{s.emoji}</span>{s.short}
+                        <span className="pd-src-ic"><SaleSourceIcon k={s.key} size={15} /></span>{s.short}
                       </button>
                     ))}
                   </div>

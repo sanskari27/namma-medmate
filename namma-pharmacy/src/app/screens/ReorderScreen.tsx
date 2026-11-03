@@ -44,10 +44,10 @@ export default function ReorderScreen() {
   return (
     <div className="pd-canvas-wide">
       <div className="pd-stats" >
-        <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Items below reorder level</div><div className="val">{low.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconTruck size={18} /></div><div className="lbl">Distributors to order from</div><div className="val">{groups.length}</div></div>
+        <div className="pd-stat"><div className="ic ic-rose"><IconTrendDown size={18} /></div><div className="lbl">Items below reorder level</div><div className="val">{low.length}</div><div className="split">need ordering</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconTruck size={18} /></div><div className="lbl">Distributors to order from</div><div className="val">{groups.length}</div><div className="split">best price each</div></div>
         <div className="pd-stat"><div className="ic ic-green"><IconCash size={18} /></div><div className="lbl">Est. savings (best price)</div><div className="val">{inr2(estSavings)}</div><div className="split">vs priciest source · this order</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconSend size={18} /></div><div className="lbl">Open purchase orders</div><div className="val">{purchaseOrders.filter((p) => p.status === "sent").length}</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconSend size={18} /></div><div className="lbl">Open purchase orders</div><div className="val">{purchaseOrders.filter((p) => p.status === "sent").length}</div><div className="split">sent, awaiting</div></div>
       </div>
 
       {low.length === 0 ? (
@@ -107,7 +107,7 @@ export default function ReorderScreen() {
                             </div>
                           </td>
                           <td>
-                            <select className="pd-select" style={{ padding: "5px 8px", maxWidth: 220 }} value={suggestedSupplierId(p, suppliers, supplyList)} onChange={(e) => setProductSupplier(p.id, e.target.value)}>
+                            <select className="pd-select pd-compact" style={{ maxWidth: 220 }} value={suggestedSupplierId(p, suppliers, supplyList)} onChange={(e) => setProductSupplier(p.id, e.target.value)}>
                               {suppliers.map((s) => {
                                 const en = entryFor(p.id, s.id);
                                 return <option key={s.id} value={s.id}>{s.name}{en ? ` · ${inr2(effectiveSupplyPrice(en))}` : ""}</option>;

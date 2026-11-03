@@ -2,7 +2,8 @@
 import { useState } from "react";
 import { usePharma } from "../pharmaState";
 import { CATEGORIES, inr, inr2, billUnit, totalUnits, looseSellable, unitNoun, PayMode, PAY_LABEL, InvProduct } from "../data";
-import { IconKiosk, IconX, IconCheck, IconHash, IconCart } from "../components/Icon";
+import { IconKiosk, IconX, IconCheck, IconHash, IconCart } from "../components/Icon"
+import { CategoryIcon } from "../components/entityIcon";;
 import { Thumb } from "../components/bits";
 
 const ACCENTS: Record<string, string> = { green: "linear-gradient(135deg,#1B3D29,#3D8B60)", dark: "linear-gradient(135deg,#0c2516,#11331f)", gold: "linear-gradient(135deg,#8a5a12,#D9A648)" };
@@ -114,7 +115,7 @@ function KioskPreview({ onClose }: { onClose: () => void }) {
             <div style={{ overflowY: "auto", padding: 18 }}>
               <div className="pd-pos-cat" style={{ marginBottom: 14 }}>
                 <button className={`pd-chip${cat === "all" ? " on" : ""}`} onClick={() => setCat("all")}>All</button>
-                {CATEGORIES.map((c) => <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}>{c.emoji} {c.label}</button>)}
+                {CATEGORIES.map((c) => <button key={c.key} className={`pd-chip${cat === c.key ? " on" : ""}`} onClick={() => setCat(c.key)}><CategoryIcon k={c.key} size={15} /> {c.label}</button>)}
               </div>
               <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fill,minmax(150px,1fr))", gap: 12 }}>
                 {products.map((p) => {

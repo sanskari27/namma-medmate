@@ -14,13 +14,13 @@ export const TIERS: { tier: Tier; min: number; color: string }[] = [
 export const tierOf = (points: number): Tier => TIERS.find((t) => points >= t.min)!.tier;
 
 export type Segment = "chronic" | "high-value" | "lapsed" | "new" | "credit" | "regular";
-export const SEGMENTS: { key: Segment; label: string; emoji: string }[] = [
-  { key: "chronic", label: "Chronic care", emoji: "🫀" },
-  { key: "high-value", label: "High value", emoji: "💎" },
-  { key: "lapsed", label: "Lapsed / at-risk", emoji: "⚠️" },
-  { key: "new", label: "New", emoji: "✨" },
-  { key: "credit", label: "On credit", emoji: "📒" },
-  { key: "regular", label: "Regular", emoji: "🧑" },
+export const SEGMENTS: { key: Segment; label: string }[] = [
+  { key: "chronic", label: "Chronic care" },
+  { key: "high-value", label: "High value" },
+  { key: "lapsed", label: "Lapsed / at-risk" },
+  { key: "new", label: "New" },
+  { key: "credit", label: "On credit" },
+  { key: "regular", label: "Regular" },
 ];
 export const segLabel = (s: Segment) => SEGMENTS.find((x) => x.key === s)?.label ?? s;
 

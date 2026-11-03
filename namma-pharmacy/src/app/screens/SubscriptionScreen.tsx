@@ -21,7 +21,7 @@ export default function SubscriptionScreen() {
   const lapsed = subscriptionLapsed(subscription);
   const statusLabel = lapsed ? "expired" : subscription.status;
   return (
-    <div className="pd-canvas-wide" style={{ maxWidth: 1120 }}>
+    <div className="pd-canvas-wide">
       {/* status banner */}
       <div className="pd-card pd-card-pad" style={{ marginBottom: 18, display: "flex", alignItems: "center", gap: 16, background: "linear-gradient(100deg,var(--wash),#fff)" }}>
         <span style={{ width: 50, height: 50, borderRadius: 14, background: isFree ? "linear-gradient(135deg,var(--green),var(--mid))" : "linear-gradient(135deg,var(--gold),var(--gold-d))", color: "#fff", display: "grid", placeItems: "center" }}>{isFree ? <IconCheck size={26} /> : <IconCrown size={26} />}</span>
@@ -76,12 +76,12 @@ export default function SubscriptionScreen() {
                 : cycle === "annual"
                   ? <div style={{ fontSize: 11.5, marginBottom: 12 }}><span className="pd-pill pill-green">{Math.round(ANNUAL_DISCOUNT[p.key] * 100)}% off</span> <span className="pd-muted">≈ {inr(annualPerMonth(p))}/mo · save {inr(annualSavings(p))}</span></div>
                   : <div style={{ fontSize: 11.5, marginBottom: 12 }} className="pd-muted">or {inr(planPrice(p, "annual"))}/yr (save {Math.round(ANNUAL_DISCOUNT[p.key] * 100)}%)</div>}
-              <div style={{ marginBottom: 14 }}>
+              <div className="pd-plan-feats">
                 {p.features.map((f) => <div key={f} className="pd-flex pd-gap6" style={{ fontSize: 12.5, padding: "3px 0", alignItems: "flex-start" }}><span style={{ color: "var(--green)", marginTop: 1 }}><IconCheck size={13} /></span><span>{f}</span></div>)}
               </div>
               {isCurrent && free
-                ? <button className="pd-btn pd-btn-ghost pd-btn-block" disabled>Current plan</button>
-                : <button className="pd-btn pd-btn-ghost pd-btn-block" onClick={() => requestPlan(p.key, free ? "monthly" : cycle, isCurrent ? "renewal" : "plan")}>{isCurrent ? "Request renewal" : `Request ${p.name}`}</button>}
+                ? <button className="pd-btn pd-btn-ghost pd-btn-block pd-plan-cta" disabled>Current plan</button>
+                : <button className="pd-btn pd-btn-ghost pd-btn-block pd-plan-cta" onClick={() => requestPlan(p.key, free ? "monthly" : cycle, isCurrent ? "renewal" : "plan")}>{isCurrent ? "Request renewal" : `Request ${p.name}`}</button>}
             </div>
           );
         })}

@@ -1,10 +1,11 @@
 "use client";
 import { OrderStatus, STATUS_LABEL, Channel, Schedule, SCHEDULE_META, InvProduct, stockOf, isLowStock, looseUnitsOf, stockLabel } from "../data";
 import { IconGlobe, IconStore } from "./Icon";
+import { monogramOf } from "./entityIcon";
 
-/** Product thumbnail: shows the uploaded photo, else the emoji. Place inside an `.em` box. */
+/** Product thumbnail: shows the uploaded photo, else a deterministic monogram. Place inside an `.em` box. */
 export function Thumb({ p }: { p: InvProduct }) {
-  return p.image ? <img className="pd-thumb" src={p.image} alt={p.name} /> : <>{p.emoji}</>;
+  return p.image ? <img className="pd-thumb" src={p.image} alt={p.name} /> : <>{monogramOf(p.name)}</>;
 }
 
 export function StatusPill({ status }: { status: OrderStatus }) {

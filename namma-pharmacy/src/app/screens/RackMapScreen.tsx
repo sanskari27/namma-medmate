@@ -29,10 +29,10 @@ export default function RackMapScreen() {
   return (
     <div className="pd-canvas-wide">
       <div className="pd-stats" >
-        <div className="pd-stat"><div className="ic ic-green"><IconInventory size={18} /></div><div className="lbl">Racks created</div><div className="val">{groups.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-blue"><IconMap size={18} /></div><div className="lbl">Racks / zones</div><div className="val">{zones.size}</div></div>
-        <div className="pd-stat"><div className="ic ic-gold"><IconPin size={18} /></div><div className="lbl">Medicines mapped</div><div className="val">{inventory.length - unassigned.length}</div></div>
-        <div className="pd-stat"><div className="ic ic-rose"><IconHelp size={18} /></div><div className="lbl">No location yet</div><div className="val">{unassigned.length}</div></div>
+        <div className="pd-stat"><div className="ic ic-green"><IconInventory size={18} /></div><div className="lbl">Racks created</div><div className="val">{groups.length}</div><div className="split">cupboards &amp; shelves</div></div>
+        <div className="pd-stat"><div className="ic ic-blue"><IconMap size={18} /></div><div className="lbl">Racks / zones</div><div className="val">{zones.size}</div><div className="split">in use</div></div>
+        <div className="pd-stat"><div className="ic ic-gold"><IconPin size={18} /></div><div className="lbl">Medicines mapped</div><div className="val">{inventory.length - unassigned.length}</div><div className="split">with a location</div></div>
+        <div className="pd-stat"><div className="ic ic-rose"><IconHelp size={18} /></div><div className="lbl">No location yet</div><div className="val">{unassigned.length}</div><div className="split">need allocating</div></div>
       </div>
 
       <div className="pd-toolbar">
@@ -95,7 +95,7 @@ function RackMap({ groups, q, unassigned, onGoAssign, createRack, onOpen, onMed 
         <b style={{ fontSize: 13 }}><IconFolder size={15} /> Create a rack</b>
         <input className="pd-input pd-mono" data-field="rack" style={{ width: 130 }} value={nr} onChange={(e) => setNr(e.target.value.toUpperCase())} onKeyDown={(e) => { if (e.key === "Enter") void submitNew(); }} placeholder="e.g. A3-12" />
         <button className="pd-btn pd-btn-primary pd-btn-sm" disabled={!nr.trim()} onClick={submitNew}><IconPlus size={14} /> Add rack</button>
-        <span className="pd-muted" style={{ fontSize: 11.5 }}>Make the on-screen code identical to the printed shelf label. Click any rack below to add / arrange medicines inside it.</span>
+        <span className="pd-muted" style={{ fontSize: 11.5, flex: "1 1 100%", lineHeight: 1.5 }}>Make the on-screen code identical to the printed shelf label. Click any rack below to add / arrange medicines inside it.</span>
       </div>
 
       {unassigned.length > 0 && !t && (
@@ -225,10 +225,10 @@ function MedicineDetailModal({ p, now, onClose }: { p: InvProduct; now: number; 
         <div className="pd-modal-body">
           {/* value summary */}
           <div className="pd-stats" style={{ marginBottom: 16 }}>
-            <div className="pd-stat"><div className="ic ic-green"><IconBox size={18} /></div><div className="lbl">In stock</div><div className="val" style={{ fontSize: 18 }}>{stockLabel(p)}</div></div>
-            <div className="pd-stat"><div className="ic ic-gold"><IconUnlock size={18} /></div><div className="lbl">Loose {unitNoun(p)}s</div><div className="val" style={{ fontSize: 18 }}>{looseUnitsOf(p)}</div></div>
-            <div className="pd-stat"><div className="ic ic-blue"><IconReceipt size={18} /></div><div className="lbl">Purchase value (cost)</div><div className="val" style={{ fontSize: 18 }}>{inr(buyValue)}</div></div>
-            <div className="pd-stat"><div className="ic ic-rose"><IconTag size={18} /></div><div className="lbl">MRP value</div><div className="val" style={{ fontSize: 18 }}>{inr(mrpValue)}</div></div>
+            <div className="pd-stat"><div className="ic ic-green"><IconBox size={18} /></div><div className="lbl">In stock</div><div className="val" style={{ fontSize: 18 }}>{stockLabel(p)}</div><div className="split">total units</div></div>
+            <div className="pd-stat"><div className="ic ic-gold"><IconUnlock size={18} /></div><div className="lbl">Loose {unitNoun(p)}s</div><div className="val" style={{ fontSize: 18 }}>{looseUnitsOf(p)}</div><div className="split">opened strips</div></div>
+            <div className="pd-stat"><div className="ic ic-blue"><IconReceipt size={18} /></div><div className="lbl">Purchase value (cost)</div><div className="val" style={{ fontSize: 18 }}>{inr(buyValue)}</div><div className="split">what you paid</div></div>
+            <div className="pd-stat"><div className="ic ic-rose"><IconTag size={18} /></div><div className="lbl">MRP value</div><div className="val" style={{ fontSize: 18 }}>{inr(mrpValue)}</div><div className="split">retail value</div></div>
           </div>
 
           {/* details grid */}

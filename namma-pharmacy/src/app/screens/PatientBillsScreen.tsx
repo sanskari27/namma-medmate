@@ -3,7 +3,8 @@ import { useState, useMemo } from "react";
 import { usePharma } from "../pharmaState";
 import { inr, fmtDateTime, computeInvoice, Sale, PayMode, PAY_LABEL, SALE_SOURCES, saleSourceOf } from "../data";
 import { buildPatientLedger, PatientGroup } from "../lib/hospital";
-import { IconSearch, IconX, IconRupee, IconCheck } from "../components/Icon";
+import { IconSearch, IconX, IconRupee, IconCheck } from "../components/Icon"
+import { SaleSourceIcon } from "../components/entityIcon";;
 
 const SETTLE_MODES: PayMode[] = ["cash", "upi", "card", "insurance"];
 const billTotal = (s: Sale) => computeInvoice(s.items, s.discount).payable;
@@ -50,7 +51,7 @@ export default function PatientBillsScreen() {
               <div className="pd-flex" style={{ justifyContent: "space-between", alignItems: "flex-start" }}>
                 <div>
                   <h3 style={{ fontSize: 16 }}>{g.name}</h3>
-                  <div className="pd-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{g.patientId || "No Patient ID"} · {so.emoji} {g.ward}</div>
+                  <div className="pd-muted" style={{ fontSize: 12.5, marginTop: 2 }}>{g.patientId || "No Patient ID"} · <SaleSourceIcon k={so.key} size={13} /> {g.ward}</div>
                 </div>
                 <span className={`pd-pill ${g.outstanding > 0 ? "pill-rose" : "pill-green"}`}>{g.outstanding > 0 ? "Active" : "Settled"}</span>
               </div>
@@ -81,7 +82,7 @@ function SettleModal({ g, onClose, settleBills, now }: { g: PatientGroup; onClos
         <div className="pd-modal-head">
           <div>
             <h3>{g.name}</h3>
-            <small className="pd-muted">{g.patientId || "No Patient ID"} · {so.emoji} {g.ward} · last bill {fmtDateTime(g.lastAt)}</small>
+            <small className="pd-muted">{g.patientId || "No Patient ID"} · <SaleSourceIcon k={so.key} size={13} /> {g.ward} · last bill {fmtDateTime(g.lastAt)}</small>
           </div>
           <button className="pd-iconbtn" onClick={onClose}><IconX size={18} /></button>
         </div>
