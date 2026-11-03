@@ -98,6 +98,7 @@ export function emptyState(input: { name?: string; phone: string; businessType: 
     pan: "",
     dlNo: "",
     fssai: "",
+    tradeNo: "",
     signature: undefined,
     extraDetails: [],
     pharmacist: "",

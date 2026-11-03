@@ -13,7 +13,7 @@ const STEPS = [
   { t: "Welcome", s: "Let's set up your pharmacy" },
   { t: "Business profile", s: "Tell us about your pharmacy" },
   { t: "Location", s: "Where is your store?" },
-  { t: "Tax & licences", s: "GST, PAN & drug licences" },
+  { t: "Tax & licences", s: "GST, PAN, drug & trade licences" },
   { t: "Pharmacist", s: "Registered pharmacist on record" },
   { t: "Invoice & branding", s: "How your bills look" },
   { t: "Features", s: "Turn on what you need" },
@@ -65,7 +65,7 @@ export default function SetupWizard() {
         name: d.name, tagline: d.tagline, logo: d.logo, email: d.email.trim(),
         address: d.address, city: d.city, state: d.state, pincode: d.pincode,
         gstRegistered: true, gstin: d.gstin, eInvoicing: d.eInvoicing, pan: d.pan,
-        dlNo: d.dlNo, fssai: d.fssai, gstFile: d.gstFile, panFile: d.panFile, dlFile: d.dlFile, fssaiFile: d.fssaiFile,
+        dlNo: d.dlNo, fssai: d.fssai, tradeNo: d.tradeNo, gstFile: d.gstFile, panFile: d.panFile, dlFile: d.dlFile, fssaiFile: d.fssaiFile, tradeFile: d.tradeFile,
         enableTDS: d.enableTDS, enableTCS: d.enableTCS,
         businessTypes: d.businessTypes, industryType: d.industryType, registrationType: d.registrationType,
         signature: d.signature, pharmacist: d.pharmacist, storeOpen: d.storeOpen,
@@ -153,6 +153,7 @@ export default function SetupWizard() {
                 <LicenceField label="PAN number" value={d.pan} file={d.panFile} onValue={(pan) => set({ pan })} onFile={(panFile) => set({ panFile })} />
                 <LicenceField label="Drug Licence No. (D.L.)" value={d.dlNo} file={d.dlFile} onValue={(dlNo) => set({ dlNo })} onFile={(dlFile) => set({ dlFile })} />
                 <LicenceField label="FSSAI Licence No." value={d.fssai} file={d.fssaiFile} onValue={(fssai) => set({ fssai })} onFile={(fssaiFile) => set({ fssaiFile })} />
+                <LicenceField label="Trade Licence No." value={d.tradeNo || ""} file={d.tradeFile} onValue={(tradeNo) => set({ tradeNo })} onFile={(tradeFile) => set({ tradeFile })} />
               </div>
               <FeatRow ico={<IconRupee size={18} />} t="Enable TDS" s="Deduct TDS on applicable purchases" on={d.enableTDS} onClick={() => set({ enableTDS: !d.enableTDS })} />
               <FeatRow ico={<IconRupee size={18} />} t="Enable TCS" s="Collect TCS on applicable sales" on={d.enableTCS} onClick={() => set({ enableTCS: !d.enableTCS })} />
@@ -208,6 +209,7 @@ export default function SetupWizard() {
                 <div className="r"><span className="k">PAN</span><span className="v">{d.pan}{d.panFile ? " · attached" : ""}</span></div>
                 <div className="r"><span className="k">Drug Licence</span><span className="v">{d.dlNo}{d.dlFile ? " · attached" : ""}</span></div>
                 <div className="r"><span className="k">FSSAI</span><span className="v">{d.fssai}{d.fssaiFile ? " · attached" : ""}</span></div>
+                <div className="r"><span className="k">Trade Licence</span><span className="v">{d.tradeNo}{d.tradeFile ? " · attached" : ""}</span></div>
                 <div className="r"><span className="k">Invoice prefix</span><span className="v">{d.invoicePrefix}</span></div>
                 <div className="r"><span className="k">Pharmacist</span><span className="v">{d.pharmacist.split(",")[0] || "—"}</span></div>
                 <div className="r"><span className="k">Signature</span><span className="v">{d.signature ? "Attached" : "—"}</span></div>

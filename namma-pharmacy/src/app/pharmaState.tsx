@@ -33,7 +33,7 @@ import {
 
 const BLANK_PROFILE: PharmacyProfile = {
   name: "", tagline: "", phone: "", email: "", address: "", city: "", state: "", pincode: "",
-  gstRegistered: false, gstin: "", eInvoicing: false, pan: "", dlNo: "", fssai: "",
+  gstRegistered: false, gstin: "", eInvoicing: false, pan: "", dlNo: "", fssai: "", tradeNo: "",
   enableTDS: false, enableTCS: false, businessTypes: [], industryType: "Pharmacy & Healthcare",
   registrationType: "Proprietorship", extraDetails: [], storeOpen: false, pharmacist: "",
 };

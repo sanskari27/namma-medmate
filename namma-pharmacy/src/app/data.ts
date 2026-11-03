@@ -317,10 +317,12 @@ export type PharmacyProfile = {
   pan: string;
   dlNo: string;            // drug licence no
   fssai: string;           // FSSAI licence no
+  tradeNo: string;         // municipal trade licence no
   gstFile?: ProfileFile;
   panFile?: ProfileFile;
   dlFile?: ProfileFile;
   fssaiFile?: ProfileFile;
+  tradeFile?: ProfileFile;
   enableTDS: boolean;
   enableTCS: boolean;
   businessTypes: string[];
@@ -351,8 +353,8 @@ export const isValidGstin = (s: string) => /^[0-9]{2}[A-Z]{5}[0-9]{4}[A-Z][1-9A-
 export function setupGap(d: {
   name: string; registrationType: string; industryType: string; phone: string; email: string;
   address: string; city: string; state: string; pincode: string; gstin: string; pan: string;
-  dlNo: string; fssai: string; pharmacist: string; invoicePrefix: string; signature?: string;
-  gstFile?: ProfileFile; panFile?: ProfileFile; dlFile?: ProfileFile; fssaiFile?: ProfileFile;
+  dlNo: string; fssai: string; tradeNo: string; pharmacist: string; invoicePrefix: string; signature?: string;
+  gstFile?: ProfileFile; panFile?: ProfileFile; dlFile?: ProfileFile; fssaiFile?: ProfileFile; tradeFile?: ProfileFile;
 }): { step: number; message: string } | null {
   const file = (f?: ProfileFile) => !!f?.dataUrl;
   if (!d.name.trim()) return { step: 1, message: "Pharmacy name is required" };
@@ -369,6 +371,8 @@ export function setupGap(d: {
   if (!file(d.dlFile)) return { step: 3, message: "Attach the drug licence" };
   if (!d.fssai.trim()) return { step: 3, message: "FSSAI licence number is required" };
   if (!file(d.fssaiFile)) return { step: 3, message: "Attach the FSSAI licence" };
+  if (!(d.tradeNo || "").trim()) return { step: 3, message: "Trade licence number is required" };
+  if (!file(d.tradeFile)) return { step: 3, message: "Attach the trade licence" };
   if (!d.pharmacist.trim()) return { step: 4, message: "Registered pharmacist name is required" };
   if (!d.invoicePrefix.trim()) return { step: 5, message: "Invoice prefix is required" };
   if (!d.signature) return { step: 5, message: "Signature is required" };
@@ -400,6 +404,7 @@ export const DEFAULT_PROFILE: PharmacyProfile = {
   pan: "AAHCI9279D",
   dlNo: "KA-B-20B/20C-118822",
   fssai: "10020064002808",
+  tradeNo: "BBMP/TL/560011/1842",
   enableTDS: false,
   enableTCS: false,
   businessTypes: ["Retail Pharmacy"],

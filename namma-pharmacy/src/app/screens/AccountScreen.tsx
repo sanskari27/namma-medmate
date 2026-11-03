@@ -38,6 +38,7 @@ export default function AccountScreen() {
     { label: "PAN", ok: !!profile.pan, go: () => go("settings") },
     { label: "Drug licence", ok: !!profile.dlNo, go: () => go("settings") },
     { label: "FSSAI licence", ok: !!profile.fssai, go: () => go("settings") },
+    { label: "Trade licence", ok: !!profile.tradeNo, go: () => go("settings") },
     { label: "Business email", ok: !!profile.email, go: () => go("settings") },
     { label: "Bank account", ok: !!bankAccount, go: openBank },
   ];
@@ -51,6 +52,7 @@ export default function AccountScreen() {
     { label: "PAN", val: profile.pan || "—", ok: !!profile.pan },
     { label: "Drug Licence (D.L.)", val: profile.dlNo || "—", ok: !!profile.dlNo },
     { label: "FSSAI licence", val: profile.fssai || "—", ok: !!profile.fssai },
+    { label: "Trade licence", val: profile.tradeNo || "—", ok: !!profile.tradeNo },
     { label: "Registered pharmacist", val: profile.pharmacist.split(",")[0], ok: !!profile.pharmacist },
     { label: "e-Invoicing", val: profile.eInvoicing ? "Enabled" : "Not enabled", ok: profile.eInvoicing },
     { label: "Bank account (payouts)", val: bankAccount ? `${bankAccount.bankName} ····${bankAccount.accountNumber.slice(-4)}` : "Add to receive payouts", ok: !!bankAccount, bank: true },
@@ -68,7 +70,7 @@ export default function AccountScreen() {
 
   const exportAccount = () => {
     const data = {
-      business: { name: profile.name, address: profile.address, gstin: profile.gstin, pan: profile.pan, dlNo: profile.dlNo, fssai: profile.fssai, phone: profile.phone, email: profile.email, pharmacist: profile.pharmacist },
+      business: { name: profile.name, address: profile.address, gstin: profile.gstin, pan: profile.pan, dlNo: profile.dlNo, fssai: profile.fssai, tradeNo: profile.tradeNo, phone: profile.phone, email: profile.email, pharmacist: profile.pharmacist },
       plan: { plan: subscription.plan, cycle: subscription.cycle, status: subscription.status, since: subscription.since, renewsOn: subscription.renewsOn },
       usage: { teamMembers: users.length, activeUsers, invoices: invoices.length, lifetimeSales: Math.round(revenue), catalogueSkus: inventory.length, profileCompletePct: pct },
       bankAccount: bankAccount ? { bankName: bankAccount.bankName, ifsc: bankAccount.ifsc, verified: bankAccount.verified } : null,

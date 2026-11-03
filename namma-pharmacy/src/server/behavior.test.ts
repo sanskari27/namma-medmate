@@ -277,11 +277,12 @@ test("store setup requires profile, licences with documents, pharmacist, prefix,
   const ready = {
     name: "City", registrationType: "Proprietorship", industryType: "Pharmacy & Healthcare",
     phone: "+919000000000", email: "a@b.co", address: "12 Road", city: "Bengaluru", state: "Karnataka", pincode: "560011",
-    gstin: "29ABCDE1234F1Z2", pan: "ABCDE1234F", dlNo: "KA-1", fssai: "100", pharmacist: "Asha", invoicePrefix: "INV-",
-    signature: "data:image/png;base64,AA==", gstFile: doc, panFile: doc, dlFile: doc, fssaiFile: doc,
+    gstin: "29ABCDE1234F1Z2", pan: "ABCDE1234F", dlNo: "KA-1", fssai: "100", tradeNo: "TL-1", pharmacist: "Asha", invoicePrefix: "INV-",
+    signature: "data:image/png;base64,AA==", gstFile: doc, panFile: doc, dlFile: doc, fssaiFile: doc, tradeFile: doc,
   };
   assert.equal(setupGap({ ...ready, email: "" })?.message, "Email is required");
   assert.equal(setupGap({ ...ready, gstFile: undefined })?.message, "Attach the GST certificate");
+  assert.equal(setupGap({ ...ready, tradeFile: undefined })?.message, "Attach the trade licence");
   assert.equal(setupGap({ ...ready, pharmacist: " " })?.step, 4);
   assert.equal(setupGap({ ...ready, signature: undefined })?.message, "Signature is required");
   assert.equal(setupGap(ready), null);

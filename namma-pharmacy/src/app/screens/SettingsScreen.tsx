@@ -92,7 +92,8 @@ export default function SettingsScreen() {
           <div className="pd-form-grid" style={{ marginTop: 12 }}>
             <div className="pd-field"><label>PAN Number</label><input className="pd-input pd-mono" value={f.pan} onChange={(e) => set({ pan: e.target.value })} /></div>
             <div className="pd-field"><label>Drug Licence No. (D.L.)</label><input className="pd-input pd-mono" value={f.dlNo} onChange={(e) => set({ dlNo: e.target.value })} /></div>
-            <div className="pd-field pd-span2"><label>FSSAI Licence No.</label><input className="pd-input pd-mono" value={f.fssai} onChange={(e) => set({ fssai: e.target.value })} /></div>
+            <div className="pd-field"><label>FSSAI Licence No.</label><input className="pd-input pd-mono" value={f.fssai} onChange={(e) => set({ fssai: e.target.value })} /></div>
+            <div className="pd-field"><label>Trade Licence No.</label><input className="pd-input pd-mono" value={f.tradeNo || ""} onChange={(e) => set({ tradeNo: e.target.value.toUpperCase() })} /></div>
           </div>
 
           <ToggleRow label="Enable TDS" on={f.enableTDS} onClick={() => set({ enableTDS: !f.enableTDS })} />
