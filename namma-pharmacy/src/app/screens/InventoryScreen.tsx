@@ -214,7 +214,7 @@ function PrintBarcodeDialog({ name, code, onClose }: { name: string; code: strin
             <label htmlFor="barcode-copies">How many labels?</label>
             <input id="barcode-copies" className="pd-input" inputMode="numeric" type="number" min={1} max={200} step={1} autoFocus value={n} onChange={(e) => setN(e.target.value)} onFocus={(e) => e.currentTarget.select()} />
           </div>
-          <p className="pd-muted" style={{ fontSize: 12.5, margin: "10px 0 0" }}>Opens the system print dialog. Select the Posiflow CD410, paper 100 × 50 mm, and turn headers off.</p>
+          <p className="pd-muted" style={{ fontSize: 12.5, margin: "10px 0 0" }}>Opens the system print dialog. Select the label printer, paper 50 × 25 mm, actual size, and turn headers off.</p>
         </div>
         <div className="pd-modal-foot">
           <button type="button" className="pd-btn pd-btn-ghost" onClick={onClose}>Cancel</button>

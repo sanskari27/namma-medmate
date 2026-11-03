@@ -133,7 +133,9 @@ test("barcode print sheet repeats one label per copy and escapes the name", () =
   const html = barcodeLabelDocument("A & B <x>", "NMp1", 3);
   assert.equal(html.split('class="label"').length - 1, 3);
   assert.match(html, /A &amp; B &lt;x&gt;/);
-  assert.match(html, /size:100mm 50mm/);
+  assert.match(html, /size:50mm 25mm/);
+  assert.match(html, /viewBox="0 0 50 /);
+  assert.match(html, /width="12mm" height="22mm"/);
   assert.equal(barcodeLabelDocument("x", "NMp1", 0).split('class="label"').length - 1, 1);
   assert.equal(barcodeLabelDocument("x", "NMp1", 999).split('class="label"').length - 1, 200);
 });

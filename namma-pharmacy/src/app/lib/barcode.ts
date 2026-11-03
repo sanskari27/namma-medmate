@@ -40,37 +40,41 @@ export function code128Bits(text: string): string {
   return bits;
 }
 
-export function barcodeSvg(text: string): string {
+export function barcodeSvg(text: string, portrait = false): string {
   const bits = "0".repeat(10) + code128Bits(text) + "0".repeat(10);
   const rects: string[] = [];
   let i = 0;
   while (i < bits.length) {
     if (bits[i] === "0") { i++; continue; }
-    const x = i;
+    const start = i;
     while (i < bits.length && bits[i] === "1") i++;
-    rects.push(`<rect x="${x}" y="0" width="${i - x}" height="50"/>`);
+    rects.push(portrait
+      ? `<rect x="0" y="${start}" width="50" height="${i - start}"/>`
+      : `<rect x="${start}" y="0" width="${i - start}" height="50"/>`);
   }
-  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${bits.length} 50" width="100%" height="64" role="img" aria-label="Barcode ${text}">${rects.join("")}</svg>`;
+  const box = portrait ? `0 0 50 ${bits.length}` : `0 0 ${bits.length} 50`;
+  const size = portrait ? `width="12mm" height="22mm"` : `width="100%" height="64"`;
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${box}" ${size} role="img" aria-label="Barcode ${text}">${rects.join("")}</svg>`;
 }
 
 function esc(s: string) {
   return s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]!));
 }
 
-/** One 100×50 mm label per copy. Fits the Posiflow CD410 (108 mm print width). */
+/** One 50×25 mm label per copy. The symbol is portrait so it fits the roll height. */
 export function barcodeLabelDocument(name: string, code: string, copies: number): string {
   const n = Math.min(200, Math.max(1, Math.floor(Number(copies)) || 1));
-  const svg = barcodeSvg(code).replace('width="100%" height="64"', 'width="92mm" height="26mm"');
-  const label = `<section class="label"><p class="name">${esc(name)}</p>${svg}<p class="code">${esc(code)}</p></section>`;
+  const label = `<section class="label"><div class="meta"><p class="name">${esc(name)}</p><p class="code">${esc(code)}</p></div>${barcodeSvg(code, true)}</section>`;
   return `<!doctype html><html><head><meta charset="utf-8"><title>${esc(code)}</title><style>
-@page{size:100mm 50mm;margin:0}
+@page{size:50mm 25mm;margin:0}
 *{box-sizing:border-box}
 html,body{margin:0;padding:0;background:#fff;color:#000}
-.label{width:100mm;height:50mm;padding:2.5mm 4mm 2mm;display:flex;flex-direction:column;align-items:center;justify-content:center;break-after:page;page-break-after:always}
+.label{width:50mm;height:25mm;padding:1.5mm 1.5mm 1.5mm 2mm;display:flex;align-items:center;gap:1.5mm;overflow:hidden;break-after:page;page-break-after:always}
 .label:last-child{break-after:auto;page-break-after:auto}
-.name{margin:0 0 1mm;max-width:92mm;font:700 11pt/1.15 system-ui,sans-serif;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-.code{margin:1mm 0 0;font:600 9pt/1 ui-monospace,monospace;letter-spacing:.14em}
-svg{display:block;shape-rendering:crispEdges}
+.meta{flex:1;min-width:0}
+.name{margin:0;font:700 8pt/1.15 system-ui,sans-serif;display:-webkit-box;-webkit-line-clamp:3;-webkit-box-orient:vertical;overflow:hidden}
+.code{margin:.6mm 0 0;font:600 7pt/1 ui-monospace,monospace;letter-spacing:.06em}
+svg{display:block;flex:none;shape-rendering:crispEdges}
 svg rect{fill:#000}
 </style></head><body>${label.repeat(n)}</body></html>`;
 }
@@ -81,7 +85,7 @@ export function printBarcodeLabels(name: string, code: string, copies: number) {
   frame.setAttribute("aria-hidden", "true");
   frame.dataset.barcodePrint = "";
   // ponytail: kept until afterprint so the system dialog still has a document; the next print drops a leftover frame
-  frame.style.cssText = "position:fixed;left:-120mm;top:0;width:100mm;height:50mm;border:0";
+  frame.style.cssText = "position:fixed;left:-60mm;top:0;width:50mm;height:25mm;border:0";
   document.body.appendChild(frame);
   const win = frame.contentWindow;
   if (!win) { frame.remove(); return; }
