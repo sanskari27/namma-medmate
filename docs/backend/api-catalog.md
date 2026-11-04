@@ -8,9 +8,11 @@ Money in request and response bodies is integer paise. The POS cart is not an AP
 
 | Method | Path | Replaces | Source |
 |--------|------|----------|--------|
-| POST | `/auth/otp/send` | OTP request. Body: phone. | `Onboarding.tsx` |
-| POST | `/auth/otp/verify` | `signIn`. Body: phone, code, business type, optional name. Sets the session. | `signIn` |
-| POST | `/auth/sign-out` | `signOut` | `signOut` |
+| POST | `/auth/otp/send` | OTP request. Body: phone. Stores a hashed code and calls the SMS placeholder. Response is `{ "delivery": "sms" }` or `{ "delivery": "dev" }`. | `Onboarding.tsx` |
+| POST | `/auth/otp/verify` | `signIn`. Body: phone, code, business type, optional name. Sets the access and refresh cookies. | `signIn` |
+| POST | `/auth/token/refresh` | Rotates the refresh cookie and sets a new access cookie. Accepts the refresh cookie or `{ "refreshToken" }`. | session renewal |
+| POST | `/auth/sign-out` | `signOut`. Revokes the session and clears both cookies. | `signOut` |
+| POST | `/auth/logout` | Same as `/auth/sign-out`. | `signOut` |
 | GET | `/session` | One snapshot for dashboard hydration: user, subscription, and the pharmacy collections. Hospital lists are empty unless that plan is open. | `pharmaState.tsx` |
 | GET, PATCH | `/pharmacy/profile` | `updateProfile` | `SettingsScreen`, `SetupWizard` |
 | POST | `/pharmacy/store-open` | `toggleStoreOpen` | `updateProfile` flow |
@@ -166,7 +168,7 @@ Available only when the session business type is `hospital`.
 
 ## Master
 
-A master session uses the `namma_master` cookie. It is separate from `namma_session`. Every master route checks the phone allowlist again. No session returns 401. A pharmacy session returns 403. Master responses omit sales, stock, and customers.
+A master session uses the `namma_master` cookie. It is separate from `namma_session` (the access JWT) and `namma_refresh` (the rotating refresh token). Every master route checks the phone allowlist again. No session returns 401. A pharmacy session returns 403. Master responses omit sales, stock, and customers.
 
 | Method | Path | What it does |
 |--------|------|----------------|

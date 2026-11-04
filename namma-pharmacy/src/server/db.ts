@@ -1,6 +1,7 @@
 import { createHash, randomBytes, randomInt, scryptSync, timingSafeEqual } from "crypto";
 import { Pool, type PoolClient } from "pg";
 import { fromPaise, toPaise } from "../app/lib/paise";
+import { authConfig, hashRefresh, judgeOtp, judgeRefresh, jwtSecret, newRefreshToken, signAccess, verifyAccess, type OtpState } from "./auth";
 import { fail } from "./errors";
 import { absorbFiles } from "./files";
 import { stripDemo, touchAccess, type PharmacyState } from "./state";
@@ -22,7 +23,10 @@ CREATE TABLE IF NOT EXISTS sessions (
   user_id text NOT NULL,
   phone text NOT NULL,
   pricing_unlocked boolean NOT NULL DEFAULT false,
-  expires_at timestamptz NOT NULL
+  expires_at timestamptz NOT NULL,
+  refresh_hash text,
+  refresh_previous text,
+  refresh_expires_at timestamptz
 );
 CREATE TABLE IF NOT EXISTS idempotency (
   pharmacy_id uuid NOT NULL REFERENCES pharmacies(id) ON DELETE CASCADE,
@@ -47,8 +51,12 @@ CREATE TABLE IF NOT EXISTS staff_phones (
 );
 CREATE TABLE IF NOT EXISTS otp_challenges (
   phone text PRIMARY KEY,
-  cognito_session text,
-  expires_at timestamptz NOT NULL
+  otp_hash text,
+  expires_at timestamptz NOT NULL,
+  attempts int NOT NULL DEFAULT 0,
+  sent_at timestamptz NOT NULL DEFAULT now(),
+  send_count int NOT NULL DEFAULT 0,
+  window_start timestamptz NOT NULL DEFAULT now()
 );
 CREATE TABLE IF NOT EXISTS master_phones (
   phone text PRIMARY KEY
@@ -132,7 +140,17 @@ export async function migrate() {
         await client.query(`ALTER TABLE master_audit ALTER COLUMN before SET NOT NULL`);
         await client.query(`ALTER TABLE master_audit ALTER COLUMN after SET NOT NULL`);
         await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS impersonator text`);
+        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS refresh_hash text`);
+        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS refresh_previous text`);
+        await client.query(`ALTER TABLE sessions ADD COLUMN IF NOT EXISTS refresh_expires_at timestamptz`);
+        await client.query(`CREATE UNIQUE INDEX IF NOT EXISTS sessions_refresh_hash ON sessions (refresh_hash) WHERE refresh_hash IS NOT NULL`);
         await client.query(`ALTER TABLE staff_phones ADD COLUMN IF NOT EXISTS login_pin_hash text`);
+        await client.query(`ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS otp_hash text`);
+        await client.query(`ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS attempts int NOT NULL DEFAULT 0`);
+        await client.query(`ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS sent_at timestamptz NOT NULL DEFAULT now()`);
+        await client.query(`ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS send_count int NOT NULL DEFAULT 0`);
+        await client.query(`ALTER TABLE otp_challenges ADD COLUMN IF NOT EXISTS window_start timestamptz NOT NULL DEFAULT now()`);
+        await client.query(`ALTER TABLE otp_challenges DROP COLUMN IF EXISTS cognito_session`);
         for (const raw of (process.env.MASTER_PHONES || "").split(",")) {
           const phone = raw.trim();
           if (phone) await client.query("INSERT INTO master_phones (phone) VALUES ($1) ON CONFLICT DO NOTHING", [e164(phone)]);
@@ -242,27 +260,43 @@ async function syncPhones(client: PoolClient, pharmacyId: string, state: Pharmac
   }
 }
 
-export async function createSession(pharmacyId: string, userId: string, phone: string, impersonator?: string) {
+export type IssuedSession = { access: string; refresh: string; sid: string };
+
+export async function createSession(pharmacyId: string, userId: string, phone: string, impersonator?: string): Promise<IssuedSession> {
   await migrate();
-  const token = randomBytes(32).toString("hex");
-  const expires = new Date(Date.now() + 30 * 86400000);
-  await getPool().query(
-    "INSERT INTO sessions (token, pharmacy_id, user_id, phone, expires_at, impersonator) VALUES ($1,$2,$3,$4,$5,$6)",
-    [token, pharmacyId, userId, e164(phone), expires, impersonator || null],
+  const sid = randomBytes(32).toString("hex");
+  const refresh = newRefreshToken();
+  const cfg = authConfig();
+  const expires = new Date(Date.now() + cfg.refreshTtl * 1000);
+  const access = signAccess(
+    { sub: userId, phone: e164(phone), pid: pharmacyId, sid, typ: "access" },
+    jwtSecret(),
+    Math.floor(Date.now() / 1000),
+    cfg.accessTtl,
   );
-  return token;
+  await getPool().query(
+    "INSERT INTO sessions (token, pharmacy_id, user_id, phone, expires_at, impersonator, refresh_hash, refresh_expires_at) VALUES ($1,$2,$3,$4,$5,$6,$7,$8)",
+    [sid, pharmacyId, userId, e164(phone), expires, impersonator || null, hashRefresh(refresh), expires],
+  );
+  return { access, refresh, sid };
 }
 
 export async function readSession(token: string | undefined): Promise<SessionRow | null> {
   if (!token) return null;
   await migrate();
+  let sid = token;
+  if (token.includes(".")) {
+    const claims = verifyAccess(token, jwtSecret(), Math.floor(Date.now() / 1000));
+    if (!claims) return null;
+    sid = claims.sid;
+  }
   const { rows } = await getPool().query(
     `SELECT s.token, s.pharmacy_id, s.user_id, s.phone, s.pricing_unlocked, s.impersonator, s.expires_at, p.pricing_pin, p.business_type,
             (sp.login_pin_hash IS NOT NULL) AS has_pin
      FROM sessions s JOIN pharmacies p ON p.id = s.pharmacy_id
      LEFT JOIN staff_phones sp ON sp.pharmacy_id = s.pharmacy_id AND sp.phone = s.phone
      WHERE s.token = $1`,
-    [token],
+    [sid],
   );
   const row = rows[0];
   if (!row || new Date(row.expires_at).getTime() < Date.now()) return null;
@@ -365,18 +399,117 @@ export async function withIdempotent<T>(pharmacyId: string, key: string, hash: s
   } finally { client.release(); }
 }
 
-export async function saveChallenge(phone: string, cognitoSession: string | null) {
+function otpState(row: { otp_hash: string | null; expires_at: Date; attempts: number; sent_at: Date; send_count: number; window_start: Date } | undefined): OtpState | null {
+  if (!row) return null;
+  return {
+    hash: row.otp_hash || "",
+    expiresAt: new Date(row.expires_at).getTime(),
+    attempts: row.attempts,
+    sentAt: new Date(row.sent_at).getTime(),
+    sendCount: row.send_count,
+    windowStart: new Date(row.window_start).getTime(),
+  };
+}
+
+export async function loadChallenge(phone: string) {
+  await migrate();
+  const { rows } = await getPool().query(
+    "SELECT otp_hash, expires_at, attempts, sent_at, send_count, window_start FROM otp_challenges WHERE phone = $1",
+    [e164(phone)],
+  );
+  return otpState(rows[0]);
+}
+
+export async function saveChallenge(phone: string, state: OtpState) {
   await migrate();
   await getPool().query(
-    `INSERT INTO otp_challenges (phone, cognito_session, expires_at) VALUES ($1,$2, now() + interval '10 minutes')
-     ON CONFLICT (phone) DO UPDATE SET cognito_session = EXCLUDED.cognito_session, expires_at = EXCLUDED.expires_at`,
-    [e164(phone), cognitoSession],
+    `INSERT INTO otp_challenges (phone, otp_hash, expires_at, attempts, sent_at, send_count, window_start)
+     VALUES ($1,$2,$3,$4,$5,$6,$7)
+     ON CONFLICT (phone) DO UPDATE SET otp_hash = EXCLUDED.otp_hash, expires_at = EXCLUDED.expires_at,
+       attempts = EXCLUDED.attempts, sent_at = EXCLUDED.sent_at, send_count = EXCLUDED.send_count, window_start = EXCLUDED.window_start`,
+    [e164(phone), state.hash, new Date(state.expiresAt), state.attempts, new Date(state.sentAt), state.sendCount, new Date(state.windowStart)],
   );
 }
 
-export async function takeChallenge(phone: string) {
-  const { rows } = await getPool().query("DELETE FROM otp_challenges WHERE phone = $1 AND expires_at > now() RETURNING cognito_session", [e164(phone)]);
-  return rows[0] as { cognito_session: string | null } | undefined;
+export async function checkOtp(phone: string, code: string, maxAttempts: number) {
+  await migrate();
+  const client = await getPool().connect();
+  const key = e164(phone);
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      "SELECT otp_hash, expires_at, attempts, sent_at, send_count, window_start FROM otp_challenges WHERE phone = $1 FOR UPDATE",
+      [key],
+    );
+    const judged = judgeOtp(otpState(rows[0]), code, Date.now(), maxAttempts);
+    if (!judged.next) await client.query("DELETE FROM otp_challenges WHERE phone = $1", [key]);
+    else await client.query(
+      "UPDATE otp_challenges SET attempts = $2 WHERE phone = $1",
+      [key, judged.next.attempts],
+    );
+    await client.query("COMMIT");
+    return judged.result;
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally { client.release(); }
+}
+
+export async function rotateSession(presented: string): Promise<IssuedSession | "invalid" | "expired" | "reuse"> {
+  await migrate();
+  const presentedHash = hashRefresh(presented);
+  const client = await getPool().connect();
+  try {
+    await client.query("BEGIN");
+    const { rows } = await client.query(
+      `SELECT token, pharmacy_id, user_id, phone, refresh_hash, refresh_previous, refresh_expires_at
+       FROM sessions WHERE refresh_hash = $1 OR refresh_previous = $1 FOR UPDATE`,
+      [presentedHash],
+    );
+    const row = rows[0] as { token: string; pharmacy_id: string; user_id: string; phone: string; refresh_hash: string | null; refresh_previous: string | null; refresh_expires_at: Date | null } | undefined;
+    const verdict = judgeRefresh(row?.refresh_hash ? {
+      hash: row.refresh_hash,
+      previous: row.refresh_previous,
+      expiresAt: row.refresh_expires_at ? new Date(row.refresh_expires_at).getTime() : 0,
+    } : null, presentedHash, Date.now());
+    if (!row || verdict === "invalid") {
+      await client.query("COMMIT");
+      return "invalid";
+    }
+    if (verdict === "reuse" || verdict === "expired") {
+      await client.query("DELETE FROM sessions WHERE token = $1", [row.token]);
+      await client.query("COMMIT");
+      return verdict;
+    }
+    const refresh = newRefreshToken();
+    const cfg = authConfig();
+    const expires = new Date(Date.now() + cfg.refreshTtl * 1000);
+    const updated = await client.query(
+      `UPDATE sessions SET refresh_previous = refresh_hash, refresh_hash = $2, refresh_expires_at = $3, expires_at = $3
+       WHERE token = $1 AND refresh_hash = $4`,
+      [row.token, hashRefresh(refresh), expires, presentedHash],
+    );
+    if (!updated.rowCount) {
+      await client.query("DELETE FROM sessions WHERE token = $1", [row.token]);
+      await client.query("COMMIT");
+      return "reuse";
+    }
+    const access = signAccess(
+      { sub: row.user_id, phone: row.phone, pid: row.pharmacy_id, sid: row.token, typ: "access" },
+      jwtSecret(),
+      Math.floor(Date.now() / 1000),
+      cfg.accessTtl,
+    );
+    await client.query("COMMIT");
+    return { access, refresh, sid: row.token };
+  } catch (err) {
+    await client.query("ROLLBACK");
+    throw err;
+  } finally { client.release(); }
+}
+
+export async function revokeRefresh(presented: string) {
+  await getPool().query("DELETE FROM sessions WHERE refresh_hash = $1 OR refresh_previous = $1", [hashRefresh(presented)]);
 }
 
 export async function replaceState(pharmacyId: string, state: PharmacyState) {

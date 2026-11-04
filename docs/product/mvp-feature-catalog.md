@@ -6,7 +6,7 @@ The public URL is `/`. `Shell.tsx` switches screens from the `Route` value in `p
 
 ## Access model
 
-Sign-in is the OTP screen in `Onboarding.tsx`. Production sends the code through Cognito. Local development without Cognito accepts any six-digit code and shows `123456`. The user chooses `pharmacy` or `hospital`. That choice is `businessType`.
+Sign-in is the OTP screen in `Onboarding.tsx`. The server generates the code and calls the SMS placeholder in `namma-pharmacy/src/server/sms.ts`. Local development shows `123456`, and that code is accepted only outside production. The user chooses `pharmacy` or `hospital`. That choice is `businessType`.
 
 A nine-step setup wizard in `SetupWizard.tsx` can run before the shell. `setupComplete` remembers that it finished.
 

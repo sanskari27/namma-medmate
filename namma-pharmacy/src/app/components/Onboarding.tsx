@@ -77,7 +77,7 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
       await sendOtp();
     } catch (err) { showFault(err, "Could not continue"); }
   };
-  const otpLen = devOtp ? 6 : 8;
+  const otpLen = 6;
   const verify = async () => {
     if (pinMode && !otpSent) {
       if (pin.length !== 4) return;
@@ -156,7 +156,7 @@ export default function Onboarding({ onMaster }: { onMaster: () => void }) {
             <div className="pd-ob-step">
               <span className="pd-ob-badge">{staff ? "Master" : <>{tt.Ic({ size: 15 })} {tt.t}</>}</span>
               <h2 className="pd-ob-h">{otpSent ? "Enter the OTP" : pinMode ? "Enter your PIN" : staff ? "Staff sign in" : "Log in to continue"}</h2>
-              <p className="pd-ob-sub">{otpSent ? `We sent ${otpLen === 8 ? "an 8-digit" : "a 6-digit"} code to ${phone}.` : pinMode ? "Use the 4-digit PIN you created after signup." : staff ? "Staff sign in uses a one-time code." : "New pharmacies get a code by SMS. After that, sign in with your PIN."}</p>
+              <p className="pd-ob-sub">{otpSent ? `We sent a 6-digit code to ${phone}.` : pinMode ? "Use the 4-digit PIN you created after signup." : staff ? "Staff sign in uses a one-time code." : "New pharmacies get a code by SMS. After that, sign in with your PIN."}</p>
 
               {!otpSent && !pinMode ? (
                 <>

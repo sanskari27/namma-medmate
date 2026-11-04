@@ -27,7 +27,7 @@ PharmaProvider
    +--> S3 or the files table for uploads
 ```
 
-Sign-in proves the phone with Cognito when `COGNITO_USER_POOL_ID` and `COGNITO_CLIENT_ID` are set. Local development without those variables accepts any six-digit code and does not send SMS. Signup and PIN reset use that code. After signup the pharmacy sets a 4-digit PIN and later signs in with the phone and PIN. The browser does not store a pharmacy id, a PIN, or a Cognito token.
+Sign-in proves the phone with a one-time code generated in the pharmacy server. The code is hashed in Postgres and handed to `sendOtp` in `namma-pharmacy/src/server/sms.ts`. That function is the DLT SMS integration point and does not send a message yet. Outside production the sign-in screen accepts `123456`. Production accepts only the generated code. After signup the pharmacy sets a 4-digit PIN and later signs in with the phone and PIN. A successful sign-in sets two HTTP-only cookies: a short-lived access JWT (`namma_session`) and a rotating refresh token (`namma_refresh`). The browser does not store a pharmacy id or a PIN.
 
 Cart, navigation, toast, and the last invoice stay in memory. Business records are loaded from the API after sign-in and again when the tab regains focus.
 

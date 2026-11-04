@@ -14,7 +14,7 @@ export class ApiError extends Error {
 
 const attempts = new Map<string, Promise<unknown>>();
 
-export async function api<T>(path: string, init: { method?: string; body?: unknown; idempotency?: boolean; pricing?: boolean } = {}): Promise<T> {
+export async function api<T>(path: string, init: { method?: string; body?: unknown; idempotency?: boolean; pricing?: boolean; retried?: boolean } = {}): Promise<T> {
   const method = init.method || "GET";
   const slot = init.idempotency ? method + " " + path : "";
   const pending = slot ? attempts.get(slot) : undefined;
@@ -34,6 +34,10 @@ export async function api<T>(path: string, init: { method?: string; body?: unkno
     let json: { error?: { code?: string; message?: string; field?: string } } | null = null;
     if (text) { try { json = JSON.parse(text); } catch { json = null; } }
     if (!res.ok) {
+      if (res.status === 401 && !init.retried && !path.startsWith("/auth/")) {
+        const refreshed = await fetch("/api/v1/auth/token/refresh", { method: "POST", credentials: "include" });
+        if (refreshed.ok) return api<T>(path, { ...init, retried: true });
+      }
       const error = json?.error;
       throw new ApiError(res.status, error?.code || "VALIDATION", error?.message || "Request failed", error?.field);
     }

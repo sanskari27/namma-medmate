@@ -6,6 +6,8 @@ import { fieldFrom } from "../app/lib/formFault";
 import { parseMedicineCsv, parsePoCsv, parsePurchaseCsv } from "../app/lib/purchaseCsv";
 import { fromPaise, toPaise } from "../app/lib/paise";
 import { createSession, e164, findLogin, getPool, insertPharmacy, loadState, migrate, withState, type SessionRow } from "./db";
+import { delivery } from "./sms";
+import "./auth.test";
 import { addDepartment, addReferral, cancelOrder, checkoutPos, importProducts, importPurchaseOrders, issueWardSupply, patchProfile, receivePurchase, removeDepartment, removeReferral, requireHospital, requirePlan, returnWardSupply, saveBankAccount, setBatchQty, setDirectOffer, updateDepartment, updateReferral } from "./mutate";
 import { handle, keepOwner, sessionView } from "./router";
 import { demoState, emptyState, stripDemo, type PharmacyState } from "./state";
@@ -347,26 +349,17 @@ test("a short OTP returns JSON 400", async () => {
   assert.equal(body.error.field, "otp");
 });
 
-test("cognito sign-in rejects a 6-digit code", async () => {
-  const pool = process.env.COGNITO_USER_POOL_ID;
-  const client = process.env.COGNITO_CLIENT_ID;
-  process.env.COGNITO_USER_POOL_ID = "pool";
-  process.env.COGNITO_CLIENT_ID = "client";
-  try {
-    const res = await handle(new Request("http://localhost/api/v1/auth/otp/verify", {
-      method: "POST",
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ phone: "9000000001", code: "123456" }),
-    }));
-    assert.equal(res.status, 400);
-    const body = await res.json() as { error: { message: string } };
-    assert.equal(body.error.message, "Enter the 8-digit code");
-  } finally {
-    if (pool === undefined) delete process.env.COGNITO_USER_POOL_ID;
-    else process.env.COGNITO_USER_POOL_ID = pool;
-    if (client === undefined) delete process.env.COGNITO_CLIENT_ID;
-    else process.env.COGNITO_CLIENT_ID = client;
-  }
+test("a wrong code is rejected and the dev code still signs in", async () => {
+  const res = await handle(new Request("http://localhost/api/v1/auth/otp/verify", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ phone: "9000000002", code: "654321" }),
+  }));
+  assert.equal(res.status, 401);
+  const body = await res.json() as { error: { message: string; field?: string } };
+  assert.equal(body.error.message, "Request a new code");
+  assert.equal(body.error.field, "otp");
+  assert.equal(JSON.stringify(body).includes("654321"), false);
 });
 
 function utcShift(days: number) {
@@ -511,7 +504,7 @@ test("master portal access, grants, seats, audit, and concurrent writes", async 
       state.users.push({ id: "cash", name: "Cash", role: "Cashier", phone: "+910000000000", email: "", active: true, lastActiveMins: 0, pin: "", permissions: ["pos", "orders", "credit"] });
     });
     await call("PATCH", `/master/pharmacies/${id}/plan`, masterCookie, { plan: "Care", cycle: "monthly", renewsOn: utcShift(15), reason: "cashier check" });
-    const cashier = "namma_session=" + await createSession(id, "cash", "+910000000000");
+    const cashier = "namma_session=" + (await createSession(id, "cash", "+910000000000")).access;
     assert.equal((await call("GET", "/reports/catalog", cashier)).status, 403);
     assert.equal((await call("GET", "/reports/catalog", pharmacyCookie)).status, 200);
 
@@ -824,6 +817,115 @@ test("a pharmacy signs in with a pin after signup, and records cannot be deleted
     assert.equal((await call("POST", "/auth/otp/send", undefined, { phone, purpose: "reset" })).status, 200);
     assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone, code: "123456", purpose: "reset" })).status, 200);
   } finally {
+    if (ids.length) await pool.query("DELETE FROM pharmacies WHERE id = ANY($1::uuid[])", [ids]);
+  }
+});
+
+function cookieHeader(res: Response) {
+  const rows = typeof res.headers.getSetCookie === "function" ? res.headers.getSetCookie() : [res.headers.get("set-cookie") || ""];
+  return rows.map((row) => row.split(";")[0]).filter((row) => row.includes("=")).join("; ");
+}
+
+test("otp delivery, verification limits, refresh rotation, and logout", async () => {
+  await migrate();
+  const pool = getPool();
+  const stamp = String(Date.now()).slice(-8);
+  const signup = "93" + stamp;
+  const leaving = "94" + stamp;
+  const expiredPhone = "92" + stamp;
+  const limited = "90" + stamp;
+  const cooled = "89" + stamp;
+  const ids: string[] = [];
+  const codes = new Map<string, string>();
+  const prev = delivery.sendOtp;
+  delivery.sendOtp = async (phone, otp) => { codes.set(phone, otp); };
+  const ttl = process.env.OTP_TTL_SECONDS;
+  const attempts = process.env.OTP_MAX_ATTEMPTS;
+  const restore = () => {
+    if (ttl === undefined) delete process.env.OTP_TTL_SECONDS;
+    else process.env.OTP_TTL_SECONDS = ttl;
+    if (attempts === undefined) delete process.env.OTP_MAX_ATTEMPTS;
+    else process.env.OTP_MAX_ATTEMPTS = attempts;
+  };
+  try {
+    assert.equal((await call("GET", "/session")).status, 401);
+    const sent = await call("POST", "/auth/otp/send", undefined, { phone: signup });
+    assert.equal(sent.status, 200);
+    const sentBody = await sent.json() as { delivery?: string };
+    const code = codes.get(e164(signup));
+    assert.equal(sentBody.delivery, "dev");
+    assert.ok(code);
+    assert.notEqual(code, "123456");
+    assert.equal(JSON.stringify(sentBody).includes(code), false);
+    assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone: signup, code: code === "000000" ? "111111" : "000000", businessType: "pharmacy" })).status, 401);
+    const verified = await call("POST", "/auth/otp/verify", undefined, { phone: signup, code, businessType: "pharmacy", name: "OTP Medicals" });
+    assert.equal(verified.status, 200);
+    const login = await findLogin(e164(signup));
+    assert.ok(login);
+    ids.push(login.pharmacy_id);
+    const access = cookieOf(verified, "namma_session");
+    const bearer = decodeURIComponent(access.split("=")[1]);
+    assert.equal((await call("GET", "/session", undefined, undefined, { authorization: "Bearer " + bearer })).status, 200);
+    assert.equal((await call("GET", "/session", access.slice(0, -4) + "xxxx")).status, 401);
+    assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone: signup, code })).status, 401);
+
+    const header = cookieHeader(verified);
+    const renewed = await call("POST", "/auth/token/refresh", header);
+    assert.equal(renewed.status, 200);
+    const oldRefresh = header.split(";").map((part) => part.trim()).find((part) => part.startsWith("namma_refresh="));
+    assert.equal((await call("POST", "/auth/token/refresh", oldRefresh)).status, 401);
+    const nextRefresh = cookieHeader(renewed).split(";").map((part) => part.trim()).find((part) => part.startsWith("namma_refresh="));
+    assert.equal((await call("POST", "/auth/token/refresh", nextRefresh)).status, 401);
+    assert.equal((await call("GET", "/session", cookieOf(renewed, "namma_session"))).status, 401);
+
+    const sentOut = await call("POST", "/auth/otp/send", undefined, { phone: leaving });
+    assert.equal(sentOut.status, 200);
+    const outCode = codes.get(e164(leaving));
+    assert.ok(outCode);
+    assert.notEqual(outCode, "123456");
+    const signedOut = await call("POST", "/auth/otp/verify", undefined, { phone: leaving, code: outCode, businessType: "pharmacy", name: "Leave Medicals" });
+    assert.equal(signedOut.status, 200);
+    const outLogin = await findLogin(e164(leaving));
+    assert.ok(outLogin);
+    ids.push(outLogin.pharmacy_id);
+    const outCookies = cookieHeader(signedOut);
+    assert.equal((await call("POST", "/auth/logout", outCookies)).status, 200);
+    assert.equal((await call("GET", "/session", cookieOf(signedOut, "namma_session"))).status, 401);
+    assert.equal((await call("POST", "/auth/token/refresh", outCookies)).status, 401);
+
+    process.env.OTP_TTL_SECONDS = "0";
+    assert.equal((await call("POST", "/auth/otp/send", undefined, { phone: expiredPhone })).status, 200);
+    const expiredCode = codes.get(e164(expiredPhone));
+    assert.ok(expiredCode);
+    assert.notEqual(expiredCode, "123456");
+    const expired = await call("POST", "/auth/otp/verify", undefined, { phone: expiredPhone, code: expiredCode });
+    assert.equal(expired.status, 401);
+    assert.equal((await expired.json() as { error: { message: string } }).error.message, "That code has expired");
+    delete process.env.OTP_TTL_SECONDS;
+
+    process.env.OTP_MAX_ATTEMPTS = "2";
+    assert.equal((await call("POST", "/auth/otp/send", undefined, { phone: limited })).status, 200);
+    const limitedCode = codes.get(e164(limited));
+    assert.ok(limitedCode);
+    assert.notEqual(limitedCode, "123456");
+    const wrong = limitedCode === "000000" ? "111111" : "000000";
+    assert.equal((await call("POST", "/auth/otp/verify", undefined, { phone: limited, code: wrong })).status, 401);
+    const locked = await call("POST", "/auth/otp/verify", undefined, { phone: limited, code: wrong });
+    assert.equal(locked.status, 401);
+    assert.equal((await locked.json() as { error: { message: string } }).error.message, "Too many attempts. Request a new code");
+    const afterLock = await call("POST", "/auth/otp/verify", undefined, { phone: limited, code: limitedCode });
+    assert.equal(afterLock.status, 401);
+    assert.equal((await afterLock.json() as { error: { message: string } }).error.message, "Too many attempts. Request a new code");
+    delete process.env.OTP_MAX_ATTEMPTS;
+
+    assert.equal((await call("POST", "/auth/otp/send", undefined, { phone: cooled })).status, 200);
+    const again = await call("POST", "/auth/otp/send", undefined, { phone: cooled });
+    assert.equal(again.status, 429);
+    assert.equal((await again.json() as { error: { message: string } }).error.message, "Wait before requesting another code");
+  } finally {
+    delivery.sendOtp = prev;
+    restore();
+    await pool.query("DELETE FROM otp_challenges WHERE phone = ANY($1::text[])", [[signup, leaving, expiredPhone, limited, cooled].map((phone) => e164(phone))]);
     if (ids.length) await pool.query("DELETE FROM pharmacies WHERE id = ANY($1::uuid[])", [ids]);
   }
 });

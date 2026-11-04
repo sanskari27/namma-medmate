@@ -396,14 +396,14 @@ export async function startImpersonation(master: MasterSession, id: string) {
   const state = await loadState(id);
   const owner = state.users.find((user) => user.role === "Owner" && user.active !== false) || state.users.find((user) => user.active !== false);
   if (!owner) fail(404, "NOT_FOUND", "This pharmacy has no active user");
-  const token = await createSession(id, owner.id, owner.phone || state.profile.phone, master.phone);
+  const issued = await createSession(id, owner.id, owner.phone || state.profile.phone, master.phone);
   try {
     await recordAudit(master.phone, id, "impersonate", {}, { userId: owner.id }, "");
   } catch (err) {
-    await destroySession(token);
+    await destroySession(issued.sid);
     throw err;
   }
-  return token;
+  return issued;
 }
 
 export async function bookConsultation(body: Record<string, unknown>) {

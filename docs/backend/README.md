@@ -19,7 +19,7 @@ Do not add a second backend process or an ORM. Postgres, the `pg` driver, and SQ
 
 ## Session and scope
 
-The sign-in route calls Cognito when it is configured, then sets an HTTP-only session cookie. Local development without Cognito accepts any six-digit code. Production without Cognito refuses sign-in.
+`POST /auth/otp/send` generates a numeric code, stores only its hash, and calls `sendOtp` in `namma-pharmacy/src/server/sms.ts`. Replace the body of that function when the DLT SMS provider is ready. The route never returns the code. `POST /auth/otp/verify` checks the hash, expiry, attempt count, and single use, then sets an HTTP-only access JWT and a refresh cookie. `POST /auth/token/refresh` rotates the refresh token. `POST /auth/logout` and `POST /auth/sign-out` delete the session. Protected routes accept the access cookie or `Authorization: Bearer`. Outside production, `123456` is still accepted so local sign-in works before SMS delivery exists. Production does not accept that fixture.
 
 Target constraints:
 

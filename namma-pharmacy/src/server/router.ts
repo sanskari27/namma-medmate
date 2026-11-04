@@ -7,11 +7,12 @@ import { REPORT_CATALOG, runReport } from "../app/lib/reportCatalog";
 import { catalogCsvText } from "../app/lib/reportExport";
 import { buildInvoicePdf } from "../app/lib/pdf";
 import { fromPaise, reportToPaise, toPaise } from "../app/lib/paise";
-import { cognitoConfigured, sendCognitoOtp, verifyCognitoOtp } from "./auth";
+import { authConfig, devCodeAccepted, otpConfig, prepareSend, sessionIdOf } from "./auth";
 import {
-  createSession, destroySession, e164, findLogin, insertPharmacy, loadState, loginPinMatches, readSession,
-  replaceState, requestHash, saveChallenge, setLoginPin, setUnlocked, takeChallenge, withIdempotent, withState, type SessionRow,
+  checkOtp, createSession, destroySession, e164, findLogin, insertPharmacy, loadChallenge, loadState, loginPinMatches, readSession,
+  replaceState, requestHash, revokeRefresh, rotateSession, saveChallenge, setLoginPin, setUnlocked, withIdempotent, withState, type SessionRow,
 } from "./db";
+import { deliverOtp } from "./sms";
 import { ApiError } from "./errors";
 import { expandFiles, readFile } from "./files";
 import {
@@ -23,6 +24,7 @@ import { demoState, emptyState, type PharmacyState } from "./state";
 import type { BusinessType } from "./types";
 
 const COOKIE = "namma_session";
+const REFRESH = "namma_refresh";
 
 type Ctx = {
   req: Request;
@@ -34,15 +36,22 @@ type Ctx = {
   state: PharmacyState;
 };
 
-function cookie(token: string | null) {
+function cookieValue(req: Request, name: string) {
+  const hit = (req.headers.get("cookie") || "").split(";").map((s) => s.trim()).find((s) => s.startsWith(name + "="));
+  return hit ? decodeURIComponent(hit.slice(name.length + 1)) : undefined;
+}
+
+function cookie(name: string, token: string | null, maxAge: number, path: string) {
   const secure = process.env.NODE_ENV === "production" ? "; Secure" : "";
-  if (!token) return `${COOKIE}=; HttpOnly; Path=/; SameSite=Lax; Max-Age=0${secure}`;
-  return `${COOKIE}=${token}; HttpOnly; Path=/; SameSite=Lax; Max-Age=${30 * 86400}${secure}`;
+  const value = token ? encodeURIComponent(token) : "";
+  return `${name}=${value}; HttpOnly; Path=${path}; SameSite=Lax; Max-Age=${token ? maxAge : 0}${secure}`;
 }
 
 function tokenOf(req: Request) {
-  const hit = (req.headers.get("cookie") || "").split(";").map((s) => s.trim()).find((s) => s.startsWith(COOKIE + "="));
-  return hit ? decodeURIComponent(hit.slice(COOKIE.length + 1)) : undefined;
+  const cookieToken = cookieValue(req, COOKIE);
+  if (cookieToken) return cookieToken;
+  const header = req.headers.get("authorization") || "";
+  return header.startsWith("Bearer ") ? header.slice("Bearer ".length).trim() : undefined;
 }
 
 function devAuth() { return process.env.NODE_ENV !== "production"; }
@@ -53,9 +62,11 @@ function encode(body: unknown) {
   return toPaise(expanded);
 }
 
-function send(body: unknown, status = 200, token?: string | null, masterToken?: string | null) {
+function send(body: unknown, status = 200, token?: string | null, masterToken?: string | null, refresh?: string | null) {
   const headers = new Headers({ "content-type": "application/json" });
-  if (token !== undefined) headers.append("set-cookie", cookie(token));
+  const ttl = authConfig();
+  if (token !== undefined) headers.append("set-cookie", cookie(COOKIE, token, ttl.accessTtl, "/"));
+  if (refresh !== undefined) headers.append("set-cookie", cookie(REFRESH, refresh, ttl.refreshTtl, "/api/v1/auth"));
   if (masterToken !== undefined) headers.append("set-cookie", masterCookie(masterToken));
   return new Response(JSON.stringify(encode(body)), { status, headers });
 }
@@ -370,8 +381,9 @@ export async function handle(req: Request): Promise<Response> {
     if (req.method === "POST" && path === "/auth/pin/set") return await savePin(req, body);
     if (req.method === "POST" && path === "/auth/otp/send") return await sendOtp(body);
     if (req.method === "POST" && path === "/auth/otp/verify") return await verifyOtp(body);
+    if (req.method === "POST" && path === "/auth/token/refresh") return await refreshTokens(req, body);
     if (path.startsWith("/master")) return await masterApi(req, path, url, body);
-    if (req.method === "POST" && path === "/auth/sign-out") return await signOut(req);
+    if (req.method === "POST" && (path === "/auth/sign-out" || path === "/auth/logout")) return await signOut(req);
     if (req.method === "POST" && path === "/demo/reset") return await demoReset(req);
     if (req.method === "POST" && path === "/hospital/pricing/unlock") return await unlockPricing(req, body);
     if (req.method === "GET" && path.startsWith("/sales/") && path.endsWith("/invoice.pdf")) return await invoicePdf(req, path.slice("/sales/".length, -"/invoice.pdf".length));
@@ -451,10 +463,10 @@ async function openPharmacy(phone: string, login: { pharmacy_id: string; user_id
   const state = await loadState(login.pharmacy_id);
   const user = state.users.find((u) => u.id === login.user_id);
   if (user && user.active === false) throw new ApiError(403, "FORBIDDEN", "This user is inactive");
-  const token = await createSession(login.pharmacy_id, login.user_id, phone);
-  const session = await readSession(token);
+  const issued = await createSession(login.pharmacy_id, login.user_id, phone);
+  const session = await readSession(issued.access);
   if (!session) throw new ApiError(500, "VALIDATION", "Could not start a session");
-  return send(sessionView(state, session), 200, token);
+  return send(sessionView(state, session), 200, issued.access, undefined, issued.refresh);
 }
 
 async function sendOtp(body: Record<string, unknown>) {
@@ -464,27 +476,29 @@ async function sendOtp(body: Record<string, unknown>) {
     const existing = await findLogin(phone);
     if (existing?.login_pin_hash) throw new ApiError(403, "FORBIDDEN", "Sign in with your PIN", "pin");
   }
-  if (!cognitoConfigured()) {
-    if (!devAuth()) throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
-    return send({ delivery: "dev" });
+  const cfg = otpConfig();
+  const prepared = prepareSend(await loadChallenge(phone), Date.now(), cfg);
+  if ("error" in prepared) {
+    const message = prepared.error === "cooldown" ? "Wait before requesting another code" : "Too many codes. Try again later.";
+    throw new ApiError(429, "VALIDATION", message, "otp");
   }
-  const challenge = await sendCognitoOtp(phone);
-  await saveChallenge(phone, challenge);
-  return send({ delivery: "sms" });
+  await saveChallenge(phone, prepared.state);
+  await deliverOtp(phone, prepared.otp);
+  return send({ delivery: devAuth() ? "dev" : "sms" });
 }
 
 async function verifyOtp(body: Record<string, unknown>) {
   const phone = e164(String(body.phone || ""));
   const code = String(body.code || "").replace(/\D/g, "");
-  const digits = cognitoConfigured() ? 8 : 6;
+  const digits = otpConfig().length;
   if (code.length !== digits) throw new ApiError(400, "VALIDATION", `Enter the ${digits}-digit code`, "otp");
   const businessType: BusinessType = body.businessType === "hospital" ? "hospital" : "pharmacy";
-  if (cognitoConfigured()) {
-    const challenge = await takeChallenge(phone);
-    if (!challenge?.cognito_session) throw new ApiError(401, "UNAUTHENTICATED", "Request a new code", "otp");
-    await verifyCognitoOtp(phone, code, challenge.cognito_session);
-  } else if (!devAuth()) {
-    throw new ApiError(503, "VALIDATION", "Sign-in is not configured");
+  if (!devCodeAccepted(code)) {
+    const result = await checkOtp(phone, code, otpConfig().maxAttempts);
+    if (result === "expired") throw new ApiError(401, "UNAUTHENTICATED", "That code has expired", "otp");
+    if (result === "locked") throw new ApiError(401, "UNAUTHENTICATED", "Too many attempts. Request a new code", "otp");
+    if (result === "invalid") throw new ApiError(401, "UNAUTHENTICATED", "That code was not accepted", "otp");
+    if (result !== "ok") throw new ApiError(401, "UNAUTHENTICATED", "Request a new code", "otp");
   }
   if (body.portal === "master") {
     if (!(await isMasterPhone(phone))) throw new ApiError(403, "FORBIDDEN", "This phone is not a master login");
@@ -526,7 +540,10 @@ async function masterApi(req: Request, path: string, url: URL, body: Record<stri
   if (req.method === "GET" && path === "/master/coupons") return send(await listCoupons());
   if (req.method === "POST" && path === "/master/coupons") return send(await issueCoupon(master, body));
   if (req.method === "PATCH" && consult) return send(await markConsultation(id(consult[1]), body));
-  if (req.method === "POST" && impersonate) return send({ ok: true }, 200, await startImpersonation(master, id(impersonate[1])));
+  if (req.method === "POST" && impersonate) {
+    const issued = await startImpersonation(master, id(impersonate[1]));
+    return send({ ok: true }, 200, issued.access, undefined, issued.refresh);
+  }
   if (req.method === "GET" && one) return send(await pharmacyProfile(id(one[1])));
   if (req.method === "PATCH" && plan) return send(await assignPlan(master, id(plan[1]), body));
   if (req.method === "PUT" && grants) return send(await assignGrants(master, id(grants[1]), body));
@@ -538,12 +555,23 @@ async function masterApi(req: Request, path: string, url: URL, body: Record<stri
   throw new ApiError(404, "NOT_FOUND", "No such API");
 }
 
+async function refreshTokens(req: Request, body: Record<string, unknown>) {
+  const presented = String(body.refreshToken || "") || cookieValue(req, REFRESH);
+  if (!presented) throw new ApiError(401, "UNAUTHENTICATED", "Sign in required");
+  const issued = await rotateSession(presented);
+  if (typeof issued === "string") throw new ApiError(401, "UNAUTHENTICATED", issued === "reuse" ? "Session revoked" : "Sign in required");
+  return send({ ok: true }, 200, issued.access, undefined, issued.refresh);
+}
+
 async function signOut(req: Request) {
   const token = tokenOf(req);
   const session = token ? await readSession(token) : null;
   if (session?.impersonator) await recordAudit(session.impersonator, session.pharmacyId, "impersonate-end", {}, { userId: session.userId }, "");
-  if (token) await destroySession(token);
-  return send({ ok: true }, 200, null);
+  const sid = token ? sessionIdOf(token) : null;
+  if (sid) await destroySession(sid);
+  const refresh = cookieValue(req, REFRESH);
+  if (refresh) await revokeRefresh(refresh);
+  return send({ ok: true }, 200, null, undefined, null);
 }
 
 async function demoReset(req: Request) {

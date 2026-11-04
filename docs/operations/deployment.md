@@ -27,9 +27,9 @@ Before that script runs, deploy upserts the `pharmacy.nammamedmate.com` A record
 
 ## Runtime configuration
 
-`scripts/pull-prod-env.sh` writes the SSM parameter `/namma-medmate-prod/compose.env` to `.env` before Compose starts. The website image reads `WEBSITE_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL`, and `NEXT_PUBLIC_PHARMACY_URL` (where the public consultation form posts). The pharmacy image reads `DATABASE_URL`, `AWS_REGION`, `COGNITO_USER_POOL_ID`, `COGNITO_CLIENT_ID`, `COGNITO_CLIENT_SECRET`, `S3_BUCKET`, and optional `MASTER_PHONES` (comma-separated master login numbers, seeded into the allowlist on startup).
+`scripts/pull-prod-env.sh` writes the SSM parameter `/namma-medmate-prod/compose.env` to `.env` before Compose starts. The website image reads `WEBSITE_SITE_URL`, `NEXT_PUBLIC_API_BASE_URL`, and `NEXT_PUBLIC_PHARMACY_URL` (where the public consultation form posts). The pharmacy image reads `DATABASE_URL`, `AWS_REGION`, `S3_BUCKET`, `AUTH_JWT_SECRET`, and optional `MASTER_PHONES` (comma-separated master login numbers, seeded into the allowlist on startup). Optional OTP and token settings are `OTP_LENGTH`, `OTP_TTL_SECONDS`, `OTP_MAX_ATTEMPTS`, `OTP_RESEND_COOLDOWN_SECONDS`, `OTP_MAX_SENDS`, `OTP_SEND_WINDOW_SECONDS`, `AUTH_ACCESS_TTL_SECONDS`, and `AUTH_REFRESH_TTL_SECONDS`.
 
-Terraform can create RDS, the Cognito user pool, and the file bucket. Apply it by hand from `infra/terraform/envs/prod`. Put the RDS URL into the SSM parameter after apply. Terraform does not overwrite the existing parameter value. The release workflow does not apply Terraform. Production SMS in India needs the Cognito sender registered before phones outside the pool's allow-list receive codes.
+Terraform can create RDS and the file bucket. Apply it by hand from `infra/terraform/envs/prod`. Put the RDS URL and `AUTH_JWT_SECRET` into the SSM parameter after apply. Terraform does not overwrite the existing parameter value. The release workflow does not apply Terraform. The next apply removes the Cognito user pool, its app client, and the SMS role if they are still in state. Production SMS is not sent until `sendOtp` in `namma-pharmacy/src/server/sms.ts` is implemented for the DLT provider. Sign-in refuses to start when `AUTH_JWT_SECRET` is empty.
 
 ## Health and rollback
 

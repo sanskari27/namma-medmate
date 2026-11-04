@@ -4,7 +4,7 @@ const FIELDS: [RegExp, string][] = [
   [/gstin/i, "gstin"],
   [/ifsc/i, "ifsc"],
   [/mobile|phone/i, "phone"],
-  [/otp|\d-digit code|code was not accepted|request a new code/i, "otp"],
+  [/otp|\d-digit code|code was not accepted|request a new code|code has expired|another code|too many codes/i, "otp"],
   [/pin/i, "pin"],
   [/e-?mail/i, "email"],
   [/amount|must be positive/i, "amount"],
